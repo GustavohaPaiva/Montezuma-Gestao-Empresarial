@@ -161,7 +161,7 @@ export default function ButtonDefault({ children, className = "", onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] h-[40px] text-[18px] text-[#464C54] transition-all active:scale-[0.98] ${className}`}
+      className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] h-[40px] text-[18px] text-[#464C54] transition-all active:scale-[0.98] cursor-pointer hover:bg-[#efefef] ${className}`}
     >
       {children}
     </button>
@@ -171,32 +171,283 @@ export default function ButtonDefault({ children, className = "", onClick }) {
 ```
 
 ---
+### Caminho: src\components\Modal.jsx
+```javascript
+export default function Modal({ isOpen, onClose, title, children }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white w-[90%] max-w-[500px] rounded-[12px] shadow-2xl overflow-hidden">
+        {/* Header do Modal */}
+        <div className="flex justify-between items-center p-[20px] border-b border-[#DBDADE] bg-[#FBFBFC]">
+          <h2 className="text-[20px] font-bold text-[#464C54] uppercase tracking-wide">
+            {title}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-[#71717A] hover:text-black transition-colors text-[24px]"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* Conteúdo */}
+        <div className="p-[20px]">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+```
+
+---
+### Caminho: src\components\ModalMaoDeObra.jsx
+```javascript
+import { useState } from "react";
+import ButtonDefault from "./ButtonDefault";
+
+export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
+  const [formData, setFormData] = useState({
+    servico: "",
+    profissional: "",
+    valor: "",
+  });
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-[10px] sm:p-[20px]">
+      <div className="bg-[#ffffff] w-[466px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
+        <div className="p-[20px] sm:p-[30px] border-b border-[#DBDADE] bg-[#FBFBFC] flex justify-between items-center">
+          <div className="max-w-[80%]">
+            <h2 className="text-[18px] sm:text-[24px] font-bold text-[#464C54] uppercase tracking-tight">
+              Solicitação Mão de Obra
+            </h2>
+            <p className="text-[12px] sm:text-[16px] text-[#71717A] truncate">
+              Obra: {nomeObra}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[28px] sm:text-[40px] leading-none text-[#71717A] hover:text-black cursor-pointer p-2"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div className="p-[20px] sm:p-[30px] flex flex-col gap-[15px] sm:gap-[25px] overflow-y-auto">
+          <div className="flex flex-col gap-[6px] sm:gap-[8px]">
+            <label className="text-[11px] sm:text-[14px] font-bold text-[#71717A] uppercase">
+              Serviço
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Pintura de fachada"
+              className="h-[45px] sm:h-[55px] text-[16px] sm:text-[18px] px-[15px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54]"
+              onChange={(e) =>
+                setFormData({ ...formData, servico: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="flex flex-col gap-[6px] sm:gap-[8px]">
+            <label className="text-[11px] sm:text-[14px] font-bold text-[#71717A] uppercase">
+              Profissional
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Pedreiro, Pintor..."
+              className="h-[45px] sm:h-[55px] text-[16px] sm:text-[18px] px-[15px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54]"
+              onChange={(e) =>
+                setFormData({ ...formData, profissional: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="flex flex-col gap-[6px] sm:gap-[8px]">
+            <label className="text-[11px] sm:text-[14px] font-bold text-[#71717A] uppercase">
+              Valor Estimado
+            </label>
+            <input
+              type="text"
+              placeholder="R$ 0,00"
+              className="h-[45px] sm:h-[55px] text-[16px] sm:text-[18px] px-[15px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54]"
+              onChange={(e) =>
+                setFormData({ ...formData, valor: e.target.value })
+              }
+            />
+          </div>
+
+          <ButtonDefault
+            onClick={() => {
+              onSave(formData);
+              onClose();
+            }}
+            className="w-full bg-[#464C54] text-white border-none h-[50px] sm:h-[60px] text-[16px] sm:text-[20px] mt-[10px]"
+          >
+            Confirmar Registro
+          </ButtonDefault>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+```
+
+---
+### Caminho: src\components\ModalMateriais.jsx
+```javascript
+import { useState } from "react";
+import ButtonDefault from "./ButtonDefault";
+
+export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
+  const [material, setMaterial] = useState("");
+  const [quantidade, setQuantidade] = useState("");
+  const [unidade, setUnidade] = useState("");
+
+  if (!isOpen) return null;
+
+  const handleMaterialChange = (e) => {
+    const valor = e.target.value;
+    setMaterial(valor);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-[10px] sm:p-[20px]">
+      <div className="bg-[#ffffff] w-[466px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
+        {/* Header Responsivo */}
+        <div className="p-[20px] sm:p-[30px] border-b border-[#DBDADE] bg-[#FBFBFC] flex justify-between items-center">
+          <div className="max-w-[80%]">
+            <h2 className="text-[18px] sm:text-[24px] font-bold text-[#464C54] uppercase tracking-tight">
+              Solicitação Material
+            </h2>
+            <p className="text-[12px] sm:text-[16px] text-[#71717A] truncate">
+              Obra: {nomeObra}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[28px] sm:text-[40px] leading-none text-[#71717A] hover:text-black cursor-pointer p-2"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* Conteúdo Responsivo */}
+        <div className="p-[20px] sm:p-[30px] flex flex-col gap-[15px] sm:gap-[25px] overflow-y-auto">
+          <div className="flex flex-col gap-[6px] sm:gap-[8px]">
+            <label className="text-[11px] sm:text-[14px] font-bold text-[#71717A] uppercase">
+              Material
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Cimento CP-II"
+              value={material}
+              onChange={handleMaterialChange}
+              className="h-[45px] sm:h-[55px] text-[16px] sm:text-[18px] px-[15px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54]"
+            />
+          </div>
+
+          <div className="flex gap-[10px] sm:gap-[20px]">
+            <div className="flex-[2] flex flex-col gap-[6px] sm:gap-[8px]">
+              <label className="text-[11px] sm:text-[14px] font-bold text-[#71717A] uppercase">
+                Quant.
+              </label>
+              <input
+                type="number"
+                placeholder="0"
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
+                className="h-[45px] sm:h-[55px] text-[16px] sm:text-[18px] px-[15px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54]"
+              />
+            </div>
+            <div className="flex-[1] flex flex-col gap-[6px] sm:gap-[8px]">
+              <label className="text-[11px] sm:text-[14px] font-bold text-[#71717A] uppercase">
+                Un.
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: sacos"
+                value={unidade}
+                onChange={(e) => setUnidade(e.target.value)}
+                className="h-[45px] sm:h-[55px] text-[16px] sm:text-[18px] px-[15px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54]"
+              />
+            </div>
+          </div>
+
+          <ButtonDefault
+            onClick={() => onSave({ material, quantidade, unidade })}
+            className="w-full bg-[#464C54] text-white border-none h-[50px] sm:h-[60px] text-[16px] sm:text-[20px] mt-[10px]"
+          >
+            Confirmar Solicitação
+          </ButtonDefault>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+```
+
+---
 ### Caminho: src\components\Navbar.jsx
 ```javascript
+import { useState, useEffect } from "react";
 import ButtonDefault from "./ButtonDefault";
 import logo from "../assets/logo.png";
 
 export default function Navbar({ searchTerm, onSearchChange }) {
-  return (
-    <header className="w-full border-b border-[#DBDADE] flex justify-center bg-white sticky top-0 z-10">
-      <div className="w-[90%] max-w-7xl h-[82px] flex items-center justify-between gap-[20px]">
-        <img src={logo} alt="" className="w-[120px] h-[75px] object-contain" />
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-        <div className="flex items-center gap-[10px]">
-          <div className="relative w-full max-w-[250px]">
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return (
+    <header
+      className={`w-full border-b border-[#DBDADE] flex justify-center bg-white sticky top-0 z-10 transition-all ${
+        isMobile ? "h-[150px]" : "h-[82px]"
+      }`}
+    >
+      <div
+        className={`w-[90%] max-w-7xl flex items-center justify-between gap-[20px] ${
+          isMobile ? "flex-col py-[20px]" : "flex-row h-full"
+        }`}
+      >
+        <img
+          src={logo}
+          alt="Logo Montezuma"
+          className={`object-contain transition-all ${
+            isMobile ? "hidden" : "w-[120px] h-[75px]"
+          }`}
+        />
+
+        <div
+          className={`flex items-end gap-[10px] ${
+            isMobile ? "flex-col w-full h-[150px]" : "flex-row items-center"
+          }`}
+        >
+          <ButtonDefault
+            className={`${isMobile ? "w-full h-[45px]" : "w-[150px]"} text-[14px] shrink-0`}
+          >
+            + Nova Obra
+          </ButtonDefault>
+
+          <div className={`relative ${isMobile ? "w-full" : "w-[250px]"}`}>
             <input
               type="text"
               placeholder="Buscar obra ou cliente..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] h-[35px] text-[18px] text-[#464C54] transition-all active:scale-[0.98]"
+              className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] text-[16px] text-[#464C54] px-[12px] focus:outline-none w-full box-border h-[40px] ${
+                isMobile ? "h-[45px]" : "h-[35px]"
+              }`}
             />
-            <span className="absolute right-3 top-2.5 text-gray-400 pointer-events-none"></span>
           </div>
-
-          <ButtonDefault className="w-[150px] text-[14px] shrink-0">
-            + Nova Obra
-          </ButtonDefault>
         </div>
       </div>
     </header>
@@ -355,12 +606,18 @@ import ButtonDefault from "../components/ButtonDefault";
 import { gerarPDF } from "../services/pdfService";
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
+import ModalMateriais from "../components/ModalMateriais";
+import ModalMaoDeObra from "../components/ModalMaoDeObra";
 
 export default function ObrasDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [obra, setObra] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Estados para controlar a abertura dos Modais
+  const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
+  const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -403,10 +660,16 @@ export default function ObrasDetalhe() {
           )}
           {!isMobile && (
             <div className="flex gap-[16px]">
-              <ButtonDefault className="w-[180px] text-[14px]">
+              <ButtonDefault
+                onClick={() => setModalMateriaisOpen(true)}
+                className="w-[180px] text-[14px]"
+              >
                 + Materiais
               </ButtonDefault>
-              <ButtonDefault className="w-[180px] text-[14px]">
+              <ButtonDefault
+                onClick={() => setModalMaoDeObraOpen(true)}
+                className="w-[180px] text-[14px]"
+              >
                 + Mão de Obra
               </ButtonDefault>
             </div>
@@ -417,10 +680,16 @@ export default function ObrasDetalhe() {
       <main className="w-[90%] mt-[24px]">
         {isMobile && (
           <div className="flex flex-col gap-[12px] mb-[24px]">
-            <ButtonDefault className="w-full h-[50px] text-[18px]">
+            <ButtonDefault
+              onClick={() => setModalMateriaisOpen(true)}
+              className="w-full h-[50px] text-[18px]"
+            >
               + Solicitar Materiais
             </ButtonDefault>
-            <ButtonDefault className="w-full h-[50px] text-[18px]">
+            <ButtonDefault
+              onClick={() => setModalMaoDeObraOpen(true)}
+              className="w-full h-[50px] text-[18px]"
+            >
               + Solicitar Mão de Obra
             </ButtonDefault>
           </div>
@@ -489,6 +758,27 @@ export default function ObrasDetalhe() {
           </ButtonDefault>
         </div>
       </main>
+
+      {/* COMPONENTES DE MODAL (Overlay) */}
+      <ModalMateriais
+        isOpen={modalMateriaisOpen}
+        onClose={() => setModalMateriaisOpen(false)}
+        nomeObra={obra.nome}
+        onSave={(dados) => {
+          console.log("Salvo material:", dados);
+          setModalMateriaisOpen(false);
+        }}
+      />
+
+      <ModalMaoDeObra
+        isOpen={modalMaoDeObraOpen}
+        onClose={() => setModalMaoDeObraOpen(false)}
+        nomeObra={obra.nome}
+        onSave={(dados) => {
+          console.log("Salvo mão de obra:", dados);
+          setModalMaoDeObraOpen(false);
+        }}
+      />
     </div>
   );
 }

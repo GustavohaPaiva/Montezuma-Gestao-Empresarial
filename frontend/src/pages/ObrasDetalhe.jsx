@@ -4,12 +4,18 @@ import ButtonDefault from "../components/ButtonDefault";
 import { gerarPDF } from "../services/pdfService";
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
+import ModalMateriais from "../components/ModalMateriais";
+import ModalMaoDeObra from "../components/ModalMaoDeObra";
 
 export default function ObrasDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [obra, setObra] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Estados para controlar a abertura dos Modais
+  const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
+  const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -52,10 +58,16 @@ export default function ObrasDetalhe() {
           )}
           {!isMobile && (
             <div className="flex gap-[16px]">
-              <ButtonDefault className="w-[180px] text-[14px]">
+              <ButtonDefault
+                onClick={() => setModalMateriaisOpen(true)}
+                className="w-[180px] text-[14px]"
+              >
                 + Materiais
               </ButtonDefault>
-              <ButtonDefault className="w-[180px] text-[14px]">
+              <ButtonDefault
+                onClick={() => setModalMaoDeObraOpen(true)}
+                className="w-[180px] text-[14px]"
+              >
                 + Mão de Obra
               </ButtonDefault>
             </div>
@@ -66,10 +78,16 @@ export default function ObrasDetalhe() {
       <main className="w-[90%] mt-[24px]">
         {isMobile && (
           <div className="flex flex-col gap-[12px] mb-[24px]">
-            <ButtonDefault className="w-full h-[50px] text-[18px]">
+            <ButtonDefault
+              onClick={() => setModalMateriaisOpen(true)}
+              className="w-full h-[50px] text-[18px]"
+            >
               + Solicitar Materiais
             </ButtonDefault>
-            <ButtonDefault className="w-full h-[50px] text-[18px]">
+            <ButtonDefault
+              onClick={() => setModalMaoDeObraOpen(true)}
+              className="w-full h-[50px] text-[18px]"
+            >
               + Solicitar Mão de Obra
             </ButtonDefault>
           </div>
@@ -138,6 +156,27 @@ export default function ObrasDetalhe() {
           </ButtonDefault>
         </div>
       </main>
+
+      {/* COMPONENTES DE MODAL (Overlay) */}
+      <ModalMateriais
+        isOpen={modalMateriaisOpen}
+        onClose={() => setModalMateriaisOpen(false)}
+        nomeObra={obra.nome}
+        onSave={(dados) => {
+          console.log("Salvo material:", dados);
+          setModalMateriaisOpen(false);
+        }}
+      />
+
+      <ModalMaoDeObra
+        isOpen={modalMaoDeObraOpen}
+        onClose={() => setModalMaoDeObraOpen(false)}
+        nomeObra={obra.nome}
+        onSave={(dados) => {
+          console.log("Salvo mão de obra:", dados);
+          setModalMaoDeObraOpen(false);
+        }}
+      />
     </div>
   );
 }
