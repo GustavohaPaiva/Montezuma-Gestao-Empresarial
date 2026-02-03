@@ -26,32 +26,37 @@ export const api = {
   },
 
   getObraById: async (id) => {
-    const { data: obra, error: erroObra } = await supabase
+    const { data, error } = await supabase
       .from("obras")
-      .select("*")
+      .select(
+        `
+        *,
+        materiais:relatorio_materiais(*),
+        maoDeObra:relatorio_mao_de_obra(*),
+        relatorioCliente:relatorio_cliente(*)
+      `,
+      )
       .eq("id", id)
       .single();
-    if (erroObra) throw erroObra;
 
-    const { data: materiais } = await supabase
-      .from("relatorio_materiais")
-      .select("*")
-      .eq("obra_id", id);
-    const { data: maoDeObra } = await supabase
-      .from("relatorio_mao_de_obra")
-      .select("*")
-      .eq("obra_id", id);
-    const { data: relatorioCliente } = await supabase
-      .from("relatorio_cliente")
-      .select("*")
-      .eq("obra_id", id);
+    if (error) throw error;
 
     return {
-      ...obra,
-      materiais: materiais || [],
-      maoDeObra: maoDeObra || [],
-      relatorioCliente: relatorioCliente || [],
+      ...data,
+      materiais: data.materiais || [],
+      maoDeObra: data.maoDeObra || [],
+      relatorioCliente: data.relatorioCliente || [],
     };
+  },
+
+  updateMaterialStatus: async (id, novoStatus) => {
+    const { data, error } = await supabase
+      .from("relatorio_materiais")
+      .update({ status: novoStatus })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
   },
 
   addMaterial: async (dados) => {
@@ -84,13 +89,13 @@ export const api = {
   },
 
   addMaoDeObra: async (dados) => {
-    // Salva na tabela de mão de obra
     const { data, error } = await supabase
       .from("relatorio_mao_de_obra")
       .insert([
         {
           obra_id: dados.obra_id,
           tipo: dados.tipo,
+          profissional: dados.profissional,
           valor: dados.valor,
           data_solicitacao: dados.data_solicitacao,
         },
@@ -98,15 +103,14 @@ export const api = {
       .select();
     if (error) throw error;
 
-    // Alimenta a tabela de relatório para cliente
     await supabase.from("relatorio_cliente").insert([
       {
         obra_id: dados.obra_id,
-        descricao: `${dados.servico}`,
+        descricao: `${dados.tipo} - ${dados.profissional}`,
         tipo: "Mão de Obra",
         quantidade: 1,
-        data: dados.data_servico,
-        valor: dados.valor_estimado,
+        data: dados.data_solicitacao,
+        valor: dados.valor,
       },
     ]);
     return data[0];

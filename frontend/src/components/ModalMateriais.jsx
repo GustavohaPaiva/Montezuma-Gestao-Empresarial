@@ -4,9 +4,27 @@ import ButtonDefault from "./ButtonDefault";
 export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
   const [material, setMaterial] = useState("");
   const [quantidade, setQuantidade] = useState("");
-  const [unidade, setUnidade] = useState("");
+  const [unidade, setUnidade] = useState("Un."); // Garante valor inicial
+
+  const listaUnidades = ["Sc.", "Kg.", "Lt.", "m²", "m³", "Un.", "Lata"];
 
   if (!isOpen) return null;
+
+  const handleConfirmar = () => {
+    // Validação básica para evitar erros na API
+    if (!material || !quantidade) {
+      alert("Preencha o material e a quantidade!");
+      return;
+    }
+
+    // Chama a função do pai passando o objeto pronto
+    onSave({ material, quantidade, unidade });
+
+    // Limpa os campos para a próxima
+    setMaterial("");
+    setQuantidade("");
+    setUnidade("Un.");
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-[10px]">
@@ -22,13 +40,13 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
           </div>
           <button
             onClick={onClose}
-            className="border border-none bg-transparent w-[50px] h-[50px]"
+            className="border-none bg-transparent w-[50px] h-[50px] cursor-pointer"
           >
             <img
-              width="40"
-              height="40"
+              width="30"
+              height="30"
               src="https://img.icons8.com/ios/50/multiply.png"
-              alt="multiply"
+              alt="fechar"
             />
           </button>
         </div>
@@ -64,18 +82,22 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
               <label className="text-[12px] font-bold text-[#71717A] uppercase">
                 Un.
               </label>
-              <input
-                type="text"
-                placeholder="Ex: sacos"
+              <select
                 value={unidade}
                 onChange={(e) => setUnidade(e.target.value)}
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
-              />
+                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] cursor-pointer appearance-none"
+              >
+                {listaUnidades.map((un) => (
+                  <option key={un} value={un}>
+                    {un}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           <ButtonDefault
-            onClick={() => onSave({ material, quantidade, unidade })}
+            onClick={handleConfirmar}
             className="w-full bg-[#464C54] text-white border-none h-[50px] text-[16px] font-bold mt-[10px]"
           >
             Confirmar Solicitação

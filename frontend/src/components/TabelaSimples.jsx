@@ -1,7 +1,7 @@
 export default function TabelaSimples({ titulo, colunas, dados }) {
   return (
-    <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[8px] overflow-hidden shadow-sm w-full mb-[24px]">
-      <div className="border-b border-[#DBDADE] bg-[#FBFBFC] flex justify-center">
+    <div className="bg-[#FFFFFF] border border-[#DBDADE] rounded-[8px] overflow-hidden shadow-sm w-full mb-[24px]">
+      <div className="border-b border-[#DBDADE] bg-[#FFFFFF] py-3 flex justify-center">
         <h3 className="font-bold text-[#464C54]">{titulo}</h3>
       </div>
       <div className="overflow-x-auto">
@@ -21,7 +21,7 @@ export default function TabelaSimples({ titulo, colunas, dados }) {
                 key={i}
                 className="border-b border-[#F0F0F2] last:border-0 hover:bg-[#F9FAFB]"
               >
-                {Object.values(linha).map((valor, j) => (
+                {linha.map((valor, j) => (
                   <td key={j} className="p-[12px]">
                     {valor}
                   </td>
