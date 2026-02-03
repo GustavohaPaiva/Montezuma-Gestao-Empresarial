@@ -28,8 +28,8 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-[10px]">
-      <div className="bg-[#ffffff] w-full max-w-[500px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
-        <div className="p-[20px] border-b border-[#DBDADE] bg-[#FBFBFC] flex justify-between items-center">
+      <div className="bg-[#ffffff] w-full max-w-[500px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
+        <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
           <div className="flex-1 min-w-0">
             <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
               Solicitação Material

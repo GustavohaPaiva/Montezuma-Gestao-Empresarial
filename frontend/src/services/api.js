@@ -41,11 +41,16 @@ export const api = {
 
     if (error) throw error;
 
+    // Ordena o relatório do cliente por data (opcional, mas bom para organização)
+    const relatorioOrdenado = (data.relatorioCliente || []).sort(
+      (a, b) => new Date(b.data) - new Date(a.data),
+    );
+
     return {
       ...data,
       materiais: data.materiais || [],
       maoDeObra: data.maoDeObra || [],
-      relatorioCliente: data.relatorioCliente || [],
+      relatorioCliente: relatorioOrdenado,
     };
   },
 
@@ -59,8 +64,21 @@ export const api = {
     return data[0];
   },
 
+  // --- NOVA FUNÇÃO DE EDITAR VALOR ---
+  updateValorRelatorioCliente: async (id, novoValor) => {
+    const { data, error } = await supabase
+      .from("relatorio_cliente")
+      .update({ valor: novoValor })
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+    return data[0];
+  },
+  // -----------------------------------
+
   addMaterial: async (dados) => {
-    // Salva na tabela de materiais
+    // 1. Salva na tabela de materiais
     const { data, error } = await supabase
       .from("relatorio_materiais")
       .insert([
@@ -74,21 +92,29 @@ export const api = {
       .select();
     if (error) throw error;
 
-    // Alimenta a tabela de relatório para cliente
-    await supabase.from("relatorio_cliente").insert([
-      {
-        obra_id: dados.obra_id,
-        descricao: dados.material,
-        tipo: "Material",
-        quantidade: dados.quantidade,
-        data: dados.data_solicitacao,
-        valor: 0,
-      },
-    ]);
+    // 2. Alimenta tabela cliente e VERIFICA ERRO
+    const { error: errorCliente } = await supabase
+      .from("relatorio_cliente")
+      .insert([
+        {
+          obra_id: dados.obra_id,
+          descricao: dados.material,
+          tipo: "Material",
+          quantidade: dados.quantidade,
+          data: dados.data_solicitacao,
+          valor: 0,
+        },
+      ]);
+
+    if (errorCliente) {
+      console.error("Erro insert cliente:", errorCliente);
+      throw errorCliente;
+    }
     return data[0];
   },
 
   addMaoDeObra: async (dados) => {
+    // 1. Salva na tabela mão de obra
     const { data, error } = await supabase
       .from("relatorio_mao_de_obra")
       .insert([
@@ -103,16 +129,24 @@ export const api = {
       .select();
     if (error) throw error;
 
-    await supabase.from("relatorio_cliente").insert([
-      {
-        obra_id: dados.obra_id,
-        descricao: `${dados.tipo} - ${dados.profissional}`,
-        tipo: "Mão de Obra",
-        quantidade: 1,
-        data: dados.data_solicitacao,
-        valor: dados.valor,
-      },
-    ]);
+    // 2. Alimenta tabela cliente e VERIFICA ERRO
+    const { error: errorCliente } = await supabase
+      .from("relatorio_cliente")
+      .insert([
+        {
+          obra_id: dados.obra_id,
+          descricao: `${dados.tipo} - ${dados.profissional}`,
+          tipo: "Mão de Obra",
+          quantidade: "1",
+          data: dados.data_solicitacao,
+          valor: dados.valor,
+        },
+      ]);
+
+    if (errorCliente) {
+      console.error("Erro insert cliente:", errorCliente);
+      throw errorCliente;
+    }
     return data[0];
   },
 };

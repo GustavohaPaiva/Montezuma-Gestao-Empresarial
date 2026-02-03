@@ -7,6 +7,20 @@ import { api } from "../services/api";
 import ModalMateriais from "../components/ModalMateriais";
 import ModalMaoDeObra from "../components/ModalMaoDeObra";
 
+// --- Formatações (Fora do componente para performance máxima) ---
+const formatarDataBR = (dataString) => {
+  if (!dataString) return "-";
+  const [ano, mes, dia] = dataString.split("T")[0].split("-");
+  return `${dia}/${mes}/${ano}`;
+};
+
+const formatarMoeda = (valor) => {
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(valor);
+};
+
 export default function ObrasDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -16,22 +30,14 @@ export default function ObrasDetalhe() {
   const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
 
-  // --- Formatações ---
-  const formatarDataBR = (dataString) => {
-    if (!dataString) return "-";
-    const [ano, mes, dia] = dataString.split("T")[0].split("-");
-    return `${dia}/${mes}/${ano}`;
-  };
-
-  const formatarMoeda = (valor) => {
-    return new Intl.NumberFormat("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(valor);
-  };
+  // Estados para edição do valor
+  const [editandoId, setEditandoId] = useState(null);
+  const [valorEditado, setValorEditado] = useState("");
 
   // --- Buscas ---
+  // useCallback garante que esta função não seja recriada a cada render
   const fetchDados = useCallback(async () => {
+    if (!id) return;
     try {
       const dados = await api.getObraById(id);
       setObra(dados);
@@ -40,17 +46,14 @@ export default function ObrasDetalhe() {
     }
   }, [id]);
 
+  // --- CORREÇÃO DO ERRO PRINCIPAL ---
   useEffect(() => {
-    const carregarDados = async () => {
-      try {
-        const dados = await api.getObraById(id);
-        setObra(dados);
-      } catch (err) {
-        console.error("Erro ao buscar dados:", err);
-      }
+    // Envolvemos a chamada numa função async interna para satisfazer o Linter
+    const carregar = async () => {
+      await fetchDados();
     };
-    carregarDados();
-  }, [id]);
+    carregar();
+  }, [fetchDados]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -58,82 +61,120 @@ export default function ObrasDetalhe() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // --- Ações ---
+  // --- Ações (Todas com useCallback para funcionarem no useMemo) ---
 
-  // Lógica SIMPLIFICADA para mudar status
   const handleStatusChange = useCallback(
     async (materialId, novoStatus) => {
-      // 1. Atualiza visualmente na hora (sem esperar o banco)
-      setObra((prev) => ({
-        ...prev,
-        materiais: prev.materiais.map((m) =>
-          m.id === materialId ? { ...m, status: novoStatus } : m,
-        ),
-      }));
+      // Atualização Otimista
+      setObra((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          materiais: prev.materiais.map((m) =>
+            m.id === materialId ? { ...m, status: novoStatus } : m,
+          ),
+        };
+      });
 
-      // 2. Envia para o banco
       try {
         await api.updateMaterialStatus(materialId, novoStatus);
       } catch (err) {
-        console.error("Erro ao salvar status:", err);
-        // Se der erro, recarrega os dados reais para desfazer a mudança visual
-        const dados = await api.getObraById(id);
-        setObra(dados);
-        alert("Erro de conexão. O status não foi salvo.");
+        console.error("Erro status:", err);
+        fetchDados();
       }
     },
-    [id],
+    [fetchDados],
   );
 
-  const handleSaveMaterial = async (dados) => {
-    const dataAtual = new Date().toISOString().split("T")[0];
-    try {
-      setModalMateriaisOpen(false);
+  const handleSaveMaterial = useCallback(
+    async (dados) => {
+      const dataAtual = new Date().toISOString().split("T")[0];
+      try {
+        setModalMateriaisOpen(false);
+        await api.addMaterial({
+          obra_id: id,
+          material: dados.material,
+          quantidade: `${dados.quantidade} ${dados.unidade || "Un."}`,
+          data_solicitacao: dataAtual,
+        });
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro material:", err);
+        alert("Erro ao salvar material.");
+      }
+    },
+    [id, fetchDados],
+  );
 
-      await api.addMaterial({
-        obra_id: id,
-        material: dados.material,
-        quantidade: `${dados.quantidade} ${dados.unidade || "Un."}`,
+  const handleSaveMaoDeObra = useCallback(
+    async (dados) => {
+      const dataAtual = new Date().toISOString().split("T")[0];
+      try {
+        setModalMaoDeObraOpen(false);
+        await api.addMaoDeObra({
+          obra_id: id,
+          tipo: dados.tipo,
+          profissional: dados.profissional,
+          valor: parseFloat(dados.valor) || 0,
+          data_solicitacao: dataAtual,
+        });
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro mao de obra:", err);
+        alert("Erro ao salvar mão de obra.");
+      }
+    },
+    [id, fetchDados],
+  );
 
-        data_solicitacao: dataAtual,
+  // --- Lógica de Edição ---
+
+  const iniciarEdicao = useCallback((item) => {
+    setEditandoId(item.id);
+    setValorEditado(item.valor);
+  }, []);
+
+  const cancelarEdicao = useCallback(() => {
+    setEditandoId(null);
+    setValorEditado("");
+  }, []);
+
+  const salvarValor = useCallback(
+    async (itemId) => {
+      const valorFloat = parseFloat(valorEditado) || 0;
+
+      setObra((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          relatorioCliente: prev.relatorioCliente.map((item) =>
+            item.id === itemId ? { ...item, valor: valorFloat } : item,
+          ),
+        };
       });
 
-      // Atualiza a lista
-      await fetchDados();
-    } catch (err) {
-      console.error("Erro ao salvar material:", err);
-      alert("Erro ao salvar material. Tente novamente.");
-    }
-  };
+      setEditandoId(null);
 
-  const handleSaveMaoDeObra = async (dados) => {
-    const dataAtual = new Date().toISOString().split("T")[0];
-    try {
-      setModalMaoDeObraOpen(false);
+      try {
+        await api.updateValorRelatorioCliente(itemId, valorFloat);
+      } catch (err) {
+        console.error("Erro ao atualizar valor:", err);
+        alert("Erro ao salvar valor. Recarregando...");
+        fetchDados();
+      }
+    },
+    [valorEditado, fetchDados],
+  );
 
-      await api.addMaoDeObra({
-        obra_id: id,
-        tipo: dados.tipo,
-        profissional: dados.profissional,
-        valor: parseFloat(dados.valor) || 0,
-        data_solicitacao: dataAtual,
-      });
+  // --- Tabelas Memoizadas (Dependências Completas para o Linter) ---
 
-      await fetchDados();
-    } catch (err) {
-      console.error("Erro ao salvar mão de obra:", err);
-      alert("Erro ao salvar mão de obra.");
-    }
-  };
-
-  // --- Tabelas Memoizadas (Para performance, mas com lógica simples) ---
   const dadosMateriais = useMemo(() => {
-    if (!obra?.materiais) return [];
+    if (!obra || !obra.materiais) return [];
     return obra.materiais.map((m) => [
       m.material,
       m.quantidade,
       <select
-        key={m.id} // Key importante para o React não se perder
+        key={m.id}
         value={m.status || "Solicitado"}
         onChange={(e) => handleStatusChange(m.id, e.target.value)}
         className={`w-fit text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none ${
@@ -152,7 +193,7 @@ export default function ObrasDetalhe() {
   }, [obra, handleStatusChange]);
 
   const dadosMaoDeObra = useMemo(() => {
-    if (!obra?.maoDeObra) return [];
+    if (!obra || !obra.maoDeObra) return [];
     return obra.maoDeObra.map((m) => [
       m.tipo,
       m.profissional,
@@ -162,15 +203,77 @@ export default function ObrasDetalhe() {
   }, [obra]);
 
   const dadosRelatorioCliente = useMemo(() => {
-    if (!obra?.relatorioCliente) return [];
-    return obra.relatorioCliente.map((item) => [
-      item.descricao,
-      item.tipo,
-      item.quantidade,
-      formatarDataBR(item.data),
-      `R$ ${formatarMoeda(item.valor)}`,
-    ]);
-  }, [obra]);
+    if (!obra || !obra.relatorioCliente) return [];
+
+    return obra.relatorioCliente.map((item) => {
+      const isEditing = editandoId === item.id;
+
+      return [
+        item.descricao,
+        item.tipo,
+        item.quantidade,
+        formatarDataBR(item.data),
+        <div className="flex items-center justify-center gap-2" key={item.id}>
+          {isEditing ? (
+            <div className="flex items-center gap-1">
+              <span>R$</span>
+              <input
+                type=""
+                step="0.01"
+                value={valorEditado}
+                onChange={(e) => setValorEditado(e.target.value)}
+                className="w-[50px] p-[4px] border border-[#DBDADE] ml-[10px] rounded-[8px] focus:outline-none"
+                autoFocus
+              />
+              <button
+                onClick={() => salvarValor(item.id)}
+                className="cursor-pointer rounded-[50%] w-[25px] h-[25px] mx-[5px] flex items-center justify-center border-none"
+              >
+                <img
+                  width="15"
+                  height="15"
+                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
+                  alt="salvar"
+                />
+              </button>
+              <button
+                onClick={cancelarEdicao}
+                className="cursor-pointer rounded-[50%] w-[25px] h-[25px] mx-[5px] flex items-center justify-center border-none"
+              >
+                <img
+                  width="15"
+                  height="15"
+                  src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
+                  alt="cancelar"
+                />
+              </button>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => iniciarEdicao(item)}
+            >
+              <span>R$ {formatarMoeda(item.valor)}</span>
+              <img
+                width="15"
+                height="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit--v1"
+                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
+              />
+            </div>
+          )}
+        </div>,
+      ];
+    });
+  }, [
+    obra,
+    editandoId,
+    valorEditado,
+    iniciarEdicao,
+    salvarValor,
+    cancelarEdicao,
+  ]);
 
   if (!obra)
     return (
@@ -224,44 +327,72 @@ export default function ObrasDetalhe() {
           </div>
         )}
 
-        <div className="flex flex-col gap-10">
-          <TabelaSimples
-            titulo="Relatório de Materiais (Interno)"
-            colunas={["Material", "Quantidade", "Status", "Data"]}
-            dados={dadosMateriais}
-          />
+        <div>
+          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
+            <h1>Relatório de Materiais</h1>
+            <TabelaSimples
+              colunas={["Material", "Quantidade", "Status", "Data"]}
+              dados={dadosMateriais}
+            />
+            <ButtonDefault
+              onClick={() =>
+                gerarPDF(
+                  "Relatório Semanal",
+                  ["Material", "Quantidade", "Status", "Data"],
+                  dadosMateriais,
+                  obra.local,
+                )
+              }
+              className="w-full max-w-[450px]"
+            >
+              Gerar PDF para Cliente
+            </ButtonDefault>
+          </div>
+          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
+            <h1>Relatório de Mão-de-Obra</h1>
+            <TabelaSimples
+              colunas={["Serviço", "Profissional", "Valor", "Data"]}
+              dados={dadosMaoDeObra}
+            />
+            <ButtonDefault
+              onClick={() =>
+                gerarPDF(
+                  "Relatório Semanal",
+                  ["Serviço", "Profissional", "Valor", "Data"],
+                  dadosMaoDeObra,
+                  obra.local,
+                )
+              }
+              className="w-full max-w-[450px]"
+            >
+              Gerar PDF Mão de Obra
+            </ButtonDefault>
+          </div>
 
-          <TabelaSimples
-            titulo="Relatório de Mão de Obra (Interno)"
-            colunas={["Serviço", "Profissional", "Valor", "Data"]}
-            dados={dadosMaoDeObra}
-          />
-        </div>
+          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
+            <h1>Relatório para cliente</h1>
+            <TabelaSimples
+              colunas={["Descrição", "Tipo", "Qtd", "Data", "Valor"]}
+              dados={dadosRelatorioCliente}
+            />
 
-        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
-          <TabelaSimples
-            titulo="Relatório Consolidado (Cliente)"
-            colunas={["Descrição", "Tipo", "Qtd", "Data", "Valor"]}
-            dados={dadosRelatorioCliente}
-          />
-
-          <ButtonDefault
-            onClick={() =>
-              gerarPDF(
-                "Relatório Semanal",
-                ["Descrição", "Tipo", "Qtd", "Data", "Valor"],
-                dadosRelatorioCliente,
-                obra.local,
-              )
-            }
-            className="w-full max-w-[450px]"
-          >
-            Gerar PDF para Cliente
-          </ButtonDefault>
+            <ButtonDefault
+              onClick={() =>
+                gerarPDF(
+                  "Relatório Semanal",
+                  ["Descrição", "Tipo", "Qtd", "Data", "Valor"],
+                  dadosRelatorioCliente,
+                  obra.local,
+                )
+              }
+              className="w-full max-w-[450px]"
+            >
+              Gerar PDF para Cliente
+            </ButtonDefault>
+          </div>
         </div>
       </main>
 
-      {/* VERIFIQUE SE OS ARQUIVOS ESTÃO NOMEADOS CORRETAMENTE NA PASTA COMPONENTS */}
       <ModalMateriais
         isOpen={modalMateriaisOpen}
         onClose={() => setModalMateriaisOpen(false)}

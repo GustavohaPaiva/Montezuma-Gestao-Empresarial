@@ -11,8 +11,8 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-[10px]">
-      <div className="bg-[#ffffff] w-[370px] max-w-[95%] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
-        <div className="p-[20px] border-b border-[#DBDADE] bg-[#FBFBFC] flex justify-between items-center">
+      <div className="bg-[#ffffff] w-[370px] max-w-[95%] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
+        <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
           <div className="flex-1 min-w-0">
             <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
               Cadastrar Nova Obra
@@ -20,7 +20,7 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
           </div>
           <button
             onClick={onClose}
-            className="ml-4 w-[35px] h-[35px] flex items-center justify-center border border-[#C4C4C9] rounded-md text-[24px] text-[#71717A] hover:bg-gray-100 cursor-pointer"
+            className="w-[35px] h-[35px] flex items-center justify-center border border-[#C4C4C9] rounded-[8px] text-[24px] text-[#71717A] hover:bg-gray-100 cursor-pointer"
           >
             &times;
           </button>
