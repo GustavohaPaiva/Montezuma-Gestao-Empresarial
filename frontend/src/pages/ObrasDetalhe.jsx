@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import TabelaSimples from "../components/TabelaSimples";
 import ButtonDefault from "../components/ButtonDefault";
 import { gerarPDF } from "../services/pdfService";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../services/api";
 import ModalMateriais from "../components/ModalMateriais";
 import ModalMaoDeObra from "../components/ModalMaoDeObra";
@@ -13,21 +13,99 @@ export default function ObrasDetalhe() {
   const [obra, setObra] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // Estados para controlar a abertura dos Modais
   const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
+
+  const formatarDataBR = (dataString) => {
+    if (!dataString) return "-";
+    const [ano, mes, dia] = dataString.split("T")[0].split("-");
+    return `${dia}/${mes}/${ano}`;
+  };
+
+  const fetchDados = useCallback(async () => {
+    try {
+      const dados = await api.getObraById(id);
+      setObra(dados);
+    } catch (err) {
+      console.error("Erro ao buscar dados da obra:", err);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    (async () => {
+      await fetchDados();
+    })();
+  }, [id, fetchDados]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
-
-    api.getObraById(id).then((dados) => setObra(dados));
-
     return () => window.removeEventListener("resize", handleResize);
-  }, [id]);
+  }, []);
+
+  const handleSaveMaterial = async (dados) => {
+    const dataAtual = new Date().toISOString().split("T")[0];
+
+    try {
+      await api.addMaterial({
+        obra_id: id,
+        material: dados.nome, // Mapeia 'nome' do modal para 'material' da API
+        quantidade: dados.quantidade,
+        data_solicitacao: dataAtual,
+      });
+
+      await fetchDados();
+      setModalMateriaisOpen(false);
+    } catch (err) {
+      console.error("Erro ao salvar material:", err);
+      alert("Erro ao salvar material. Verifique o console.");
+    }
+  };
+
+  const handleSaveMaoDeObra = async (dados) => {
+    const dataAtual = new Date().toISOString().split("T")[0];
+
+    try {
+      await api.addMaoDeObra({
+        obra_id: id,
+        funcionario: dados.funcionario,
+        servico: dados.servico,
+        valor_estimado: parseFloat(dados.valor) || 0, // Garante numérico
+        data_servico: dataAtual,
+      });
+
+      await fetchDados();
+      setModalMaoDeObraOpen(false);
+    } catch (err) {
+      console.error("Erro ao salvar mão de obra:", err);
+      alert("Erro ao salvar mão de obra. Verifique o console.");
+    }
+  };
 
   if (!obra)
     return <div className="flex justify-center mt-20">Carregando...</div>;
+
+  // Tabelas Individuais
+  const dadosMateriais = (obra.materiais || []).map((m) => [
+    m.material,
+    m.quantidade,
+    formatarDataBR(m.data_solicitacao),
+  ]);
+
+  const dadosMaoDeObra = (obra.maoDeObra || []).map((m) => [
+    m.funcionario,
+    `R$ ${m.valor_estimado}`,
+    formatarDataBR(m.data_servico),
+  ]);
+
+  // Tabela Unificada (Vem direto do banco agora 'relatorio_cliente')
+  const dadosRelatorioCliente = (obra.relatorioCliente || []).map((item) => [
+    item.descricao,
+    item.tipo,
+    item.quantidade,
+    formatarDataBR(item.data),
+    `R$ ${item.valor}`,
+  ]);
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
@@ -45,29 +123,16 @@ export default function ObrasDetalhe() {
                 alt="voltar"
               />
             </button>
-            {!isMobile && (
-              <h1 className="text-[20px] font-bold uppercase tracking-[2px]">
-                {obra.nome}
-              </h1>
-            )}
-          </div>
-          {isMobile && (
-            <h1 className="text-[18px] font-bold uppercase tracking-[2px]">
-              {obra.nome}
+            <h1 className="text-[20px] font-bold uppercase tracking-[2px]">
+              {obra.local}
             </h1>
-          )}
+          </div>
           {!isMobile && (
             <div className="flex gap-[16px]">
-              <ButtonDefault
-                onClick={() => setModalMateriaisOpen(true)}
-                className="w-[180px] text-[14px]"
-              >
+              <ButtonDefault onClick={() => setModalMateriaisOpen(true)}>
                 + Materiais
               </ButtonDefault>
-              <ButtonDefault
-                onClick={() => setModalMaoDeObraOpen(true)}
-                className="w-[180px] text-[14px]"
-              >
+              <ButtonDefault onClick={() => setModalMaoDeObraOpen(true)}>
                 + Mão de Obra
               </ButtonDefault>
             </div>
@@ -78,104 +143,63 @@ export default function ObrasDetalhe() {
       <main className="w-[90%] mt-[24px]">
         {isMobile && (
           <div className="flex flex-col gap-[12px] mb-[24px]">
-            <ButtonDefault
-              onClick={() => setModalMateriaisOpen(true)}
-              className="w-full h-[50px] text-[18px]"
-            >
-              + Solicitar Materiais
+            <ButtonDefault onClick={() => setModalMateriaisOpen(true)}>
+              + Materiais
             </ButtonDefault>
-            <ButtonDefault
-              onClick={() => setModalMaoDeObraOpen(true)}
-              className="w-full h-[50px] text-[18px]"
-            >
-              + Solicitar Mão de Obra
+            <ButtonDefault onClick={() => setModalMaoDeObraOpen(true)}>
+              + Mão de Obra
             </ButtonDefault>
           </div>
         )}
 
-        <div>
+        <div className="flex flex-col gap-10">
           <TabelaSimples
-            titulo="Relatório de Materiais"
+            titulo="Relatório de Materiais (Interno)"
             colunas={["Material", "Quantidade", "Data"]}
-            dados={obra.materiais}
+            dados={dadosMateriais}
           />
 
-          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[12px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px]">
-            <TabelaSimples
-              titulo="Relatório de Mão de Obra"
-              colunas={["Tipo", "Valor", "Data"]}
-              dados={obra.maoDeObra}
-            />
-            <ButtonDefault
-              onClick={() =>
-                gerarPDF(
-                  "Relatorio de Mao de Obra",
-                  ["Profissão", "Valor", "Data de Execução"],
-                  obra.maoDeObra,
-                  obra.nome,
-                )
-              }
-              className="w-full max-w-[450px] mb-[24px] h-[47px] "
-            >
-              Gerar Relatório Mão-de-Obra (PDF)
-            </ButtonDefault>
-          </div>
+          <TabelaSimples
+            titulo="Relatório de Mão de Obra (Interno)"
+            colunas={["Profissional", "Valor", "Data"]}
+            dados={dadosMaoDeObra}
+          />
         </div>
 
-        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px]">
-          <h3 className="font-bold text-[#464C54] m-[0px]">
-            Relatórios para Cliente
-          </h3>
-          {!isMobile && (
-            <div className="w-full">
-              <TabelaSimples
-                titulo="Prévia do Relatório Semanal"
-                colunas={[
-                  "Material/Serviço",
-                  "Tipo",
-                  "Quantidade",
-                  "Data",
-                  "Valor",
-                ]}
-                dados={obra.relatorioCliente || []}
-              />
-            </div>
-          )}
+        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
+          <TabelaSimples
+            titulo="Relatório Consolidado (Cliente)"
+            colunas={["Descrição", "Tipo", "Qtd", "Data", "Valor"]}
+            dados={dadosRelatorioCliente}
+          />
+
           <ButtonDefault
             onClick={() =>
               gerarPDF(
-                "Relatório Semanal para Cliente",
-                ["Item", "Tipo", "Qtd", "Data", "Valor"],
-                obra.relatorioCliente,
-                obra.nome,
+                "Relatório Semanal",
+                ["Descrição", "Tipo", "Qtd", "Data", "Valor"],
+                dadosRelatorioCliente, // Usa os dados do banco para o PDF
+                obra.local,
               )
             }
-            className="w-full max-w-[450px] mb-[24px] h-[47px] "
+            className="w-full max-w-[450px]"
           >
-            Gerar Relatório Cliente (PDF)
+            Gerar PDF para Cliente
           </ButtonDefault>
         </div>
       </main>
 
-      {/* COMPONENTES DE MODAL (Overlay) */}
       <ModalMateriais
         isOpen={modalMateriaisOpen}
         onClose={() => setModalMateriaisOpen(false)}
-        nomeObra={obra.nome}
-        onSave={(dados) => {
-          console.log("Salvo material:", dados);
-          setModalMateriaisOpen(false);
-        }}
+        nomeObra={obra.local}
+        onSave={handleSaveMaterial}
       />
-
       <ModalMaoDeObra
         isOpen={modalMaoDeObraOpen}
         onClose={() => setModalMaoDeObraOpen(false)}
-        nomeObra={obra.nome}
-        onSave={(dados) => {
-          console.log("Salvo mão de obra:", dados);
-          setModalMaoDeObraOpen(false);
-        }}
+        nomeObra={obra.local}
+        onSave={handleSaveMaoDeObra}
       />
     </div>
   );

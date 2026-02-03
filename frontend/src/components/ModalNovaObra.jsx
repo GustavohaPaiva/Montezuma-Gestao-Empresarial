@@ -11,9 +11,7 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-[10px]">
-      {/* Largura de 370px conforme solicitado, com trava de segurança em 95% */}
       <div className="bg-[#ffffff] w-[370px] max-w-[95%] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
-        {/* Header */}
         <div className="p-[20px] border-b border-[#DBDADE] bg-[#FBFBFC] flex justify-between items-center">
           <div className="flex-1 min-w-0">
             <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
@@ -28,7 +26,6 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
           </button>
         </div>
 
-        {/* Conteúdo: Local e Nome do Cliente */}
         <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
           <div className="flex flex-col gap-[5px]">
             <label className="text-[12px] font-bold text-[#71717A] uppercase">

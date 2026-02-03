@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import ObraCard from "../components/ObraCard";
-import ModalNovaObra from "../components/ModalNovaObra"; // Importação do novo modal
+import ModalNovaObra from "../components/ModalNovaObra";
 import { api } from "../services/api";
 
 export default function Obras() {
@@ -10,24 +10,54 @@ export default function Obras() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    api.getObras().then((dados) => setObras(dados));
+    let isMounted = true;
+
+    async function loadObras() {
+      try {
+        const dados = await api.getObras();
+        if (isMounted) {
+          setObras(dados || []);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar obras:", err);
+      }
+    }
+
+    loadObras();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleSaveObra = (novaObra) => {
-    console.log("Dados da nova obra:", novaObra);
-    // Aqui você integraria com sua API futuramente
-    setIsModalOpen(false);
+  const handleSaveObra = async (formData) => {
+    try {
+      // Mapeamento direto para os nomes das colunas no Supabase
+      await api.createObra({
+        nome: formData.nomeObra, // 'nomeObra' do formulário vira 'nome' no banco
+        cliente: formData.cliente,
+        local: formData.nomeObra,
+      });
+
+      const dadosAtualizados = await api.getObras();
+      setObras(dadosAtualizados || []);
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error("Erro ao salvar obra:", err);
+      alert(
+        "Erro ao criar obra. Verifique se as colunas 'nome', 'cliente' e 'local' existem no Supabase.",
+      );
+    }
   };
 
   const obrasFiltradas = obras.filter(
     (obra) =>
-      obra.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      obra.client.toLowerCase().includes(busca.toLowerCase()),
+      obra.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+      obra.cliente?.toLowerCase().includes(busca.toLowerCase()),
   );
 
   return (
     <div className="flex flex-col min-h-screen items-center bg-white">
-      {/* Passando a função para abrir o modal para a Navbar */}
       <Navbar
         searchTerm={busca}
         onSearchChange={setBusca}
@@ -40,21 +70,20 @@ export default function Obras() {
             <ObraCard
               key={obra.id}
               id={obra.id}
-              nome={obra.nome}
-              client={obra.client}
-              status={obra.status}
+              nome={obra.local}
+              client={obra.cliente}
+              status={obra.status || "Em andamento"}
             />
           ))}
 
           {obrasFiltradas.length === 0 && (
             <p className="col-span-full text-gray-400 mt-10 text-center">
-              Nenhuma obra encontrada para "{busca}"
+              Nenhuma obra encontrada.
             </p>
           )}
         </div>
       </main>
 
-      {/* Modal Nova Obra */}
       <ModalNovaObra
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

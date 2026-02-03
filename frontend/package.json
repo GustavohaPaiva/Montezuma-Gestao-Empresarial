@@ -13,6 +13,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.93.3",
     "@tailwindcss/vite": "^4.1.18",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
