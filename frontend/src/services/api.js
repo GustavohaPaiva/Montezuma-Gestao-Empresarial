@@ -90,10 +90,9 @@ export const api = {
       .insert([
         {
           obra_id: dados.obra_id,
-          funcionario: dados.funcionario,
-          servico: dados.servico,
-          valor_estimado: dados.valor_estimado,
-          data_servico: dados.data_servico,
+          tipo: dados.tipo,
+          valor: dados.valor_estimado,
+          data_solicitacao: dados.data_solicitacao,
         },
       ])
       .select();
@@ -103,7 +102,7 @@ export const api = {
     await supabase.from("relatorio_cliente").insert([
       {
         obra_id: dados.obra_id,
-        descricao: `${dados.servico} (${dados.funcionario})`,
+        descricao: `${dados.servico}`,
         tipo: "Mão de Obra",
         quantidade: 1,
         data: dados.data_servico,

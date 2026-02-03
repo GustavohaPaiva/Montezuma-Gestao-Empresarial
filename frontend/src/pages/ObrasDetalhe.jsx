@@ -22,6 +22,13 @@ export default function ObrasDetalhe() {
     return `${dia}/${mes}/${ano}`;
   };
 
+  const formatarMoeda = (valor) => {
+    return new Intl.NumberFormat("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(valor);
+  };
+
   const fetchDados = useCallback(async () => {
     try {
       const dados = await api.getObraById(id);
@@ -49,7 +56,7 @@ export default function ObrasDetalhe() {
     try {
       await api.addMaterial({
         obra_id: id,
-        material: dados.nome, // Mapeia 'nome' do modal para 'material' da API
+        material: dados.material,
         quantidade: dados.quantidade,
         data_solicitacao: dataAtual,
       });
@@ -68,10 +75,9 @@ export default function ObrasDetalhe() {
     try {
       await api.addMaoDeObra({
         obra_id: id,
-        funcionario: dados.funcionario,
-        servico: dados.servico,
-        valor_estimado: parseFloat(dados.valor) || 0, // Garante numérico
-        data_servico: dataAtual,
+        tipo: dados.tipo,
+        valor: parseFloat(dados.valor) || 0,
+        data_solicitacao: dataAtual,
       });
 
       await fetchDados();
@@ -93,9 +99,9 @@ export default function ObrasDetalhe() {
   ]);
 
   const dadosMaoDeObra = (obra.maoDeObra || []).map((m) => [
-    m.funcionario,
-    `R$ ${m.valor_estimado}`,
-    formatarDataBR(m.data_servico),
+    m.tipo,
+    `R$ ${formatarMoeda(m.valor)}`,
+    formatarDataBR(m.data_solicitacao),
   ]);
 
   // Tabela Unificada (Vem direto do banco agora 'relatorio_cliente')
@@ -104,7 +110,7 @@ export default function ObrasDetalhe() {
     item.tipo,
     item.quantidade,
     formatarDataBR(item.data),
-    `R$ ${item.valor}`,
+    `R$ ${formatarMoeda(item.valor)}`,
   ]);
 
   return (

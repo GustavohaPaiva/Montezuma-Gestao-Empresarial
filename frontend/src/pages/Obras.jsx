@@ -32,9 +32,7 @@ export default function Obras() {
 
   const handleSaveObra = async (formData) => {
     try {
-      // Mapeamento direto para os nomes das colunas no Supabase
       await api.createObra({
-        nome: formData.nomeObra, // 'nomeObra' do formulário vira 'nome' no banco
         cliente: formData.cliente,
         local: formData.nomeObra,
       });
