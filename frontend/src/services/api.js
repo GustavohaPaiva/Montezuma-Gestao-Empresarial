@@ -91,7 +91,7 @@ export const api = {
         {
           obra_id: dados.obra_id,
           tipo: dados.tipo,
-          valor: dados.valor_estimado,
+          valor: dados.valor,
           data_solicitacao: dados.data_solicitacao,
         },
       ])

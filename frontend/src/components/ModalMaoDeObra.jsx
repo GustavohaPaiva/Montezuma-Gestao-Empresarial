@@ -3,7 +3,7 @@ import ButtonDefault from "./ButtonDefault";
 
 export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
   const [formData, setFormData] = useState({
-    servico: "",
+    tipo: "",
     profissional: "",
     valor: "",
   });
@@ -46,7 +46,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
               placeholder="Ex: Pintura de fachada"
               className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
               onChange={(e) =>
-                setFormData({ ...formData, servico: e.target.value })
+                setFormData({ ...formData, tipo: e.target.value })
               }
             />
           </div>
