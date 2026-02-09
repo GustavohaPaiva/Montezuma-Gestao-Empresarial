@@ -72,6 +72,37 @@ export default function ObrasDetalhe() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // --- HANDLERS DE EXCLUSÃO ---
+  const handleDeleteMaterial = useCallback(
+    async (materialId) => {
+      if (window.confirm("Tem certeza que deseja excluir este material?")) {
+        try {
+          await api.deleteMaterial(materialId);
+          await fetchDados();
+        } catch (err) {
+          console.error("Erro ao excluir material:", err);
+          alert("Erro ao excluir item.");
+        }
+      }
+    },
+    [fetchDados],
+  );
+
+  const handleDeleteMaoDeObra = useCallback(
+    async (mdoId) => {
+      if (window.confirm("Tem certeza que deseja excluir este registro?")) {
+        try {
+          await api.deleteMaoDeObra(mdoId);
+          await fetchDados();
+        } catch (err) {
+          console.error("Erro ao excluir mão de obra:", err);
+          alert("Erro ao excluir item.");
+        }
+      }
+    },
+    [fetchDados],
+  );
+
   // --- HANDLERS MATERIAIS ---
   const handleStatusChange = useCallback(
     async (materialId, novoStatus) => {
@@ -98,15 +129,16 @@ export default function ObrasDetalhe() {
     async (dados) => {
       const dataAtual = new Date().toISOString().split("T")[0];
       try {
-        setModalMateriaisOpen(false);
+        // REMOVIDO: setModalMateriaisOpen(false); -> O modal fica aberto
         await api.addMaterial({
           obra_id: id,
           material: dados.material,
           valor: parseFloat(dados.valor) || 0,
           quantidade: `${dados.quantidade} ${dados.unidade || "Un."}`,
           data_solicitacao: dataAtual,
+          status_financeiro: "Aguardando pagamento",
         });
-        await fetchDados();
+        await fetchDados(); // Atualiza a lista atrás do modal
       } catch (err) {
         console.error("Erro material:", err);
         alert("Erro ao salvar material.");
@@ -145,7 +177,7 @@ export default function ObrasDetalhe() {
       const dataAtual = new Date().toISOString().split("T")[0];
       const valorInput = parseFloat(dados.valor) || 0;
       try {
-        setModalMaoDeObraOpen(false);
+        // REMOVIDO: setModalMaoDeObraOpen(false); -> O modal fica aberto
         await api.addMaoDeObra({
           obra_id: id,
           tipo: dados.tipo,
@@ -155,7 +187,7 @@ export default function ObrasDetalhe() {
           valor_orcado: valorInput,
           valor_pago: 0,
         });
-        await fetchDados();
+        await fetchDados(); // Atualiza a lista atrás do modal
       } catch (err) {
         console.error("Erro mao de obra:", err);
         alert("Erro ao salvar mão de obra.");
@@ -310,8 +342,6 @@ export default function ObrasDetalhe() {
       });
 
       try {
-        // Observação: Esta função da API atualiza TODOS os itens da obra.
-        // O checkbox "Select All" funciona globalmente para a obra.
         await api.updateExtratoValidacaoAll(id, novoStatus);
       } catch (err) {
         console.error("Erro ao atualizar todos:", err);
@@ -325,7 +355,6 @@ export default function ObrasDetalhe() {
   const handleGerarPDFExtrato = () => {
     if (!obra || !obra.relatorioExtrato) return;
 
-    // Filtra apenas os itens validados (marcados com checkbox)
     const itensSelecionados = obra.relatorioExtrato.filter(
       (item) => item.validacao === 1,
     );
@@ -364,9 +393,16 @@ export default function ObrasDetalhe() {
 
     return materiaisOrdenados.map((m) => {
       const isEditing = editandoMaterialId === m.id;
+
+      // Cálculo Valor Unitário
+      const qtdNumerica = parseFloat(m.quantidade) || 0;
+      const valorUnitario = qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
+
       return [
-        m.material,
+        <div className="uppercase">{m.material}</div>,
         m.quantidade,
+        `R$ ${formatarMoeda(valorUnitario)}`,
+        // COLUNA VALOR TOTAL (Editável)
         <div className="flex items-center justify-center gap-2" key={m.id}>
           {isEditing ? (
             <div className="flex items-center gap-1">
@@ -376,7 +412,7 @@ export default function ObrasDetalhe() {
                 step="0.01"
                 value={valorMaterialEditado}
                 onChange={(e) => setValorMaterialEditado(e.target.value)}
-                className="w-[50px] p-[4px] border border-[#DBDADE] ml-[10px] rounded-[8px] focus:outline-none"
+                className="w-[60px] p-[4px] border border-[#DBDADE] ml-[10px] rounded-[8px] focus:outline-none"
                 autoFocus
               />
               <button
@@ -408,7 +444,9 @@ export default function ObrasDetalhe() {
                 setValorMaterialEditado(m.valor || 0);
               }}
             >
-              <span>R$ {formatarMoeda(m.valor || 0)}</span>
+              <span className="font-bold">
+                R$ {formatarMoeda(m.valor || 0)}
+              </span>
               <img
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
@@ -418,18 +456,40 @@ export default function ObrasDetalhe() {
             </div>
           )}
         </div>,
+        // STATUS ENTREGA
         <select
-          key={m.id}
+          key={`status-${m.id}`}
           value={m.status || "Solicitado"}
           onChange={(e) => handleStatusChange(m.id, e.target.value)}
-          className={`w-fit text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none ${m.status === "Entregue" ? "bg-[#E8F5E9] text-[#2E7D32]" : "bg-[#FFF3E0] text-[#E65100]"}`}
+          className={`w-fit text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none ${
+            m.status === "Entregue"
+              ? "bg-[#E8F5E9] text-[#2E7D32]"
+              : "bg-[#FFF3E0] text-[#E65100]"
+          }`}
         >
           <option value="Solicitado">Solicitado</option>
           <option value="Em cotação">Em cotação</option>
+          <option value="Aprovado">Aprovado</option>
           <option value="Aguardando entrega">Aguardando entrega</option>
           <option value="Entregue">Entregue</option>
         </select>,
+
         formatarDataBR(m.data_solicitacao),
+        // BOTÃO DE DELETAR
+        <div className="flex justify-center group" key={`del-mat-${m.id}`}>
+          <button
+            onClick={() => handleDeleteMaterial(m.id)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full cursor-pointer border-none bg-transparent"
+            title="Excluir Material"
+          >
+            <img
+              width="18"
+              height="18"
+              src="https://img.icons8.com/material-outlined/24/FA5252/trash.png"
+              alt="delete"
+            />
+          </button>
+        </div>,
       ];
     });
   }, [
@@ -438,6 +498,7 @@ export default function ObrasDetalhe() {
     valorMaterialEditado,
     handleStatusChange,
     salvarValorMaterial,
+    handleDeleteMaterial,
   ]);
 
   const dadosMaoDeObra = useMemo(() => {
@@ -447,7 +508,7 @@ export default function ObrasDetalhe() {
     );
 
     return maoDeObraOrdenada.map((m) => {
-      const saldo = (m.valor_cobrado || 0) - (m.valor_pago || 0);
+      const saldo = (m.valor_orcado || 0) - (m.valor_pago || 0);
       const isEditingOrcado =
         editandoMaoDeObra.id === m.id && editandoMaoDeObra.campo === "orcado";
       const isEditingPago =
@@ -464,8 +525,10 @@ export default function ObrasDetalhe() {
             className="h-[15px] w-[15px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer disabled:opacity-50"
           />
         </label>,
-        m.tipo,
-        m.profissional,
+
+        <div className="uppercase">{m.tipo}</div>,
+        <div className="uppercase">{m.profissional}</div>,
+
         `R$ ${formatarMoeda(m.valor_cobrado || 0)}`,
         <div
           className="flex items-center justify-center gap-2"
@@ -577,6 +640,20 @@ export default function ObrasDetalhe() {
           R$ {formatarMoeda(saldo)}
         </span>,
         formatarDataBR(m.data_solicitacao),
+        <div className="flex justify-center group" key={`del-mdo-${m.id}`}>
+          <button
+            onClick={() => handleDeleteMaoDeObra(m.id)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full cursor-pointer border-none bg-transparent"
+            title="Excluir Mão de Obra"
+          >
+            <img
+              width="18"
+              height="18"
+              src="https://img.icons8.com/material-outlined/24/FA5252/trash.png"
+              alt="delete"
+            />
+          </button>
+        </div>,
       ];
     });
   }, [
@@ -586,15 +663,15 @@ export default function ObrasDetalhe() {
     handleValidarMaoDeObra,
     iniciarEdicaoMaoDeObra,
     salvarEdicaoMaoDeObra,
+    handleDeleteMaoDeObra,
   ]);
 
+  // --- RESTAURANDO A LÓGICA DO EXTRATO QUE ESTAVA FALTANDO ---
   const dadosRelatorioExtrato = useMemo(() => {
     if (!obra || !obra.relatorioExtrato) return [];
-
-    // --- LÓGICA DE FILTRAGEM ---
     const itensFiltrados = obra.relatorioExtrato.filter((item) => {
       if (filtroExtrato === "Tudo") return true;
-      if (filtroExtrato === "Materiais") return item.tipo === "Material"; // DB usa "Material" (singular)
+      if (filtroExtrato === "Materiais") return item.tipo === "Material";
       if (filtroExtrato === "Mão de Obra") return item.tipo === "Mão de Obra";
       return true;
     });
@@ -680,11 +757,8 @@ export default function ObrasDetalhe() {
     filtroExtrato,
   ]);
 
-  // --- CABEÇALHO DO EXTRATO COM LÓGICA DE FILTRO VISUAL ---
   const headerExtrato = useMemo(() => {
     let itensParaVerificar = obra?.relatorioExtrato || [];
-
-    // Aplica o mesmo filtro do corpo da tabela para verificar o "Select All"
     if (filtroExtrato === "Materiais") {
       itensParaVerificar = itensParaVerificar.filter(
         (i) => i.tipo === "Material",
@@ -694,7 +768,6 @@ export default function ObrasDetalhe() {
         (i) => i.tipo === "Mão de Obra",
       );
     }
-
     const todosSelecionados =
       itensParaVerificar.length > 0 &&
       itensParaVerificar.every((i) => i.validacao === 1);
@@ -725,7 +798,7 @@ export default function ObrasDetalhe() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
-      <header className="h-[82px] border-b border-[#DBDADE] flex justify-center sticky top-0 z-10 w-full bg-white">
+      <header className="h-[82px] border-b border-[#DBDADE] flex justify-center sticky top-0 z-10 w-full bg-white position-fi">
         <div className="w-[90%] flex items-center justify-between">
           <div className="flex items-center gap-[16px]">
             <button
@@ -740,7 +813,7 @@ export default function ObrasDetalhe() {
               />
             </button>
             <h1 className="text-[20px] font-bold uppercase tracking-[2px] text-[#464C54]">
-              {obra.local}
+              {obra.local} - {obra.cliente}
             </h1>
           </div>
           {!isMobile && (
@@ -770,7 +843,15 @@ export default function ObrasDetalhe() {
           <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
             <h1>Relatório de Materiais</h1>
             <TabelaSimples
-              colunas={["Material", "Quantidade", "Valor", "Status", "Data"]}
+              colunas={[
+                "Material",
+                "Quantidade",
+                "Valor Un.",
+                "Valor",
+                "Status",
+                "Data",
+                "",
+              ]}
               dados={dadosMateriais}
             />
             <ButtonDefault
@@ -784,7 +865,7 @@ export default function ObrasDetalhe() {
               }
               className="w-full max-w-[450px]"
             >
-              Gerar PDF Material
+              Relatório Materiais
             </ButtonDefault>
           </div>
           <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
@@ -799,6 +880,7 @@ export default function ObrasDetalhe() {
                 "Valor Pago",
                 "Saldo",
                 "Data",
+                "",
               ]}
               dados={dadosMaoDeObra}
             />
@@ -820,7 +902,7 @@ export default function ObrasDetalhe() {
               }
               className="w-full max-w-[450px]"
             >
-              Gerar PDF Mão de Obra
+              Relatório Mão de Obras
             </ButtonDefault>
           </div>
           <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
@@ -848,7 +930,7 @@ export default function ObrasDetalhe() {
               onClick={handleGerarPDFExtrato}
               className="w-full max-w-[450px]"
             >
-              Gerar PDF Extrato
+              Gerar pedido
             </ButtonDefault>
           </div>
         </div>

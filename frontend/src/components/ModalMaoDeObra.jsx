@@ -25,7 +25,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
 
           <button
             onClick={onClose}
-            className="border border-none bg-transparent w-[50px] h-[50px]"
+            className="border border-none bg-transparent w-[50px] h-[50px] cursor-pointer"
           >
             <img
               width="40"
@@ -44,6 +44,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
             <input
               type="text"
               placeholder="Ex: Pintura de fachada"
+              value={formData.tipo}
               className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
               onChange={(e) =>
                 setFormData({ ...formData, tipo: e.target.value })
@@ -58,6 +59,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
             <input
               type="text"
               placeholder="Ex: Pedreiro, Pintor..."
+              value={formData.profissional}
               className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
               onChange={(e) =>
                 setFormData({ ...formData, profissional: e.target.value })
@@ -70,8 +72,9 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
               Valor Estimado
             </label>
             <input
-              type="text"
+              type="number"
               placeholder="R$ 0,00"
+              value={formData.valor}
               className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
               onChange={(e) =>
                 setFormData({ ...formData, valor: e.target.value })
@@ -82,7 +85,8 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
           <ButtonDefault
             onClick={() => {
               onSave(formData);
-              onClose();
+              // Limpa os campos para nova entrada e NÃO fecha o modal
+              setFormData({ tipo: "", profissional: "", valor: "" });
             }}
             className="w-full bg-[#464C54] text-white border-none h-[50px] text-[16px] font-bold mt-[10px]"
           >

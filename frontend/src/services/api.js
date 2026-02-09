@@ -47,6 +47,23 @@ export const api = {
     if (error) throw error;
   },
 
+  // NOVAS FUNÇÕES DE EXCLUSÃO (FÍSICA) DE ITENS
+  deleteMaterial: async (id) => {
+    const { error } = await supabase
+      .from("relatorio_materiais")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  deleteMaoDeObra: async (id) => {
+    const { error } = await supabase
+      .from("relatorio_mao_de_obra")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
+
   // ... (mantenha o restante das funções getObraById, updateMaterial, etc.)
   getObraById: async (id) => {
     const { data, error } = await supabase
@@ -69,7 +86,7 @@ export const api = {
     };
   },
 
-  // Mantenha as outras funções auxiliares (updateMaterialStatus, etc...)
+  // Mantenha as outras funções auxiliares (updateMaterialStatus, etc...) yuo
   updateMaterialStatus: async (id, novoStatus) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")
@@ -78,6 +95,44 @@ export const api = {
       .select();
     if (error) throw error;
     return data[0];
+  },
+
+  updateMaterialStatusFinanceiro: async (id, novoStatusFinanceiro) => {
+    // 1. Atualiza na tabela de materiais
+    const { data, error } = await supabase
+      .from("relatorio_materiais")
+      .update({ status_financeiro: novoStatusFinanceiro })
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+
+    const materialAtualizado = data[0];
+
+    // 2. Sincroniza com a tabela de extrato
+    if (materialAtualizado) {
+      // Busca o ID do item no extrato que corresponde a este material
+      const { data: extratoData, error: extratoError } = await supabase
+        .from("relatorio_extrato")
+        .select("id")
+        .match({
+          obra_id: materialAtualizado.obra_id,
+          descricao: materialAtualizado.material,
+          tipo: "Material",
+        });
+
+      if (extratoError) {
+        console.error("Erro ao verificar extrato:", extratoError);
+      } else if (extratoData && extratoData.length > 0) {
+        // Atualiza o status financeiro no extrato
+        await supabase
+          .from("relatorio_extrato")
+          .update({ status_financeiro: novoStatusFinanceiro })
+          .eq("id", extratoData[0].id);
+      }
+    }
+
+    return materialAtualizado;
   },
 
   updateMaterialValor: async (id, novoValor) => {
@@ -121,6 +176,8 @@ export const api = {
             data: new Date().toISOString(),
             valor: novoValor,
             validacao: 0,
+            status_financeiro:
+              materialAtualizado.status_financeiro || "Aguardando pagamento",
           },
         ]);
       }
@@ -139,6 +196,7 @@ export const api = {
   },
 
   updateExtratoValidacao: async (id, status) => {
+    //yuo
     const { error } = await supabase
       .from("relatorio_extrato")
       .update({ validacao: status })
@@ -155,6 +213,9 @@ export const api = {
   },
 
   addMaterial: async (dados) => {
+    const statusFinanceiroInicial =
+      dados.status_financeiro || "Aguardando pagamento";
+
     const { data, error } = await supabase
       .from("relatorio_materiais")
       .insert([
@@ -164,6 +225,7 @@ export const api = {
           quantidade: dados.quantidade,
           valor: dados.valor,
           data_solicitacao: dados.data_solicitacao,
+          status_financeiro: statusFinanceiroInicial,
         },
       ])
       .select();
@@ -182,6 +244,7 @@ export const api = {
             data: new Date().toISOString(),
             valor: dados.valor,
             validacao: 0,
+            status_financeiro: statusFinanceiroInicial,
           },
         ]);
 

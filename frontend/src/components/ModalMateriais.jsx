@@ -6,7 +6,20 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
   const [quantidade, setQuantidade] = useState("");
   const [unidade, setUnidade] = useState("Un."); // Garante valor inicial
 
-  const listaUnidades = ["Sc.", "Kg.", "Lt.", "m²", "m³", "Un.", "Lata"];
+  const listaUnidades = [
+    "Sc.",
+    "Kg.",
+    "Lt.",
+    "m²",
+    "m³",
+    "Un.",
+    "Lata",
+    "m",
+    "cm",
+    "Gl.",
+    "Mensal",
+    "Pç.",
+  ];
 
   if (!isOpen) return null;
 
@@ -20,7 +33,7 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
     // Chama a função do pai passando o objeto pronto
     onSave({ material, quantidade, unidade });
 
-    // Limpa os campos para a próxima
+    // Limpa os campos para a próxima e mantém o modal aberto
     setMaterial("");
     setQuantidade("");
     setUnidade("Un.");

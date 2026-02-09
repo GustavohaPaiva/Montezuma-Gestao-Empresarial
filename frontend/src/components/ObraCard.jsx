@@ -133,7 +133,7 @@ export default function ObraCard({
                 type="text"
                 value={editedName}
                 onChange={(e) => setEditedName(e.target.value)}
-                className="text-[16px] h-[28px] text-start px-[8px] border border-gray-300 rounded-[6px] focus:outline-none focus:border-blue-500 bg-white w-full"
+                className="text-[16px] h-[28px] text-start px-[8px] border border-gray-300 rounded-[6px] focus:outline-none focus:border-blue-500 bg-white w-full uppercase"
                 autoFocus
               />
             </div>
@@ -143,17 +143,19 @@ export default function ObraCard({
                 type="text"
                 value={editedClient}
                 onChange={(e) => setEditedClient(e.target.value)}
-                className="text-[16px] h-[28px] text-start px-[8px] border border-gray-300 rounded-[6px] focus:outline-none focus:border-blue-500 bg-white w-full"
+                className="text-[16px] h-[28px] text-start px-[8px] border border-gray-300 rounded-[6px] focus:outline-none focus:border-blue-500 bg-white w-full uppercase"
               />
             </div>
           </div>
         ) : (
           <>
-            <h2 className="text-[22px] font-bold leading-tight mb-1 text-center truncate w-full">
+            <h2 className="text-[22px] font-bold leading-tight mb-1 text-center truncate w-full uppercase">
               {nome}
             </h2>
-            <p className="text-[16px] text-gray-600 text-center truncate w-full">
-              <span className="font-semibold">Cliente:</span> {client}
+            {/* CORREÇÃO AQUI: mr-2 forçado no span do label */}
+            <p className="text-[16px] text-gray-600 flex justify-center items-center w-full gap-[4px]">
+              <span className="font-semibold mr-2">CLIENTE: </span>
+              <span className="uppercase truncate max-w-[200px]">{client}</span>
             </p>
           </>
         )}

@@ -20,7 +20,7 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
           </div>
           <button
             onClick={onClose}
-            className="w-[35px] h-[35px] flex items-center justify-center border border-[#C4C4C9] rounded-[8px] text-[24px] text-[#71717A] hover:bg-gray-100 cursor-pointer"
+            className="w-[35px] h-[35px] flex items-center justify-center border border-[#C4C4C9] rounded-[8px] text-[24px] text-[#71717A] hover:bg-gray-100 cursor-pointer "
           >
             &times;
           </button>
@@ -28,13 +28,13 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
 
         <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
           <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] uppercase">
+            <label className="text-[12px] font-bold text-[#71717A] ">
               Local da Obra (Nome)
             </label>
             <input
               type="text"
               placeholder="Ex: Edifício Aurora"
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border "
               onChange={(e) =>
                 setFormData({ ...formData, nomeObra: e.target.value })
               }
