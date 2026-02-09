@@ -49,7 +49,7 @@ export default function Navbar({ searchTerm, onSearchChange, onOpenModal }) {
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] text-[16px] text-[#464C54] px-[12px] focus:outline-none w-full box-border ${
-                isMobile ? "h-[45px]" : "h-[35px]"
+                isMobile ? "h-[45px]" : "h-[40px]"
               }`}
             />
           </div>

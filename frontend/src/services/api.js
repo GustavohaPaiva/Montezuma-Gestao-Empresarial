@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 
 export const api = {
   getObras: async () => {
+    // Traz apenas as ativas do banco para economizar dados
     const { data, error } = await supabase
       .from("obras")
       .select("*")
@@ -19,7 +20,7 @@ export const api = {
           cliente: novaObra.cliente,
           local: novaObra.local,
           status: "Em andamento",
-          active: true,
+          active: true, // Garante que nasce ativa
         },
       ])
       .select();
@@ -37,6 +38,7 @@ export const api = {
     return data[0];
   },
 
+  // DELETE LÓGICO: Apenas muda o status, não apaga o registro
   deleteObra: async (id) => {
     const { error } = await supabase
       .from("obras")
@@ -45,6 +47,7 @@ export const api = {
     if (error) throw error;
   },
 
+  // ... (mantenha o restante das funções getObraById, updateMaterial, etc.)
   getObraById: async (id) => {
     const { data, error } = await supabase
       .from("obras")
@@ -55,7 +58,6 @@ export const api = {
       .single();
     if (error) throw error;
 
-    // Ordenação do Extrato pela Data de Lançamento (Decrescente: Mais novo no topo)
     const relatorioOrdenado = (data.relatorioExtrato || []).sort(
       (a, b) => new Date(b.data) - new Date(a.data),
     );
@@ -67,6 +69,7 @@ export const api = {
     };
   },
 
+  // Mantenha as outras funções auxiliares (updateMaterialStatus, etc...)
   updateMaterialStatus: async (id, novoStatus) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")
@@ -117,12 +120,11 @@ export const api = {
             quantidade: materialAtualizado.quantidade,
             data: new Date().toISOString(),
             valor: novoValor,
-            validacao: 0, // Inicia como não selecionado
+            validacao: 0,
           },
         ]);
       }
     }
-
     return materialAtualizado;
   },
 
@@ -136,9 +138,6 @@ export const api = {
     return data[0];
   },
 
-  // --- NOVAS FUNÇÕES PARA VALIDAÇÃO DO EXTRATO ---
-
-  // Atualiza um item individual
   updateExtratoValidacao: async (id, status) => {
     const { error } = await supabase
       .from("relatorio_extrato")
@@ -147,7 +146,6 @@ export const api = {
     if (error) throw error;
   },
 
-  // Atualiza TODOS os itens de uma obra (Select All)
   updateExtratoValidacaoAll: async (obraId, status) => {
     const { error } = await supabase
       .from("relatorio_extrato")
@@ -183,13 +181,12 @@ export const api = {
             quantidade: dados.quantidade,
             data: new Date().toISOString(),
             valor: dados.valor,
-            validacao: 0, // Padrão 0
+            validacao: 0,
           },
         ]);
 
       if (errorExtrato) throw errorExtrato;
     }
-
     return data[0];
   },
 
@@ -252,7 +249,7 @@ export const api = {
           quantidade: "1",
           data: dadosOriginais.data_solicitacao || new Date(),
           valor: valorParaExtrato,
-          validacao: 0, // Padrão 0
+          validacao: 0,
         },
       ]);
     if (errorExtrato) throw errorExtrato;
