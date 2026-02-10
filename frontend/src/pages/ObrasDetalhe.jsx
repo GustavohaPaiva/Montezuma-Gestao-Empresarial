@@ -389,13 +389,22 @@ export default function ObrasDetalhe() {
 
   const handleGerarPDFExtrato = () => {
     if (!obra || !obra.relatorioExtrato) return;
+
     const itensSelecionados = obra.relatorioExtrato.filter(
       (item) => item.validacao === 1,
     );
+
     if (itensSelecionados.length === 0) {
       alert("Nenhum item selecionado para o extrato.");
       return;
     }
+
+    const somaTotal = itensSelecionados.reduce((acc, item) => {
+      return acc + (parseFloat(item.valor) || 0);
+    }, 0);
+
+    const totalFormatado = `R$ ${formatarMoeda(somaTotal)}`;
+
     const dadosParaPDF = itensSelecionados.map((item) => [
       item.descricao,
       item.tipo,
@@ -403,11 +412,13 @@ export default function ObrasDetalhe() {
       formatarDataBR(item.data),
       `R$ ${formatarMoeda(item.valor)}`,
     ]);
+
     gerarPDF(
       "Extrato",
       ["Descrição", "Tipo", "Qtd", "Data", "Valor"],
       dadosParaPDF,
       obra.local,
+      totalFormatado,
     );
   };
 
@@ -845,7 +856,7 @@ export default function ObrasDetalhe() {
 
   // --- CÁLCULOS TOTAIS ---
   const totais = useMemo(() => {
-    if (!obra) return { materiais: 0, maoDeObra: 0, geral: 0 };
+    if (!obra) return { materiais: 0, maoDeObra: 0, totalExtrato: 0 };
 
     const somaMateriais = (obra.materiais || []).reduce(
       (acc, m) => acc + (parseFloat(m.valor) || 0),
@@ -857,10 +868,16 @@ export default function ObrasDetalhe() {
       0,
     );
 
+    // --- CORREÇÃO: Soma apenas os itens que estão no array relatorioExtrato ---
+    const somaExtrato = (obra.relatorioExtrato || []).reduce(
+      (acc, item) => acc + (parseFloat(item.valor) || 0),
+      0,
+    );
+
     return {
       materiais: somaMateriais,
       maoDeObra: somaMaoDeObra,
-      geral: somaMateriais + somaMaoDeObra,
+      totalExtrato: somaExtrato,
     };
   }, [obra]);
 
@@ -990,14 +1007,66 @@ export default function ObrasDetalhe() {
               } justify-between px-[5%] gap-[20px] text-center w-full box-border items-center`}
             >
               <ButtonDefault
-                onClick={() =>
+                onClick={() => {
+                  // 1. Filtra e Ordena os dados originais (para bater com o que está na tela)
+                  let listaParaPDF = [...obra.materiais];
+
+                  if (buscaMateriais) {
+                    listaParaPDF = listaParaPDF.filter((m) =>
+                      m.material
+                        ?.toLowerCase()
+                        .includes(buscaMateriais.toLowerCase()),
+                    );
+                  }
+
+                  listaParaPDF.sort((a, b) => {
+                    const isEntregueA = a.status === "Entregue";
+                    const isEntregueB = b.status === "Entregue";
+                    if (isEntregueA && !isEntregueB) return 1;
+                    if (!isEntregueA && isEntregueB) return -1;
+                    return 0;
+                  });
+
+                  // 2. Calcula o Total
+                  const totalMat = listaParaPDF.reduce(
+                    (acc, m) => acc + (parseFloat(m.valor) || 0),
+                    0,
+                  );
+                  const totalFormatado = `R$ ${formatarMoeda(totalMat)}`;
+
+                  // 3. Cria um array APENAS com TEXTO (Sem JSX) e SEM o Status
+                  const dadosPDF = listaParaPDF.map((m) => {
+                    const qtdNumerica = parseFloat(m.quantidade) || 0;
+                    const valorUnitario =
+                      qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
+
+                    // Retorna um objeto ou array simples com as colunas na ordem exata
+                    return [
+                      m.material?.toUpperCase() || "-", // Material
+                      m.quantidade || "0", // Quantidade
+                      `R$ ${formatarMoeda(valorUnitario)}`, // Valor Un.
+                      `R$ ${formatarMoeda(m.valor || 0)}`, // Valor Total
+                      m.fornecedor?.toUpperCase() || "-", // Fornecedor
+                      formatarDataBR(m.data_solicitacao), // Data
+                    ];
+                  });
+
+                  // 4. Gera o PDF com as colunas corretas (Sem Status)
                   gerarPDF(
-                    "Relatório Semanal",
-                    ["Material", "Quantidade", "Status", "Data"],
-                    dadosMateriais,
+                    "Relatório de Materiais",
+                    [
+                      "Material",
+                      "Qtd",
+                      "Valor Un.",
+                      "Valor Total",
+                      "Fornecedor",
+                      "Data",
+                    ],
+                    dadosPDF,
                     obra.local,
-                  )
-                }
+                    totalFormatado,
+                  );
+                }}
                 className="w-[90%] max-w-[450px]"
               >
                 Relatório Materiais
@@ -1102,12 +1171,23 @@ export default function ObrasDetalhe() {
               colunas={headerExtrato}
               dados={dadosRelatorioExtrato}
             />
-            <ButtonDefault
-              onClick={handleGerarPDFExtrato}
-              className="w-full max-w-[450px]"
+            <div
+              className={`flex ${
+                isMobile ? "flex-col h-auto gap-4" : "flex-row h-[42px]"
+              } justify-between px-[5%] gap-[20px] text-center w-full box-border items-center`}
             >
-              Gerar pedido
-            </ButtonDefault>
+              <ButtonDefault
+                onClick={handleGerarPDFExtrato}
+                className="w-full max-w-[450px]"
+              >
+                Gerar pedido
+              </ButtonDefault>
+              {/* --- CORREÇÃO AQUI: Exibindo totais.totalExtrato --- */}
+              <div className="w-full h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
+                Total gasto:{" "}
+                <span> R$ {formatarMoeda(totais.totalExtrato)}</span>
+              </div>
+            </div>
           </div>
         </div>
       </main>

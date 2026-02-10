@@ -1,7 +1,13 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export const gerarPDF = (titulo, colunas, dados, nomeObra) => {
+export const gerarPDF = (
+  titulo,
+  colunas,
+  dados,
+  nomeObra,
+  valorTotal = null,
+) => {
   try {
     const doc = new jsPDF();
 
@@ -17,14 +23,35 @@ export const gerarPDF = (titulo, colunas, dados, nomeObra) => {
 
     const corpoTabela = (dados || []).map((item) => Object.values(item));
 
-    autoTable(doc, {
+    const tableConfig = {
       startY: 50,
       head: [colunas],
       body: corpoTabela,
       styles: { fontSize: 10, cellPadding: 3 },
       headStyles: { fillColor: [70, 76, 84], halign: "center" },
       alternateRowStyles: { fillColor: [245, 245, 245] },
-    });
+      columnStyles: {
+        [colunas.length - 1]: { halign: "right" },
+      },
+    };
+
+    if (valorTotal) {
+      const footerRow = new Array(colunas.length).fill("");
+
+      footerRow[0] = "VALOR TOTAL";
+
+      footerRow[colunas.length - 1] = valorTotal;
+
+      tableConfig.foot = [footerRow];
+      tableConfig.footStyles = {
+        fillColor: [220, 220, 220],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+        halign: "right",
+      };
+    }
+
+    autoTable(doc, tableConfig);
 
     const fileName = `${titulo.replace(/\s+/g, "_")}_${nomeObra.replace(/\s+/g, "_")}.pdf`;
     doc.save(fileName);
