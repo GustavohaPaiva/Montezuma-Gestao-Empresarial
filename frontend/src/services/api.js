@@ -2,7 +2,6 @@ import { supabase } from "./supabase";
 
 export const api = {
   getObras: async () => {
-    // Traz apenas as ativas do banco para economizar dados
     const { data, error } = await supabase
       .from("obras")
       .select("*")
@@ -20,7 +19,7 @@ export const api = {
           cliente: novaObra.cliente,
           local: novaObra.local,
           status: "Em andamento",
-          active: true, // Garante que nasce ativa
+          active: true,
         },
       ])
       .select();
@@ -38,7 +37,6 @@ export const api = {
     return data[0];
   },
 
-  // DELETE LÓGICO: Apenas muda o status, não apaga o registro
   deleteObra: async (id) => {
     const { error } = await supabase
       .from("obras")
@@ -47,24 +45,60 @@ export const api = {
     if (error) throw error;
   },
 
-  // NOVAS FUNÇÕES DE EXCLUSÃO (FÍSICA) DE ITENS
+  // --- ALTERADO: Deleta Material e remove do Extrato ---
   deleteMaterial: async (id) => {
+    // 1. Busca os dados do material antes de excluir para ter a descrição
+    const { data: material } = await supabase
+      .from("relatorio_materiais")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    // 2. Deleta da tabela de materiais
     const { error } = await supabase
       .from("relatorio_materiais")
       .delete()
       .eq("id", id);
     if (error) throw error;
+
+    // 3. Se existia o material, deleta o correspondente no extrato
+    if (material) {
+      await supabase.from("relatorio_extrato").delete().match({
+        obra_id: material.obra_id,
+        descricao: material.material,
+        tipo: "Material",
+      });
+    }
   },
 
+  // --- ALTERADO: Deleta Mão de Obra e remove do Extrato ---
   deleteMaoDeObra: async (id) => {
+    // 1. Busca os dados antes de excluir
+    const { data: mdo } = await supabase
+      .from("relatorio_mao_de_obra")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    // 2. Deleta da tabela de mão de obra
     const { error } = await supabase
       .from("relatorio_mao_de_obra")
       .delete()
       .eq("id", id);
     if (error) throw error;
+
+    // 3. Se existia, recria a descrição usada no extrato e deleta
+    if (mdo) {
+      const descricaoExtrato = `${mdo.tipo} - ${mdo.profissional}`;
+
+      await supabase.from("relatorio_extrato").delete().match({
+        obra_id: mdo.obra_id,
+        descricao: descricaoExtrato,
+        tipo: "Mão de Obra",
+      });
+    }
   },
 
-  // ... (mantenha o restante das funções getObraById, updateMaterial, etc.)
   getObraById: async (id) => {
     const { data, error } = await supabase
       .from("obras")
@@ -86,7 +120,6 @@ export const api = {
     };
   },
 
-  // Mantenha as outras funções auxiliares (updateMaterialStatus, etc...) yuo
   updateMaterialStatus: async (id, novoStatus) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")
@@ -97,57 +130,19 @@ export const api = {
     return data[0];
   },
 
-  updateMaterialStatusFinanceiro: async (id, novoStatusFinanceiro) => {
-    // 1. Atualiza na tabela de materiais
-    const { data, error } = await supabase
-      .from("relatorio_materiais")
-      .update({ status_financeiro: novoStatusFinanceiro })
-      .eq("id", id)
-      .select();
-
-    if (error) throw error;
-
-    const materialAtualizado = data[0];
-
-    // 2. Sincroniza com a tabela de extrato
-    if (materialAtualizado) {
-      // Busca o ID do item no extrato que corresponde a este material
-      const { data: extratoData, error: extratoError } = await supabase
-        .from("relatorio_extrato")
-        .select("id")
-        .match({
-          obra_id: materialAtualizado.obra_id,
-          descricao: materialAtualizado.material,
-          tipo: "Material",
-        });
-
-      if (extratoError) {
-        console.error("Erro ao verificar extrato:", extratoError);
-      } else if (extratoData && extratoData.length > 0) {
-        // Atualiza o status financeiro no extrato
-        await supabase
-          .from("relatorio_extrato")
-          .update({ status_financeiro: novoStatusFinanceiro })
-          .eq("id", extratoData[0].id);
-      }
-    }
-
-    return materialAtualizado;
-  },
-
   updateMaterialValor: async (id, novoValor) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")
       .update({ valor: novoValor })
       .eq("id", id)
-      .select();
+      .select("*");
 
     if (error) throw error;
-
     const materialAtualizado = data[0];
 
     if (materialAtualizado) {
-      const { data: extratoData, error: extratoError } = await supabase
+      // Verifica se já existe no extrato
+      const { data: extratoData } = await supabase
         .from("relatorio_extrato")
         .select("id")
         .match({
@@ -156,24 +151,22 @@ export const api = {
           tipo: "Material",
         });
 
-      if (extratoError) {
-        console.error("Erro ao verificar extrato:", extratoError);
-        return materialAtualizado;
-      }
-
       if (extratoData && extratoData.length > 0) {
+        // Já existe: Atualiza
         await supabase
           .from("relatorio_extrato")
           .update({ valor: novoValor })
           .eq("id", extratoData[0].id);
       } else if (parseFloat(novoValor) > 0) {
+        // NÃO existe e valor > 0: CRIA AGORA
         await supabase.from("relatorio_extrato").insert([
           {
             obra_id: materialAtualizado.obra_id,
             descricao: materialAtualizado.material,
             tipo: "Material",
             quantidade: materialAtualizado.quantidade,
-            data: new Date().toISOString(),
+            data:
+              materialAtualizado.data_solicitacao || new Date().toISOString(),
             valor: novoValor,
             validacao: 0,
             status_financeiro:
@@ -195,8 +188,17 @@ export const api = {
     return data[0];
   },
 
+  updateExtratoStatusFinanceiro: async (id, novoStatus) => {
+    const { data, error } = await supabase
+      .from("relatorio_extrato")
+      .update({ status_financeiro: novoStatus })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
   updateExtratoValidacao: async (id, status) => {
-    //yuo
     const { error } = await supabase
       .from("relatorio_extrato")
       .update({ validacao: status })
@@ -213,8 +215,7 @@ export const api = {
   },
 
   addMaterial: async (dados) => {
-    const statusFinanceiroInicial =
-      dados.status_financeiro || "Aguardando pagamento";
+    const statusInicial = "Aguardando pagamento";
 
     const { data, error } = await supabase
       .from("relatorio_materiais")
@@ -224,32 +225,13 @@ export const api = {
           material: dados.material,
           quantidade: dados.quantidade,
           valor: dados.valor,
+          fornecedor: dados.fornecedor,
           data_solicitacao: dados.data_solicitacao,
-          status_financeiro: statusFinanceiroInicial,
+          status_financeiro: statusInicial,
         },
       ])
       .select();
-
     if (error) throw error;
-
-    if (parseFloat(dados.valor) > 0) {
-      const { error: errorExtrato } = await supabase
-        .from("relatorio_extrato")
-        .insert([
-          {
-            obra_id: dados.obra_id,
-            descricao: dados.material,
-            tipo: "Material",
-            quantidade: dados.quantidade,
-            data: new Date().toISOString(),
-            valor: dados.valor,
-            validacao: 0,
-            status_financeiro: statusFinanceiroInicial,
-          },
-        ]);
-
-      if (errorExtrato) throw errorExtrato;
-    }
     return data[0];
   },
 
@@ -302,6 +284,7 @@ export const api = {
       dadosOriginais.valor_pago > 0
         ? dadosOriginais.valor_pago
         : dadosOriginais.valor_cobrado;
+
     const { error: errorExtrato } = await supabase
       .from("relatorio_extrato")
       .insert([
@@ -313,6 +296,7 @@ export const api = {
           data: dadosOriginais.data_solicitacao || new Date(),
           valor: valorParaExtrato,
           validacao: 0,
+          status_financeiro: "Aguardando pagamento",
         },
       ]);
     if (errorExtrato) throw errorExtrato;

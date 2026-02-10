@@ -3,8 +3,9 @@ import ButtonDefault from "./ButtonDefault";
 
 export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
   const [material, setMaterial] = useState("");
+  const [fornecedor, setFornecedor] = useState("");
   const [quantidade, setQuantidade] = useState("");
-  const [unidade, setUnidade] = useState("Un."); // Garante valor inicial
+  const [unidade, setUnidade] = useState("Un.");
 
   const listaUnidades = [
     "Sc.",
@@ -24,17 +25,18 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
   if (!isOpen) return null;
 
   const handleConfirmar = () => {
-    // Validação básica para evitar erros na API
+    // Validação básica
     if (!material || !quantidade) {
       alert("Preencha o material e a quantidade!");
       return;
     }
 
-    // Chama a função do pai passando o objeto pronto
-    onSave({ material, quantidade, unidade });
+    // --- ALTERAÇÃO AQUI: Adicionado 'fornecedor' ao objeto salvo ---
+    onSave({ material, fornecedor, quantidade, unidade });
 
-    // Limpa os campos para a próxima e mantém o modal aberto
+    // Limpa os campos
     setMaterial("");
+    setFornecedor("");
     setQuantidade("");
     setUnidade("Un.");
   };
@@ -65,15 +67,30 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
         </div>
 
         <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
+          {/* Input Material */}
           <div className="flex flex-col gap-[5px]">
             <label className="text-[12px] font-bold text-[#71717A] uppercase">
               Material
             </label>
             <input
               type="text"
-              placeholder="Ex: Cimento CP-II"
+              placeholder="Ex: Cimento, tijolo..."
               value={material}
               onChange={(e) => setMaterial(e.target.value)}
+              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border"
+            />
+          </div>
+
+          {/* Input Fornecedor */}
+          <div className="flex flex-col gap-[5px]">
+            <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              Fornecedor
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: RC, Casa do pintor..."
+              value={fornecedor}
+              onChange={(e) => setFornecedor(e.target.value)}
               className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border"
             />
           </div>

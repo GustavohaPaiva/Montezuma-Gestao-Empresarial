@@ -7,14 +7,13 @@ import { api } from "../services/api";
 import ModalMateriais from "../components/ModalMateriais";
 import ModalMaoDeObra from "../components/ModalMaoDeObra";
 
-// Formatação de data para padrão brasileiro (DD/MM/AAAA)
+// --- Formatações ---
 const formatarDataBR = (dataString) => {
   if (!dataString) return "-";
   const [ano, mes, dia] = dataString.split("T")[0].split("-");
   return `${dia}/${mes}/${ano}`;
 };
 
-// Formatação de valores numéricos para moeda BRL
 const formatarMoeda = (valor) => {
   const valorNumerico = parseFloat(valor) || 0;
   return new Intl.NumberFormat("pt-BR", {
@@ -29,24 +28,33 @@ export default function ObrasDetalhe() {
   const [obra, setObra] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // Estados de controle dos modais
+  // Modais
   const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
 
-  // Estado do Filtro do Extrato
+  // Filtros Globais
   const [filtroExtrato, setFiltroExtrato] = useState("Tudo");
 
-  // Estados para edição
+  // --- NOVOS ESTADOS DE BUSCA ---
+  const [buscaMateriais, setBuscaMateriais] = useState("");
+  const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
+  const [buscaExtrato, setBuscaExtrato] = useState("");
+
+  // Estados de Edição (Extrato e Materiais)
   const [editandoId, setEditandoId] = useState(null);
   const [valorEditado, setValorEditado] = useState("");
+
   const [editandoMaterialId, setEditandoMaterialId] = useState(null);
   const [valorMaterialEditado, setValorMaterialEditado] = useState("");
+
+  // Estados de Edição (Mão de Obra)
   const [editandoMaoDeObra, setEditandoMaoDeObra] = useState({
     id: null,
     campo: null,
   });
   const [valorMaoDeObraEditado, setValorMaoDeObraEditado] = useState("");
 
+  // --- Buscas ---
   const fetchDados = useCallback(async () => {
     if (!id) return;
     try {
@@ -72,7 +80,8 @@ export default function ObrasDetalhe() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // --- HANDLERS DE EXCLUSÃO ---
+  // --- HANDLERS MATERIAIS ---
+
   const handleDeleteMaterial = useCallback(
     async (materialId) => {
       if (window.confirm("Tem certeza que deseja excluir este material?")) {
@@ -88,22 +97,6 @@ export default function ObrasDetalhe() {
     [fetchDados],
   );
 
-  const handleDeleteMaoDeObra = useCallback(
-    async (mdoId) => {
-      if (window.confirm("Tem certeza que deseja excluir este registro?")) {
-        try {
-          await api.deleteMaoDeObra(mdoId);
-          await fetchDados();
-        } catch (err) {
-          console.error("Erro ao excluir mão de obra:", err);
-          alert("Erro ao excluir item.");
-        }
-      }
-    },
-    [fetchDados],
-  );
-
-  // --- HANDLERS MATERIAIS ---
   const handleStatusChange = useCallback(
     async (materialId, novoStatus) => {
       setObra((prev) => {
@@ -129,16 +122,16 @@ export default function ObrasDetalhe() {
     async (dados) => {
       const dataAtual = new Date().toISOString().split("T")[0];
       try {
-        // REMOVIDO: setModalMateriaisOpen(false); -> O modal fica aberto
         await api.addMaterial({
           obra_id: id,
           material: dados.material,
-          valor: parseFloat(dados.valor) || 0,
+          fornecedor: dados.fornecedor,
+          valor: 0,
           quantidade: `${dados.quantidade} ${dados.unidade || "Un."}`,
           data_solicitacao: dataAtual,
           status_financeiro: "Aguardando pagamento",
         });
-        await fetchDados(); // Atualiza a lista atrás do modal
+        await fetchDados();
       } catch (err) {
         console.error("Erro material:", err);
         alert("Erro ao salvar material.");
@@ -150,6 +143,7 @@ export default function ObrasDetalhe() {
   const salvarValorMaterial = useCallback(
     async (materialId) => {
       const valorFloat = parseFloat(valorMaterialEditado) || 0;
+
       setObra((prev) => {
         if (!prev) return prev;
         return {
@@ -159,7 +153,9 @@ export default function ObrasDetalhe() {
           ),
         };
       });
+
       setEditandoMaterialId(null);
+
       try {
         await api.updateMaterialValor(materialId, valorFloat);
         await fetchDados();
@@ -172,12 +168,27 @@ export default function ObrasDetalhe() {
   );
 
   // --- HANDLERS MÃO DE OBRA ---
+
+  const handleDeleteMaoDeObra = useCallback(
+    async (mdoId) => {
+      if (window.confirm("Tem certeza que deseja excluir este registro?")) {
+        try {
+          await api.deleteMaoDeObra(mdoId);
+          await fetchDados();
+        } catch (err) {
+          console.error("Erro ao excluir mão de obra:", err);
+          alert("Erro ao excluir item.");
+        }
+      }
+    },
+    [fetchDados],
+  );
+
   const handleSaveMaoDeObra = useCallback(
     async (dados) => {
       const dataAtual = new Date().toISOString().split("T")[0];
       const valorInput = parseFloat(dados.valor) || 0;
       try {
-        // REMOVIDO: setModalMaoDeObraOpen(false); -> O modal fica aberto
         await api.addMaoDeObra({
           obra_id: id,
           tipo: dados.tipo,
@@ -187,7 +198,7 @@ export default function ObrasDetalhe() {
           valor_orcado: valorInput,
           valor_pago: 0,
         });
-        await fetchDados(); // Atualiza a lista atrás do modal
+        await fetchDados();
       } catch (err) {
         console.error("Erro mao de obra:", err);
         alert("Erro ao salvar mão de obra.");
@@ -199,6 +210,7 @@ export default function ObrasDetalhe() {
   const handleValidarMaoDeObra = useCallback(
     async (item) => {
       if (item.validacao === 1) return;
+
       setObra((prev) => {
         if (!prev) return prev;
         return {
@@ -208,6 +220,7 @@ export default function ObrasDetalhe() {
           ),
         };
       });
+
       try {
         await api.validarMaoDeObra(item.id, item);
         await fetchDados();
@@ -230,6 +243,7 @@ export default function ObrasDetalhe() {
     async (item) => {
       const novoValor = parseFloat(valorMaoDeObraEditado) || 0;
       const campoEditado = editandoMaoDeObra.campo;
+
       const valorOrcadoFinal =
         campoEditado === "orcado" ? novoValor : item.valor_orcado || 0;
       const valorPagoFinal =
@@ -251,8 +265,10 @@ export default function ObrasDetalhe() {
           ),
         };
       });
+
       setEditandoMaoDeObra({ id: null, campo: null });
       setValorMaoDeObraEditado("");
+
       try {
         await api.updateMaoDeObraFinanceiro(item.id, {
           valor_orcado: valorOrcadoFinal,
@@ -268,6 +284,31 @@ export default function ObrasDetalhe() {
   );
 
   // --- HANDLERS EXTRATO ---
+
+  const handleStatusFinanceiroChange = useCallback(
+    async (extratoId, novoStatus) => {
+      setObra((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          relatorioExtrato: prev.relatorioExtrato.map((item) =>
+            item.id === extratoId
+              ? { ...item, status_financeiro: novoStatus }
+              : item,
+          ),
+        };
+      });
+
+      try {
+        await api.updateExtratoStatusFinanceiro(extratoId, novoStatus);
+      } catch (err) {
+        console.error("Erro status financeiro:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados],
+  );
+
   const iniciarEdicao = useCallback((item) => {
     setEditandoId(item.id);
     setValorEditado(item.valor);
@@ -301,11 +342,9 @@ export default function ObrasDetalhe() {
     [valorEditado, fetchDados],
   );
 
-  // --- CHECKBOX DO EXTRATO ---
   const handleCheckExtrato = useCallback(
     async (item) => {
       const novoStatus = item.validacao === 1 ? 0 : 1;
-
       setObra((prev) => {
         if (!prev) return prev;
         return {
@@ -315,7 +354,6 @@ export default function ObrasDetalhe() {
           ),
         };
       });
-
       try {
         await api.updateExtratoValidacao(item.id, novoStatus);
       } catch (err) {
@@ -329,7 +367,6 @@ export default function ObrasDetalhe() {
   const handleCheckAllExtrato = useCallback(
     async (isChecked) => {
       const novoStatus = isChecked ? 1 : 0;
-
       setObra((prev) => {
         if (!prev) return prev;
         return {
@@ -340,7 +377,6 @@ export default function ObrasDetalhe() {
           })),
         };
       });
-
       try {
         await api.updateExtratoValidacaoAll(id, novoStatus);
       } catch (err) {
@@ -351,19 +387,15 @@ export default function ObrasDetalhe() {
     [id, fetchDados],
   );
 
-  // --- GERAÇÃO DO PDF EXTRATO ---
   const handleGerarPDFExtrato = () => {
     if (!obra || !obra.relatorioExtrato) return;
-
     const itensSelecionados = obra.relatorioExtrato.filter(
       (item) => item.validacao === 1,
     );
-
     if (itensSelecionados.length === 0) {
       alert("Nenhum item selecionado para o extrato.");
       return;
     }
-
     const dadosParaPDF = itensSelecionados.map((item) => [
       item.descricao,
       item.tipo,
@@ -371,7 +403,6 @@ export default function ObrasDetalhe() {
       formatarDataBR(item.data),
       `R$ ${formatarMoeda(item.valor)}`,
     ]);
-
     gerarPDF(
       "Extrato",
       ["Descrição", "Tipo", "Qtd", "Data", "Valor"],
@@ -380,10 +411,20 @@ export default function ObrasDetalhe() {
     );
   };
 
-  // --- MAPEAMENTOS ---
+  // --- DADOS TABELA MATERIAIS (COM FILTRO) ---
   const dadosMateriais = useMemo(() => {
     if (!obra || !obra.materiais) return [];
-    const materiaisOrdenados = [...obra.materiais].sort((a, b) => {
+
+    let listaMateriais = [...obra.materiais];
+
+    // Filtro por nome do material
+    if (buscaMateriais) {
+      listaMateriais = listaMateriais.filter((m) =>
+        m.material?.toLowerCase().includes(buscaMateriais.toLowerCase()),
+      );
+    }
+
+    const materiaisOrdenados = listaMateriais.sort((a, b) => {
       const isEntregueA = a.status === "Entregue";
       const isEntregueB = b.status === "Entregue";
       if (isEntregueA && !isEntregueB) return 1;
@@ -393,8 +434,6 @@ export default function ObrasDetalhe() {
 
     return materiaisOrdenados.map((m) => {
       const isEditing = editandoMaterialId === m.id;
-
-      // Cálculo Valor Unitário
       const qtdNumerica = parseFloat(m.quantidade) || 0;
       const valorUnitario = qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
 
@@ -402,7 +441,7 @@ export default function ObrasDetalhe() {
         <div className="uppercase">{m.material}</div>,
         m.quantidade,
         `R$ ${formatarMoeda(valorUnitario)}`,
-        // COLUNA VALOR TOTAL (Editável)
+        // Coluna Valor (Editável)
         <div className="flex items-center justify-center gap-2" key={m.id}>
           {isEditing ? (
             <div className="flex items-center gap-1">
@@ -456,7 +495,7 @@ export default function ObrasDetalhe() {
             </div>
           )}
         </div>,
-        // STATUS ENTREGA
+        // Coluna Status
         <select
           key={`status-${m.id}`}
           value={m.status || "Solicitado"}
@@ -473,14 +512,13 @@ export default function ObrasDetalhe() {
           <option value="Aguardando entrega">Aguardando entrega</option>
           <option value="Entregue">Entregue</option>
         </select>,
-
+        <div className="uppercase text-[13px]">{m.fornecedor || "-"}</div>,
         formatarDataBR(m.data_solicitacao),
-        // BOTÃO DE DELETAR
+        // Deletar
         <div className="flex justify-center group" key={`del-mat-${m.id}`}>
           <button
             onClick={() => handleDeleteMaterial(m.id)}
             className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full cursor-pointer border-none bg-transparent"
-            title="Excluir Material"
           >
             <img
               width="18"
@@ -499,11 +537,26 @@ export default function ObrasDetalhe() {
     handleStatusChange,
     salvarValorMaterial,
     handleDeleteMaterial,
+    buscaMateriais, // Dependência adicionada
   ]);
 
+  // --- DADOS TABELA MÃO DE OBRA (COM FILTRO) ---
   const dadosMaoDeObra = useMemo(() => {
     if (!obra || !obra.maoDeObra) return [];
-    const maoDeObraOrdenada = [...obra.maoDeObra].sort(
+
+    let listaMaoDeObra = [...obra.maoDeObra];
+
+    // Filtro por Tipo (Serviço) ou Profissional (Prestador)
+    if (buscaMaoDeObra) {
+      const term = buscaMaoDeObra.toLowerCase();
+      listaMaoDeObra = listaMaoDeObra.filter(
+        (m) =>
+          m.tipo?.toLowerCase().includes(term) ||
+          m.profissional?.toLowerCase().includes(term),
+      );
+    }
+
+    const maoDeObraOrdenada = listaMaoDeObra.sort(
       (a, b) => (a.validacao || 0) - (b.validacao || 0),
     );
 
@@ -525,11 +578,10 @@ export default function ObrasDetalhe() {
             className="h-[15px] w-[15px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer disabled:opacity-50"
           />
         </label>,
-
         <div className="uppercase">{m.tipo}</div>,
         <div className="uppercase">{m.profissional}</div>,
-
         `R$ ${formatarMoeda(m.valor_cobrado || 0)}`,
+        // Valor Orçado
         <div
           className="flex items-center justify-center gap-2"
           key={`orcado-${m.id}`}
@@ -574,7 +626,6 @@ export default function ObrasDetalhe() {
               <span>R$ {formatarMoeda(m.valor_orcado || 0)}</span>
               <img
                 width="15"
-                height="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
                 className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
@@ -582,6 +633,7 @@ export default function ObrasDetalhe() {
             </div>
           )}
         </div>,
+        // Valor Pago
         <div
           className="flex items-center justify-center gap-2"
           key={`pago-${m.id}`}
@@ -626,7 +678,6 @@ export default function ObrasDetalhe() {
               <span>R$ {formatarMoeda(m.valor_pago || 0)}</span>
               <img
                 width="15"
-                height="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
                 className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
@@ -635,16 +686,22 @@ export default function ObrasDetalhe() {
           )}
         </div>,
         <span
-          className={`${saldo < 0 ? "text-[red]" : "text-[green]"} font-bold`}
+          className={`${
+            saldo < 0
+              ? "text-[red]"
+              : saldo === 0
+                ? "text-[orange]"
+                : "text-[green]"
+          } font-bold`}
         >
           R$ {formatarMoeda(saldo)}
         </span>,
         formatarDataBR(m.data_solicitacao),
+        // Deletar
         <div className="flex justify-center group" key={`del-mdo-${m.id}`}>
           <button
             onClick={() => handleDeleteMaoDeObra(m.id)}
             className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full cursor-pointer border-none bg-transparent"
-            title="Excluir Mão de Obra"
           >
             <img
               width="18"
@@ -664,12 +721,22 @@ export default function ObrasDetalhe() {
     iniciarEdicaoMaoDeObra,
     salvarEdicaoMaoDeObra,
     handleDeleteMaoDeObra,
+    buscaMaoDeObra, // Dependência adicionada
   ]);
 
-  // --- RESTAURANDO A LÓGICA DO EXTRATO QUE ESTAVA FALTANDO ---
+  // --- DADOS EXTRATO (COM FILTRO) ---
   const dadosRelatorioExtrato = useMemo(() => {
     if (!obra || !obra.relatorioExtrato) return [];
-    const itensFiltrados = obra.relatorioExtrato.filter((item) => {
+
+    // Filtro de Texto (Descricao)
+    let listaFiltradaTexto = obra.relatorioExtrato;
+    if (buscaExtrato) {
+      listaFiltradaTexto = listaFiltradaTexto.filter((item) =>
+        item.descricao?.toLowerCase().includes(buscaExtrato.toLowerCase()),
+      );
+    }
+
+    const itensFiltrados = listaFiltradaTexto.filter((item) => {
       if (filtroExtrato === "Tudo") return true;
       if (filtroExtrato === "Materiais") return item.tipo === "Material";
       if (filtroExtrato === "Mão de Obra") return item.tipo === "Mão de Obra";
@@ -695,12 +762,13 @@ export default function ObrasDetalhe() {
         item.descricao,
         item.tipo,
         item.quantidade,
+        // Valor Extrato (Editável)
         <div className="flex items-center justify-center gap-2" key={item.id}>
           {isEditing ? (
             <div className="flex items-center gap-1">
               <span>R$</span>
               <input
-                type=""
+                type="number"
                 step="0.01"
                 value={valorEditado}
                 onChange={(e) => setValorEditado(e.target.value)}
@@ -743,6 +811,22 @@ export default function ObrasDetalhe() {
             </div>
           )}
         </div>,
+        // Status Financeiro
+        <select
+          key={`status-fin-${item.id}`}
+          value={item.status_financeiro || "Aguardando pagamento"}
+          onChange={(e) =>
+            handleStatusFinanceiroChange(item.id, e.target.value)
+          }
+          className={`w-fit text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none ${
+            item.status_financeiro === "Pago"
+              ? "bg-[#E8F5E9] text-[#2E7D32]"
+              : "bg-[#FFF3E0] text-[#E65100]"
+          }`}
+        >
+          <option value="Aguardando pagamento">Aguardando pagamento</option>
+          <option value="Pago">Pago</option>
+        </select>,
         formatarDataBR(item.data),
       ];
     });
@@ -755,10 +839,40 @@ export default function ObrasDetalhe() {
     cancelarEdicao,
     handleCheckExtrato,
     filtroExtrato,
+    handleStatusFinanceiroChange,
+    buscaExtrato, // Dependência adicionada
   ]);
+
+  // --- CÁLCULOS TOTAIS ---
+  const totais = useMemo(() => {
+    if (!obra) return { materiais: 0, maoDeObra: 0, geral: 0 };
+
+    const somaMateriais = (obra.materiais || []).reduce(
+      (acc, m) => acc + (parseFloat(m.valor) || 0),
+      0,
+    );
+
+    const somaMaoDeObra = (obra.maoDeObra || []).reduce(
+      (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
+      0,
+    );
+
+    return {
+      materiais: somaMateriais,
+      maoDeObra: somaMaoDeObra,
+      geral: somaMateriais + somaMaoDeObra,
+    };
+  }, [obra]);
 
   const headerExtrato = useMemo(() => {
     let itensParaVerificar = obra?.relatorioExtrato || [];
+    // Aplica o filtro de busca no header também para consistência do check-all, se desejar
+    if (buscaExtrato) {
+      itensParaVerificar = itensParaVerificar.filter((item) =>
+        item.descricao?.toLowerCase().includes(buscaExtrato.toLowerCase()),
+      );
+    }
+
     if (filtroExtrato === "Materiais") {
       itensParaVerificar = itensParaVerificar.filter(
         (i) => i.tipo === "Material",
@@ -785,9 +899,10 @@ export default function ObrasDetalhe() {
       "Tipo",
       "Qtd",
       "Valor",
+      "Status Fin.",
       "Data",
     ];
-  }, [obra, handleCheckAllExtrato, filtroExtrato]);
+  }, [obra, handleCheckAllExtrato, filtroExtrato, buscaExtrato]);
 
   if (!obra)
     return (
@@ -840,8 +955,21 @@ export default function ObrasDetalhe() {
           </div>
         )}
         <div>
+          {/* TABELA DE MATERIAIS */}
           <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
-            <h1>Relatório de Materiais</h1>
+            <div
+              className={`w-full flex ${isMobile ? "flex-col gap-4" : "flex-row justify-between items-center"}`}
+            >
+              <h1>Relatório de Materiais</h1>
+              <input
+                type="text"
+                placeholder="Buscar material..."
+                value={buscaMateriais}
+                onChange={(e) => setBuscaMateriais(e.target.value)}
+                className={`h-[40px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px] ${isMobile ? "w-full" : "w-[250px]"}`}
+              />
+            </div>
+
             <TabelaSimples
               colunas={[
                 "Material",
@@ -849,27 +977,52 @@ export default function ObrasDetalhe() {
                 "Valor Un.",
                 "Valor",
                 "Status",
+                "Fornecedor",
                 "Data",
                 "",
               ]}
               dados={dadosMateriais}
             />
-            <ButtonDefault
-              onClick={() =>
-                gerarPDF(
-                  "Relatório Semanal",
-                  ["Material", "Quantidade", "Status", "Data"],
-                  dadosMateriais,
-                  obra.local,
-                )
-              }
-              className="w-full max-w-[450px]"
+
+            <div
+              className={`flex ${
+                isMobile ? "flex-col h-auto gap-4" : "flex-row h-[42px]"
+              } justify-between px-[5%] gap-[20px] text-center w-full box-border items-center`}
             >
-              Relatório Materiais
-            </ButtonDefault>
+              <ButtonDefault
+                onClick={() =>
+                  gerarPDF(
+                    "Relatório Semanal",
+                    ["Material", "Quantidade", "Status", "Data"],
+                    dadosMateriais,
+                    obra.local,
+                  )
+                }
+                className="w-[90%] max-w-[450px]"
+              >
+                Relatório Materiais
+              </ButtonDefault>
+              <div className="w-[90%] h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
+                Total gasto: <span> R$ {formatarMoeda(totais.materiais)}</span>
+              </div>
+            </div>
           </div>
+
+          {/* TABELA DE MÃO DE OBRA */}
           <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
-            <h1>Relatório de Mão de Obra</h1>
+            <div
+              className={`w-full flex ${isMobile ? "flex-col gap-4" : "flex-row justify-between items-center"}`}
+            >
+              <h1>Relatório de Mão de Obra</h1>
+              <input
+                type="text"
+                placeholder="Buscar serviço ou prestador..."
+                value={buscaMaoDeObra}
+                onChange={(e) => setBuscaMaoDeObra(e.target.value)}
+                className={`h-[40px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px] ${isMobile ? "w-full" : "w-[250px]"}`}
+              />
+            </div>
+
             <TabelaSimples
               colunas={[
                 "Validação",
@@ -884,37 +1037,59 @@ export default function ObrasDetalhe() {
               ]}
               dados={dadosMaoDeObra}
             />
-            <ButtonDefault
-              onClick={() =>
-                gerarPDF(
-                  "Relatório Mão de Obra",
-                  [
-                    "Serviço",
-                    "Profissional",
-                    "V. Cobrado",
-                    "V. Orçado",
-                    "V. Pago",
-                    "Saldo",
-                  ],
-                  dadosMaoDeObra,
-                  obra.local,
-                )
-              }
-              className="w-full max-w-[450px]"
+
+            <div
+              className={`flex ${
+                isMobile ? "flex-col h-auto gap-4" : "flex-row h-[42px]"
+              } justify-between px-[5%] gap-[20px] text-center w-full box-border items-center`}
             >
-              Relatório Mão de Obras
-            </ButtonDefault>
-          </div>
-          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
-            <div className="w-full flex justify-between items-center relative">
-              <div className="absolute left-1/2 transform -translate-x-1/2">
-                <h1>Extrato</h1>
+              <ButtonDefault
+                onClick={() =>
+                  gerarPDF(
+                    "Relatório Mão de Obra",
+                    [
+                      "Serviço",
+                      "Profissional",
+                      "V. Cobrado",
+                      "V. Orçado",
+                      "V. Pago",
+                      "Saldo",
+                    ],
+                    dadosMaoDeObra,
+                    obra.local,
+                  )
+                }
+                className="w-full max-w-[450px]"
+              >
+                Relatório Mão de Obras
+              </ButtonDefault>
+
+              <div className="w-full h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
+                Total gasto: <span> R$ {formatarMoeda(totais.maoDeObra)}</span>
               </div>
-              <div className="ml-auto">
+            </div>
+          </div>
+
+          {/* TABELA EXTRATO */}
+          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
+            <div
+              className={`w-full flex ${isMobile ? "flex-col gap-4" : "flex-row justify-between items-center"}`}
+            >
+              <h1>Extrato</h1>
+              <div
+                className={`flex ${isMobile ? "flex-col gap-[8px] w-full" : "flex-row gap-[8px] items-center"}`}
+              >
+                <input
+                  type="text"
+                  placeholder="Buscar no extrato..."
+                  value={buscaExtrato}
+                  onChange={(e) => setBuscaExtrato(e.target.value)}
+                  className={`h-[40px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px] ${isMobile ? "w-full" : "w-[250px]"}`}
+                />
                 <select
                   value={filtroExtrato}
                   onChange={(e) => setFiltroExtrato(e.target.value)}
-                  className="p-[6px] border border-[#DBDADE] rounded-[8px] text-[#464C54] focus:outline-none text-[14px] cursor-pointer bg-white"
+                  className={`p-[6px] border border-[#DBDADE] rounded-[8px] h-[40px] text-[#464C54] focus:outline-none text-[14px] cursor-pointer bg-white ${isMobile ? "w-full" : ""}`}
                 >
                   <option value="Tudo">Tudo</option>
                   <option value="Materiais">Materiais</option>
@@ -922,6 +1097,7 @@ export default function ObrasDetalhe() {
                 </select>
               </div>
             </div>
+
             <TabelaSimples
               colunas={headerExtrato}
               dados={dadosRelatorioExtrato}
