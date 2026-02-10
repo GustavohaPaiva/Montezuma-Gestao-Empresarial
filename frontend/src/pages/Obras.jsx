@@ -7,6 +7,7 @@ import { api } from "../services/api";
 export default function Obras() {
   const [obras, setObras] = useState([]);
   const [busca, setBusca] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("Tudo"); // Novo estado
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refresh, setRefresh] = useState(false);
 
@@ -31,9 +32,10 @@ export default function Obras() {
 
   const reloadObras = () => setRefresh((prev) => !prev);
 
-  // --- CRIAR NOVA OBRA (Via Modal) ---
+  // --- CRIAR NOVA OBRA ---
   const handleCreateObra = async (formData) => {
     try {
+      // API já define status como "Aguardando iniciação"
       await api.createObra({
         cliente: formData.cliente,
         local: formData.nomeObra,
@@ -46,29 +48,27 @@ export default function Obras() {
     }
   };
 
-  // --- ATUALIZAR OBRA (Edição Inline no Card) ---
+  // --- ATUALIZAR OBRA ---
   const handleUpdateInline = async (id, dadosAtualizados) => {
     try {
-      // 1. Chama API
-      await api.updateObra(id, dadosAtualizados);
-
-      // 2. Atualiza lista localmente para não precisar recarregar tudo
+      // Atualização Otimista
       setObras((prevObras) =>
         prevObras.map((obra) =>
           obra.id === id ? { ...obra, ...dadosAtualizados } : obra,
         ),
       );
+      await api.updateObra(id, dadosAtualizados);
     } catch (err) {
       console.error("Erro ao atualizar obra:", err);
       alert("Erro ao atualizar a obra.");
+      reloadObras(); // Reverte se der erro
     }
   };
 
-  // --- DELETE (Soft Delete) ---
+  // --- DELETE ---
   const handleDelete = async (id) => {
     if (window.confirm("Tem certeza que deseja remover esta obra?")) {
       try {
-        // Atualiza visualmente primeiro
         setObras((prevObras) =>
           prevObras.map((obra) =>
             obra.id === id ? { ...obra, active: false } : obra,
@@ -83,20 +83,44 @@ export default function Obras() {
     }
   };
 
-  // Filtros
-  const obrasVisiveis = obras.filter((obra) => {
+  // --- LÓGICA DE ORDENAÇÃO ---
+  const ordenarObras = (lista) => {
+    const pesos = {
+      "Em andamento": 1,
+      "Aguardando iniciação": 2,
+      Concluída: 3,
+    };
+
+    return [...lista].sort((a, b) => {
+      const pesoA = pesos[a.status] || 99;
+      const pesoB = pesos[b.status] || 99;
+      return pesoA - pesoB;
+    });
+  };
+
+  // --- FILTROS ---
+  const obrasFiltradas = obras.filter((obra) => {
     if (obra.active === false) return false;
+
+    // Filtro Navbar
+    if (filtroStatus !== "Tudo" && obra.status !== filtroStatus) return false;
+
+    // Busca Texto
     const termo = busca.toLowerCase();
     const nomeCliente = obra.cliente?.toLowerCase() || "";
-    const nomeLocal = obra.local?.toLowerCase() || ""; // API retorna 'local', não 'nome'
+    const nomeLocal = obra.local?.toLowerCase() || "";
     return nomeCliente.includes(termo) || nomeLocal.includes(termo);
   });
+
+  const obrasVisiveis = ordenarObras(obrasFiltradas);
 
   return (
     <div className="flex flex-col min-h-screen items-center bg-white">
       <Navbar
         searchTerm={busca}
         onSearchChange={setBusca}
+        filterStatus={filtroStatus}
+        onFilterChange={setFiltroStatus}
         onOpenModal={() => setIsModalOpen(true)}
       />
 
@@ -108,8 +132,7 @@ export default function Obras() {
               id={obra.id}
               nome={obra.local}
               client={obra.cliente}
-              status={obra.status || "Em andamento"}
-              // Passamos onUpdate em vez de onEdit
+              status={obra.status || "Aguardando iniciação"}
               onUpdate={handleUpdateInline}
               onDelete={() => handleDelete(obra.id)}
             />
@@ -123,7 +146,6 @@ export default function Obras() {
         </div>
       </main>
 
-      {/* Modal usado APENAS para criar nova obra */}
       <ModalNovaObra
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

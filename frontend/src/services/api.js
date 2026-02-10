@@ -6,7 +6,7 @@ export const api = {
       .from("obras")
       .select("*")
       .eq("active", true)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false }); // A ordenação visual será feita no Front
     if (error) throw error;
     return data;
   },
@@ -18,7 +18,7 @@ export const api = {
         {
           cliente: novaObra.cliente,
           local: novaObra.local,
-          status: "Em andamento",
+          status: "Aguardando iniciação", // ALTERADO: Novo status padrão
           active: true,
         },
       ])
@@ -45,23 +45,19 @@ export const api = {
     if (error) throw error;
   },
 
-  // --- ALTERADO: Deleta Material e remove do Extrato ---
   deleteMaterial: async (id) => {
-    // 1. Busca os dados do material antes de excluir para ter a descrição
     const { data: material } = await supabase
       .from("relatorio_materiais")
       .select("*")
       .eq("id", id)
       .single();
 
-    // 2. Deleta da tabela de materiais
     const { error } = await supabase
       .from("relatorio_materiais")
       .delete()
       .eq("id", id);
     if (error) throw error;
 
-    // 3. Se existia o material, deleta o correspondente no extrato
     if (material) {
       await supabase.from("relatorio_extrato").delete().match({
         obra_id: material.obra_id,
@@ -71,26 +67,21 @@ export const api = {
     }
   },
 
-  // --- ALTERADO: Deleta Mão de Obra e remove do Extrato ---
   deleteMaoDeObra: async (id) => {
-    // 1. Busca os dados antes de excluir
     const { data: mdo } = await supabase
       .from("relatorio_mao_de_obra")
       .select("*")
       .eq("id", id)
       .single();
 
-    // 2. Deleta da tabela de mão de obra
     const { error } = await supabase
       .from("relatorio_mao_de_obra")
       .delete()
       .eq("id", id);
     if (error) throw error;
 
-    // 3. Se existia, recria a descrição usada no extrato e deleta
     if (mdo) {
       const descricaoExtrato = `${mdo.tipo} - ${mdo.profissional}`;
-
       await supabase.from("relatorio_extrato").delete().match({
         obra_id: mdo.obra_id,
         descricao: descricaoExtrato,
@@ -141,7 +132,6 @@ export const api = {
     const materialAtualizado = data[0];
 
     if (materialAtualizado) {
-      // Verifica se já existe no extrato
       const { data: extratoData } = await supabase
         .from("relatorio_extrato")
         .select("id")
@@ -152,13 +142,11 @@ export const api = {
         });
 
       if (extratoData && extratoData.length > 0) {
-        // Já existe: Atualiza
         await supabase
           .from("relatorio_extrato")
           .update({ valor: novoValor })
           .eq("id", extratoData[0].id);
       } else if (parseFloat(novoValor) > 0) {
-        // NÃO existe e valor > 0: CRIA AGORA
         await supabase.from("relatorio_extrato").insert([
           {
             obra_id: materialAtualizado.obra_id,
