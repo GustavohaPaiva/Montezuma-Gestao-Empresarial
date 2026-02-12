@@ -770,8 +770,8 @@ export default function ObrasDetalhe() {
             className="h-[18px] w-[18px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer"
           />
         </label>,
-        item.descricao,
-        item.tipo,
+        <div className="uppercase">{item.descricao}</div>,
+        <div className="uppercase">{item.tipo}</div>,
         item.quantidade,
         // Valor Extrato (Editável)
         <div className="flex items-center justify-center gap-2" key={item.id}>
