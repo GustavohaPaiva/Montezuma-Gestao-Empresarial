@@ -6,7 +6,7 @@ export const api = {
       .from("obras")
       .select("*")
       .eq("active", true)
-      .order("created_at", { ascending: false }); // A ordenação visual será feita no Front
+      .order("created_at", { ascending: false });
     if (error) throw error;
     return data;
   },
@@ -18,7 +18,7 @@ export const api = {
         {
           cliente: novaObra.cliente,
           local: novaObra.local,
-          status: "Aguardando iniciação", // ALTERADO: Novo status padrão
+          status: "Aguardando iniciação",
           active: true,
         },
       ])
@@ -45,49 +45,41 @@ export const api = {
     if (error) throw error;
   },
 
+  // --- CORREÇÃO: Deleta o material e busca o vínculo no extrato pelo ID ---
   deleteMaterial: async (id) => {
-    const { data: material } = await supabase
-      .from("relatorio_materiais")
-      .select("*")
-      .eq("id", id)
-      .single();
-
+    // 1. Apaga da tabela de materiais
     const { error } = await supabase
       .from("relatorio_materiais")
       .delete()
       .eq("id", id);
     if (error) throw error;
 
-    if (material) {
-      await supabase.from("relatorio_extrato").delete().match({
-        obra_id: material.obra_id,
-        descricao: material.material,
-        tipo: "Material",
-      });
-    }
+    // 2. Apaga da tabela de extrato onde a coluna 'material_id' for igual ao ID
+    // Isso garante que apague EXATAMENTE este item, mesmo que tenham outros com mesmo nome
+    const { error: errorExtrato } = await supabase
+      .from("relatorio_extrato")
+      .delete()
+      .eq("material_id", id);
+
+    if (errorExtrato) console.error("Erro ao limpar extrato:", errorExtrato);
   },
 
+  // --- CORREÇÃO: Deleta mão de obra e vínculo no extrato ---
   deleteMaoDeObra: async (id) => {
-    const { data: mdo } = await supabase
-      .from("relatorio_mao_de_obra")
-      .select("*")
-      .eq("id", id)
-      .single();
-
     const { error } = await supabase
       .from("relatorio_mao_de_obra")
       .delete()
       .eq("id", id);
     if (error) throw error;
 
-    if (mdo) {
-      const descricaoExtrato = `${mdo.tipo} - ${mdo.profissional}`;
-      await supabase.from("relatorio_extrato").delete().match({
-        obra_id: mdo.obra_id,
-        descricao: descricaoExtrato,
-        tipo: "Mão de Obra",
-      });
-    }
+    // Apaga do extrato onde 'mao_de_obra_id' for igual
+    const { error: errorExtrato } = await supabase
+      .from("relatorio_extrato")
+      .delete()
+      .eq("mao_de_obra_id", id);
+
+    if (errorExtrato)
+      console.error("Erro ao limpar extrato MDO:", errorExtrato);
   },
 
   getObraById: async (id) => {
@@ -121,7 +113,19 @@ export const api = {
     return data[0];
   },
 
+  updateMaterialFornecedor: async (id, novoFornecedor) => {
+    const { data, error } = await supabase
+      .from("relatorio_materiais")
+      .update({ fornecedor: novoFornecedor })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  // --- LÓGICA PRINCIPAL DE DUPLICATAS ---
   updateMaterialValor: async (id, novoValor) => {
+    // 1. Atualiza na tabela de materiais
     const { data, error } = await supabase
       .from("relatorio_materiais")
       .update({ valor: novoValor })
@@ -132,24 +136,28 @@ export const api = {
     const materialAtualizado = data[0];
 
     if (materialAtualizado) {
+      // 2. Verifica se JÁ EXISTE no extrato vinculado pelo ID (não pelo nome)
       const { data: extratoData } = await supabase
         .from("relatorio_extrato")
-        .select("id")
-        .match({
-          obra_id: materialAtualizado.obra_id,
-          descricao: materialAtualizado.material,
-          tipo: "Material",
-        });
+        .select("*")
+        .eq("material_id", id) // Busca pelo ID
+        .maybeSingle();
 
-      if (extratoData && extratoData.length > 0) {
+      if (extratoData) {
+        // Se achou pelo ID, atualiza essa linha específica
         await supabase
           .from("relatorio_extrato")
-          .update({ valor: novoValor })
-          .eq("id", extratoData[0].id);
+          .update({
+            valor: novoValor,
+            descricao: materialAtualizado.material,
+          })
+          .eq("id", extratoData.id);
       } else if (parseFloat(novoValor) > 0) {
+        // Se não achou e tem valor, cria gravando o material_id
         await supabase.from("relatorio_extrato").insert([
           {
             obra_id: materialAtualizado.obra_id,
+            material_id: materialAtualizado.id, // GRAVA O ID AQUI
             descricao: materialAtualizado.material,
             tipo: "Material",
             quantidade: materialAtualizado.quantidade,
@@ -203,8 +211,6 @@ export const api = {
   },
 
   addMaterial: async (dados) => {
-    const statusInicial = "Aguardando pagamento";
-
     const { data, error } = await supabase
       .from("relatorio_materiais")
       .insert([
@@ -215,7 +221,7 @@ export const api = {
           valor: dados.valor,
           fornecedor: dados.fornecedor,
           data_solicitacao: dados.data_solicitacao,
-          status_financeiro: statusInicial,
+          status_financeiro: "Aguardando pagamento",
         },
       ])
       .select();
@@ -261,6 +267,7 @@ export const api = {
     return data[0];
   },
 
+  // --- CORREÇÃO: Validação de Mão de Obra usando ID ---
   validarMaoDeObra: async (id, dadosOriginais) => {
     const { error } = await supabase
       .from("relatorio_mao_de_obra")
@@ -278,6 +285,7 @@ export const api = {
       .insert([
         {
           obra_id: dadosOriginais.obra_id,
+          mao_de_obra_id: id, // GRAVA O ID AQUI TAMBÉM
           descricao: `${dadosOriginais.tipo} - ${dadosOriginais.profissional}`,
           tipo: "Mão de Obra",
           quantidade: "1",

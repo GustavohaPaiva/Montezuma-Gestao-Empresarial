@@ -35,17 +35,23 @@ export default function ObrasDetalhe() {
   // Filtros Globais
   const [filtroExtrato, setFiltroExtrato] = useState("Tudo");
 
-  // --- NOVOS ESTADOS DE BUSCA ---
+  // --- ESTADOS DE BUSCA ---
   const [buscaMateriais, setBuscaMateriais] = useState("");
   const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
   const [buscaExtrato, setBuscaExtrato] = useState("");
 
-  // Estados de Edição (Extrato e Materiais)
+  // Estados de Edição (Extrato)
   const [editandoId, setEditandoId] = useState(null);
   const [valorEditado, setValorEditado] = useState("");
 
-  const [editandoMaterialId, setEditandoMaterialId] = useState(null);
+  // Estados de Edição (Materiais - Valor e Fornecedor)
+  const [editandoMaterial, setEditandoMaterial] = useState({
+    id: null,
+    campo: null,
+  });
   const [valorMaterialEditado, setValorMaterialEditado] = useState("");
+  const [fornecedorMaterialEditado, setFornecedorMaterialEditado] =
+    useState("");
 
   // Estados de Edição (Mão de Obra)
   const [editandoMaoDeObra, setEditandoMaoDeObra] = useState({
@@ -140,6 +146,15 @@ export default function ObrasDetalhe() {
     [id, fetchDados],
   );
 
+  const iniciarEdicaoMaterial = useCallback((m, campo) => {
+    setEditandoMaterial({ id: m.id, campo });
+    if (campo === "valor") {
+      setValorMaterialEditado(m.valor || 0);
+    } else if (campo === "fornecedor") {
+      setFornecedorMaterialEditado(m.fornecedor || "");
+    }
+  }, []);
+
   const salvarValorMaterial = useCallback(
     async (materialId) => {
       const valorFloat = parseFloat(valorMaterialEditado) || 0;
@@ -154,7 +169,7 @@ export default function ObrasDetalhe() {
         };
       });
 
-      setEditandoMaterialId(null);
+      setEditandoMaterial({ id: null, campo: null });
 
       try {
         await api.updateMaterialValor(materialId, valorFloat);
@@ -165,6 +180,36 @@ export default function ObrasDetalhe() {
       }
     },
     [valorMaterialEditado, fetchDados],
+  );
+
+  const salvarFornecedorMaterial = useCallback(
+    async (materialId) => {
+      setObra((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          materiais: prev.materiais.map((m) =>
+            m.id === materialId
+              ? { ...m, fornecedor: fornecedorMaterialEditado }
+              : m,
+          ),
+        };
+      });
+
+      setEditandoMaterial({ id: null, campo: null });
+
+      try {
+        await api.updateMaterialFornecedor(
+          materialId,
+          fornecedorMaterialEditado,
+        );
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar fornecedor:", err);
+        fetchDados();
+      }
+    },
+    [fornecedorMaterialEditado, fetchDados],
   );
 
   // --- HANDLERS MÃO DE OBRA ---
@@ -422,13 +467,12 @@ export default function ObrasDetalhe() {
     );
   };
 
-  // --- DADOS TABELA MATERIAIS (COM FILTRO) ---
+  // --- DADOS TABELA MATERIAIS ---
   const dadosMateriais = useMemo(() => {
     if (!obra || !obra.materiais) return [];
 
     let listaMateriais = [...obra.materiais];
 
-    // Filtro por nome do material
     if (buscaMateriais) {
       listaMateriais = listaMateriais.filter((m) =>
         m.material?.toLowerCase().includes(buscaMateriais.toLowerCase()),
@@ -444,7 +488,11 @@ export default function ObrasDetalhe() {
     });
 
     return materiaisOrdenados.map((m) => {
-      const isEditing = editandoMaterialId === m.id;
+      const isEditingValor =
+        editandoMaterial.id === m.id && editandoMaterial.campo === "valor";
+      const isEditingFornecedor =
+        editandoMaterial.id === m.id && editandoMaterial.campo === "fornecedor";
+
       const qtdNumerica = parseFloat(m.quantidade) || 0;
       const valorUnitario = qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
 
@@ -452,9 +500,12 @@ export default function ObrasDetalhe() {
         <div className="uppercase">{m.material}</div>,
         m.quantidade,
         `R$ ${formatarMoeda(valorUnitario)}`,
-        // Coluna Valor (Editável)
-        <div className="flex items-center justify-center gap-2" key={m.id}>
-          {isEditing ? (
+        // Valor (Editável)
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`val-${m.id}`}
+        >
+          {isEditingValor ? (
             <div className="flex items-center gap-1">
               <span>R$</span>
               <input
@@ -476,7 +527,7 @@ export default function ObrasDetalhe() {
                 />
               </button>
               <button
-                onClick={() => setEditandoMaterialId(null)}
+                onClick={() => setEditandoMaterial({ id: null, campo: null })}
                 className="cursor-pointer border-none bg-transparent"
               >
                 <img
@@ -489,10 +540,7 @@ export default function ObrasDetalhe() {
           ) : (
             <div
               className="flex items-center gap-2 group cursor-pointer"
-              onClick={() => {
-                setEditandoMaterialId(m.id);
-                setValorMaterialEditado(m.valor || 0);
-              }}
+              onClick={() => iniciarEdicaoMaterial(m, "valor")}
             >
               <span className="font-bold">
                 R$ {formatarMoeda(m.valor || 0)}
@@ -506,7 +554,7 @@ export default function ObrasDetalhe() {
             </div>
           )}
         </div>,
-        // Coluna Status
+        // Status
         <select
           key={`status-${m.id}`}
           value={m.status || "Solicitado"}
@@ -523,7 +571,56 @@ export default function ObrasDetalhe() {
           <option value="Aguardando entrega">Aguardando entrega</option>
           <option value="Entregue">Entregue</option>
         </select>,
-        <div className="uppercase text-[13px]">{m.fornecedor || "-"}</div>,
+        // Fornecedor (Editável)
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`forn-${m.id}`}
+        >
+          {isEditingFornecedor ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={fornecedorMaterialEditado}
+                onChange={(e) => setFornecedorMaterialEditado(e.target.value)}
+                className="w-[120px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-[13px] uppercase"
+                autoFocus
+              />
+              <button
+                onClick={() => salvarFornecedorMaterial(m.id)}
+                className="cursor-pointer border-none bg-transparent"
+              >
+                <img
+                  width="15"
+                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
+                  alt="salvar"
+                />
+              </button>
+              <button
+                onClick={() => setEditandoMaterial({ id: null, campo: null })}
+                className="cursor-pointer border-none bg-transparent"
+              >
+                <img
+                  width="15"
+                  src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
+                  alt="cancelar"
+                />
+              </button>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer justify-center"
+              onClick={() => iniciarEdicaoMaterial(m, "fornecedor")}
+            >
+              <div className="uppercase text-[13px]">{m.fornecedor || "-"}</div>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[4px]"
+              />
+            </div>
+          )}
+        </div>,
         formatarDataBR(m.data_solicitacao),
         // Deletar
         <div className="flex justify-center group" key={`del-mat-${m.id}`}>
@@ -543,21 +640,23 @@ export default function ObrasDetalhe() {
     });
   }, [
     obra,
-    editandoMaterialId,
+    editandoMaterial,
     valorMaterialEditado,
+    fornecedorMaterialEditado,
     handleStatusChange,
     salvarValorMaterial,
+    salvarFornecedorMaterial,
+    iniciarEdicaoMaterial,
     handleDeleteMaterial,
-    buscaMateriais, // Dependência adicionada
+    buscaMateriais,
   ]);
 
-  // --- DADOS TABELA MÃO DE OBRA (COM FILTRO) ---
+  // --- DADOS TABELA MÃO DE OBRA ---
   const dadosMaoDeObra = useMemo(() => {
     if (!obra || !obra.maoDeObra) return [];
 
     let listaMaoDeObra = [...obra.maoDeObra];
 
-    // Filtro por Tipo (Serviço) ou Profissional (Prestador)
     if (buscaMaoDeObra) {
       const term = buscaMaoDeObra.toLowerCase();
       listaMaoDeObra = listaMaoDeObra.filter(
@@ -732,14 +831,13 @@ export default function ObrasDetalhe() {
     iniciarEdicaoMaoDeObra,
     salvarEdicaoMaoDeObra,
     handleDeleteMaoDeObra,
-    buscaMaoDeObra, // Dependência adicionada
+    buscaMaoDeObra,
   ]);
 
-  // --- DADOS EXTRATO (COM FILTRO) ---
+  // --- DADOS EXTRATO (COM ORDENAÇÃO) ---
   const dadosRelatorioExtrato = useMemo(() => {
     if (!obra || !obra.relatorioExtrato) return [];
 
-    // Filtro de Texto (Descricao)
     let listaFiltradaTexto = obra.relatorioExtrato;
     if (buscaExtrato) {
       listaFiltradaTexto = listaFiltradaTexto.filter((item) =>
@@ -753,6 +851,24 @@ export default function ObrasDetalhe() {
       if (filtroExtrato === "Mão de Obra") return item.tipo === "Mão de Obra";
       return true;
     });
+
+    // --- NOVA ORDENAÇÃO: 1º Status, 2º Data ---
+    itensFiltrados.sort((a, b) => {
+      const statusA = a.status_financeiro || "Aguardando pagamento";
+      const statusB = b.status_financeiro || "Aguardando pagamento";
+
+      // 1. Verificar Status: Se diferentes, prioriza "Aguardando pagamento"
+      if (statusA !== statusB) {
+        if (statusA === "Aguardando pagamento") return -1;
+        if (statusB === "Aguardando pagamento") return 1;
+      }
+
+      // 2. Se Status iguais, verificar Data (Mais recente primeiro)
+      const dataA = new Date(a.data).getTime();
+      const dataB = new Date(b.data).getTime();
+      return dataB - dataA;
+    });
+    // -------------------------------------------
 
     return itensFiltrados.map((item) => {
       const isEditing = editandoId === item.id;
@@ -773,7 +889,7 @@ export default function ObrasDetalhe() {
         <div className="uppercase">{item.descricao}</div>,
         <div className="uppercase">{item.tipo}</div>,
         item.quantidade,
-        // Valor Extrato (Editável)
+        // Valor Extrato
         <div className="flex items-center justify-center gap-2" key={item.id}>
           {isEditing ? (
             <div className="flex items-center gap-1">
@@ -851,7 +967,7 @@ export default function ObrasDetalhe() {
     handleCheckExtrato,
     filtroExtrato,
     handleStatusFinanceiroChange,
-    buscaExtrato, // Dependência adicionada
+    buscaExtrato,
   ]);
 
   // --- CÁLCULOS TOTAIS ---
@@ -868,7 +984,6 @@ export default function ObrasDetalhe() {
       0,
     );
 
-    // --- CORREÇÃO: Soma apenas os itens que estão no array relatorioExtrato ---
     const somaExtrato = (obra.relatorioExtrato || []).reduce(
       (acc, item) => acc + (parseFloat(item.valor) || 0),
       0,
@@ -883,7 +998,6 @@ export default function ObrasDetalhe() {
 
   const headerExtrato = useMemo(() => {
     let itensParaVerificar = obra?.relatorioExtrato || [];
-    // Aplica o filtro de busca no header também para consistência do check-all, se desejar
     if (buscaExtrato) {
       itensParaVerificar = itensParaVerificar.filter((item) =>
         item.descricao?.toLowerCase().includes(buscaExtrato.toLowerCase()),
@@ -1008,7 +1122,6 @@ export default function ObrasDetalhe() {
             >
               <ButtonDefault
                 onClick={() => {
-                  // 1. Filtra e Ordena os dados originais (para bater com o que está na tela)
                   let listaParaPDF = [...obra.materiais];
 
                   if (buscaMateriais) {
@@ -1027,31 +1140,27 @@ export default function ObrasDetalhe() {
                     return 0;
                   });
 
-                  // 2. Calcula o Total
                   const totalMat = listaParaPDF.reduce(
                     (acc, m) => acc + (parseFloat(m.valor) || 0),
                     0,
                   );
                   const totalFormatado = `R$ ${formatarMoeda(totalMat)}`;
 
-                  // 3. Cria um array APENAS com TEXTO (Sem JSX) e SEM o Status
                   const dadosPDF = listaParaPDF.map((m) => {
                     const qtdNumerica = parseFloat(m.quantidade) || 0;
                     const valorUnitario =
                       qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
 
-                    // Retorna um objeto ou array simples com as colunas na ordem exata
                     return [
-                      m.material?.toUpperCase() || "-", // Material
-                      m.quantidade || "0", // Quantidade
-                      `R$ ${formatarMoeda(valorUnitario)}`, // Valor Un.
-                      `R$ ${formatarMoeda(m.valor || 0)}`, // Valor Total
-                      m.fornecedor?.toUpperCase() || "-", // Fornecedor
-                      formatarDataBR(m.data_solicitacao), // Data
+                      m.material?.toUpperCase() || "-",
+                      m.quantidade || "0",
+                      `R$ ${formatarMoeda(valorUnitario)}`,
+                      `R$ ${formatarMoeda(m.valor || 0)}`,
+                      m.fornecedor?.toUpperCase() || "-",
+                      formatarDataBR(m.data_solicitacao),
                     ];
                   });
 
-                  // 4. Gera o PDF com as colunas corretas (Sem Status)
                   gerarPDF(
                     "Relatório de Materiais",
                     [
@@ -1182,7 +1291,6 @@ export default function ObrasDetalhe() {
               >
                 Gerar pedido
               </ButtonDefault>
-              {/* --- CORREÇÃO AQUI: Exibindo totais.totalExtrato --- */}
               <div className="w-full h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
                 Total gasto:{" "}
                 <span> R$ {formatarMoeda(totais.totalExtrato)}</span>
