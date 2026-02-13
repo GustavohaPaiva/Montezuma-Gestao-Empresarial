@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ButtonDefault from "./ButtonDefault";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo sem fundo.png";
 import { useNavigate } from "react-router-dom";
 
 export default function Navbar({
@@ -28,14 +28,17 @@ export default function Navbar({
       className={`w-full border-b border-[#DBDADE] flex justify-center bg-[#EEEDF0]  top-0 z-10 transition-all ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
     >
       <div
-        className={`w-[90%] max-w-7xl flex items-center justify-between gap-[20px] ${isMobile ? "flex-col" : "flex-row h-full"}`}
+        className={`w-full max-w-7xl flex items-center justify-between gap-[20px] ${isMobile ? "flex-col" : "flex-row h-full"}`}
       >
-        <img
-          src={logo}
-          alt="Logo Montezuma"
-          onClick={handleCardClick}
-          className={`object-contain transition-all ${isMobile ? "hidden" : "w-[120px] h-[75px] cursor-pointer"}`}
-        />
+        <div className="flex flex-row justify-center items-center">
+          <img
+            src={logo}
+            onClick={handleCardClick}
+            alt="Logo Montezuma"
+            className={`object-contain transition-all  ${isMobile ? "hidden" : "w-[120px] h-[70px]"}`}
+          />
+          <p className="text-[40px]">Montezuma</p>
+        </div>
 
         <div
           className={`flex gap-[10px] ${isMobile ? "flex-col w-full" : "flex-row items-center"}`}

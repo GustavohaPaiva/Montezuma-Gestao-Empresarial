@@ -7,7 +7,7 @@ export default function Home() {
       id: 1,
       titulo: "Obras",
       imagem: "https://img.icons8.com/ios/125/company--v1.png",
-      path: "/obras", // <-- Apenas a string da rota
+      path: "/obras",
     },
     {
       id: 2,
@@ -18,6 +18,13 @@ export default function Home() {
     },
     {
       id: 3,
+      titulo: "Processos",
+      imagem:
+        "https://img.icons8.com/external-outline-wichaiwi/125/external-financial-business-continuity-plan-outline-wichaiwi.png",
+      path: "/",
+    },
+    {
+      id: 4,
       titulo: "Financeiro",
       imagem:
         "https://img.icons8.com/external-outline-wichaiwi/125/external-financial-business-continuity-plan-outline-wichaiwi.png",
@@ -28,7 +35,7 @@ export default function Home() {
   return (
     <div className="text-center">
       <Navbar />
-      <div className="grid grid-cols-3 gap-6 px-[5%] w-full">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(0,350px))] w-full justify-between w-[95%]">
         {modulos.map((item) => (
           <CardHome
             key={item.id}

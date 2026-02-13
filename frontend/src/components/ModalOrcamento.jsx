@@ -1,69 +1,69 @@
 import { useState } from "react";
-import ButtonDefault from "./ButtonDefault";
+import ButtonDefault from "./ButtonDefault"; // Reutilizando seu botão se possível, ou use HTML button normal
 
-export default function ModalNovaObra({ isOpen, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    nomeObra: "",
-    cliente: "",
-  });
+export default function ModalOrcamento({ isOpen, onClose, onSave }) {
+  const [nome, setNome] = useState("");
+  const [valor, setValor] = useState("");
 
   if (!isOpen) return null;
 
+  const handleSubmit = () => {
+    if (!nome || !valor) {
+      alert("Preencha todos os campos!");
+      return;
+    }
+
+    // Envia os dados para o componente pai
+    onSave({
+      nome,
+      valor: parseFloat(valor), // Garante que seja número
+    });
+
+    // Limpa os campos
+    setNome("");
+    setValor("");
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-[10px]">
-      <div className="bg-[#ffffff] w-[370px] max-w-[95%] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
-        <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
-              Cadastrar Nova Obra
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-[35px] h-[35px] flex items-center justify-center border border-[#C4C4C9] rounded-[8px] text-[24px] text-[#71717A] hover:bg-gray-100 cursor-pointer "
-          >
-            &times;
-          </button>
+    <div className="bg-opacity-50 flex justify-center items-center z-50 px-4">
+      <div className="bg-white rounded-[12px] p-6 w-full max-w-[400px] shadow-lg flex flex-col gap-4">
+        <h2 className="text-[24px] font-bold text-[#464C54] text-center">
+          Novo Orçamento
+        </h2>
+
+        <div className="flex flex-col text-left gap-1">
+          <label className="text-[#71717A] text-sm">Nome do Cliente</label>
+          <input
+            type="text"
+            className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="Ex: João Silva"
+          />
         </div>
 
-        <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
-          <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] ">
-              Local da Obra (Nome)
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: Edifício Aurora"
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border "
-              onChange={(e) =>
-                setFormData({ ...formData, nomeObra: e.target.value })
-              }
-            />
-          </div>
+        <div className="flex flex-col text-left gap-1">
+          <label className="text-[#71717A] text-sm">Valor (R$)</label>
+          <input
+            type="number"
+            className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            placeholder="0.00"
+          />
+        </div>
 
-          <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] uppercase">
-              Nome do Cliente
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: João Silva"
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
-              onChange={(e) =>
-                setFormData({ ...formData, cliente: e.target.value })
-              }
-            />
-          </div>
-
-          <ButtonDefault
-            onClick={() => {
-              onSave(formData);
-              onClose();
-            }}
-            className="w-full bg-[#464C54] text-white border-none h-[50px] text-[16px] font-bold mt-[10px]"
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-[#DBDADE] text-[#71717A] py-2 rounded-[8px] hover:bg-gray-50 transition"
           >
-            Salvar Obra
-          </ButtonDefault>
+            Cancelar
+          </button>
+
+          <div className="flex-1">
+            <ButtonDefault label="Salvar" onClick={handleSubmit} />
+          </div>
         </div>
       </div>
     </div>

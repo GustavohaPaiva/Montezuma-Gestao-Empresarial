@@ -11,7 +11,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-[10px]">
+    <div className="fixed z-50 flex items-center justify-center p-[10px]">
       <div className="bg-[#ffffff] w-[370px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden border border-[#C4C4C9]">
         <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
           <div className="flex-1 min-w-0">
@@ -88,7 +88,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
               // Limpa os campos para nova entrada e NÃO fecha o modal
               setFormData({ tipo: "", profissional: "", valor: "" });
             }}
-            className="w-full bg-[#464C54] text-white border-none h-[50px] text-[16px] font-bold mt-[10px]"
+            className="w-full bg-[#464C54] text-black h-[50px] text-[16px] font-bold mt-[10px]"
           >
             Confirmar Registro
           </ButtonDefault>
