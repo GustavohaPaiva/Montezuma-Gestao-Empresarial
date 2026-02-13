@@ -1044,7 +1044,7 @@ export default function ObrasDetalhe() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
-      <header className="h-[82px] border-b border-[#DBDADE] flex justify-center sticky top-0 z-10 w-full bg-white position-fi">
+      <header className="h-[82px] border-b border-[#DBDADE] flex justify-center top-0 z-10 w-full bg-[#EEEDF0]">
         <div className="w-[90%] flex items-center justify-between">
           <div className="flex items-center gap-[16px]">
             <button

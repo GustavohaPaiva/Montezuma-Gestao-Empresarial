@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
+import Navbar from "../components/NavbarObras";
 import ObraCard from "../components/ObraCard";
 import ModalNovaObra from "../components/ModalNovaObra";
 import { api } from "../services/api";
@@ -115,7 +115,7 @@ export default function Obras() {
   const obrasVisiveis = ordenarObras(obrasFiltradas);
 
   return (
-    <div className="flex flex-col min-h-screen items-center bg-white">
+    <div className="flex flex-col min-h-screen items-center bg-[#EEEDF0]">
       <Navbar
         searchTerm={busca}
         onSearchChange={setBusca}

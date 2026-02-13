@@ -11,6 +11,7 @@ export const gerarPDF = (
   try {
     const doc = new jsPDF();
 
+    // --- Cabeçalho do Documento ---
     doc.setFontSize(18);
     doc.setTextColor(40);
     doc.text("Montezuma Gestão de Obras", 14, 20);
@@ -23,7 +24,8 @@ export const gerarPDF = (
 
     const corpoTabela = (dados || []).map((item) => Object.values(item));
 
-    const tableConfig = {
+    // 1. Removemos o 'foot' de dentro da configuração da tabela
+    autoTable(doc, {
       startY: 50,
       head: [colunas],
       body: corpoTabela,
@@ -33,32 +35,47 @@ export const gerarPDF = (
       columnStyles: {
         [colunas.length - 1]: { halign: "right" },
       },
-    };
+      // Importante: garante que a tabela não desenhe rodapé automático
+      showFoot: "never",
+    });
 
+    // 2. Desenhamos a linha de Total MANUALMENTE após o fim da tabela
     if (valorTotal) {
-      const footerRow = new Array(colunas.length).fill("");
+      // Pega a posição Y onde a tabela terminou
+      const finalY = doc.lastAutoTable.finalY;
 
-      footerRow[0] = "VALOR TOTAL";
-
-      footerRow[colunas.length - 1] = valorTotal;
-
-      tableConfig.foot = [footerRow];
-      tableConfig.footStyles = {
-        fillColor: [220, 220, 220],
-        textColor: [0, 0, 0],
-        fontStyle: "bold",
-        halign: "right",
-      };
+      // Gera uma nova "tabela" de uma linha só para o total
+      autoTable(doc, {
+        startY: finalY, // Começa exatamente onde a outra terminou
+        body: [
+          // Cria uma linha onde a primeira célula tem o texto e a última o valor
+          colunas.map((_, i) => {
+            if (i === 0) return "VALOR TOTAL";
+            if (i === colunas.length - 1) return valorTotal;
+            return ""; // Células do meio vazias
+          }),
+        ],
+        // Estilo visual idêntico ao que seria o footer
+        styles: {
+          fillColor: [220, 220, 220],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+          fontSize: 10,
+          cellPadding: 3,
+        },
+        columnStyles: {
+          [colunas.length - 1]: { halign: "right" }, // Alinha o valor à direita
+        },
+        // Remove cabeçalho dessa "tabela de total"
+        head: [],
+        showHead: "never",
+      });
     }
-
-    autoTable(doc, tableConfig);
 
     const fileName = `${titulo.replace(/\s+/g, "_")}_${nomeObra.replace(/\s+/g, "_")}.pdf`;
     doc.save(fileName);
   } catch (error) {
     console.error("ERRO AO GERAR PDF:", error);
-    alert(
-      "Falha ao gerar o arquivo. Verifique se os dados da tabela estão corretos.",
-    );
+    alert("Falha ao gerar o arquivo.");
   }
 };

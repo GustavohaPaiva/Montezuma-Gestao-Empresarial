@@ -1,6 +1,31 @@
 import { supabase } from "./supabase";
 
 export const api = {
+  getOrcamentos: async () => {
+    const { data, error } = await supabase
+      .from("orcamentos")
+      .select("*")
+      .order("data", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  createOrcamento: async (novoOrcamento) => {
+    const { data, error } = await supabase
+      .from("orcamentos")
+      .insert([
+        {
+          nome: novoOrcamento.nome,
+          valor: novoOrcamento.valor,
+          data: novoOrcamento.data,
+          status: novoOrcamento.status || "Pendente",
+        },
+      ])
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
   getObras: async () => {
     const { data, error } = await supabase
       .from("obras")
