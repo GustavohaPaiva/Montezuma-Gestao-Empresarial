@@ -27,7 +27,7 @@ export default function Navbar() {
           src={logo}
           onClick={handleNavigation}
           alt="Logo Montezuma"
-          className={`object-contain transition-all  ${isMobile ? "hidden" : "w-[120px] h-[70px]"}`}
+          className={`object-contain transition-all mr-[10px] ${isMobile ? "w-[50px] h-[50px]" : "w-[60px] h-[60px]"}`}
         />
         <p className="text-[40px]">Montezuma</p>
       </div>
@@ -37,7 +37,7 @@ export default function Navbar() {
           src={fotoleonardo}
           //onClick={}
           alt="Foto de Perfil Leonardos"
-          className={`object-contain transition-all border border-[2px] border-[#464C54] rounded-[50%] box-border${isMobile ? "hidden" : "w-[60px] h-[60px]"}`}
+          className={`object-contain transition-all border border-[2px] border-[#464C54] rounded-[50%] box-border ${isMobile ? "hidden" : "w-[60px] h-[60px]"}`}
         />
       </div>
     </header>

@@ -25,11 +25,22 @@ export default function ModalOrcamento({ isOpen, onClose, onSave }) {
   };
 
   return (
-    <div className="bg-opacity-50 flex justify-center items-center z-50 px-4">
-      <div className="bg-white rounded-[12px] p-6 w-full max-w-[400px] shadow-lg flex flex-col gap-4">
-        <h2 className="text-[24px] font-bold text-[#464C54] text-center">
-          Novo Orçamento
-        </h2>
+    <div className="fixed z-50 flex items-center justify-center w-full ">
+      <div className="bg-[#ffffff] gap-[20px] w-[400px] max-w-[95%] rounded-[16px] p-[20px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
+        <div className="flex justify-between">
+          <h2 className="text-[24px] font-bold text-[#000000] text-center">
+            Novo Orçamento
+          </h2>
+
+          <button onClick={onClose} className="">
+            <img
+              width="30"
+              height="30"
+              src="https://img.icons8.com/ios/50/multiply.png"
+              alt="fechar"
+            />
+          </button>
+        </div>
 
         <div className="flex flex-col text-left gap-1">
           <label className="text-[#71717A] text-sm">Nome do Cliente</label>
@@ -54,13 +65,6 @@ export default function ModalOrcamento({ isOpen, onClose, onSave }) {
         </div>
 
         <div className="flex gap-2 mt-2">
-          <button
-            onClick={onClose}
-            className="flex-1 border border-[#DBDADE] text-[#71717A] py-2 rounded-[8px] hover:bg-gray-50 transition"
-          >
-            Cancelar
-          </button>
-
           <div className="flex-1">
             <ButtonDefault label="Salvar" onClick={handleSubmit} />
           </div>

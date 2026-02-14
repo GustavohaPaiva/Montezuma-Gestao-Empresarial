@@ -96,35 +96,41 @@ export default function Projetos() {
               <h1 className="text-[30px] md:text-[40px] font-bold text-[#464C54]">
                 Orçamentos
               </h1>
-              <div className="w-[180px]">
-                <ButtonDefault
-                  label="+ Novo Orçamento"
-                  onClick={() => setModalAberto(true)}
-                />
-              </div>
             </div>
 
             <div className="flex flex-col md:flex-row items-center gap-[8px]">
+              <div className="w-[180px]">
+                <ButtonDefault
+                  className="w-full text-[22px] font-semibold"
+                  label="+ Novo Orçamento"
+                  onClick={() => setModalAberto(true)}
+                >
+                  + Solicitação
+                </ButtonDefault>
+              </div>
               <input
                 type="text"
                 placeholder="Buscar cliente ou status..."
                 value={buscaOrcamento}
                 onChange={(e) => setBuscaOrcamento(e.target.value)}
-                className="h-[35px] w-full md:w-[250px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px]"
+                className="h-[40px] w-full md:w-[250px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px]"
               />
 
               <div className="flex items-center gap-2">
                 <input
                   type="date"
-                  className="outline-none text-[15px] uppercase text-[#71717A] bg-transparent border border-[1.5px] border-[#DBDADE] text-center rounded-[8px] h-[35px] px-2"
+                  className="outline-none text-[15px] uppercase text-[#71717A] bg-transparent border border-[1.5px] border-[#DBDADE] text-center rounded-[8px] h-[40px] px-2"
                   onChange={(e) =>
                     setFiltroData({ ...filtroData, inicio: e.target.value })
                   }
                 />
-                <span className="text-[#71717A] text-lg"> Até </span>
+                <span className="text-[#00000] text-[25px] font-semibold">
+                  {" "}
+                  Até{" "}
+                </span>
                 <input
                   type="date"
-                  className="outline-none text-[15px] uppercase text-[#71717A] bg-transparent border border-[1.5px] border-[#DBDADE] text-center rounded-[8px] h-[35px] px-2"
+                  className="outline-none text-[15px] uppercase text-[#71717A] bg-transparent border border-[1.5px] border-[#DBDADE] text-center rounded-[8px] h-[40px] px-2"
                   onChange={(e) =>
                     setFiltroData({ ...filtroData, fim: e.target.value })
                   }

@@ -12,15 +12,14 @@ export default function Home() {
     {
       id: 2,
       titulo: "Projetos",
-      imagem:
-        "https://img.icons8.com/external-outline-design-circle/125/external-Process-Lists-artificial-intelligence-outline-design-circle.png",
+      imagem: "https://img.icons8.com/ios/125/project.png",
       path: "/projetos",
     },
     {
       id: 3,
       titulo: "Processos",
       imagem:
-        "https://img.icons8.com/external-outline-wichaiwi/125/external-financial-business-continuity-plan-outline-wichaiwi.png",
+        "https://img.icons8.com/external-outline-design-circle/125/external-Process-Lists-artificial-intelligence-outline-design-circle.png",
       path: "/",
     },
     {
@@ -35,7 +34,7 @@ export default function Home() {
   return (
     <div className="text-center">
       <Navbar />
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(0,350px))] w-full justify-between w-[95%]">
+      <div className="px-[5%] gap-[50px] grid grid-cols-[repeat(auto-fit,minmax(0,350px))] w-full justify-between">
         {modulos.map((item) => (
           <CardHome
             key={item.id}

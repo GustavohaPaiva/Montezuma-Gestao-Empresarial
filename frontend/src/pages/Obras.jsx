@@ -115,7 +115,7 @@ export default function Obras() {
   const obrasVisiveis = ordenarObras(obrasFiltradas);
 
   return (
-    <div className="flex flex-col min-h-screen items-center bg-[#EEEDF0]">
+    <div className="flex flex-col min-h-screen w-full items-center bg-[#EEEDF0]">
       <Navbar
         searchTerm={busca}
         onSearchChange={setBusca}

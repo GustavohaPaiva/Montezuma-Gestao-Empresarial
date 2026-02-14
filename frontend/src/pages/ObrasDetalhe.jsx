@@ -1064,10 +1064,16 @@ export default function ObrasDetalhe() {
           </div>
           {!isMobile && (
             <div className="flex gap-[16px]">
-              <ButtonDefault onClick={() => setModalMateriaisOpen(true)}>
+              <ButtonDefault
+                className="w-[135px]"
+                onClick={() => setModalMateriaisOpen(true)}
+              >
                 + Materiais
               </ButtonDefault>
-              <ButtonDefault onClick={() => setModalMaoDeObraOpen(true)}>
+              <ButtonDefault
+                className="w-[135px]"
+                onClick={() => setModalMaoDeObraOpen(true)}
+              >
                 + Mão de Obra
               </ButtonDefault>
             </div>
@@ -1091,7 +1097,7 @@ export default function ObrasDetalhe() {
             <div
               className={`w-full flex ${isMobile ? "flex-col gap-4" : "flex-row justify-between items-center"}`}
             >
-              <h1>Relatório de Materiais</h1>
+              <h1 className="text-[35px] font-bold">Relatório de Materiais</h1>
               <input
                 type="text"
                 placeholder="Buscar material..."
@@ -1191,7 +1197,9 @@ export default function ObrasDetalhe() {
             <div
               className={`w-full flex ${isMobile ? "flex-col gap-4" : "flex-row justify-between items-center"}`}
             >
-              <h1>Relatório de Mão de Obra</h1>
+              <h1 className="text-[35px] font-bold">
+                Relatório de Mão de Obra
+              </h1>
               <input
                 type="text"
                 placeholder="Buscar serviço ou prestador..."
@@ -1253,7 +1261,7 @@ export default function ObrasDetalhe() {
             <div
               className={`w-full flex ${isMobile ? "flex-col gap-4" : "flex-row justify-between items-center"}`}
             >
-              <h1>Extrato</h1>
+              <h1 className="text-[35px] font-bold">Extrato</h1>
               <div
                 className={`flex ${isMobile ? "flex-col gap-[8px] w-full" : "flex-row gap-[8px] items-center"}`}
               >

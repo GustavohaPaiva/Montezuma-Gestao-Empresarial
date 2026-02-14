@@ -11,8 +11,8 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed z-50 flex items-center justify-center p-[10px]">
-      <div className="bg-[#ffffff] w-[370px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden border border-[#C4C4C9]">
+    <div className="fixed z-50 flex w-full items-center justify-center p-[10px]">
+      <div className="bg-[#ffffff] w-[500px] max-w-[95%] rounded-[16px] shadow-2xl flex flex-col overflow-hidden border border-[#C4C4C9]">
         <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
           <div className="flex-1 min-w-0">
             <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">

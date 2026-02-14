@@ -25,10 +25,10 @@ export default function Navbar({
 
   return (
     <header
-      className={`w-full border-b border-[#DBDADE] flex justify-center bg-[#EEEDF0]  top-0 z-10 transition-all ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
+      className={`w-full px-[5%] box-border border-b border-[#DBDADE] flex justify-center bg-[#EEEDF0]  top-0 z-10 transition-all ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
     >
       <div
-        className={`w-full max-w-7xl flex items-center justify-between gap-[20px] ${isMobile ? "flex-col" : "flex-row h-full"}`}
+        className={`w-full flex items-center justify-between gap-[20px] ${isMobile ? "flex-col" : "flex-row h-full"}`}
       >
         <div className="flex flex-row justify-center items-center">
           <img
@@ -41,7 +41,7 @@ export default function Navbar({
         </div>
 
         <div
-          className={`flex gap-[10px] ${isMobile ? "flex-col w-full" : "flex-row items-center"}`}
+          className={`flex gap-[10px] sm:pr-[27px] ${isMobile ? "flex-col w-full" : "flex-row items-center"}`}
         >
           <ButtonDefault
             onClick={onOpenModal}
@@ -50,20 +50,18 @@ export default function Navbar({
             + Nova Obra
           </ButtonDefault>
 
-          {/* NOVO: Select de Filtro */}
           <div className={`relative ${isMobile ? "w-full" : "w-[200px]"}`}>
             <select
               value={filterStatus}
               onChange={(e) => onFilterChange(e.target.value)}
               className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] text-[16px] text-[#464C54] px-[12px] focus:outline-none w-full box-border cursor-pointer appearance-none ${isMobile ? "h-[45px]" : "h-[40px]"}`}
-              style={{ backgroundImage: "none" }} // Remove seta padrão feia em alguns browsers
+              style={{ backgroundImage: "none" }}
             >
               <option value="Tudo">Todas as Obras</option>
               <option value="Em andamento">Em andamento</option>
               <option value="Aguardando iniciação">Aguardando iniciação</option>
               <option value="Concluída">Concluídas</option>
             </select>
-            {/* Seta customizada simples para o select */}
             <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
               <svg
                 className="w-4 h-4 text-gray-500"
