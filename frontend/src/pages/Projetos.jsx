@@ -149,7 +149,7 @@ export default function Projetos() {
             nome: orcamentoAtual.nome,
             tipo: "Pendente Definição",
             status: "Produção",
-            forma: "À combinar",
+            pagamento: "À combinar",
             valor_pago: orcamentoAtual.valor,
             data: new Date().toISOString(),
             escritorio_id: escritorioAtivo, // Cliente criado herda o escritório
@@ -401,12 +401,12 @@ export default function Projetos() {
     }
   }
 
-  // Edição Inline Clientes (Status, Forma, Valor Pago e AGORA TIPO)
+  // Edição Inline Clientes (Status, Pagamento, Valor Pago e AGORA TIPO)
   const iniciarEdicaoCliente = useCallback((item, campo) => {
     setEditandoCliente({ id: item.id, campo });
     // Define valor inicial
     let valorInicial = "";
-    if (campo === "forma") valorInicial = item.forma;
+    if (campo === "pagamento") valorInicial = item.pagamento;
     if (campo === "tipo") valorInicial = item.tipo; // Adicionado
     if (campo === "valor_pago") valorInicial = item.valor_pago;
     setValorEdicaoCliente(valorInicial);
@@ -512,8 +512,8 @@ export default function Projetos() {
     return clientesProcessados.map((c) => {
       const isEditingTipo =
         editandoCliente.id === c.id && editandoCliente.campo === "tipo";
-      const isEditingForma =
-        editandoCliente.id === c.id && editandoCliente.campo === "forma";
+      const isEditingPagamento =
+        editandoCliente.id === c.id && editandoCliente.campo === "pagamento";
       const isEditingValor =
         editandoCliente.id === c.id && editandoCliente.campo === "valor_pago";
 
@@ -528,7 +528,7 @@ export default function Projetos() {
             return "bg-[#E0F2F1] text-[#00695C]"; // Verde-azulado
           case "Obra":
             return "bg-[#FFF3E0] text-[#E65100]"; // Laranja
-          case "Financiado":
+          case "Finalizado":
             return "bg-[#E8F5E9] text-[#2E7D32]"; // Verde
           default:
             return "bg-gray-100 text-gray-600";
@@ -606,15 +606,15 @@ export default function Projetos() {
           <option value="Prefeitura">Prefeitura</option>
           <option value="Caixa">Caixa</option>
           <option value="Obra">Obra</option>
-          <option value="Financiado">Financiado</option>
+          <option value="Finalizado">Finalizado</option>
         </select>,
 
-        // 4. FORMA (Editável - Texto)
+        // 4. Pagamento (Editável - Texto)
         <div
           className="flex items-center justify-center gap-2"
-          key={`cli-forma-${c.id}`}
+          key={`cli-pagamento-${c.id}`}
         >
-          {isEditingForma ? (
+          {isEditingPagamento ? (
             <div className="flex items-center gap-1">
               <input
                 type="text"
@@ -647,9 +647,9 @@ export default function Projetos() {
           ) : (
             <div
               className="flex items-center gap-2 group cursor-pointer"
-              onClick={() => iniciarEdicaoCliente(c, "forma")}
+              onClick={() => iniciarEdicaoCliente(c, "pagamento")}
             >
-              <span className="text-[#464C54]">{c.forma}</span>
+              <span className="text-[#464C54]">{c.pagamento}</span>
               <img
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
@@ -937,7 +937,7 @@ export default function Projetos() {
                   "Nome",
                   "Tipo",
                   "Status",
-                  "Forma",
+                  "Pagamento",
                   "Valor Pago",
                   "Data",
                   "",

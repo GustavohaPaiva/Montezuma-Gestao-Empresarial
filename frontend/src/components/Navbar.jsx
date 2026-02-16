@@ -19,7 +19,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={`w-full mb-[30px] border-b px-[5%]  box-border border-[#DBDADE] flex justify-between transition-all items-center ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
+      className={`w-full mb-[30px] border-b px-[5%] box-border border-[#DBDADE] flex justify-between transition-all items-center ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
     >
       <div className="flex flex-row justify-center items-center">
         <img
