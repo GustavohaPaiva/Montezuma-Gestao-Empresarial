@@ -2,11 +2,18 @@ import { supabase } from "./supabase";
 
 export const api = {
   // === ORÇAMENTOS ===
-  getOrcamentos: async () => {
-    const { data, error } = await supabase
+  getOrcamentos: async (escritorioId) => {
+    let query = supabase
       .from("orcamentos")
       .select("*")
       .order("data", { ascending: false });
+
+    // Filtra pelo escritório se o ID for passado
+    if (escritorioId) {
+      query = query.eq("escritorio_id", escritorioId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
@@ -20,6 +27,7 @@ export const api = {
           valor: novoOrcamento.valor,
           data: novoOrcamento.data,
           status: novoOrcamento.status || "Pendente",
+          escritorio_id: novoOrcamento.escritorio_id, // <--- ADICIONADO
         },
       ])
       .select();
@@ -43,11 +51,17 @@ export const api = {
   },
 
   // === CLIENTES (NOVO) ===
-  getClientes: async () => {
-    const { data, error } = await supabase
+  getClientes: async (escritorioId) => {
+    let query = supabase
       .from("clientes")
       .select("*")
       .order("data", { ascending: false });
+
+    if (escritorioId) {
+      query = query.eq("escritorio_id", escritorioId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
@@ -62,6 +76,7 @@ export const api = {
           status: novoCliente.status || "Produção",
           forma: novoCliente.forma,
           valor_pago: novoCliente.valor_pago,
+          escritorio_id: novoCliente.escritorio_id, // <--- ADICIONADO
         },
       ])
       .select();
@@ -85,12 +100,18 @@ export const api = {
   },
 
   // === OBRAS ===
-  getObras: async () => {
-    const { data, error } = await supabase
+  getObras: async (escritorioId) => {
+    let query = supabase
       .from("obras")
       .select("*")
       .eq("active", true)
       .order("created_at", { ascending: false });
+
+    if (escritorioId) {
+      query = query.eq("escritorio_id", escritorioId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
@@ -104,6 +125,7 @@ export const api = {
           local: novaObra.local,
           status: "Aguardando iniciação",
           active: true,
+          escritorio_id: novaObra.escritorio_id, // <--- ADICIONADO
         },
       ])
       .select();

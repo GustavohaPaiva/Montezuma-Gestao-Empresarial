@@ -22,6 +22,10 @@ const formatarMoeda = (valor) => {
 };
 
 export default function Projetos() {
+  // === CONTEXTO ESCRITÓRIO (SIMULADO) ===
+  // No futuro, isso virá do seu AuthProvider (usuário logado)
+  const [escritorioAtivo, setEscritorioAtivo] = useState("VK"); // Padrão 'VK'
+
   // === ESTADOS ORÇAMENTO ===
   const [orcamentos, setOrcamentos] = useState([]);
   const [filtroData, setFiltroData] = useState({ inicio: "", fim: "" });
@@ -50,17 +54,18 @@ export default function Projetos() {
   useEffect(() => {
     async function fetchDados() {
       try {
-        const dadosOrc = await api.getOrcamentos();
+        // Passando o escritório ativo para filtrar na API
+        const dadosOrc = await api.getOrcamentos(escritorioAtivo);
         setOrcamentos(dadosOrc || []);
 
-        const dadosCli = await api.getClientes();
+        const dadosCli = await api.getClientes(escritorioAtivo);
         setClientes(dadosCli || []);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
       }
     }
     fetchDados();
-  }, [recarregar]);
+  }, [recarregar, escritorioAtivo]); // Recarrega se mudar o escritório
 
   // ==========================================================================
   // LÓGICA DE ORÇAMENTOS
@@ -77,6 +82,7 @@ export default function Projetos() {
         valor: dadosFormulario.valor,
         data: new Date().toISOString(),
         status: dadosFormulario.status || "Em andamento",
+        escritorio_id: escritorioAtivo, // Salva com o ID do escritório atual
       });
       setModalAberto(false);
       setRecarregar((prev) => prev + 1);
@@ -146,6 +152,7 @@ export default function Projetos() {
             forma: "À combinar",
             valor_pago: orcamentoAtual.valor,
             data: new Date().toISOString(),
+            escritorio_id: escritorioAtivo, // Cliente criado herda o escritório
           });
         }
         setRecarregar((prev) => prev + 1);
@@ -154,7 +161,7 @@ export default function Projetos() {
         setRecarregar((prev) => prev + 1);
       }
     },
-    [orcamentos],
+    [orcamentos, escritorioAtivo],
   );
 
   const handleExcluir = useCallback(async (id) => {
@@ -384,6 +391,7 @@ export default function Projetos() {
         ...dadosFormulario,
         status: "Produção", // Status inicial
         data: new Date().toISOString(),
+        escritorio_id: escritorioAtivo, // Salva com o ID do escritório atual
       });
       setModalClienteAberto(false);
       setRecarregar((prev) => prev + 1);
@@ -737,7 +745,7 @@ export default function Projetos() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-center pb-20">
+    <div className="min-h-screen bg-[#EEEDF0] text-center pb-20">
       <ModalOrcamento
         isOpen={modalAberto}
         onClose={() => setModalAberto(false)}
@@ -753,8 +761,23 @@ export default function Projetos() {
       <Navbar />
 
       <div className="w-full px-[5%] box-border">
+        {/* === SELETOR DE ESCRITÓRIO (TEMPORÁRIO PARA TESTE) === */}
+        <div className="flex justify-end mt-4 mb-2 gap-2 items-center">
+          <span className="text-sm font-bold text-gray-500">
+            Escritório Ativo:
+          </span>
+          <select
+            value={escritorioAtivo}
+            onChange={(e) => setEscritorioAtivo(e.target.value)}
+            className="p-2 border border-gray-300 rounded-md font-bold"
+          >
+            <option value="VK">VK Arquitetura</option>
+            <option value="YB">YB Arquitetura</option>
+          </select>
+        </div>
+
         {/* ================= SEÇÃO ORÇAMENTOS ================= */}
-        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
+        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[10px] pt-[24px] pb-[24px]">
           {/* Header da Tabela Orçamentos */}
           <div className="flex flex-col xl:flex-row justify-between w-full items-center gap-4">
             <div className="flex items-center gap-4">
@@ -814,7 +837,7 @@ export default function Projetos() {
             </div>
           ) : (
             <div className="text-center py-10 text-gray-500">
-              Nenhum orçamento encontrado.
+              Nenhum orçamento encontrado para {escritorioAtivo}.
             </div>
           )}
 
@@ -924,7 +947,7 @@ export default function Projetos() {
             </div>
           ) : (
             <div className="text-center py-10 text-gray-500">
-              Nenhum cliente encontrado.
+              Nenhum cliente encontrado para {escritorioAtivo}.
             </div>
           )}
           <div className="flex w-full justify-between gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9]">

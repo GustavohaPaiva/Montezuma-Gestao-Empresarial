@@ -10,15 +10,15 @@ export default function Navbar({
   onFilterChange,
   onOpenModal,
 }) {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1000);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1100);
 
   const navigate = useNavigate();
-  const handleCardClick = () => {
-    navigate(`/`);
+  const handleNavigation = () => {
+    navigate("/");
   };
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1000);
+    const handleResize = () => setIsMobile(window.innerWidth < 1100);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -33,9 +33,9 @@ export default function Navbar({
         <div className="flex flex-row justify-center items-center">
           <img
             src={logo}
-            onClick={handleCardClick}
+            onClick={handleNavigation}
             alt="Logo Montezuma"
-            className="object-contain transition-all w-[70px] h-[70px]"
+            className="object-contain transition-all mr-[10px] w-[60px] h-[60px]"
           />
           <p className="text-[40px]">Montezuma</p>
         </div>

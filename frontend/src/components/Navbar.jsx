@@ -1,6 +1,5 @@
 import logo from "../assets/logo sem fundo.png";
 import { useState, useEffect } from "react";
-import fotoleonardo from "../assets/Foto de perfil Leonardo.jpg";
 import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
@@ -27,18 +26,9 @@ export default function Navbar() {
           src={logo}
           onClick={handleNavigation}
           alt="Logo Montezuma"
-          className={`object-contain transition-all mr-[10px] ${isMobile ? "w-[50px] h-[50px]" : "w-[60px] h-[60px]"}`}
+          className="object-contain transition-all mr-[10px] w-[60px] h-[60px]"
         />
         <p className="text-[40px]">Montezuma</p>
-      </div>
-
-      <div className="w-[100px]">
-        <img
-          src={fotoleonardo}
-          //onClick={}
-          alt="Foto de Perfil Leonardos"
-          className={`object-contain transition-all border border-[2px] border-[#464C54] rounded-[50%] box-border ${isMobile ? "hidden" : "w-[60px] h-[60px]"}`}
-        />
       </div>
     </header>
   );

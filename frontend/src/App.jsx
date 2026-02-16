@@ -3,6 +3,7 @@ import Obras from "./pages/Obras";
 import ObrasDetalhe from "./pages/ObrasDetalhe";
 import Home from "./pages/Home";
 import Projetos from "./pages/Projetos";
+import Processos from "./pages/Processos";
 import "./index.css";
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/projetos" element={<Projetos />} />
         <Route path="/obras" element={<Obras />} />
         <Route path="/obra/:id" element={<ObrasDetalhe />} />
+        <Route path="/processos" element={<Processos />} />
       </Routes>
     </Router>
   );

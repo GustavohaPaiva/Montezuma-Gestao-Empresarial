@@ -79,7 +79,7 @@ export default function ObraCard({
     // TROCAMOS <Link> POR <div onClick={handleCardClick}>
     <div
       onClick={handleCardClick}
-      className={`relative no-underline text-inherit block bg-[#FAFAFA] rounded-[8px] w-full h-[220px] flex flex-col justify-between p-[15px] shadow-[0_5px_20px_rgba(0,0,0,0.15)] max-w-[350px] box-border transition-transform ${
+      className={`relative no-underline text-inherit block bg-[#FAFAFA] rounded-[8px] w-full h-[220px] flex flex-col justify-between p-[15px] shadow-[0_5px_20px_rgba(0,0,0,0.15)] md:max-w-[350px] box-border transition-transform ${
         !isEditing ? "hover:scale-[1.02] cursor-pointer" : "cursor-default"
       } text-black`}
     >

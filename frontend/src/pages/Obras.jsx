@@ -125,7 +125,7 @@ export default function Obras() {
       />
 
       <main className="w-[90%] mt-[40px]">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(0,380px))] gap-y-[30px] w-full justify-between">
+        <div className="grid w-full md:grid-cols-[repeat(auto-fit,minmax(0,380px))] gap-y-[30px] w-full justify-center md:justify-between">
           {obrasVisiveis.map((obra) => (
             <ObraCard
               key={obra.id}

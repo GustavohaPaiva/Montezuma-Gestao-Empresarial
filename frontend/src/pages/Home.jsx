@@ -20,7 +20,7 @@ export default function Home() {
       titulo: "Processos",
       imagem:
         "https://img.icons8.com/external-outline-design-circle/125/external-Process-Lists-artificial-intelligence-outline-design-circle.png",
-      path: "/",
+      path: "/processos",
     },
     {
       id: 4,
