@@ -25,7 +25,7 @@ export default function ModalOrcamento({ isOpen, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed z-50 flex items-center justify-center w-full ">
+    <div className="fixed z-50 flex justify-center w-full mt-[15px]">
       <div className="bg-[#ffffff] gap-[20px] w-[400px] max-w-[95%] rounded-[16px] p-[20px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
         <div className="flex justify-between">
           <h2 className="text-[24px] font-bold text-[#000000] text-center">
@@ -65,8 +65,10 @@ export default function ModalOrcamento({ isOpen, onClose, onSave }) {
         </div>
 
         <div className="flex gap-2 mt-2">
-          <div className="flex-1">
-            <ButtonDefault label="Salvar" onClick={handleSubmit} />
+          <div className="flex-1 w-full">
+            <ButtonDefault onClick={handleSubmit} className="w-full">
+              Salvar
+            </ButtonDefault>
           </div>
         </div>
       </div>

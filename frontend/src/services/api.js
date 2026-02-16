@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 
 export const api = {
+  // === ORÇAMENTOS ===
   getOrcamentos: async () => {
     const { data, error } = await supabase
       .from("orcamentos")
@@ -26,6 +27,64 @@ export const api = {
     return data[0];
   },
 
+  updateOrcamento: async (id, dados) => {
+    const { data, error } = await supabase
+      .from("orcamentos")
+      .update(dados)
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  deleteOrcamento: async (id) => {
+    const { error } = await supabase.from("orcamentos").delete().eq("id", id);
+    if (error) throw error;
+  },
+
+  // === CLIENTES (NOVO) ===
+  getClientes: async () => {
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*")
+      .order("data", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  createCliente: async (novoCliente) => {
+    const { data, error } = await supabase
+      .from("clientes")
+      .insert([
+        {
+          nome: novoCliente.nome,
+          tipo: novoCliente.tipo,
+          status: novoCliente.status || "Produção",
+          forma: novoCliente.forma,
+          valor_pago: novoCliente.valor_pago,
+        },
+      ])
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateCliente: async (id, dados) => {
+    const { data, error } = await supabase
+      .from("clientes")
+      .update(dados)
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  deleteCliente: async (id) => {
+    const { error } = await supabase.from("clientes").delete().eq("id", id);
+    if (error) throw error;
+  },
+
+  // === OBRAS ===
   getObras: async () => {
     const { data, error } = await supabase
       .from("obras")
@@ -70,17 +129,14 @@ export const api = {
     if (error) throw error;
   },
 
-  // --- CORREÇÃO: Deleta o material e busca o vínculo no extrato pelo ID ---
+  // === MATERIAIS ===
   deleteMaterial: async (id) => {
-    // 1. Apaga da tabela de materiais
     const { error } = await supabase
       .from("relatorio_materiais")
       .delete()
       .eq("id", id);
     if (error) throw error;
 
-    // 2. Apaga da tabela de extrato onde a coluna 'material_id' for igual ao ID
-    // Isso garante que apague EXATAMENTE este item, mesmo que tenham outros com mesmo nome
     const { error: errorExtrato } = await supabase
       .from("relatorio_extrato")
       .delete()
@@ -89,7 +145,6 @@ export const api = {
     if (errorExtrato) console.error("Erro ao limpar extrato:", errorExtrato);
   },
 
-  // --- CORREÇÃO: Deleta mão de obra e vínculo no extrato ---
   deleteMaoDeObra: async (id) => {
     const { error } = await supabase
       .from("relatorio_mao_de_obra")
@@ -97,7 +152,6 @@ export const api = {
       .eq("id", id);
     if (error) throw error;
 
-    // Apaga do extrato onde 'mao_de_obra_id' for igual
     const { error: errorExtrato } = await supabase
       .from("relatorio_extrato")
       .delete()
@@ -148,9 +202,7 @@ export const api = {
     return data[0];
   },
 
-  // --- LÓGICA PRINCIPAL DE DUPLICATAS ---
   updateMaterialValor: async (id, novoValor) => {
-    // 1. Atualiza na tabela de materiais
     const { data, error } = await supabase
       .from("relatorio_materiais")
       .update({ valor: novoValor })
@@ -161,15 +213,13 @@ export const api = {
     const materialAtualizado = data[0];
 
     if (materialAtualizado) {
-      // 2. Verifica se JÁ EXISTE no extrato vinculado pelo ID (não pelo nome)
       const { data: extratoData } = await supabase
         .from("relatorio_extrato")
         .select("*")
-        .eq("material_id", id) // Busca pelo ID
+        .eq("material_id", id)
         .maybeSingle();
 
       if (extratoData) {
-        // Se achou pelo ID, atualiza essa linha específica
         await supabase
           .from("relatorio_extrato")
           .update({
@@ -178,11 +228,10 @@ export const api = {
           })
           .eq("id", extratoData.id);
       } else if (parseFloat(novoValor) > 0) {
-        // Se não achou e tem valor, cria gravando o material_id
         await supabase.from("relatorio_extrato").insert([
           {
             obra_id: materialAtualizado.obra_id,
-            material_id: materialAtualizado.id, // GRAVA O ID AQUI
+            material_id: materialAtualizado.id,
             descricao: materialAtualizado.material,
             tipo: "Material",
             quantidade: materialAtualizado.quantidade,
@@ -292,7 +341,6 @@ export const api = {
     return data[0];
   },
 
-  // --- CORREÇÃO: Validação de Mão de Obra usando ID ---
   validarMaoDeObra: async (id, dadosOriginais) => {
     const { error } = await supabase
       .from("relatorio_mao_de_obra")
@@ -310,7 +358,7 @@ export const api = {
       .insert([
         {
           obra_id: dadosOriginais.obra_id,
-          mao_de_obra_id: id, // GRAVA O ID AQUI TAMBÉM
+          mao_de_obra_id: id,
           descricao: `${dadosOriginais.tipo} - ${dadosOriginais.profissional}`,
           tipo: "Mão de Obra",
           quantidade: "1",
