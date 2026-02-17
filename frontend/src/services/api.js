@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 
 export const api = {
-  // === ORÇAMENTOS ===
+  // === ORÇAMENTOS (Mantido com filtro de escritório) ===
   getOrcamentos: async (escritorioId) => {
     let query = supabase
       .from("orcamentos")
@@ -27,7 +27,7 @@ export const api = {
           valor: novoOrcamento.valor,
           data: novoOrcamento.data,
           status: novoOrcamento.status || "Pendente",
-          escritorio_id: novoOrcamento.escritorio_id, // <--- ADICIONADO
+          escritorio_id: novoOrcamento.escritorio_id,
         },
       ])
       .select();
@@ -50,7 +50,7 @@ export const api = {
     if (error) throw error;
   },
 
-  // === CLIENTES (NOVO) ===
+  // === CLIENTES (Mantido com filtro de escritório) ===
   getClientes: async (escritorioId) => {
     let query = supabase
       .from("clientes")
@@ -74,9 +74,9 @@ export const api = {
           nome: novoCliente.nome,
           tipo: novoCliente.tipo,
           status: novoCliente.status || "Produção",
-          forma: novoCliente.forma,
+          pagamento: novoCliente.pagamento,
           valor_pago: novoCliente.valor_pago,
-          escritorio_id: novoCliente.escritorio_id, // <--- ADICIONADO
+          escritorio_id: novoCliente.escritorio_id,
         },
       ])
       .select();
@@ -99,17 +99,14 @@ export const api = {
     if (error) throw error;
   },
 
-  // === OBRAS ===
-  getObras: async (escritorioId) => {
+  // === OBRAS (CORRIGIDO: Removido escritorio_id) ===
+  getObras: async () => {
+    // Removido o parâmetro escritorioId e o filtro .eq("escritorio_id")
     let query = supabase
       .from("obras")
       .select("*")
       .eq("active", true)
       .order("created_at", { ascending: false });
-
-    if (escritorioId) {
-      query = query.eq("escritorio_id", escritorioId);
-    }
 
     const { data, error } = await query;
     if (error) throw error;
@@ -125,7 +122,7 @@ export const api = {
           local: novaObra.local,
           status: "Aguardando iniciação",
           active: true,
-          escritorio_id: novaObra.escritorio_id, // <--- ADICIONADO
+          // Removida a linha: escritorio_id: novaObra.escritorio_id
         },
       ])
       .select();

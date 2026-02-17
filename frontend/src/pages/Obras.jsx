@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/NavbarObras";
-import ObraCard from "../components/ObraCard";
+import ObraCard from "../components/CardObra";
 import ModalNovaObra from "../components/ModalNovaObra";
 import { api } from "../services/api";
 
