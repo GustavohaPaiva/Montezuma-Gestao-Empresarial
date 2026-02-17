@@ -22,7 +22,7 @@ export default function App() {
           <Route path="/login" element={<LoginCliente />} />
 
           {/* Login do Admin (RotaSecreta) */}
-          <Route path="/loginadm212" element={<LoginAdm />} />
+          <Route path="/loginadm" element={<LoginAdm />} />
 
           {/* --- ÁREA DO ADMIN (Só você vê) --- */}
           <Route element={<RotaProtegida allowedTypes={["admin"]} />}>
