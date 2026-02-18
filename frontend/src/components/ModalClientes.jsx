@@ -87,9 +87,8 @@ export default function ModalClientes({ isOpen, onClose, onSave }) {
           />
         </div>
 
-        {/* Valor Pago */}
         <div className="flex flex-col text-left gap-1">
-          <label className="text-[#71717A] text-sm">Valor Pago (R$)</label>
+          <label className="text-[#71717A] text-sm">Valor Cobrado (R$)</label>
           <input
             type="number"
             step="0.01"
