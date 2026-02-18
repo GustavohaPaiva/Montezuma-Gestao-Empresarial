@@ -9,8 +9,9 @@ import ModalClientes from "../components/ModalClientes";
 // --- Formatações ---
 const formatarDataBR = (dataString) => {
   if (!dataString) return "-";
+  // Ajuste para evitar problemas de fuso horário na visualização simples
   const data = new Date(dataString);
-  return data.toLocaleDateString("pt-BR");
+  return data.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 };
 
 const formatarMoeda = (valor) => {
@@ -23,8 +24,7 @@ const formatarMoeda = (valor) => {
 
 export default function Projetos() {
   // === CONTEXTO ESCRITÓRIO (SIMULADO) ===
-  // No futuro, isso virá do seu AuthProvider (usuário logado)
-  const [escritorioAtivo, setEscritorioAtivo] = useState("VK"); // Padrão 'VK'
+  const [escritorioAtivo, setEscritorioAtivo] = useState("VK");
 
   // === ESTADOS ORÇAMENTO ===
   const [orcamentos, setOrcamentos] = useState([]);
@@ -54,7 +54,6 @@ export default function Projetos() {
   useEffect(() => {
     async function fetchDados() {
       try {
-        // Passando o escritório ativo para filtrar na API
         const dadosOrc = await api.getOrcamentos(escritorioAtivo);
         setOrcamentos(dadosOrc || []);
 
@@ -65,7 +64,7 @@ export default function Projetos() {
       }
     }
     fetchDados();
-  }, [recarregar, escritorioAtivo]); // Recarrega se mudar o escritório
+  }, [recarregar, escritorioAtivo]);
 
   // ==========================================================================
   // LÓGICA DE ORÇAMENTOS
@@ -82,7 +81,7 @@ export default function Projetos() {
         valor: dadosFormulario.valor,
         data: new Date().toISOString(),
         status: dadosFormulario.status || "Em andamento",
-        escritorio_id: escritorioAtivo, // Salva com o ID do escritório atual
+        escritorio_id: escritorioAtivo,
       });
       setModalAberto(false);
       setRecarregar((prev) => prev + 1);
@@ -92,10 +91,21 @@ export default function Projetos() {
     }
   }
 
-  // Edição Inline Orçamento
+  // --- ALTERAÇÃO AQUI: Lógica para tratar Data na Edição ---
   const iniciarEdicao = useCallback((item, campo) => {
     setEditando({ id: item.id, campo });
-    const valorInicial = campo === "valor" ? item.valor : item.nome;
+    let valorInicial = "";
+
+    if (campo === "valor") {
+      valorInicial = item.valor;
+    } else if (campo === "nome") {
+      valorInicial = item.nome;
+    } else if (campo === "data") {
+      // Formata para YYYY-MM-DD para o input type="date" funcionar
+      const rawDate = item.data || item.created_at;
+      valorInicial = rawDate ? rawDate.split("T")[0] : "";
+    }
+
     setValorEdicao(valorInicial);
   }, []);
 
@@ -112,6 +122,14 @@ export default function Projetos() {
       if (campo === "valor") {
         novoValor = parseFloat(valorEdicao);
         if (isNaN(novoValor)) novoValor = 0;
+      }
+
+      // --- ALTERAÇÃO AQUI: Salvar Data ---
+      if (campo === "data") {
+        // Garante que salve como ISO String se tiver valor
+        if (valorEdicao) {
+          novoValor = new Date(valorEdicao).toISOString();
+        }
       }
 
       setOrcamentos((prev) =>
@@ -135,7 +153,6 @@ export default function Projetos() {
     async (id, novoStatus) => {
       const orcamentoAtual = orcamentos.find((o) => o.id === id);
 
-      // Atualiza visualmente
       setOrcamentos((prev) =>
         prev.map((o) => (o.id === id ? { ...o, status: novoStatus } : o)),
       );
@@ -143,19 +160,23 @@ export default function Projetos() {
       try {
         await api.updateOrcamento(id, { status: novoStatus });
 
-        // LOGICA DE INTEGRAÇÃO: Se mudou para Fechado, cria um cliente
         if (novoStatus === "Fechado" && orcamentoAtual) {
+          const valorCobrado = parseFloat(orcamentoAtual.valor) || 0;
+          const valorPagoInicial = 0;
+
           await api.createCliente({
             nome: orcamentoAtual.nome,
             tipo: "Pendente Definição",
             status: "Produção",
             pagamento: "À combinar",
-            valor_pago: orcamentoAtual.valor,
+            valor_cobrado: valorCobrado,
+            valor_pago: valorPagoInicial,
+            saldo: valorCobrado,
             data: new Date().toISOString(),
-            escritorio_id: escritorioAtivo, // Cliente criado herda o escritório
+            escritorio_id: escritorioAtivo,
           });
+          setRecarregar((prev) => prev + 1);
         }
-        setRecarregar((prev) => prev + 1);
       } catch (err) {
         console.error("Erro status:", err);
         setRecarregar((prev) => prev + 1);
@@ -175,7 +196,6 @@ export default function Projetos() {
     }
   }, []);
 
-  // Processamento Orçamentos
   const orcamentosProcessados = useMemo(() => {
     let lista = [...orcamentos];
     if (filtroData.inicio && filtroData.fim) {
@@ -194,7 +214,6 @@ export default function Projetos() {
           item.status?.toLowerCase().includes(termo),
       );
     }
-    // Ordenação
     const pesosStatus = { "Em andamento": 1, Fechado: 2, "Não fechado": 3 };
     lista.sort((a, b) => {
       const pesoA = pesosStatus[a.status] || 99;
@@ -207,7 +226,6 @@ export default function Projetos() {
     return lista;
   }, [orcamentos, filtroData, buscaOrcamento]);
 
-  // Totais Orçamento
   const totalOrcado = orcamentosProcessados.reduce(
     (acc, item) => acc + (parseFloat(item.valor) || 0),
     0,
@@ -217,14 +235,14 @@ export default function Projetos() {
     .reduce((acc, item) => acc + (parseFloat(item.valor) || 0), 0);
   const diferenca = totalOrcado - totalFechado;
 
-  // Dados Tabela Orçamento
   const dadosTabela = useMemo(() => {
     return orcamentosProcessados.map((o) => {
       const isEditingNome = editando.id === o.id && editando.campo === "nome";
       const isEditingValor = editando.id === o.id && editando.campo === "valor";
+      const isEditingData = editando.id === o.id && editando.campo === "data";
 
       return [
-        // COLUNA NOME
+        // 1. NOME
         <div
           className="flex items-center justify-center gap-2"
           key={`nome-${o.id}`}
@@ -277,7 +295,7 @@ export default function Projetos() {
           )}
         </div>,
 
-        // COLUNA VALOR
+        // 2. VALOR
         <div
           className="flex items-center justify-center gap-2"
           key={`val-${o.id}`}
@@ -330,9 +348,58 @@ export default function Projetos() {
           )}
         </div>,
 
-        formatarDataBR(o.data || o.created_at),
+        // 3. DATA (AGORA EDITÁVEL)
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`data-${o.id}`}
+        >
+          {isEditingData ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="date"
+                value={valorEdicao}
+                onChange={(e) => setValorEdicao(e.target.value)}
+                className="w-[130px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-[12px] md:text-[14px]"
+                autoFocus
+              />
+              <button
+                onClick={() => salvarEdicao(o)}
+                className="cursor-pointer border-none bg-transparent"
+              >
+                <img
+                  width="15"
+                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
+                  alt="salvar"
+                />
+              </button>
+              <button
+                onClick={cancelarEdicao}
+                className="cursor-pointer border-none bg-transparent"
+              >
+                <img
+                  width="15"
+                  src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
+                  alt="cancelar"
+                />
+              </button>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => iniciarEdicao(o, "data")}
+            >
+              <span>{formatarDataBR(o.data || o.created_at)}</span>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
+              />
+            </div>
+          )}
+        </div>,
 
-        // COLUNA STATUS
+        // 4. STATUS
         <select
           key={`status-${o.id}`}
           value={o.status || "Em andamento"}
@@ -350,7 +417,7 @@ export default function Projetos() {
           <option value="Não fechado">Não fechado</option>
         </select>,
 
-        // COLUNA EXCLUIR
+        // 5. EXCLUIR
         <div className="flex justify-center group" key={`del-${o.id}`}>
           <button
             onClick={() => handleExcluir(o.id)}
@@ -389,9 +456,11 @@ export default function Projetos() {
     try {
       await api.createCliente({
         ...dadosFormulario,
-        status: "Produção", // Status inicial
+        status: "Produção",
         data: new Date().toISOString(),
-        escritorio_id: escritorioAtivo, // Salva com o ID do escritório atual
+        escritorio_id: escritorioAtivo,
+        valor_cobrado: dadosFormulario.valor_cobrado || 0,
+        valor_pago: dadosFormulario.valor_pago || 0,
       });
       setModalClienteAberto(false);
       setRecarregar((prev) => prev + 1);
@@ -401,14 +470,13 @@ export default function Projetos() {
     }
   }
 
-  // Edição Inline Clientes (Status, Pagamento, Valor Pago e AGORA TIPO)
   const iniciarEdicaoCliente = useCallback((item, campo) => {
     setEditandoCliente({ id: item.id, campo });
-    // Define valor inicial
     let valorInicial = "";
     if (campo === "pagamento") valorInicial = item.pagamento;
-    if (campo === "tipo") valorInicial = item.tipo; // Adicionado
+    if (campo === "tipo") valorInicial = item.tipo;
     if (campo === "valor_pago") valorInicial = item.valor_pago;
+    if (campo === "valor_cobrado") valorInicial = item.valor_cobrado;
     setValorEdicaoCliente(valorInicial);
   }, []);
 
@@ -422,7 +490,7 @@ export default function Projetos() {
       const campo = editandoCliente.campo;
       let novoValor = valorEdicaoCliente;
 
-      if (campo === "valor_pago") {
+      if (campo === "valor_pago" || campo === "valor_cobrado") {
         novoValor = parseFloat(valorEdicaoCliente);
         if (isNaN(novoValor)) novoValor = 0;
       }
@@ -491,8 +559,25 @@ export default function Projetos() {
       );
     }
 
-    // Ordenação (Data desc)
+    // === ORDENAÇÃO POR STATUS (REQ DO USUÁRIO) ===
+    const pesosStatusClientes = {
+      Produção: 1,
+      Prefeitura: 2,
+      Caixa: 3,
+      Obra: 4,
+      Finalizado: 5,
+    };
+
     lista.sort((a, b) => {
+      // 1. Ordena por Status
+      const pesoA = pesosStatusClientes[a.status] || 99;
+      const pesoB = pesosStatusClientes[b.status] || 99;
+
+      if (pesoA !== pesoB) {
+        return pesoA - pesoB;
+      }
+
+      // 2. Se status igual, ordena por Data (mais recente primeiro)
       const dataA = new Date(a.data || a.created_at).getTime();
       const dataB = new Date(b.data || b.created_at).getTime();
       return dataB - dataA;
@@ -502,7 +587,7 @@ export default function Projetos() {
   }, [clientes, filtroDataClientes, buscaCliente]);
 
   // Totais Clientes
-  const totalCliente = clientesProcessados.reduce(
+  const totalPagoClientes = clientesProcessados.reduce(
     (acc, item) => acc + (parseFloat(item.valor_pago) || 0),
     0,
   );
@@ -514,29 +599,36 @@ export default function Projetos() {
         editandoCliente.id === c.id && editandoCliente.campo === "tipo";
       const isEditingPagamento =
         editandoCliente.id === c.id && editandoCliente.campo === "pagamento";
-      const isEditingValor =
+      const isEditingValorPago =
         editandoCliente.id === c.id && editandoCliente.campo === "valor_pago";
+      const isEditingValorCobrado =
+        editandoCliente.id === c.id &&
+        editandoCliente.campo === "valor_cobrado";
 
-      // Cores para status
+      // Cálculos de linha
+      const valorCobrado = parseFloat(c.valor_cobrado) || 0;
+      const valorPago = parseFloat(c.valor_pago) || 0;
+      const saldo = valorCobrado - valorPago;
+
       const getStatusColor = (status) => {
         switch (status) {
           case "Produção":
-            return "bg-[#F3E5F5] text-[#7B1FA2]"; // Roxo
+            return "bg-[#F3E5F5] text-[#7B1FA2]";
           case "Prefeitura":
-            return "bg-[#E3F2FD] text-[#1565C0]"; // Azul
+            return "bg-[#E3F2FD] text-[#1565C0]";
           case "Caixa":
-            return "bg-[#E0F2F1] text-[#00695C]"; // Verde-azulado
+            return "bg-[#E0F2F1] text-[#00695C]";
           case "Obra":
-            return "bg-[#FFF3E0] text-[#E65100]"; // Laranja
+            return "bg-[#FFF3E0] text-[#E65100]";
           case "Finalizado":
-            return "bg-[#E8F5E9] text-[#2E7D32]"; // Verde
+            return "bg-[#E8F5E9] text-[#2E7D32]";
           default:
             return "bg-gray-100 text-gray-600";
         }
       };
 
       return [
-        // 1. NOME (Não editável)
+        // 1. NOME
         <span
           key={`cli-nome-${c.id}`}
           className="font-semibold uppercase text-left"
@@ -544,7 +636,7 @@ export default function Projetos() {
           {c.nome}
         </span>,
 
-        // 2. TIPO (AGORA EDITÁVEL)
+        // 2. TIPO
         <div
           className="flex items-center justify-center gap-2"
           key={`cli-tipo-${c.id}`}
@@ -555,7 +647,7 @@ export default function Projetos() {
                 type="text"
                 value={valorEdicaoCliente}
                 onChange={(e) => setValorEdicaoCliente(e.target.value)}
-                className="w-[150px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-left"
+                className="w-[120px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-left"
                 autoFocus
               />
               <button
@@ -595,7 +687,7 @@ export default function Projetos() {
           )}
         </div>,
 
-        // 3. STATUS (Editável - Select)
+        // 3. STATUS
         <select
           key={`cli-status-${c.id}`}
           value={c.status || "Produção"}
@@ -609,7 +701,7 @@ export default function Projetos() {
           <option value="Finalizado">Finalizado</option>
         </select>,
 
-        // 4. Pagamento (Editável - Texto)
+        // 4. PAGAMENTO
         <div
           className="flex items-center justify-center gap-2"
           key={`cli-pagamento-${c.id}`}
@@ -660,20 +752,75 @@ export default function Projetos() {
           )}
         </div>,
 
-        // 5. VALOR PAGO (Editável - Número)
+        // 5. VALOR COBRADO (Editável)
         <div
           className="flex items-center justify-center gap-2"
-          key={`cli-val-${c.id}`}
+          key={`cli-cobrado-${c.id}`}
         >
-          {isEditingValor ? (
+          {isEditingValorCobrado ? (
             <div className="flex items-center gap-1">
-              <span>R$</span>
+              <span className="text-xs">R$</span>
               <input
                 type="number"
                 step="0.01"
                 value={valorEdicaoCliente}
                 onChange={(e) => setValorEdicaoCliente(e.target.value)}
-                className="w-[80px] p-[4px] border border-[#DBDADE] ml-[5px] rounded-[8px] focus:outline-none"
+                className="w-[80px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none"
+                autoFocus
+              />
+              <button
+                onClick={() => salvarEdicaoCliente(c)}
+                className="cursor-pointer bg-transparent border-none"
+              >
+                <img
+                  width="15"
+                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
+                  alt="salvar"
+                />
+              </button>
+              <button
+                onClick={cancelarEdicaoCliente}
+                className="cursor-pointer bg-transparent border-none"
+              >
+                <img
+                  width="15"
+                  src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
+                  alt="cancelar"
+                />
+              </button>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => iniciarEdicaoCliente(c, "valor_cobrado")}
+            >
+              <span className="font-bold text-[#464C54]">
+                R$ {formatarMoeda(valorCobrado)}
+              </span>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </div>
+          )}
+        </div>,
+
+        // 6. VALOR PAGO (Editável)
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`cli-pago-${c.id}`}
+        >
+          {isEditingValorPago ? (
+            <div className="flex items-center gap-1">
+              <span className="text-xs">R$</span>
+              <input
+                type="number"
+                step="0.01"
+                value={valorEdicaoCliente}
+                onChange={(e) => setValorEdicaoCliente(e.target.value)}
+                className="w-[80px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none"
                 autoFocus
               />
               <button
@@ -702,8 +849,8 @@ export default function Projetos() {
               className="flex items-center gap-2 group cursor-pointer"
               onClick={() => iniciarEdicaoCliente(c, "valor_pago")}
             >
-              <span className="font-bold">
-                R$ {formatarMoeda(c.valor_pago)}
+              <span className="font-bold text-[#2E7D32]">
+                R$ {formatarMoeda(valorPago)}
               </span>
               <img
                 width="15"
@@ -715,9 +862,22 @@ export default function Projetos() {
           )}
         </div>,
 
+        // 7. SALDO (Calculado)
+        <div
+          className="flex items-center justify-center"
+          key={`cli-saldo-${c.id}`}
+        >
+          <span
+            className={`font-bold ${saldo > 0 ? "text-[#c62828]" : "text-[#71717A]"}`}
+          >
+            R$ {formatarMoeda(saldo)}
+          </span>
+        </div>,
+
+        // 8. DATA
         formatarDataBR(c.data || c.created_at),
 
-        // EXCLUIR
+        // 9. EXCLUIR
         <div className="flex justify-center group" key={`cli-del-${c.id}`}>
           <button
             onClick={() => handleExcluirCliente(c.id)}
@@ -761,7 +921,7 @@ export default function Projetos() {
       <Navbar />
 
       <div className="w-full px-[5%] box-border">
-        {/* === SELETOR DE ESCRITÓRIO (TEMPORÁRIO PARA TESTE) === */}
+        {/* === SELETOR DE ESCRITÓRIO === */}
         <div className="flex justify-end mt-4 mb-2 gap-2 items-center">
           <span className="text-sm font-bold text-gray-500">
             Escritório Ativo:
@@ -778,7 +938,6 @@ export default function Projetos() {
 
         {/* ================= SEÇÃO ORÇAMENTOS ================= */}
         <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[10px] pt-[24px] pb-[24px]">
-          {/* Header da Tabela Orçamentos */}
           <div className="flex flex-col xl:flex-row justify-between w-full items-center gap-4">
             <div className="flex items-center gap-4">
               <h1 className="text-[30px] md:text-[40px] font-bold text-[#464C54]">
@@ -804,7 +963,6 @@ export default function Projetos() {
                   className="h-[40px] w-full box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54]"
                 />
               </div>
-
               <div className="flex w-full items-center gap-2 xl:w-[400px]">
                 <input
                   type="date"
@@ -827,7 +985,6 @@ export default function Projetos() {
             </div>
           </div>
 
-          {/* Tabela Orçamentos COM SCROLL */}
           {orcamentos.length > 0 ? (
             <div className="w-full overflow-x-auto max-h-[700px] overflow-y-auto">
               <TabelaSimples
@@ -841,7 +998,6 @@ export default function Projetos() {
             </div>
           )}
 
-          {/* Cards de Totais */}
           <div className="grid xl:grid-cols-[repeat(auto-fit,minmax(0,362px))] gap-y-[30px] w-full xl:justify-between">
             <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2 ">
               <span className="text-[18px] text-sm text-[#71717A] uppercase font-semibold">
@@ -851,7 +1007,6 @@ export default function Projetos() {
                 R$ {formatarMoeda(totalOrcado)}
               </span>
             </div>
-
             <div className="flex justify-center gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9]">
               <span className="text-[18px] text-sm text-[#2E7D32] uppercase font-semibold">
                 Total Fechado:
@@ -860,7 +1015,6 @@ export default function Projetos() {
                 R$ {formatarMoeda(totalFechado)}
               </span>
             </div>
-
             <div className="flex justify-center gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] ">
               <span className="text-sm text-[18px] text-[#71717A] uppercase font-semibold">
                 Diferença:
@@ -874,7 +1028,6 @@ export default function Projetos() {
 
         {/* ================= SEÇÃO CLIENTES ================= */}
         <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[40px] pt-[24px] pb-[24px]">
-          {/* Header da Tabela Clientes */}
           <div className="flex flex-col xl:flex-row justify-between w-full items-center gap-4">
             <div className="flex items-center gap-4">
               <h1 className="text-[30px] md:text-[40px] font-bold text-[#464C54]">
@@ -900,7 +1053,6 @@ export default function Projetos() {
                   className="h-[40px] w-full box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54]"
                 />
               </div>
-
               <div className="flex w-full items-center gap-2 xl:w-[400px]">
                 <input
                   type="date"
@@ -929,7 +1081,6 @@ export default function Projetos() {
             </div>
           </div>
 
-          {/* Tabela Clientes COM SCROLL */}
           {clientes.length > 0 ? (
             <div className="w-full overflow-x-auto max-h-[600px] overflow-y-auto">
               <TabelaSimples
@@ -938,7 +1089,9 @@ export default function Projetos() {
                   "Tipo",
                   "Status",
                   "Pagamento",
+                  "Valor Cobrado",
                   "Valor Pago",
+                  "Saldo",
                   "Data",
                   "",
                 ]}
@@ -950,12 +1103,13 @@ export default function Projetos() {
               Nenhum cliente encontrado para {escritorioAtivo}.
             </div>
           )}
+
           <div className="flex w-full justify-between gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9]">
             <span className="text-[18px] text-sm text-[#2E7D32] uppercase font-semibold">
-              Valor Total:
+              Total Pago:
             </span>
             <span className="text-[18px] font-bold text-[#1B5E20]">
-              R$ {formatarMoeda(totalCliente)}
+              R$ {formatarMoeda(totalPagoClientes)}
             </span>
           </div>
         </div>
