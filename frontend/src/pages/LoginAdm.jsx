@@ -60,7 +60,7 @@ export default function LoginAdm() {
             type="text"
             value={login}
             onChange={(e) => setLogin(e.target.value)}
-            className="m-[6px] h-[45px] w-[60%] rounded-[60px] bg-gray-100 px-[12px] text-[17px] placeholder-gray-500 outline-none focus:ring-2 focus:ring-[#1900ffdc]"
+            className="m-[6px] h-[45px] w-[60%] rounded-[60px] bg-gray-100 px-[12px] text-[17px] placeholder-gray-500 outline-none focus:ring-2 focus:ring-[#FD3A02]"
             placeholder="Login"
           />
 
@@ -68,7 +68,7 @@ export default function LoginAdm() {
             type="password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="m-[6px] h-[45px] w-[60%] rounded-[60px] bg-gray-100 px-[12px] text-[17px] placeholder-gray-500 outline-none focus:ring-2 focus:ring-[#1900ffdc]"
+            className="m-[6px] h-[45px] w-[60%] rounded-[60px] bg-gray-100 px-[12px] text-[17px] placeholder-gray-500 outline-none focus:ring-2 focus:ring-[#FD3A02]"
             placeholder="Senha"
           />
 

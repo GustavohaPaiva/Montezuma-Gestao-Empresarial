@@ -20,6 +20,7 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
     "Gl.",
     "Mensal",
     "Pç.",
+    "Cx.",
   ];
 
   if (!isOpen) return null;

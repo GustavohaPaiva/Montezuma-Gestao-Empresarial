@@ -1,22 +1,31 @@
-import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "./contexts/AuthContext"; // Ajuste o caminho
+import { Navigate, Outlet, useParams } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
 
-export default function RotaProtegida({ allowedTypes }) {
-  const { user } = useAuth();
+const RotaProtegida = ({ allowedTypes }) => {
+  const { user, loading } = useAuth();
+  const { id } = useParams();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen text-[#464C54] font-bold">
+        Carregando autenticação...
+      </div>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-
-  // Se o tipo do usuário não estiver na lista de permitidos
   if (allowedTypes && !allowedTypes.includes(user.tipo)) {
-    // Se é cliente tentando acessar área adm -> vai pra obra dele
-    if (user.tipo === "cliente") {
-      return <Navigate to={`/obra/${user.id}`} replace />;
+    return <Navigate to="/" replace />;
+  }
+
+  if (user.tipo === "cliente" && id) {
+    if (String(user.id) !== String(id)) {
+      return <Navigate to={`/obraCliente/${user.id}`} replace />;
     }
-    // Se é admin -> vai pra lista de obras
-    return <Navigate to="/obras" replace />;
   }
 
   return <Outlet />;
-}
+};
+
+export default RotaProtegida;
