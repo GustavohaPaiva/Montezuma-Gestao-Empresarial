@@ -5,7 +5,7 @@ export default function Processos() {
     <div>
       <Navbar />
       <div className="px-[5%] box-border">
-        <h2>Hello word</h2>
+        <h2>Processos</h2>
       </div>
     </div>
   );

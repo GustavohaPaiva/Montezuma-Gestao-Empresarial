@@ -10,6 +10,7 @@ import Processos from "./pages/Processos";
 import LoginCliente from "./pages/LoginCliente";
 import LoginAdm from "./pages/LoginAdm";
 import ObrasCliente from "./pages/ObraCliente";
+import Financeiro from "./pages/Financeiro";
 import "./index.css";
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/obras" element={<Obras />} />
             <Route path="/processos" element={<Processos />} />
             <Route path="/obra/:id" element={<ObrasDetalhe />} />
+            <Route path="/financeiro" element={<Financeiro />} />
           </Route>
 
           {/* --- ÁREA COMUM --- */}

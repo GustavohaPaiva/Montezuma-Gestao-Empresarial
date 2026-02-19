@@ -944,6 +944,7 @@ export default function Projetos() {
                 Orçamentos
               </h1>
             </div>
+
             <div className="flex flex-col w-full justify-end px-2 xl:flex-row items-center gap-[8px]">
               <div className="w-full xl:w-[180px] ">
                 <ButtonDefault
@@ -954,6 +955,7 @@ export default function Projetos() {
                   + Solicitação
                 </ButtonDefault>
               </div>
+
               <div className="w-full xl:w-[250px]">
                 <input
                   type="text"
@@ -963,6 +965,7 @@ export default function Projetos() {
                   className="h-[40px] w-full box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54]"
                 />
               </div>
+
               <div className="flex w-full items-center gap-2 xl:w-[400px]">
                 <input
                   type="date"
@@ -971,9 +974,11 @@ export default function Projetos() {
                     setFiltroData({ ...filtroData, inicio: e.target.value })
                   }
                 />
+
                 <span className="text-[#00000] text-[20px] md:text-[25px] font-semibold">
                   Até
                 </span>
+
                 <input
                   type="date"
                   className="outline-none w-full text-[10px] md:text-[15px] uppercase text-[#71717A] bg-transparent border border-[1.5px] border-[#DBDADE] text-center rounded-[8px] h-[40px] px-2"

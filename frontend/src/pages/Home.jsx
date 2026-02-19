@@ -27,7 +27,7 @@ export default function Home() {
       titulo: "Financeiro",
       imagem:
         "https://img.icons8.com/external-outline-wichaiwi/125/external-financial-business-continuity-plan-outline-wichaiwi.png",
-      path: "/",
+      path: "/financeiro",
     },
   ];
 
