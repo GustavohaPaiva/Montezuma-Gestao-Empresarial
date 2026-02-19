@@ -27,9 +27,9 @@ export default function LoginCliente() {
   };
 
   return (
-    <div className="flex h-[90vh] w-full items-center justify-center ">
-      <div className="flex box-border h-[550px] w-[825px] shadow-[20px_10px_20px_rgba(0,0,0,0.3)] rounded-[20px] overflow-hidden">
-        <div className="flex px-[20px] box-border w-[70%] flex-col items-center bg-[#FD3A02] text-center text-white h-full">
+    <div className="flex h-full md:h-[90vh] w-full items-center justify-center ">
+      <div className="flex flex-col md:flex-row box-border h-[550px] w-[825px] shadow-[20px_10px_20px_rgba(0,0,0,0.3)] rounded-0 md:rounded-[20px] overflow md:overflow-hidden">
+        <div className="flex px-[20px] box-border w-full md:w-[70%] flex-col items-center bg-[#FD3A02] text-center text-white h-full">
           <img className="h-[95px] w-[130px] mt-[30px]" src={logo} alt="" />
           <h2 className="mt-[40px] mb-[15px] text-[18px] font-black uppercase">
             Bem-vindo ao acompanhamento <br /> do seu sonho.
@@ -41,7 +41,7 @@ export default function LoginCliente() {
           <p className="mt-[40px] font-black uppercase text-[20px]">
             Salmos 127:1
           </p>
-          <h3 className="">
+          <h3 className="mb-[30px] md:mb-0">
             “Se o Senhor não edificar a casa, em vão trabalham os que a
             edificam.”
           </h3>
