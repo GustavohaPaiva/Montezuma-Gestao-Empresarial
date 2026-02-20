@@ -6,6 +6,7 @@ export default function ObraCard({
   nome,
   client,
   status,
+  tudoPago,
   onUpdate,
   onDelete,
 }) {
@@ -32,9 +33,7 @@ export default function ObraCard({
   }
 
   const handleCardClick = () => {
-    if (!isEditing) {
-      navigate(`/obra/${id}`);
-    }
+    if (!isEditing) navigate(`/obra/${id}`);
   };
 
   const toggleEdit = (e) => {
@@ -55,20 +54,6 @@ export default function ObraCard({
     setIsEditing(false);
   };
 
-  const handleDeleteClick = (e) => {
-    e.stopPropagation();
-    onDelete();
-  };
-
-  const handleStatusClick = (e) => {
-    e.stopPropagation();
-  };
-
-  const handleStatusChange = async (e) => {
-    const novoStatus = e.target.value;
-    await onUpdate(id, { status: novoStatus });
-  };
-
   return (
     <div
       onClick={handleCardClick}
@@ -76,35 +61,46 @@ export default function ObraCard({
         !isEditing ? "hover:scale-[1.02] cursor-pointer" : "cursor-default"
       } text-black`}
     >
-      <div className="right-4 flex gap-[8px] justify-end relative z-10">
-        {isEditing ? (
-          <>
-            <button
-              onClick={handleSave}
-              className="border border-[#2E7D32] rounded-[50%] bg-[#cce7c9] hover:bg-[#C8E6C9] transition-colors w-[28px] h-[28px] flex items-center justify-center mr-2"
-            >
-              <img
-                width="18"
-                height="18"
-                src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
-                alt="salvar"
-              />
-            </button>
-            <button
-              onClick={handleCancel}
-              className="border border-[#ff5252] rounded-[50%] bg-[#ffbaba] hover:bg-[#ff5252] transition-colors w-[28px] h-[28px] flex items-center justify-center mr-2"
-            >
-              <img
-                width="18"
-                height="18"
-                src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
-                alt="cancelar"
-              />
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="flex justify-end w-full gap-[8px]">
+      <div className="flex items-center justify-between relative z-10 w-full">
+        {/* Indicativo Financeiro */}
+        <div className="flex items-center">
+          <div
+            className={`w-[12px] h-[12px] rounded-full shadow-sm transition-colors duration-300 ${
+              tudoPago ? "bg-[#2E7D32]" : "bg-[#F57C00]"
+            }`}
+            title={tudoPago ? "Tudo pago" : "Pagamento pendente"}
+          />
+        </div>
+
+        {/* Botões de Ação */}
+        <div className="flex gap-[8px]">
+          {isEditing ? (
+            <>
+              <button
+                onClick={handleSave}
+                className="border border-[#2E7D32] rounded-[50%] bg-[#cce7c9] hover:bg-[#C8E6C9] w-[28px] h-[28px] flex items-center justify-center"
+              >
+                <img
+                  width="18"
+                  height="18"
+                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
+                  alt="salvar"
+                />
+              </button>
+              <button
+                onClick={handleCancel}
+                className="border border-[#ff5252] rounded-[50%] bg-[#ffbaba] hover:bg-[#ff5252] w-[28px] h-[28px] flex items-center justify-center"
+              >
+                <img
+                  width="18"
+                  height="18"
+                  src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
+                  alt="cancelar"
+                />
+              </button>
+            </>
+          ) : (
+            <>
               <button
                 onClick={toggleEdit}
                 className="bg-transparent border-none cursor-pointer"
@@ -117,7 +113,10 @@ export default function ObraCard({
                 />
               </button>
               <button
-                onClick={handleDeleteClick}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
                 className="bg-transparent border-none cursor-pointer"
               >
                 <img
@@ -127,36 +126,32 @@ export default function ObraCard({
                   alt="trash"
                 />
               </button>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="mt-6 flex flex-col items-center w-full px-2">
+      <div className="mt-4 flex flex-col items-center w-full px-2">
         {isEditing ? (
           <div
             className="flex flex-col gap-[10px] w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-row gap-[8px] items-center">
-              <span className="text-[18px] font-semibold">Obra:</span>
-              <input
-                type="text"
-                value={editedName}
-                onChange={(e) => setEditedName(e.target.value)}
-                className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
-                autoFocus
-              />
-            </div>
-            <div className="flex flex-row gap-[8px] items-center">
-              <span className="text-[18px] font-semibold">Cliente:</span>
-              <input
-                type="text"
-                value={editedClient}
-                onChange={(e) => setEditedClient(e.target.value)}
-                className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
-              />
-            </div>
+            <input
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
+              placeholder="Nome da Obra"
+              autoFocus
+            />
+            <input
+              type="text"
+              value={editedClient}
+              onChange={(e) => setEditedClient(e.target.value)}
+              className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
+              placeholder="Cliente"
+            />
           </div>
         ) : (
           <>
@@ -177,15 +172,16 @@ export default function ObraCard({
         >
           <select
             value={status}
-            onChange={handleStatusChange}
-            onClick={handleStatusClick}
+            onChange={async (e) =>
+              await onUpdate(id, { status: e.target.value })
+            }
+            onClick={(e) => e.stopPropagation()}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30 appearance-none"
           >
             <option value="Aguardando iniciação">Aguardando iniciação</option>
             <option value="Em andamento">Em andamento</option>
             <option value="Concluída">Concluída</option>
           </select>
-
           <div className="flex items-center justify-center pointer-events-none z-10">
             <img
               width="20"

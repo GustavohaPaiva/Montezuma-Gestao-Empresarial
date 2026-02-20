@@ -7,6 +7,15 @@ import { api } from "../../services/api";
 import ModalMateriais from "../../components/modals/ModalMateriais";
 import ModalMaoDeObra from "../../components/modals/ModalMaoDeObra";
 
+// --- Hierarquia de Status para Ordenação ---
+const ORDEM_STATUS = {
+  Solicitado: 1,
+  "Em cotação": 2,
+  Aprovado: 3,
+  "Aguardando entrega": 4,
+  Entregue: 5,
+};
+
 // --- Formatações ---
 const formatarDataBR = (dataString) => {
   if (!dataString) return "-";
@@ -35,10 +44,13 @@ export default function ObrasDetalhe() {
   // Filtros Globais
   const [filtroExtrato, setFiltroExtrato] = useState("Tudo");
 
-  // --- ESTADOS DE BUSCA ---
+  // --- ESTADOS DE BUSCA E ORDENAÇÃO ---
   const [buscaMateriais, setBuscaMateriais] = useState("");
   const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
   const [buscaExtrato, setBuscaExtrato] = useState("");
+
+  // Estado de ordenação: { campo: 'fornecedor' | 'data' | 'status', direcao: 'asc' | 'desc' }
+  const [sortConfig, setSortConfig] = useState({ campo: null, direcao: "asc" });
 
   // Estados de Edição (Extrato)
   const [editandoId, setEditandoId] = useState(null);
@@ -87,6 +99,13 @@ export default function ObrasDetalhe() {
   }, []);
 
   // --- HANDLERS MATERIAIS ---
+
+  const handleSortMateriais = (campo) => {
+    setSortConfig((prev) => ({
+      campo,
+      direcao: prev.campo === campo && prev.direcao === "asc" ? "desc" : "asc",
+    }));
+  };
 
   const handleDeleteMaterial = useCallback(
     async (materialId) => {
@@ -473,21 +492,47 @@ export default function ObrasDetalhe() {
 
     let listaMateriais = [...obra.materiais];
 
+    // Busca por material ou fornecedor
     if (buscaMateriais) {
-      listaMateriais = listaMateriais.filter((m) =>
-        m.material?.toLowerCase().includes(buscaMateriais.toLowerCase()),
+      const termo = buscaMateriais.toLowerCase();
+      listaMateriais = listaMateriais.filter(
+        (m) =>
+          m.material?.toLowerCase().includes(termo) ||
+          m.fornecedor?.toLowerCase().includes(termo),
       );
     }
 
-    const materiaisOrdenados = listaMateriais.sort((a, b) => {
-      const isEntregueA = a.status === "Entregue";
-      const isEntregueB = b.status === "Entregue";
-      if (isEntregueA && !isEntregueB) return 1;
-      if (!isEntregueA && isEntregueB) return -1;
-      return 0;
-    });
+    // Lógica de Ordenação
+    if (sortConfig.campo) {
+      listaMateriais.sort((a, b) => {
+        let valA, valB;
+        if (sortConfig.campo === "fornecedor") {
+          valA = (a.fornecedor || "").toLowerCase();
+          valB = (b.fornecedor || "").toLowerCase();
+        } else if (sortConfig.campo === "data") {
+          valA = new Date(a.data_solicitacao).getTime();
+          valB = new Date(b.data_solicitacao).getTime();
+        } else if (sortConfig.campo === "status") {
+          valA = ORDEM_STATUS[a.status] || 0;
+          valB = ORDEM_STATUS[b.status] || 0;
+        }
 
-    return materiaisOrdenados.map((m) => {
+        if (valA < valB) return sortConfig.direcao === "asc" ? -1 : 1;
+        if (valA > valB) return sortConfig.direcao === "asc" ? 1 : -1;
+        return 0;
+      });
+    } else {
+      // Ordenação padrão se nada for clicado (Entregues por último)
+      listaMateriais.sort((a, b) => {
+        const isEntregueA = a.status === "Entregue";
+        const isEntregueB = b.status === "Entregue";
+        if (isEntregueA && !isEntregueB) return 1;
+        if (!isEntregueA && isEntregueB) return -1;
+        return 0;
+      });
+    }
+
+    return listaMateriais.map((m) => {
       const isEditingValor =
         editandoMaterial.id === m.id && editandoMaterial.campo === "valor";
       const isEditingFornecedor =
@@ -649,6 +694,7 @@ export default function ObrasDetalhe() {
     iniciarEdicaoMaterial,
     handleDeleteMaterial,
     buscaMateriais,
+    sortConfig, // Adicionado para reagir à ordenação
   ]);
 
   // --- DADOS TABELA MÃO DE OBRA ---
@@ -868,7 +914,6 @@ export default function ObrasDetalhe() {
       const dataB = new Date(b.data).getTime();
       return dataB - dataA;
     });
-    // -------------------------------------------
 
     return itensFiltrados.map((item) => {
       const isEditing = editandoId === item.id;
@@ -1100,10 +1145,10 @@ export default function ObrasDetalhe() {
               <h1 className="text-[35px] font-bold">Relatório de Materiais</h1>
               <input
                 type="text"
-                placeholder="Buscar material..."
+                placeholder="Buscar por material ou fornecedor..."
                 value={buscaMateriais}
                 onChange={(e) => setBuscaMateriais(e.target.value)}
-                className={`h-[40px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px] ${isMobile ? "w-full" : "w-[250px]"}`}
+                className={`h-[40px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px] ${isMobile ? "w-full" : "w-[300px]"}`}
               />
             </div>
 
@@ -1113,9 +1158,24 @@ export default function ObrasDetalhe() {
                 "Quantidade",
                 "Valor Un.",
                 "Valor",
-                "Status",
-                "Fornecedor",
-                "Data",
+                <span
+                  className="cursor-pointer hover:text-blue-600 select-none"
+                  onClick={() => handleSortMateriais("status")}
+                >
+                  Status ↕
+                </span>,
+                <span
+                  className="cursor-pointer hover:text-blue-600 select-none"
+                  onClick={() => handleSortMateriais("fornecedor")}
+                >
+                  Fornecedor ↕
+                </span>,
+                <span
+                  className="cursor-pointer hover:text-blue-600 select-none"
+                  onClick={() => handleSortMateriais("data")}
+                >
+                  Data ↕
+                </span>,
                 "",
               ]}
               dados={dadosMateriais}
@@ -1131,10 +1191,14 @@ export default function ObrasDetalhe() {
                   let listaParaPDF = [...obra.materiais];
 
                   if (buscaMateriais) {
-                    listaParaPDF = listaParaPDF.filter((m) =>
-                      m.material
-                        ?.toLowerCase()
-                        .includes(buscaMateriais.toLowerCase()),
+                    listaParaPDF = listaParaPDF.filter(
+                      (m) =>
+                        m.material
+                          ?.toLowerCase()
+                          .includes(buscaMateriais.toLowerCase()) ||
+                        m.fornecedor
+                          ?.toLowerCase()
+                          .includes(buscaMateriais.toLowerCase()),
                     );
                   }
 

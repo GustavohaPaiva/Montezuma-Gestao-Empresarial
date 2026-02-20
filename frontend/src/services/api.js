@@ -3,7 +3,6 @@ import { supabase } from "./supabase";
 export const api = {
   // --- MÓDULO FINANCEIRO ---
 
-  // No seu arquivo api.js
   getFinanceiro: async (tabela, escritorioId, mes, ano) => {
     const primeiroDia = `${ano}-${mes}-01`;
     const ultimoDia = new Date(ano, parseInt(mes), 0).getDate();
@@ -209,7 +208,10 @@ export const api = {
   getObras: async () => {
     let query = supabase
       .from("obras")
-      .select("*")
+      // Adicionamos o extrato na busca!
+      .select(
+        "*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), extrato:relatorio_extrato(*)",
+      )
       .eq("active", true)
       .order("created_at", { ascending: false });
 
