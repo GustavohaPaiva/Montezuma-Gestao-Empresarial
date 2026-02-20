@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ButtonDefault from "./ButtonDefault";
+import ButtonDefault from "../gerais/ButtonDefault";
 
 export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
   const [formData, setFormData] = useState({

@@ -1,6 +1,5 @@
 import { useState } from "react";
-import ButtonDefault from "./ButtonDefault"; // Reutilizando seu botão se possível, ou use HTML button normal
-
+import ButtonDefault from "../gerais/ButtonDefault";
 export default function ModalOrcamento({ isOpen, onClose, onSave }) {
   const [nome, setNome] = useState("");
   const [valor, setValor] = useState("");

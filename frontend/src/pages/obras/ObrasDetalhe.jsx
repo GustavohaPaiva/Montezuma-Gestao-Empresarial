@@ -1,11 +1,11 @@
 import { useNavigate, useParams } from "react-router-dom";
-import TabelaSimples from "../components/TabelaSimples";
-import ButtonDefault from "../components/ButtonDefault";
-import { gerarPDF } from "../services/pdfService";
+import TabelaSimples from "../../components/gerais/TabelaSimples";
+import ButtonDefault from "../../components/gerais/ButtonDefault";
+import { gerarPDF } from "../../services/pdfService";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { api } from "../services/api";
-import ModalMateriais from "../components/ModalMateriais";
-import ModalMaoDeObra from "../components/ModalMaoDeObra";
+import { api } from "../../services/api";
+import ModalMateriais from "../../components/modals/ModalMateriais";
+import ModalMaoDeObra from "../../components/modals/ModalMaoDeObra";
 
 // --- Formatações ---
 const formatarDataBR = (dataString) => {

@@ -1,16 +1,17 @@
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import RotaProtegida from "./RotaProtegida";
+import RotaProtegida from "./services/RotaProtegida";
 
-import Obras from "./pages/Obras";
-import ObrasDetalhe from "./pages/ObrasDetalhe";
-import Home from "./pages/Home";
-import Projetos from "./pages/Projetos";
-import Processos from "./pages/Processos";
-import LoginCliente from "./pages/LoginCliente";
-import LoginAdm from "./pages/LoginAdm";
-import ObrasCliente from "./pages/ObraCliente";
-import Financeiro from "./pages/Financeiro";
+import Obras from "./pages/obras/Obras";
+import ObrasDetalhe from "./pages/obras/ObrasDetalhe";
+import Home from "./pages/home/Home";
+import Projetos from "./pages/projetos/Projetos";
+import Processos from "./pages/processos/Processos";
+import LoginCliente from "./pages/login/LoginCliente";
+import LoginAdm from "./pages/login/LoginAdm";
+import ObrasCliente from "./pages/obras/ObraCliente";
+import Financeiro from "./pages/financeiro/Financeiro";
+import ProcessosDetalhes from "./pages/processos/ProcessosDetalhes";
 import "./index.css";
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/processos" element={<Processos />} />
             <Route path="/obra/:id" element={<ObrasDetalhe />} />
             <Route path="/financeiro" element={<Financeiro />} />
+            <Route path="/processo/:id" element={<ProcessosDetalhes />} />
           </Route>
 
           {/* --- ÁREA COMUM --- */}

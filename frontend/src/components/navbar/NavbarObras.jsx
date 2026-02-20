@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import ButtonDefault from "./ButtonDefault";
-import logo from "../assets/logo sem fundo.png";
+import ButtonDefault from "../gerais/ButtonDefault";
+import logo from "../../assets/logos/logo sem fundo.png";
 import { useNavigate } from "react-router-dom";
 
 export default function Navbar({

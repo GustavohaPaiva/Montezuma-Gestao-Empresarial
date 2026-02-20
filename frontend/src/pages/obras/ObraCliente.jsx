@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { api } from "../services/api";
-import TabelaSimples from "../components/TabelaSimples";
+import { api } from "../../services/api";
+import TabelaSimples from "../../components/gerais/TabelaSimples";
 
 // --- Funções Auxiliares de Formatação ---
 const formatarDataBR = (dataString) => {

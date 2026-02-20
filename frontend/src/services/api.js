@@ -1,21 +1,89 @@
 import { supabase } from "./supabase";
 
 export const api = {
+  // --- MÓDULO FINANCEIRO ---
+
+  // No seu arquivo api.js
   getFinanceiro: async (tabela, escritorioId, mes, ano) => {
     const primeiroDia = `${ano}-${mes}-01`;
     const ultimoDia = new Date(ano, parseInt(mes), 0).getDate();
     const dataFim = `${ano}-${mes}-${ultimoDia}`;
 
-    const { data, error } = await supabase
-      .from(tabela)
-      .select("*")
-      .eq("escritorio_id", escritorioId)
+    let query = supabase.from(tabela).select("*");
+
+    // LÓGICA DE FILTRO NOVA:
+    if (escritorioId === "Montezuma") {
+      query = query.eq("montezuma", true); // Filtra pela nova coluna
+    } else {
+      query = query.eq("escritorio_id", escritorioId);
+    }
+
+    const { data, error } = await query
       .gte("data", primeiroDia)
       .lte("data", dataFim)
       .order("data", { ascending: true });
 
     if (error) throw error;
     return data;
+  },
+
+  createFinanceiro: async (tabela, dadosBase) => {
+    let registros = [];
+    const isParcelado = dadosBase.formaPagamento === "Parcelado";
+    const grupoId = isParcelado ? `grp_${Date.now()}` : null;
+
+    // Define se é Montezuma ou Escritório Pessoal
+    const isMontezuma = dadosBase.escritorio_id === "Montezuma";
+
+    const prepararDado = (valor, dataParcela, index, total) => ({
+      descricao: dadosBase.descricao,
+      forma: isParcelado
+        ? `Parcelado (${index}/${total})`
+        : dadosBase.formaPagamento,
+      valor: valor,
+      data: dataParcela,
+      // Se for Montezuma, preenche a coluna nova. Se não, preenche o UUID.
+      montezuma: isMontezuma ? true : false,
+      escritorio_id: isMontezuma ? null : dadosBase.escritorio_id,
+      grupo_id: grupoId,
+      validacao: 0,
+    });
+
+    if (isParcelado) {
+      const parcelas = parseInt(dadosBase.parcelas.replace("X", ""));
+      const valorParcela = parseFloat(dadosBase.valor) / parcelas;
+      for (let i = 1; i <= parcelas; i++) {
+        let d = new Date(dadosBase.data + "T12:00:00");
+        d.setMonth(d.getMonth() + (i - 1));
+        registros.push(
+          prepararDado(
+            valorParcela,
+            d.toISOString().split("T")[0],
+            i,
+            parcelas,
+          ),
+        );
+      }
+    } else {
+      registros.push(prepararDado(parseFloat(dadosBase.valor), dadosBase.data));
+    }
+
+    const { data, error } = await supabase
+      .from(tabela)
+      .insert(registros)
+      .select();
+    if (error) throw error;
+    return data;
+  },
+
+  updateFinanceiro: async (tabela, id, dados) => {
+    const { data, error } = await supabase
+      .from(tabela)
+      .update(dados)
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
   },
 
   deleteFinanceiro: async (tabela, id) => {
@@ -37,55 +105,7 @@ export const api = {
     }
   },
 
-  createFinanceiro: async (tabela, dadosBase) => {
-    let registros = [];
-    const isParcelado = dadosBase.formaPagamento === "Parcelado";
-    const grupoId = isParcelado ? `grp_${Date.now()}` : null;
-
-    if (isParcelado) {
-      const parcelas = parseInt(dadosBase.parcelas.replace("X", ""));
-      const valorParcela = parseFloat(dadosBase.valor) / parcelas;
-
-      for (let i = 1; i <= parcelas; i++) {
-        let dataParcela = new Date(dadosBase.data + "T12:00:00");
-        dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
-
-        registros.push({
-          descricao: dadosBase.descricao,
-          forma: `Parcelado (${i}/${parcelas})`,
-          valor: valorParcela,
-          data: dataParcela.toISOString().split("T")[0],
-          escritorio_id: dadosBase.escritorio_id,
-          grupo_id: grupoId, // Campo novo para vincular as parcelas
-        });
-      }
-    } else {
-      registros.push({
-        descricao: dadosBase.descricao,
-        forma: dadosBase.formaPagamento,
-        valor: parseFloat(dadosBase.valor),
-        data: dadosBase.data,
-        escritorio_id: dadosBase.escritorio_id,
-      });
-    }
-
-    const { data, error } = await supabase
-      .from(tabela)
-      .insert(registros)
-      .select();
-    if (error) throw error;
-    return data;
-  },
-
-  updateFinanceiro: async (tabela, id, dados) => {
-    const { data, error } = await supabase
-      .from(tabela)
-      .update(dados)
-      .eq("id", id)
-      .select();
-    if (error) throw error;
-    return data[0];
-  },
+  // --- MÓDULO ORÇAMENTOS ---
 
   getOrcamentos: async (escritorioId) => {
     let query = supabase
@@ -133,6 +153,8 @@ export const api = {
     const { error } = await supabase.from("orcamentos").delete().eq("id", id);
     if (error) throw error;
   },
+
+  // --- MÓDULO CLIENTES ---
 
   getClientes: async (escritorioId) => {
     let query = supabase
@@ -182,6 +204,8 @@ export const api = {
     if (error) throw error;
   },
 
+  // --- MÓDULO OBRAS ---
+
   getObras: async () => {
     let query = supabase
       .from("obras")
@@ -227,6 +251,8 @@ export const api = {
       .eq("id", id);
     if (error) throw error;
   },
+
+  // --- MÓDULO RELATÓRIOS E MATERIAIS ---
 
   deleteMaterial: async (id) => {
     const { error } = await supabase

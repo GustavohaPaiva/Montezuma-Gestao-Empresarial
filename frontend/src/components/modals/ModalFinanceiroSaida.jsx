@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ButtonDefault from "./ButtonDefault";
+import ButtonDefault from "../gerais/ButtonDefault";
 
 export default function ModalFinanceiroSaida({ isOpen, onClose, onSave }) {
   // Ajustei o estado para refletir os campos reais do formulário

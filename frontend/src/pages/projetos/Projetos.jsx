@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { api } from "../services/api";
-import TabelaSimples from "../components/TabelaSimples";
-import Navbar from "../components/Navbar";
-import ButtonDefault from "../components/ButtonDefault";
-import ModalOrcamento from "../components/ModalOrcamento";
-import ModalClientes from "../components/ModalClientes";
+import { api } from "../../services/api";
+import TabelaSimples from "../../components/gerais/TabelaSimples";
+import Navbar from "../../components/navbar/Navbar";
+import ButtonDefault from "../../components/gerais/ButtonDefault";
+import ModalOrcamento from "../../components/modals/ModalOrcamento";
+import ModalClientes from "../../components/modals/ModalClientes";
 
 // --- Formatações ---
 const formatarDataBR = (dataString) => {

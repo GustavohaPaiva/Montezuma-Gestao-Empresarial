@@ -1,4 +1,4 @@
-import logo from "../assets/logo sem fundo.png";
+import logo from "../../assets/logos/logo sem fundo.png";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 

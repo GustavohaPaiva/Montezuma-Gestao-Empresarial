@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import ButtonDefault from "./ButtonDefault";
-import logo from "../assets/logo sem fundo.png";
+import ButtonDefault from "../gerais/ButtonDefault";
+import logo from "../../assets/logos/logo sem fundo.png";
 import { useNavigate } from "react-router-dom";
 
 export default function Navbar({
@@ -57,8 +57,10 @@ export default function Navbar({
               className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] text-[16px] text-[#464C54] px-[12px] focus:outline-none w-full box-border cursor-pointer appearance-none ${isMobile ? "h-[45px]" : "h-[40px]"}`}
               style={{ backgroundImage: "none" }}
             >
-              <option value="A.P.">A.P.</option>
-              <option value="P.M.U e Caixa">P.M.U e Caixa</option>
+              <option value="Tudo">Tudo</option>
+              <option value="Produção">Produção</option>
+              <option value="Prefeitura">Prefeitura</option>
+              <option value="Caixa">Caixa</option>
               <option value="Contrato">Contrato</option>
               <option value="Obra">Obra</option>
             </select>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ButtonDefault from "./ButtonDefault";
+import ButtonDefault from "../gerais/ButtonDefault";
 
 export default function ModalFinanceiroEntrada({ isOpen, onClose, onSave }) {
   // Estado ajustado para refletir os campos da Entrada

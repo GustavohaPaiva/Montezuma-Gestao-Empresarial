@@ -1,5 +1,5 @@
-import CardHome from "../components/CardHome";
-import Navbar from "../components/Navbar";
+import CardHome from "../../components/cards/CardHome";
+import Navbar from "../../components/navbar/Navbar";
 
 export default function Home() {
   const modulos = [

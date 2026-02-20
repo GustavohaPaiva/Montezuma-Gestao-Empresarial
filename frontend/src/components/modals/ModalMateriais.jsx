@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ButtonDefault from "./ButtonDefault";
+import ButtonDefault from "../gerais/ButtonDefault";
 
 export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
   const [material, setMaterial] = useState("");

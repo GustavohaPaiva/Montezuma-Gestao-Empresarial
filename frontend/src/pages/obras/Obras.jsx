@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import Navbar from "../components/NavbarObras";
-import ObraCard from "../components/CardObra";
-import ModalNovaObra from "../components/ModalNovaObra";
-import { api } from "../services/api";
+import Navbar from "../../components/navbar/NavbarObras";
+import ObraCard from "../../components/cards/CardObra";
+import ModalNovaObra from "../../components/modals/ModalNovaObra";
+import { api } from "../../services/api";
 
 export default function Obras() {
   const [obras, setObras] = useState([]);
