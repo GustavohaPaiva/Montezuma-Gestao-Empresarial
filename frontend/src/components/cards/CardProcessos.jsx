@@ -1,26 +1,51 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function CardProcessos(id, client, status, onUpdate, onDelete) {
+export default function CardProcessos({
+  id,
+  client,
+  tipo,
+  status,
+  onUpdate,
+  onDelete,
+}) {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editedClient, setEditedClient] = useState(client);
+  const [editedTipo, setEditedTipo] = useState(tipo);
 
   let bgColor, textColor, iconFilter;
 
-  if (status === "Em andamento") {
-    bgColor = "bg-[#FFF4E5]";
-    textColor = "text-[#B95000]";
-    iconFilter = "invert(37%) sepia(93%) saturate(1200%) hue-rotate(10deg)";
-  } else if (status === "Aguardando iniciação") {
-    bgColor = "bg-[#FFEBEE]";
-    textColor = "text-[#C62828]";
+  // Sincronizado exatamente com as cores e status da tabela de Clientes (Projetos.jsx)
+  if (status === "Produção") {
+    bgColor = "bg-[#F3E5F5]";
+    textColor = "text-[#7B1FA2]";
     iconFilter =
-      "invert(23%) sepia(51%) saturate(2793%) hue-rotate(338deg) brightness(88%) contrast(96%)";
-  } else {
-    bgColor = "bg-[#E6F4EA]";
-    textColor = "text-[#1E8E3E]";
+      "invert(24%) sepia(50%) saturate(3825%) hue-rotate(272deg) brightness(87%) contrast(98%)";
+  } else if (status === "Prefeitura") {
+    bgColor = "bg-[#E3F2FD]";
+    textColor = "text-[#1565C0]";
+    iconFilter =
+      "invert(29%) sepia(74%) saturate(2400%) hue-rotate(195deg) brightness(90%) contrast(93%)";
+  } else if (status === "Caixa") {
+    bgColor = "bg-[#E0F2F1]";
+    textColor = "text-[#00695C]";
+    iconFilter =
+      "invert(26%) sepia(97%) saturate(1478%) hue-rotate(164deg) brightness(95%) contrast(102%)";
+  } else if (status === "Obra") {
+    bgColor = "bg-[#FFF3E0]";
+    textColor = "text-[#E65100]";
+    iconFilter =
+      "invert(42%) sepia(98%) saturate(1831%) hue-rotate(1deg) brightness(97%) contrast(100%)";
+  } else if (status === "Finalizado") {
+    bgColor = "bg-[#E8F5E9]";
+    textColor = "text-[#2E7D32]";
     iconFilter = "invert(36%) sepia(85%) saturate(450%) hue-rotate(95deg)";
+  } else {
+    // Fallback caso venha algum status diferente ou nulo
+    bgColor = "bg-gray-100";
+    textColor = "text-gray-600";
+    iconFilter = "invert(50%)";
   }
 
   const handleCardClick = () => {
@@ -32,12 +57,13 @@ export default function CardProcessos(id, client, status, onUpdate, onDelete) {
   const handleCancel = (e) => {
     e.stopPropagation();
     setEditedClient(client);
+    setEditedTipo(tipo);
     setIsEditing(false);
   };
 
   const handleSave = async (e) => {
     e.stopPropagation();
-    await onUpdate(id, { cliente: editedClient });
+    await onUpdate(id, { nome: editedClient, tipo: editedTipo });
     setIsEditing(false);
   };
 
@@ -138,12 +164,27 @@ export default function CardProcessos(id, client, status, onUpdate, onDelete) {
                 className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
               />
             </div>
+            <div className="flex flex-row gap-[8px] items-center">
+              <span className="text-[18px] font-semibold">Tipo:</span>
+              <input
+                type="text"
+                value={editedTipo}
+                onChange={(e) => setEditedTipo(e.target.value)}
+                className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
+              />
+            </div>
           </div>
         ) : (
           <>
             <p className="text-[16px] text-gray-600 flex justify-center items-center w-full gap-[4px]">
               <span className="font-semibold mr-2">CLIENTE: </span>
               <span className="uppercase truncate max-w-[200px]">{client}</span>
+            </p>
+            <p className="text-[16px] text-gray-600 flex justify-center items-center w-full gap-[4px] mt-1">
+              <span className="font-semibold mr-2">TIPO: </span>
+              <span className="uppercase truncate max-w-[200px]">
+                {tipo || "-"}
+              </span>
             </p>
           </>
         )}
@@ -154,17 +195,15 @@ export default function CardProcessos(id, client, status, onUpdate, onDelete) {
           className={`relative ${bgColor} ${textColor} w-[60%] h-[35px] rounded-[8px] flex items-center justify-center font-bold text-sm`}
         >
           <select
-            value={status}
+            value={status || "Produção"} // Fallback para exibir o valor inicial da lista caso venha vazio
             onChange={handleStatusChange}
             onClick={handleStatusClick}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30 appearance-none"
           >
-            <option value="Tudo">Tudo</option>
-            <option value="Produção">Produção</option>
             <option value="Prefeitura">Prefeitura</option>
             <option value="Caixa">Caixa</option>
-            <option value="Contrato">Contrato</option>
             <option value="Obra">Obra</option>
+            <option value="Finalizado">Finalizado</option>
           </select>
 
           <div className="flex items-center justify-center pointer-events-none z-10">
@@ -176,7 +215,7 @@ export default function CardProcessos(id, client, status, onUpdate, onDelete) {
               className="mr-1"
               style={{ filter: iconFilter }}
             />
-            {status}
+            {status || "Produção"}
           </div>
         </div>
       </div>

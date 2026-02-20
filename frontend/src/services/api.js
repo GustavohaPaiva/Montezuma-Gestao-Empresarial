@@ -170,6 +170,18 @@ export const api = {
     return data;
   },
 
+  // === NOVA FUNÇÃO AQUI ===
+  getClienteById: async (id) => {
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  // ========================
+
   createCliente: async (novoCliente) => {
     const { data, error } = await supabase
       .from("clientes")

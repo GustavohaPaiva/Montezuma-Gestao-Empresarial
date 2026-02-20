@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import ButtonDefault from "../gerais/ButtonDefault";
 import logo from "../../assets/logos/logo sem fundo.png";
 import { useNavigate } from "react-router-dom";
 
@@ -8,7 +7,6 @@ export default function Navbar({
   onSearchChange,
   filterStatus,
   onFilterChange,
-  onOpenModal,
 }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1100);
 
@@ -25,7 +23,7 @@ export default function Navbar({
 
   return (
     <header
-      className={`w-full px-[5%] box-border border-b border-[#DBDADE] flex justify-center bg-[#EEEDF0]  top-0 z-10 transition-all ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
+      className={`w-full px-[5%] box-border border-b border-[#DBDADE] flex justify-center bg-[#EEEDF0] top-0 z-10 transition-all ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
     >
       <div
         className={`w-full flex items-center justify-between gap-[20px] ${isMobile ? "flex-col" : "flex-row h-full"}`}
@@ -35,21 +33,14 @@ export default function Navbar({
             src={logo}
             onClick={handleNavigation}
             alt="Logo Montezuma"
-            className="object-contain transition-all mr-[10px] w-[60px] h-[60px]"
+            className="object-contain transition-all mr-[10px] w-[60px] h-[60px] cursor-pointer"
           />
-          <p className="text-[40px]">Montezuma</p>
+          <p className="text-[40px] m-0">Montezuma</p>
         </div>
 
         <div
           className={`flex gap-[10px] sm:pr-[27px] ${isMobile ? "flex-col w-full" : "flex-row items-center"}`}
         >
-          <ButtonDefault
-            onClick={onOpenModal}
-            className={`${isMobile ? "w-full h-[45px]" : "w-[150px]"} text-[14px] shrink-0`}
-          >
-            + Cliente
-          </ButtonDefault>
-
           <div className={`relative ${isMobile ? "w-full" : "w-[200px]"}`}>
             <select
               value={filterStatus}
@@ -58,11 +49,10 @@ export default function Navbar({
               style={{ backgroundImage: "none" }}
             >
               <option value="Tudo">Tudo</option>
-              <option value="Produção">Produção</option>
               <option value="Prefeitura">Prefeitura</option>
               <option value="Caixa">Caixa</option>
-              <option value="Contrato">Contrato</option>
               <option value="Obra">Obra</option>
+              <option value="Finalizado">Finalizado</option>
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
               <svg
@@ -84,7 +74,7 @@ export default function Navbar({
           <div className={`relative ${isMobile ? "w-full" : "w-[250px]"}`}>
             <input
               type="text"
-              placeholder="Buscar por cliente..."
+              placeholder="Buscar por cliente ou tipo..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] text-[16px] text-[#464C54] px-[12px] focus:outline-none w-full box-border ${isMobile ? "h-[45px]" : "h-[40px]"}`}
