@@ -258,7 +258,7 @@ export default function Projetos() {
               />
               <button
                 onClick={() => salvarEdicao(o)}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -268,7 +268,7 @@ export default function Projetos() {
               </button>
               <button
                 onClick={cancelarEdicao}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -313,7 +313,7 @@ export default function Projetos() {
               />
               <button
                 onClick={() => salvarEdicao(o)}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -323,7 +323,7 @@ export default function Projetos() {
               </button>
               <button
                 onClick={cancelarEdicao}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -348,7 +348,7 @@ export default function Projetos() {
           )}
         </div>,
 
-        // 3. DATA (AGORA EDITÁVEL)
+        // 3. DATA
         <div
           className="flex items-center justify-center gap-2"
           key={`data-${o.id}`}
@@ -364,7 +364,7 @@ export default function Projetos() {
               />
               <button
                 onClick={() => salvarEdicao(o)}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -374,7 +374,7 @@ export default function Projetos() {
               </button>
               <button
                 onClick={cancelarEdicao}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -652,7 +652,7 @@ export default function Projetos() {
               />
               <button
                 onClick={() => salvarEdicaoCliente(c)}
-                className="cursor-pointer bg-transparent border-none"
+                className="cursor-pointer bg-transparent border-none flex-shrink-0"
               >
                 <img
                   width="15"
@@ -662,7 +662,7 @@ export default function Projetos() {
               </button>
               <button
                 onClick={cancelarEdicaoCliente}
-                className="cursor-pointer bg-transparent border-none"
+                className="cursor-pointer bg-transparent border-none flex-shrink-0"
               >
                 <img
                   width="15"
@@ -717,7 +717,7 @@ export default function Projetos() {
               />
               <button
                 onClick={() => salvarEdicaoCliente(c)}
-                className="cursor-pointer bg-transparent border-none"
+                className="cursor-pointer bg-transparent border-none flex-shrink-0"
               >
                 <img
                   width="15"
@@ -727,7 +727,7 @@ export default function Projetos() {
               </button>
               <button
                 onClick={cancelarEdicaoCliente}
-                className="cursor-pointer bg-transparent border-none"
+                className="cursor-pointer bg-transparent border-none flex-shrink-0"
               >
                 <img
                   width="15"
@@ -770,7 +770,7 @@ export default function Projetos() {
               />
               <button
                 onClick={() => salvarEdicaoCliente(c)}
-                className="cursor-pointer bg-transparent border-none"
+                className="cursor-pointer bg-transparent border-none flex-shrink-0"
               >
                 <img
                   width="15"
@@ -780,7 +780,7 @@ export default function Projetos() {
               </button>
               <button
                 onClick={cancelarEdicaoCliente}
-                className="cursor-pointer bg-transparent border-none"
+                className="cursor-pointer bg-transparent border-none flex-shrink-0"
               >
                 <img
                   width="15"
@@ -825,7 +825,7 @@ export default function Projetos() {
               />
               <button
                 onClick={() => salvarEdicaoCliente(c)}
-                className="cursor-pointer bg-transparent border-none"
+                className="cursor-pointer bg-transparent border-none flex-shrink-0"
               >
                 <img
                   width="15"
@@ -835,7 +835,7 @@ export default function Projetos() {
               </button>
               <button
                 onClick={cancelarEdicaoCliente}
-                className="cursor-pointer bg-transparent border-none"
+                className="cursor-pointer bg-transparent border-none flex-shrink-0"
               >
                 <img
                   width="15"

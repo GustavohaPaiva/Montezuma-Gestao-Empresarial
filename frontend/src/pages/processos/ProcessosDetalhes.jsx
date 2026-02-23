@@ -108,7 +108,7 @@ export default function ProcessosDetalhes() {
           />
           <button
             onClick={() => salvarEdicao(campo, tipoInput)}
-            className="cursor-pointer border-none bg-transparent"
+            className="cursor-pointer border-none bg-transparent flex-shrink-0"
           >
             <img
               width="18"
@@ -118,7 +118,7 @@ export default function ProcessosDetalhes() {
           </button>
           <button
             onClick={cancelarEdicao}
-            className="cursor-pointer border-none bg-transparent"
+            className="cursor-pointer border-none bg-transparent flex-shrink-0"
           >
             <img
               width="18"
@@ -204,6 +204,9 @@ export default function ProcessosDetalhes() {
         <option value="Prefeitura">Prefeitura</option>
         <option value="Codau">Codau</option>
         <option value="Paralizado">Paralizado</option>
+        <option value="Seplan">Seplan</option>
+        <option value="Sefaz">Sefaz</option>
+        <option value="ASD">ASD</option>
       </select>,
       renderCelulaEditavel("protocolo_pmu", "number", processo.protocolo_pmu),
       renderCelulaEditavel("observacao_pmu", "text", processo.observacao_pmu),

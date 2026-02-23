@@ -563,7 +563,7 @@ export default function ObrasDetalhe() {
               />
               <button
                 onClick={() => salvarValorMaterial(m.id)}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -573,7 +573,7 @@ export default function ObrasDetalhe() {
               </button>
               <button
                 onClick={() => setEditandoMaterial({ id: null, campo: null })}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -632,7 +632,7 @@ export default function ObrasDetalhe() {
               />
               <button
                 onClick={() => salvarFornecedorMaterial(m.id)}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -642,7 +642,7 @@ export default function ObrasDetalhe() {
               </button>
               <button
                 onClick={() => setEditandoMaterial({ id: null, campo: null })}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -755,7 +755,7 @@ export default function ObrasDetalhe() {
               />
               <button
                 onClick={() => salvarEdicaoMaoDeObra(m)}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -807,7 +807,7 @@ export default function ObrasDetalhe() {
               />
               <button
                 onClick={() => salvarEdicaoMaoDeObra(m)}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -949,7 +949,7 @@ export default function ObrasDetalhe() {
               />
               <button
                 onClick={() => salvarValor(item.id)}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
@@ -959,7 +959,7 @@ export default function ObrasDetalhe() {
               </button>
               <button
                 onClick={cancelarEdicao}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
               >
                 <img
                   width="15"
