@@ -597,8 +597,8 @@ export default function Projetos() {
     return clientesProcessados.map((c) => {
       const isEditingTipo =
         editandoCliente.id === c.id && editandoCliente.campo === "tipo";
-      const isEditingPagamento =
-        editandoCliente.id === c.id && editandoCliente.campo === "pagamento";
+
+      editandoCliente.id === c.id && editandoCliente.campo === "pagamento";
       const isEditingValorPago =
         editandoCliente.id === c.id && editandoCliente.campo === "valor_pago";
       const isEditingValorCobrado =
@@ -638,7 +638,7 @@ export default function Projetos() {
 
         // 2. TIPO
         <div
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-2 uppercase"
           key={`cli-tipo-${c.id}`}
         >
           {isEditingTipo ? (
@@ -702,55 +702,33 @@ export default function Projetos() {
         </select>,
 
         // 4. PAGAMENTO
-        <div
-          className="flex items-center justify-center gap-2"
+        <select
           key={`cli-pagamento-${c.id}`}
+          value={c.pagamento || "Á vista"}
+          onChange={(e) => {
+            // Chama a função de atualizar diretamente ao mudar a opção
+            const novoValor = e.target.value;
+
+            // Atualiza o estado local para refletir na hora
+            setClientes((prev) =>
+              prev.map((item) =>
+                item.id === c.id ? { ...item, pagamento: novoValor } : item,
+              ),
+            );
+
+            // Envia para o banco de dados
+            api.updateCliente(c.id, { pagamento: novoValor }).catch((err) => {
+              console.error("Erro ao atualizar pagamento:", err);
+              setRecarregar((prev) => prev + 1); // Recarrega se der erro para voltar o valor real
+            });
+          }}
+          className="w-fit text-[12px] md:text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none"
         >
-          {isEditingPagamento ? (
-            <div className="flex items-center gap-1">
-              <input
-                type="text"
-                value={valorEdicaoCliente}
-                onChange={(e) => setValorEdicaoCliente(e.target.value)}
-                className="w-[100px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-left"
-                autoFocus
-              />
-              <button
-                onClick={() => salvarEdicaoCliente(c)}
-                className="cursor-pointer bg-transparent border-none flex-shrink-0"
-              >
-                <img
-                  width="15"
-                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
-                  alt="salvar"
-                />
-              </button>
-              <button
-                onClick={cancelarEdicaoCliente}
-                className="cursor-pointer bg-transparent border-none flex-shrink-0"
-              >
-                <img
-                  width="15"
-                  src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
-                  alt="cancelar"
-                />
-              </button>
-            </div>
-          ) : (
-            <div
-              className="flex items-center gap-2 group cursor-pointer"
-              onClick={() => iniciarEdicaoCliente(c, "pagamento")}
-            >
-              <span className="text-[#464C54]">{c.pagamento}</span>
-              <img
-                width="15"
-                src="https://img.icons8.com/ios/50/edit--v1.png"
-                alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </div>
-          )}
-        </div>,
+          <option value="Á vista">Á VISTA</option>
+          <option value="Parcelado">PARCELADO</option>
+          <option value="Cartão">CARTÃO</option>
+          <option value="À COMBINAR">À COMBINAR</option>
+        </select>,
 
         // 5. VALOR COBRADO (Editável)
         <div

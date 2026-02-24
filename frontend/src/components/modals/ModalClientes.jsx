@@ -77,14 +77,17 @@ export default function ModalClientes({ isOpen, onClose, onSave }) {
         {/* Forma de Pagamento */}
         <div className="flex flex-col text-left gap-1">
           <label className="text-[#71717A] text-sm">Forma de Pagamento</label>
-          <input
-            type="text"
-            name="forma"
-            value={formData.forma}
+          <select
+            name="pagamento"
+            value={formData.pagamento}
             onChange={handleChange}
-            className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
-            placeholder="Ex: PIX, Boleto"
-          />
+            className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54] bg-white cursor-pointer font-semibold"
+          >
+            <option value="Á vista">Á vista</option>
+            <option value="Parcelado">Parcelado</option>
+            <option value="Cartão">Cartão</option>
+            <option value="À combinar">À combinar</option>
+          </select>
         </div>
 
         <div className="flex flex-col text-left gap-1">
