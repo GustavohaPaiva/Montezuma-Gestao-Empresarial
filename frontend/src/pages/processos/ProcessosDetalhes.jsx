@@ -1,32 +1,32 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
+import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { api } from "../../services/api";
+import ModalInformacaoCliente from "../../components/modals/ModalInformacaoCliente";
 
 export default function ProcessosDetalhes() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [processo, setProcesso] = useState(null);
-
-  // Estados de controle de edição
-  const [editando, setEditando] = useState(null); // Guarda o NOME do campo sendo editado
+  const [modalAberto, setModalAberto] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [valorEdicao, setValorEdicao] = useState("");
 
-  const carregarProcesso = useCallback(async () => {
-    try {
-      const data = await api.getClienteById(id);
-      setProcesso(data);
-    } catch (error) {
-      console.error("Erro ao carregar detalhes do processo:", error);
+  useEffect(() => {
+    async function carregarDados() {
+      try {
+        const data = await api.getClienteById(id);
+        setProcesso(data);
+      } catch (error) {
+        console.error("Erro ao carregar detalhes do processo:", error);
+      }
+    }
+
+    if (id) {
+      carregarDados();
     }
   }, [id]);
-
-  useEffect(() => {
-    if (id) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      carregarProcesso();
-    }
-  }, [id, carregarProcesso]);
 
   const formatarData = (dataString) => {
     if (!dataString) return "-";
@@ -34,11 +34,9 @@ export default function ProcessosDetalhes() {
     return data.toLocaleDateString("pt-BR", { timeZone: "UTC" });
   };
 
-  // --- FUNÇÕES DE EDIÇÃO (INPUTS) ---
   const iniciarEdicao = (campo, valorAtual, tipoInput) => {
     setEditando(campo);
     if (tipoInput === "date" && valorAtual) {
-      // Extrai apenas a parte "YYYY-MM-DD" da data em ISO para o input type="date"
       setValorEdicao(valorAtual.split("T")[0]);
     } else {
       setValorEdicao(valorAtual || "");
@@ -59,7 +57,6 @@ export default function ProcessosDetalhes() {
       novoValor = novoValor ? new Date(novoValor).toISOString() : null;
     }
 
-    // Atualiza estado local para resposta rápida visual
     setProcesso((prev) => ({ ...prev, [campo]: novoValor }));
     setEditando(null);
 
@@ -67,18 +64,19 @@ export default function ProcessosDetalhes() {
       await api.updateCliente(id, { [campo]: novoValor });
     } catch (err) {
       console.error(`Erro ao atualizar ${campo}:`, err);
-      carregarProcesso(); // Se der erro, recarrega do banco
+      const data = await api.getClienteById(id);
+      setProcesso(data);
     }
   };
 
-  // --- FUNÇÃO DE EDIÇÃO RÁPIDA (SELECT DE STATUS) ---
   const handleStatusChange = async (campo, novoStatus) => {
     setProcesso((prev) => ({ ...prev, [campo]: novoStatus }));
     try {
       await api.updateCliente(id, { [campo]: novoStatus });
     } catch (err) {
       console.error(`Erro ao atualizar ${campo}:`, err);
-      carregarProcesso();
+      const data = await api.getClienteById(id);
+      setProcesso(data);
     }
   };
 
@@ -90,7 +88,6 @@ export default function ProcessosDetalhes() {
     );
   }
 
-  // --- COMPONENTE AUXILIAR PARA RENDERIZAR CÉLULAS EDITÁVEIS ---
   const renderCelulaEditavel = (campo, tipoInput, valorAtual) => {
     const isEditing = editando === campo;
 
@@ -150,46 +147,37 @@ export default function ProcessosDetalhes() {
     );
   };
 
-  // --- FUNÇÃO AUXILIAR DE CORES DOS STATUS ---
   const getCorStatus = (status) => {
     switch (status) {
-      // Prefeitura
       case "Prefeitura":
-        return "bg-[#E3F2FD] text-[#1565C0]"; // Azul
+        return "bg-[#E3F2FD] text-[#1565C0]";
       case "Codau":
-        return "bg-[#E0F7FA] text-[#006064]"; // Ciano
+        return "bg-[#E0F7FA] text-[#006064]";
       case "Paralizado":
-        return "bg-[#FFEBEE] text-[#C62828]"; // Vermelho
-
-      // Caixa
+        return "bg-[#FFEBEE] text-[#C62828]";
       case "Engenharia":
-        return "bg-[#FFF3E0] text-[#E65100]"; // Laranja
+        return "bg-[#FFF3E0] text-[#E65100]";
       case "Assinatura":
-        return "bg-[#E8F5E9] text-[#2E7D32]"; // Verde
+        return "bg-[#E8F5E9] text-[#2E7D32]";
       case "Conformidade":
-        return "bg-[#F3E5F5] text-[#7B1FA2]"; // Roxo
+        return "bg-[#F3E5F5] text-[#7B1FA2]";
       case "ITBI":
-        return "bg-[#FFFDE7] text-[#F57F17]"; // Amarelo
+        return "bg-[#FFFDE7] text-[#F57F17]";
       case "Cartório":
-        return "bg-[#EFEBE9] text-[#4E342E]"; // Marrom
-
-      // Finalizados
+        return "bg-[#EFEBE9] text-[#4E342E]";
       case "Acompanhamento":
-        return "bg-[#E3F2FD] text-[#1565C0]"; // Azul
+        return "bg-[#E3F2FD] text-[#1565C0]";
       case "Gestão":
-        return "bg-[#F3E5F5] text-[#7B1FA2]"; // Roxo
+        return "bg-[#F3E5F5] text-[#7B1FA2]";
       case "Finalizado":
-        return "bg-[#E8F5E9] text-[#2E7D32]"; // Verde
+        return "bg-[#E8F5E9] text-[#2E7D32]";
       case "Futuros":
-        return "bg-[#ECEFF1] text-[#455A64]"; // Cinza escuro
-
-      // Fallback
+        return "bg-[#ECEFF1] text-[#455A64]";
       default:
         return "bg-gray-100 text-gray-600";
     }
   };
 
-  // --- MATRIZES DE DADOS PARA AS TABELAS ---
   const dadosPrefeitura = [
     [
       <span key="tipo-pmu" className="uppercase font-bold text-[#464C54]">
@@ -261,6 +249,12 @@ export default function ProcessosDetalhes() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
+      <ModalInformacaoCliente
+        isOpen={modalAberto}
+        cliente={processo}
+        onClose={() => setModalAberto(false)}
+      />
+
       <header className="h-[82px] border-b border-[#DBDADE] flex justify-center top-0 z-10 w-full bg-[#EEEDF0]">
         <div className="w-[90%] flex items-center justify-between">
           <div className="flex items-center gap-[16px] w-full">
@@ -281,11 +275,18 @@ export default function ProcessosDetalhes() {
               </h1>
             </div>
           </div>
+          <div className="">
+            <ButtonDefault
+              onClick={() => setModalAberto(true)}
+              className="w-full h-[55px] md:h-[45px] md:w-[200px] text-[14px] shrink-0"
+            >
+              Informações do cliente
+            </ButtonDefault>
+          </div>
         </div>
       </header>
 
       <div className="px-[5%] w-full">
-        {/* Area Prefeitura */}
         <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px] overflow-x-auto">
           <h1 className="text-[30px] font-bold text-[#464C54]">Prefeitura</h1>
           <TabelaSimples
@@ -294,7 +295,6 @@ export default function ProcessosDetalhes() {
           />
         </div>
 
-        {/* Area Caixa */}
         <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px] overflow-x-auto">
           <h1 className="text-[30px] font-bold text-[#464C54]">Caixa</h1>
           <TabelaSimples
@@ -303,7 +303,6 @@ export default function ProcessosDetalhes() {
           />
         </div>
 
-        {/* Area Finalizados */}
         <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px] overflow-x-auto">
           <h1 className="text-[30px] font-bold text-[#464C54]">Finalizados</h1>
           <TabelaSimples

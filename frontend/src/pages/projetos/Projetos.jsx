@@ -595,8 +595,7 @@ export default function Projetos() {
   // Dados Tabela Clientes
   const dadosTabelaClientes = useMemo(() => {
     return clientesProcessados.map((c) => {
-      const isEditingTipo =
-        editandoCliente.id === c.id && editandoCliente.campo === "tipo";
+      editandoCliente.id === c.id && editandoCliente.campo === "tipo";
 
       editandoCliente.id === c.id && editandoCliente.campo === "pagamento";
       const isEditingValorPago =
@@ -637,55 +636,31 @@ export default function Projetos() {
         </span>,
 
         // 2. TIPO
-        <div
-          className="flex items-center justify-center gap-2 uppercase"
+        <select
           key={`cli-tipo-${c.id}`}
+          value={c.tipo || "Residencial"}
+          onChange={(e) => {
+            const novoValor = e.target.value;
+            setClientes((prev) =>
+              prev.map((item) =>
+                item.id === c.id ? { ...item, tipo: novoValor } : item,
+              ),
+            );
+
+            api.updateCliente(c.id, { tipo: novoValor }).catch((err) => {
+              console.error("Erro ao atualizar tipo:", err);
+              setRecarregar((prev) => prev + 1);
+            });
+          }}
+          className="w-fit text-[12px] md:text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none"
         >
-          {isEditingTipo ? (
-            <div className="flex items-center gap-1">
-              <input
-                type="text"
-                value={valorEdicaoCliente}
-                onChange={(e) => setValorEdicaoCliente(e.target.value)}
-                className="w-[120px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-left"
-                autoFocus
-              />
-              <button
-                onClick={() => salvarEdicaoCliente(c)}
-                className="cursor-pointer bg-transparent border-none flex-shrink-0"
-              >
-                <img
-                  width="15"
-                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
-                  alt="salvar"
-                />
-              </button>
-              <button
-                onClick={cancelarEdicaoCliente}
-                className="cursor-pointer bg-transparent border-none flex-shrink-0"
-              >
-                <img
-                  width="15"
-                  src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
-                  alt="cancelar"
-                />
-              </button>
-            </div>
-          ) : (
-            <div
-              className="flex items-center gap-2 group cursor-pointer"
-              onClick={() => iniciarEdicaoCliente(c, "tipo")}
-            >
-              <span className="text-[#464C54]">{c.tipo}</span>
-              <img
-                width="15"
-                src="https://img.icons8.com/ios/50/edit--v1.png"
-                alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </div>
-          )}
-        </div>,
+          <option value="Residencial">Residencial</option>
+          <option value="Comercial">Comercial</option>
+          <option value="Regulazição">Regulazição</option>
+          <option value="Reforma">Reforma</option>
+          <option value="Processo Caixa">Processo Caixa</option>
+          <option value="Institucional">Institucional</option>
+        </select>,
 
         // 3. STATUS
         <select
@@ -706,20 +681,16 @@ export default function Projetos() {
           key={`cli-pagamento-${c.id}`}
           value={c.pagamento || "Á vista"}
           onChange={(e) => {
-            // Chama a função de atualizar diretamente ao mudar a opção
             const novoValor = e.target.value;
-
-            // Atualiza o estado local para refletir na hora
             setClientes((prev) =>
               prev.map((item) =>
                 item.id === c.id ? { ...item, pagamento: novoValor } : item,
               ),
             );
 
-            // Envia para o banco de dados
             api.updateCliente(c.id, { pagamento: novoValor }).catch((err) => {
               console.error("Erro ao atualizar pagamento:", err);
-              setRecarregar((prev) => prev + 1); // Recarrega se der erro para voltar o valor real
+              setRecarregar((prev) => prev + 1);
             });
           }}
           className="w-fit text-[12px] md:text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none"

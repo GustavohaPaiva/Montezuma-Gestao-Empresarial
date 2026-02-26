@@ -12,6 +12,8 @@ import LoginAdm from "./pages/login/LoginAdm";
 import ObrasCliente from "./pages/obras/ObraCliente";
 import Financeiro from "./pages/financeiro/Financeiro";
 import ProcessosDetalhes from "./pages/processos/ProcessosDetalhes";
+import TestePDFViewer from "./pages/testes/TestePDFViewer";
+
 import "./index.css";
 
 export default function App() {
@@ -36,6 +38,7 @@ export default function App() {
             <Route path="/obra/:id" element={<ObrasDetalhe />} />
             <Route path="/financeiro" element={<Financeiro />} />
             <Route path="/processo/:id" element={<ProcessosDetalhes />} />
+            <Route path="/teste-pdf" element={<TestePDFViewer />} />
           </Route>
 
           {/* --- ÁREA COMUM --- */}

@@ -306,8 +306,13 @@ export const api = {
         `*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*)`,
       )
       .eq("id", id)
-      .single();
+      .maybeSingle();
+
     if (error) throw error;
+
+    if (!data) {
+      throw new Error("Obra não encontrada ou sem permissão de acesso.");
+    }
 
     const relatorioOrdenado = (data.relatorioExtrato || []).sort(
       (a, b) => new Date(b.data) - new Date(a.data),
