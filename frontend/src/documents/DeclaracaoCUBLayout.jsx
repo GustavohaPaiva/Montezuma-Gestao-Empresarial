@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "../assets/imgDocumentos/prefeitura.png"; // Ajuste o caminho se necessário
+import logo from "../assets/imgDocumentos/secretariaFazenda.png";
 import {
   Page,
   Text,
@@ -10,54 +10,102 @@ import {
 } from "@react-pdf/renderer";
 
 // ==================================================================
-// ESTILOS DA DECLARAÇÃO DE CUSTOS (CUB)
+// ESTILOS DA DECLARAÇÃO DE CUSTOS (CUB) - CAIXA DE ENDEREÇO BLINDADA
 // ==================================================================
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 30,
-    paddingBottom: 40,
-    paddingHorizontal: 45, // Margens ajustadas para dar bastante espaço
+    paddingTop: 25,
+    paddingBottom: 30,
+    paddingHorizontal: 40,
     fontFamily: "Times-Roman",
     fontSize: 11,
   },
-  // --- Cabeçalho ---
   headerContainer: {
     flexDirection: "row",
-    justifyContent: "center", // Garante que a imagem fique no meio
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 5,
-    height: 50,
+    height: 45,
   },
   image: {
-    width: 250,
-    height: 50,
+    width: 240,
+    height: 45,
     objectFit: "contain",
   },
   title: {
     fontFamily: "Times-Bold",
     fontSize: 11.5,
     textAlign: "center",
-    marginTop: 10,
-    marginBottom: 12,
-  },
-  // --- Corpo de Texto Estático (Sem flexWrap para evitar quebras bizarras) ---
-  formSection: {
+    marginTop: 5,
     marginBottom: 10,
   },
-  paragraph: {
+  // --- Corpo de Texto ---
+  formSection: {
+    marginBottom: 8,
+    width: "100%",
+  },
+  textBase: {
     fontSize: 11,
-    lineHeight: 1.3,
-    marginBottom: 3,
+    paddingBottom: 1,
   },
   rowInline: {
     flexDirection: "row",
     alignItems: "flex-end",
     marginBottom: 4,
+    width: "100%",
     minHeight: 14,
   },
-  textBase: {
-    fontSize: 11,
-    paddingBottom: 1,
+  // --- Tabela CUB ---
+  tableSection: {
+    marginBottom: 8,
+    width: "100%",
+  },
+  tableTitleBox: {
+    borderWidth: 1,
+    borderColor: "#000",
+    paddingVertical: 2,
+    marginBottom: 4,
+    alignItems: "center",
+    width: "100%",
+  },
+  tableTitleText: {
+    fontSize: 10,
+  },
+  tablesWrapper: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  tableLeft: {
+    width: "53%",
+    borderWidth: 1,
+    borderColor: "#000",
+  },
+  tableRight: {
+    width: "45%",
+    borderWidth: 1,
+    borderColor: "#000",
+  },
+  tr: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderColor: "#000",
+    width: "100%",
+  },
+  th: {
+    fontFamily: "Times-Bold",
+    fontSize: 8.5,
+    lineHeight: 1.1,
+  },
+  td: {
+    fontSize: 8,
+  },
+  cell: {
+    flex: 1,
+    borderRightWidth: 1,
+    borderColor: "#000",
+    padding: 3,
+    justifyContent: "center",
   },
   checkboxBox: {
     flexDirection: "row",
@@ -68,75 +116,29 @@ const styles = StyleSheet.create({
     marginRight: 4,
     alignItems: "center",
   },
-  // --- Tabelas CUB ---
-  tableSection: {
-    marginBottom: 10,
-  },
-  tableTitleBox: {
-    borderWidth: 1,
-    borderColor: "#000",
-    paddingVertical: 2,
-    marginBottom: 4,
-    alignItems: "center",
-  },
-  tableTitleText: {
-    fontSize: 10,
-  },
-  tableMain: {
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: "#000",
-  },
-  tableBlockLeft: {
-    flex: 0.55,
-    borderRightWidth: 1,
-    borderColor: "#000",
-  },
-  tableBlockRight: {
-    flex: 0.45,
-  },
-  th: {
-    fontFamily: "Times-Bold",
-    fontSize: 8.5,
-  },
-  td: {
-    fontSize: 8,
-  },
-  tr: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderColor: "#000",
-    flex: 1, // Faz a linha esticar igualmente
-  },
-  cell: {
-    flex: 1,
-    borderRightWidth: 1,
-    borderColor: "#000",
-    padding: 2,
-    justifyContent: "center",
-  },
   cellNoBorder: {
     flex: 1,
-    padding: 2,
+    padding: 3,
     justifyContent: "center",
   },
-  // --- Data ---
+  // --- Data e Declarantes ---
   dateRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "flex-end",
-    marginBottom: 15,
+    marginBottom: 8,
+    width: "100%",
   },
-  // --- Declarantes ---
   declarantesTitle: {
     fontFamily: "Times-Bold",
     fontSize: 11,
-    marginBottom: 6,
+    marginBottom: 5,
   },
   decRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 6, // Margem reduzida para não estourar a página
+    marginBottom: 10,
+    width: "100%",
   },
   decLabel: {
     fontSize: 10,
@@ -146,21 +148,26 @@ const styles = StyleSheet.create({
     flex: 1,
     borderBottomWidth: 1,
     borderBottomColor: "#000",
-    height: 12,
+    height: 10,
   },
-  // --- Rodapé ---
+  // --- Rodapé e Observação ---
   obs: {
     fontFamily: "Times-Bold",
-    fontSize: 10,
-    marginTop: 5,
-    marginBottom: 5,
+    fontSize: 9.5,
+    position: "absolute",
+    bottom: 45,
+    left: 40,
+    right: 40,
   },
   footerBox: {
     position: "absolute",
-    bottom: 25,
-    left: 45,
-    right: 45,
-    borderWidth: 1,
+    bottom: 20,
+    left: 40,
+    right: 40,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderLeftWidth: 1,
     borderColor: "#000",
     paddingVertical: 3,
     alignItems: "center",
@@ -190,6 +197,7 @@ const Checkbox = ({ label, checked, noMargin }) => (
         marginRight: 2,
         justifyContent: "center",
         alignItems: "center",
+        transform: "translateY(1px)",
       }}
     >
       {checked && (
@@ -217,7 +225,7 @@ const DeclaracaoCUBLayout = () => (
         CONSTRUÇÃO (CUB)
       </Text>
 
-      {/* 3. Corpo de Texto "Travado" Linha por Linha */}
+      {/* 3. Corpo de Texto */}
       <View style={styles.formSection}>
         <Text style={styles.paragraph}>
           {"        "}À Prefeitura Municipal de Uberaba,
@@ -234,7 +242,7 @@ const DeclaracaoCUBLayout = () => (
             <Checkbox label="REFORMA" />
             <Checkbox label="AMPLIAÇÃO" noMargin />
           </View>
-          <Text style={styles.textBase}> de edificação com área de </Text>
+          <Text style={styles.textBase}>, de edificação com área de </Text>
           <View
             style={{
               flex: 1,
@@ -338,11 +346,16 @@ const DeclaracaoCUBLayout = () => (
           </Text>
         </View>
 
-        <View style={styles.tableMain}>
-          {/* Lado Esquerdo */}
-          <View style={styles.tableBlockLeft}>
-            <View style={[styles.tr, { padding: 2 }]}>
-              <Text style={styles.th}>1. PROJETOS – PADRÃO RESIDENCIAIS:</Text>
+        {/* Tabelas Lado a Lado (Separadas) */}
+        <View style={styles.tablesWrapper}>
+          {/* Tabela 1: Esquerda */}
+          <View style={styles.tableLeft}>
+            <View style={styles.tr}>
+              <View style={[styles.cellNoBorder, { alignItems: "flex-start" }]}>
+                <Text style={styles.th}>
+                  1. PROJETOS – PADRÃO RESIDENCIAIS:
+                </Text>
+              </View>
             </View>
             <View style={styles.tr}>
               <View style={styles.cell}>
@@ -399,13 +412,15 @@ const DeclaracaoCUBLayout = () => (
             </View>
           </View>
 
-          {/* Lado Direito */}
-          <View style={styles.tableBlockRight}>
-            <View style={[styles.tr, { padding: 2 }]}>
-              <Text style={styles.th}>
-                2. PROJETOS - PADRÃO COMERCIAIS CAL (Comercial Andares Livres) e
-                CSL (Comercial Salas e Lojas)
-              </Text>
+          {/* Tabela 2: Direita */}
+          <View style={styles.tableRight}>
+            <View style={styles.tr}>
+              <View style={[styles.cellNoBorder, { alignItems: "flex-start" }]}>
+                <Text style={styles.th}>
+                  2. PROJETOS - PADRÃO COMERCIAIS CAL (Comercial Andares Livres)
+                  e CSL (Comercial Salas e Lojas)
+                </Text>
+              </View>
             </View>
             <View style={styles.tr}>
               <View style={styles.cell}>
@@ -442,19 +457,35 @@ const DeclaracaoCUBLayout = () => (
           </View>
         </View>
 
-        {/* Tabela Inferior */}
-        <View style={[styles.tableMain, { borderTopWidth: 0 }]}>
-          <View style={[styles.tr, { padding: 2 }]}>
+        {/* Tabela 3: Inferior */}
+        <View
+          style={{
+            width: "100%",
+            borderWidth: 1,
+            borderColor: "#000",
+            marginTop: 8,
+          }}
+        >
+          <View
+            style={{ borderBottomWidth: 1, borderColor: "#000", padding: 3 }}
+          >
             <Text style={styles.th}>
               3. PROJETOS - PADRÃO GALPÃO INDUSTRIAL (GI) E RESIDÊNCIA POPULAR
               (RP1Q)
             </Text>
           </View>
-          <View style={[styles.tr, { borderBottomWidth: 0 }]}>
-            <View style={[styles.cell, { flex: 0.55 }]}>
+          <View style={{ flexDirection: "row" }}>
+            <View
+              style={{
+                width: "55%",
+                borderRightWidth: 1,
+                borderColor: "#000",
+                padding: 3,
+              }}
+            >
               <Checkbox label="RP1Q" />
             </View>
-            <View style={[styles.cellNoBorder, { flex: 0.45 }]}>
+            <View style={{ width: "45%", padding: 3 }}>
               <Checkbox label="GI" />
             </View>
           </View>
@@ -466,7 +497,7 @@ const DeclaracaoCUBLayout = () => (
         <Text style={styles.textBase}>Uberaba - MG, </Text>
         <View
           style={{
-            width: 35,
+            width: 40,
             borderBottomWidth: 1,
             borderColor: "#000",
             marginHorizontal: 2,
@@ -475,7 +506,7 @@ const DeclaracaoCUBLayout = () => (
         <Text style={styles.textBase}> , de </Text>
         <View
           style={{
-            width: 100,
+            width: 120,
             borderBottomWidth: 1,
             borderColor: "#000",
             marginHorizontal: 2,
@@ -490,12 +521,14 @@ const DeclaracaoCUBLayout = () => (
             marginLeft: 2,
           }}
         >
-          <Text style={{ fontSize: 10, textAlign: "center" }}>2025</Text>
+          <Text style={{ fontSize: 10, textAlign: "center", paddingBottom: 1 }}>
+            2025
+          </Text>
         </View>
       </View>
 
       {/* 6. Declarantes */}
-      <View>
+      <View style={{ width: "100%" }}>
         <Text style={styles.declarantesTitle}>Declarantes:</Text>
 
         {/* Titular */}
@@ -520,8 +553,8 @@ const DeclaracaoCUBLayout = () => (
           <View style={styles.decInput} />
         </View>
 
-        {/* Responsável Técnico */}
-        <View style={[styles.decRow, { marginTop: 8 }]}>
+        {/* Responsável Técnico (Com espaçamento maior no topo) */}
+        <View style={[styles.decRow, { marginTop: 20 }]}>
           <Text style={styles.decLabel}>
             Nome do responsável técnico pela obra:
           </Text>
@@ -545,7 +578,7 @@ const DeclaracaoCUBLayout = () => (
         </View>
       </View>
 
-      {/* 7. Observação */}
+      {/* 7. Observação (Movida para fixar no fim da tela) */}
       <Text style={styles.obs}>
         Observação: É obrigatório selecionar a classificações do CUB e preencher
         corretamente todas as informações solicitadas acima.

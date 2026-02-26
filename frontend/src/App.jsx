@@ -21,8 +21,6 @@ export default function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* --- ROTAS PÚBLICAS (Acesso livre) --- */}
-
           {/* Login do Cliente */}
           <Route path="/login" element={<LoginCliente />} />
 

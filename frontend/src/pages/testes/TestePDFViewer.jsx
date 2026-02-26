@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { pdf } from "@react-pdf/renderer";
-import TermoCienciaLayout from "../../documents/DeclaracaoCUBLayout"; // Verifique se o caminho está correto
+import TermoCienciaLayout from "../../documents/RequerimentoGeralLayout";
 
 const TestePDFViewer = () => {
   const [pdfUrl, setPdfUrl] = useState(null);

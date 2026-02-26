@@ -3,13 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { api } from "../../services/api";
-import ModalInformacaoCliente from "../../components/modals/ModalInformacaoCliente";
 
 export default function ProcessosDetalhes() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [processo, setProcesso] = useState(null);
-  const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
   const [valorEdicao, setValorEdicao] = useState("");
 
@@ -77,6 +75,28 @@ export default function ProcessosDetalhes() {
       console.error(`Erro ao atualizar ${campo}:`, err);
       const data = await api.getClienteById(id);
       setProcesso(data);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setProcesso((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSalvarInformacoes = async () => {
+    try {
+      const dadosParaSalvar = { ...processo };
+      delete dadosParaSalvar.id;
+      delete dadosParaSalvar.created_at;
+
+      await api.updateCliente(id, dadosParaSalvar);
+      alert("Informações atualizadas com sucesso!");
+    } catch (err) {
+      console.error("Erro ao salvar informações do formulário:", err);
+      alert("Erro ao atualizar informações.");
     }
   };
 
@@ -249,12 +269,6 @@ export default function ProcessosDetalhes() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
-      <ModalInformacaoCliente
-        isOpen={modalAberto}
-        cliente={processo}
-        onClose={() => setModalAberto(false)}
-      />
-
       <header className="h-[82px] border-b border-[#DBDADE] flex justify-center top-0 z-10 w-full bg-[#EEEDF0]">
         <div className="w-[90%] flex items-center justify-between">
           <div className="flex items-center gap-[16px] w-full">
@@ -274,14 +288,6 @@ export default function ProcessosDetalhes() {
                 {processo.nome} {processo.tipo ? `- ${processo.tipo}` : ""}
               </h1>
             </div>
-          </div>
-          <div className="">
-            <ButtonDefault
-              onClick={() => setModalAberto(true)}
-              className="w-full h-[55px] md:h-[45px] md:w-[200px] text-[14px] shrink-0"
-            >
-              Informações do cliente
-            </ButtonDefault>
           </div>
         </div>
       </header>
@@ -316,7 +322,356 @@ export default function ProcessosDetalhes() {
             dados={dadosFinalizados}
           />
         </div>
+
+        <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] px-[30px] shadow-sm flex flex-col mt-[24px] pt-[24px] pb-[24px]">
+          <div className="flex justify-center items-center mb-6">
+            <h2 className="text-[24px] font-bold text-[#000000] text-center w-full">
+              Informações Completas do Cliente
+            </h2>
+          </div>
+
+          <div className="flex flex-col gap-6">
+            <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
+              <div className="w-full text-center mb-4">
+                <h3 className="text-[25px]">Informações do cliente</h3>
+              </div>
+
+              <div className="flex flex-col md:flex-row justify-center gap-4 mb-2 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">
+                    Nome do Proprietario (nome completo)
+                  </label>
+                  <input
+                    type="text"
+                    name="nome"
+                    value={processo.nome || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: João da Silva"
+                  />
+                </div>
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">
+                    CPF do Cliente
+                  </label>
+                  <input
+                    type="text"
+                    name="cpf"
+                    value={processo.cpf || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 123.456.789-00"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col md:flex-row justify-center mt-4 gap-4 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">
+                    E-mail do Proprietário
+                  </label>
+                  <input
+                    type="text"
+                    name="email"
+                    value={processo.email || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: joao@dominio.com"
+                  />
+                </div>
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">RG</label>
+                  <input
+                    type="text"
+                    name="rg"
+                    value={processo.rg || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: MG-12.345.678"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col md:flex-row justify-center gap-1 mt-4 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Profissão</label>
+                  <input
+                    type="text"
+                    name="profissao"
+                    value={processo.profissao || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: Engenheiro Civil"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
+              <div className="w-full text-center mb-4">
+                <h3 className="text-[25px]">Informações de Moradia</h3>
+              </div>
+
+              <div className="flex flex-col md:flex-row justify-center gap-4 mb-2 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Bairro</label>
+                  <input
+                    type="text"
+                    name="bairro"
+                    value={processo.bairro || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: Centro"
+                  />
+                </div>
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Rua</label>
+                  <input
+                    type="text"
+                    name="rua"
+                    value={processo.rua || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: Rua das Flores"
+                  />
+                </div>
+                <div className="flex flex-col text-left gap-1 w-full md:w-[17%]">
+                  <label className="text-[#71717A] text-sm">Nº</label>
+                  <input
+                    type="text"
+                    name="numero_casa"
+                    value={processo.numero_casa || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 123"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row justify-center gap-4 mb-2 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Cidade</label>
+                  <input
+                    type="text"
+                    name="cidade"
+                    value={processo.cidade || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: Uberaba"
+                  />
+                </div>
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Estado</label>
+                  <input
+                    type="text"
+                    name="estado"
+                    value={processo.estado || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: MG"
+                  />
+                </div>
+                <div className="flex flex-col text-left gap-1 w-full md:w-[17%]">
+                  <label className="text-[#71717A] text-sm">CEP</label>
+                  <input
+                    type="text"
+                    name="cep"
+                    value={processo.cep || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 12345-678"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col md:flex-row justify-center gap-4 mb-2 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Complemento</label>
+                  <input
+                    type="text"
+                    name="complemento"
+                    value={processo.complemento || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: Apto 101, Casa"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
+              <div className="w-full text-center mb-4">
+                <h3 className="text-[25px]">Informações da Obra</h3>
+              </div>
+
+              <div className="flex flex-col md:flex-row justify-center gap-4 mb-2 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Bairro</label>
+                  <input
+                    type="text"
+                    name="bairro_obra"
+                    value={processo.bairro_obra || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: Centro"
+                  />
+                </div>
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Rua</label>
+                  <input
+                    type="text"
+                    name="rua_obra"
+                    value={processo.rua_obra || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: Rua das Flores"
+                  />
+                </div>
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Número</label>
+                  <input
+                    type="text"
+                    name="numero_obra"
+                    value={processo.numero_obra || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 123"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row justify-center mt-4 gap-4 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">
+                    Tamanho em m²
+                  </label>
+                  <input
+                    type="text"
+                    name="tamanho_m2"
+                    value={processo.tamanho_m2 || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 120.5 m²"
+                  />
+                </div>
+
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Lote</label>
+                  <input
+                    type="text"
+                    name="lote"
+                    value={processo.lote || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: Lote 123"
+                  />
+                </div>
+
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Quadra</label>
+                  <input
+                    type="text"
+                    name="quadra"
+                    value={processo.quadra || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: quadra 5"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row justify-center mt-4 gap-4 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">
+                    Codigo de identificação do imóvel
+                  </label>
+                  <input
+                    type="text"
+                    name="codigo_identificacao_imovel"
+                    value={processo.codigo_identificacao_imovel || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 123456798"
+                  />
+                </div>
+
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">ART</label>
+                  <input
+                    type="text"
+                    name="art"
+                    value={processo.art || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 123456798"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col md:flex-row justify-center mt-4 gap-4 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">Padrão Cub.</label>
+                  <select
+                    name="padrao_cub"
+                    value={processo.padrao_cub || ""}
+                    onChange={handleInputChange}
+                    className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="Á vista">Á vista</option>
+                    <option value="Debito">Débito</option>
+                    <option value="Crédito">Crédito</option>
+                    <option value="Parcelado">Parcelado</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
+              <div className="w-full text-center mb-4">
+                <h3 className="text-[25px]">Informações do Alvara</h3>
+              </div>
+              <div className="flex flex-col md:flex-row justify-center mt-4 gap-4 w-full">
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">
+                    Número do Alvara
+                  </label>
+                  <input
+                    type="text"
+                    name="numero_alvara"
+                    value={processo.numero_alvara || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 123456798"
+                  />
+                </div>
+
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">
+                    Data expedição
+                  </label>
+                  <input
+                    type="text"
+                    name="data_expedicao"
+                    value={processo.data_expedicao || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 12/12/2020"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-4 pt-4 border-t border-[#C4C4C9] shrink-0">
+              <div className="flex-1 w-full">
+                <ButtonDefault
+                  onClick={handleSalvarInformacoes}
+                  className="w-full"
+                >
+                  Salvar
+                </ButtonDefault>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+7;
