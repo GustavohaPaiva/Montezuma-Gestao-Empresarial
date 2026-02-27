@@ -293,6 +293,7 @@ export default function ProcessosDetalhes() {
       </header>
 
       <div className="px-[5%] w-full">
+        {/* TABELAS SUPERIORES */}
         <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px] overflow-x-auto">
           <h1 className="text-[30px] font-bold text-[#464C54]">Prefeitura</h1>
           <TabelaSimples
@@ -323,6 +324,7 @@ export default function ProcessosDetalhes() {
           />
         </div>
 
+        {/* FORMULÁRIO DO CLIENTE */}
         <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] px-[30px] shadow-sm flex flex-col mt-[24px] pt-[24px] pb-[24px]">
           <div className="flex justify-center items-center mb-6">
             <h2 className="text-[24px] font-bold text-[#000000] text-center w-full">
@@ -331,11 +333,11 @@ export default function ProcessosDetalhes() {
           </div>
 
           <div className="flex flex-col gap-6">
+            {/* 1. Informações do cliente */}
             <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
               <div className="w-full text-center mb-4">
                 <h3 className="text-[25px]">Informações do cliente</h3>
               </div>
-
               <div className="flex flex-col md:flex-row justify-center gap-4 mb-2 w-full">
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">
@@ -405,11 +407,11 @@ export default function ProcessosDetalhes() {
               </div>
             </div>
 
+            {/* 2. Informações de Moradia do cliente */}
             <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
               <div className="w-full text-center mb-4">
                 <h3 className="text-[25px]">Informações de Moradia</h3>
               </div>
-
               <div className="flex flex-col md:flex-row justify-center gap-4 mb-2 w-full">
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">Bairro</label>
@@ -445,7 +447,6 @@ export default function ProcessosDetalhes() {
                   />
                 </div>
               </div>
-
               <div className="flex flex-col md:flex-row justify-center gap-4 mb-2 w-full">
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">Cidade</label>
@@ -496,11 +497,11 @@ export default function ProcessosDetalhes() {
               </div>
             </div>
 
+            {/* 3. Informações da Obra */}
             <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
               <div className="w-full text-center mb-4">
                 <h3 className="text-[25px]">Informações da Obra</h3>
               </div>
-
               <div className="flex flex-col md:flex-row justify-center gap-4 mb-2 w-full">
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">Bairro</label>
@@ -551,7 +552,6 @@ export default function ProcessosDetalhes() {
                     placeholder="Ex: 120.5 m²"
                   />
                 </div>
-
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">Lote</label>
                   <input
@@ -563,7 +563,6 @@ export default function ProcessosDetalhes() {
                     placeholder="Ex: Lote 123"
                   />
                 </div>
-
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">Quadra</label>
                   <input
@@ -591,7 +590,6 @@ export default function ProcessosDetalhes() {
                     placeholder="Ex: 123456798"
                   />
                 </div>
-
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">ART</label>
                   <input
@@ -604,25 +602,134 @@ export default function ProcessosDetalhes() {
                   />
                 </div>
               </div>
+
+              {/* ======================================================== */}
+              {/* SELECTS EM CASCATA - LÓGICA CUB ATUALIZADA POR PADRÃO      */}
+              {/* ======================================================== */}
               <div className="flex flex-col md:flex-row justify-center mt-4 gap-4 w-full">
+                {/* 1. TIPO DE PROJETO */}
                 <div className="flex flex-col text-left gap-1 w-full">
-                  <label className="text-[#71717A] text-sm">Padrão Cub.</label>
+                  <label className="text-[#71717A] text-sm">
+                    Tipo de Projeto (CUB)
+                  </label>
                   <select
-                    name="padrao_cub"
-                    value={processo.padrao_cub || ""}
-                    onChange={handleInputChange}
-                    className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                    name="cub_tipo_projeto"
+                    value={processo.cub_tipo_projeto || ""}
+                    onChange={(e) => {
+                      setProcesso((prev) => ({
+                        ...prev,
+                        cub_tipo_projeto: e.target.value,
+                        cub_padrao: "",
+                        cub_nomenclatura: "",
+                      }));
+                    }}
+                    className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#FFFFFF] focus:outline-none box-border"
                   >
                     <option value="">Selecione...</option>
-                    <option value="Á vista">Á vista</option>
-                    <option value="Debito">Débito</option>
-                    <option value="Crédito">Crédito</option>
-                    <option value="Parcelado">Parcelado</option>
+                    <option value="Residencial">Residencial</option>
+                    <option value="Comercial">Comercial</option>
+                    <option value="Industrial">Industrial / Galpão</option>
                   </select>
                 </div>
+
+                {/* 2. PADRÃO */}
+                {processo.cub_tipo_projeto &&
+                  processo.cub_tipo_projeto !== "Industrial" && (
+                    <div className="flex flex-col text-left gap-1 w-full">
+                      <label className="text-[#71717A] text-sm">
+                        Padrão de Acabamento
+                      </label>
+                      <select
+                        name="cub_padrao"
+                        value={processo.cub_padrao || ""}
+                        onChange={(e) => {
+                          setProcesso((prev) => ({
+                            ...prev,
+                            cub_padrao: e.target.value,
+                            cub_nomenclatura: "",
+                          }));
+                        }}
+                        className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#FFFFFF] focus:outline-none box-border"
+                      >
+                        <option value="">Selecione...</option>
+                        <option value="Baixo">Baixo</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Alto">Alto</option>
+                      </select>
+                    </div>
+                  )}
+
+                {/* 3. CÓDIGO DINÂMICO BASEADO NO PADRÃO ESCOLHIDO */}
+                {((processo.cub_tipo_projeto &&
+                  processo.cub_tipo_projeto !== "Industrial" &&
+                  processo.cub_padrao) ||
+                  processo.cub_tipo_projeto === "Industrial") && (
+                  <div className="flex flex-col text-left gap-1 w-full">
+                    <label className="text-[#71717A] text-sm">
+                      Código / Pavimentos
+                    </label>
+                    <select
+                      name="cub_nomenclatura"
+                      value={processo.cub_nomenclatura || ""}
+                      onChange={handleInputChange}
+                      className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#FFFFFF] focus:outline-none box-border"
+                    >
+                      <option value="">Selecione...</option>
+
+                      {/* === OPÇÕES RESIDENCIAIS === */}
+                      {processo.cub_tipo_projeto === "Residencial" &&
+                        processo.cub_padrao === "Baixo" && (
+                          <>
+                            <option value="R1">R1</option>
+                            <option value="PP-4">PP-4</option>
+                            <option value="R8">R8 </option>
+                            <option value="PIS">PIS</option>
+                          </>
+                        )}
+
+                      {processo.cub_tipo_projeto === "Residencial" &&
+                        processo.cub_padrao === "Normal" && (
+                          <>
+                            <option value="R1">R1</option>
+                            <option value="PP-4">PP-4</option>
+                            <option value="R8">R8 </option>
+                            <option value="R16">R16</option>
+                          </>
+                        )}
+
+                      {processo.cub_tipo_projeto === "Residencial" &&
+                        processo.cub_padrao === "Alto" && (
+                          <>
+                            <option value="R1">R1</option>
+                            <option value="R8">R8 </option>
+                            <option value="R16">R16</option>
+                          </>
+                        )}
+
+                      {/* === OPÇÕES COMERCIAIS === */}
+                      {processo.cub_tipo_projeto === "Comercial" && (
+                        <>
+                          <option value="CAL-8">CAL-8</option>
+                          <option value="CSL-8">CSL-8 </option>
+                          <option value="CSL-16">CSL-16</option>
+                        </>
+                      )}
+
+                      {/* === OPÇÃO INDUSTRIAL === */}
+                      {processo.cub_tipo_projeto === "Industrial" && (
+                        <>
+                          <option value="GI">GI </option>
+                          <option value="RP1Q">RP1Q </option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                )}
               </div>
+              {/* ======================================================== */}
             </div>
 
+            {/* 4. Informações do Alvara */}
             <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
               <div className="w-full text-center mb-4">
                 <h3 className="text-[25px]">Informações do Alvara</h3>
@@ -641,7 +748,6 @@ export default function ProcessosDetalhes() {
                     placeholder="Ex: 123456798"
                   />
                 </div>
-
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">
                     Data expedição
@@ -674,4 +780,3 @@ export default function ProcessosDetalhes() {
     </div>
   );
 }
-7;
