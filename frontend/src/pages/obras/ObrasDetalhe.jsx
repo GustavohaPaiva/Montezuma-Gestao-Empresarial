@@ -31,6 +31,23 @@ const formatarMoeda = (valor) => {
   }).format(valorNumerico);
 };
 
+const getCorStatusMaterial = (status) => {
+  switch (status) {
+    case "Solicitado":
+      return "bg-[#FFF3E0] text-[#E65100]"; // Laranja
+    case "Em cotação":
+      return "bg-[#F3E5F5] text-[#7B1FA2]"; // Roxo
+    case "Aprovado":
+      return "bg-[#E0F2F1] text-[#00695C]"; // Verde Água
+    case "Aguardando entrega":
+      return "bg-[#E3F2FD] text-[#1565C0]"; // Azul
+    case "Entregue":
+      return "bg-[#E8F5E9] text-[#2E7D32]"; // Verde
+    default:
+      return "bg-[#E3F2FD] text-[#1565C0]"; // Padrão
+  }
+};
+
 export default function ObrasDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -604,11 +621,7 @@ export default function ObrasDetalhe() {
           key={`status-${m.id}`}
           value={m.status || "Solicitado"}
           onChange={(e) => handleStatusChange(m.id, e.target.value)}
-          className={`w-fit text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none ${
-            m.status === "Entregue"
-              ? "bg-[#E8F5E9] text-[#2E7D32]"
-              : "bg-[#FFF3E0] text-[#E65100]"
-          }`}
+          className={`w-fit text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none ${getCorStatusMaterial(m.status || "Solicitado")}`}
         >
           <option value="Solicitado">Solicitado</option>
           <option value="Em cotação">Em cotação</option>
