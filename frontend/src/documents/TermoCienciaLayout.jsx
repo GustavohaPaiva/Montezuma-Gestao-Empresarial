@@ -1,32 +1,9 @@
 import React from "react";
 import logo from "../assets/imgDocumentos/prefeitura.png";
-import {
-  Page,
-  Text,
-  View,
-  Document,
-  StyleSheet,
-  Image,
-  Font,
-} from "@react-pdf/renderer";
+import { Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
 
 // Registrando fontes para garantir negrito e itálico corretos
-Font.register({
-  family: "Helvetica",
-  fonts: [
-    {
-      src: "https://cdn.jsdelivr.net/npm/@canvas-fonts/helvetica@1.0.4/Helvetica.ttf",
-    },
-    {
-      src: "https://cdn.jsdelivr.net/npm/@canvas-fonts/helvetica@1.0.4/Helvetica-Bold.ttf",
-      fontWeight: "bold",
-    },
-    {
-      src: "https://cdn.jsdelivr.net/npm/@canvas-fonts/helvetica@1.0.4/Helvetica-Oblique.ttf",
-      fontStyle: "italic",
-    },
-  ],
-});
+Font.register({});
 
 // ==================================================================
 // ESTILOS REFINADOS PARA CABER EM 1 PÁGINA E MANTER O DESIGN
@@ -39,17 +16,16 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
     fontSize: 11,
   },
-  // --- Cabeçalho e Imagem ---
   headerContainer: {
     flexDirection: "row",
-    justifyContent: "center", // Centraliza a imagem horizontalmente
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
-    height: 60, // Aumentado um pouco para acomodar a imagem maior
+    height: 60,
   },
   image: {
-    width: 280, // Largura aumentada para bater com a referência
-    height: 55, // Altura proporcional
+    width: 280,
+    height: 55,
     objectFit: "contain",
   },
   headerTitle: {
@@ -60,7 +36,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 15,
   },
-  // --- Caixas de Informação ---
   boxContainer: {
     borderWidth: 2,
     borderColor: "#000",
@@ -77,31 +52,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginRight: 3,
     marginBottom: 1,
+    fontWeight: "bold",
   },
   inputLine: {
     flex: 1,
     borderBottomWidth: 1,
     borderBottomColor: "#000",
-    height: 13,
+    height: 14,
     marginLeft: 2,
+    fontSize: 11,
+    paddingLeft: 4,
+    textTransform: "uppercase",
   },
-  // Classe específica para as linhas curtas CPF
   shortInputLineCPF: {
     borderBottomWidth: 1,
     borderBottomColor: "#000",
-    height: 13,
+    height: 14,
     marginLeft: 2,
     width: "33%",
+    fontSize: 11,
+    paddingLeft: 4,
   },
-  // Classe específica para as linhas curtas CPF
   shortInputLineCAU: {
     borderBottomWidth: 1,
     borderBottomColor: "#000",
-    height: 13,
+    height: 14,
     marginLeft: 2,
     width: "25%",
+    fontSize: 11,
+    paddingLeft: 4,
   },
-  // --- Corpo do Texto ---
   bodyTextContainer: {
     marginTop: 5,
     marginBottom: 10,
@@ -114,9 +94,7 @@ const styles = StyleSheet.create({
   },
   boldUnderline: {
     fontWeight: "bold",
-    textDecoration: "underline",
   },
-  // --- Datas e Assinaturas ---
   dateSection: {
     marginTop: 15,
     textAlign: "center",
@@ -139,7 +117,6 @@ const styles = StyleSheet.create({
   signatureLabel: {
     fontSize: 10,
   },
-  // --- Rodapé ---
   footer: {
     position: "absolute",
     bottom: 30,
@@ -170,8 +147,34 @@ const styles = StyleSheet.create({
 // ==================================================================
 // O COMPONENTE DO DOCUMENTO
 // ==================================================================
-const TermoCienciaLayout = () => (
-  <Document>
+const TermoCienciaLayout = ({ cliente }) => {
+  // Lógica de Data atual formatada com mês por extenso
+  const hoje = new Date();
+  const dia = String(hoje.getDate()).padStart(2, "0");
+  const meses = [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro",
+  ];
+  const mesExtenso = meses[hoje.getMonth()];
+  const ano = hoje.getFullYear();
+  const dataFormatada = `Uberaba, ${dia} de ${mesExtenso} de ${ano}`;
+
+  // Endereço composto da obra
+  const enderecoObra = `${cliente?.rua_obra || ""} ${
+    cliente?.numero_obra ? `, ${cliente.numero_obra}` : ""
+  }`;
+
+  return (
     <Page size="A4" style={styles.page}>
       {/* 1. Cabeçalho */}
       <View style={styles.headerContainer}>
@@ -185,21 +188,19 @@ const TermoCienciaLayout = () => (
       <View style={styles.boxContainer}>
         <View style={styles.row}>
           <Text style={styles.label}>PROPRIETÁRIO/REQUERENTE:</Text>
-          <View style={styles.inputLine} />
+          <Text style={styles.inputLine}>{cliente?.nome || ""}</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>CPF:</Text>
-          {/* CORREÇÃO AQUI: Usando shortInputLine para forçar a exibição */}
-          <View style={styles.shortInputLineCPF} />
+          <Text style={styles.shortInputLineCPF}>{cliente?.cpf || ""}</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>PROFISSIONAL RESPONSÁVEL:</Text>
-          <View style={styles.inputLine} />
+          <Text style={styles.inputLine}>LINCOLN SILVA DE OLIVEIRA</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>CAU/CREA:</Text>
-          {/* CORREÇÃO AQUI: Usando shortInputLine para forçar a exibição */}
-          <View style={styles.shortInputLineCAU} />
+          <Text style={styles.shortInputLineCAU}>216305/D</Text>
         </View>
       </View>
 
@@ -207,23 +208,29 @@ const TermoCienciaLayout = () => (
       <View style={styles.boxContainer}>
         <View style={styles.row}>
           <Text style={styles.label}>ENDEREÇO DO IMÓVEL:</Text>
-          <View style={styles.inputLine} />
+          <Text style={styles.inputLine}>{enderecoObra}</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>LOTE:</Text>
-          <View style={[styles.inputLine, { flex: 1 }]} />
+          <Text style={[styles.inputLine, { flex: 1 }]}>
+            {cliente?.lote || ""}
+          </Text>
 
           <Text style={[styles.label, { marginLeft: 15 }]}>QUADRA:</Text>
-          <View style={[styles.inputLine, { flex: 1 }]} />
+          <Text style={[styles.inputLine, { flex: 1 }]}>
+            {cliente?.quadra || ""}
+          </Text>
 
           <Text style={[styles.label, { marginLeft: 15 }]}>
             CÓDIGO IMOBILIÁRIO:
           </Text>
-          <View style={[styles.inputLine, { flex: 1.2 }]} />
+          <Text style={[styles.inputLine, { flex: 1.2 }]}>
+            {cliente?.codigo_identificacao_imovel || ""}
+          </Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>NOME DO LOTEAMENTO:</Text>
-          <View style={styles.inputLine} />
+          <Text style={styles.inputLine}>{cliente?.bairro_obra || ""}</Text>
         </View>
       </View>
 
@@ -247,11 +254,8 @@ const TermoCienciaLayout = () => (
         </Text>
       </View>
 
-      {/* 6. Data */}
-      <Text style={styles.dateSection}>
-        Uberaba, ......... de ......................................... de
-        ...................
-      </Text>
+      {/* 6. Data Dinâmica */}
+      <Text style={styles.dateSection}>{dataFormatada}</Text>
 
       {/* 7. Assinaturas */}
       <View style={styles.signatureSection}>
@@ -285,7 +289,7 @@ const TermoCienciaLayout = () => (
         </View>
       </View>
     </Page>
-  </Document>
-);
+  );
+};
 
 export default TermoCienciaLayout;

@@ -269,9 +269,9 @@ export default function ProcessosDetalhes() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
-      <header className="h-[82px] border-b border-[#DBDADE] flex justify-center top-0 z-10 w-full bg-[#EEEDF0]">
+      <header className="md:h-[82px] h-[200px] border-b border-[#DBDADE] flex justify-center top-0 z-10 w-full bg-[#EEEDF0]">
         <div className="w-[90%] flex items-center justify-between">
-          <div className="flex items-center gap-[16px] w-full">
+          <div className="flex items-center gap-[16px]">
             <button
               onClick={() => navigate(-1)}
               className="border-none bg-transparent cursor-pointer flex items-center"
@@ -283,16 +283,23 @@ export default function ProcessosDetalhes() {
                 alt="voltar"
               />
             </button>
-            <div className="w-full flex justify-center">
-              <h1 className="text-[20px] font-bold uppercase tracking-[2px] text-[#464C54]">
-                {processo.nome} {processo.tipo ? `- ${processo.tipo}` : ""}
-              </h1>
-            </div>
+            <h1 className="text-[20px] font-bold uppercase tracking-[2px] text-[#464C54]">
+              {processo.nome} {processo.tipo ? `- ${processo.tipo}` : ""}
+            </h1>
           </div>
+
+          {/* O BOTÃO COM O CAMINHO CORRIGIDO */}
+          <ButtonDefault
+            onClick={() => navigate(`/documentos/${id}`)}
+            className="px-4 py-2 text-sm h-[60px] md:h-[40px]"
+          >
+            {" "}
+            Ver Documentos
+          </ButtonDefault>
         </div>
       </header>
 
-      <div className="px-[5%] w-full">
+      <div className="px-[5%] w-full flex flex-col items-center">
         {/* TABELAS SUPERIORES */}
         <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px] overflow-x-auto">
           <h1 className="text-[30px] font-bold text-[#464C54]">Prefeitura</h1>
@@ -601,13 +608,23 @@ export default function ProcessosDetalhes() {
                     placeholder="Ex: 123456798"
                   />
                 </div>
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-[#71717A] text-sm">
+                    Número do Processo
+                  </label>
+                  <input
+                    type="text"
+                    name="numero_processo"
+                    value={processo.numero_processo || ""}
+                    onChange={handleInputChange}
+                    className="border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none focus:border-[#464C54]"
+                    placeholder="Ex: 123456798"
+                  />
+                </div>
               </div>
 
-              {/* ======================================================== */}
-              {/* SELECTS EM CASCATA - LÓGICA CUB ATUALIZADA POR PADRÃO      */}
-              {/* ======================================================== */}
+              {/* SELECTS CUB */}
               <div className="flex flex-col md:flex-row justify-center mt-4 gap-4 w-full">
-                {/* 1. TIPO DE PROJETO */}
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">
                     Tipo de Projeto (CUB)
@@ -631,8 +648,6 @@ export default function ProcessosDetalhes() {
                     <option value="Industrial">Industrial / Galpão</option>
                   </select>
                 </div>
-
-                {/* 2. PADRÃO */}
                 {processo.cub_tipo_projeto &&
                   processo.cub_tipo_projeto !== "Industrial" && (
                     <div className="flex flex-col text-left gap-1 w-full">
@@ -658,8 +673,6 @@ export default function ProcessosDetalhes() {
                       </select>
                     </div>
                   )}
-
-                {/* 3. CÓDIGO DINÂMICO BASEADO NO PADRÃO ESCOLHIDO */}
                 {((processo.cub_tipo_projeto &&
                   processo.cub_tipo_projeto !== "Industrial" &&
                   processo.cub_padrao) ||
@@ -675,8 +688,6 @@ export default function ProcessosDetalhes() {
                       className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#FFFFFF] focus:outline-none box-border"
                     >
                       <option value="">Selecione...</option>
-
-                      {/* === OPÇÕES RESIDENCIAIS === */}
                       {processo.cub_tipo_projeto === "Residencial" &&
                         processo.cub_padrao === "Baixo" && (
                           <>
@@ -686,7 +697,6 @@ export default function ProcessosDetalhes() {
                             <option value="PIS">PIS</option>
                           </>
                         )}
-
                       {processo.cub_tipo_projeto === "Residencial" &&
                         processo.cub_padrao === "Normal" && (
                           <>
@@ -696,7 +706,6 @@ export default function ProcessosDetalhes() {
                             <option value="R16">R16</option>
                           </>
                         )}
-
                       {processo.cub_tipo_projeto === "Residencial" &&
                         processo.cub_padrao === "Alto" && (
                           <>
@@ -705,8 +714,6 @@ export default function ProcessosDetalhes() {
                             <option value="R16">R16</option>
                           </>
                         )}
-
-                      {/* === OPÇÕES COMERCIAIS === */}
                       {processo.cub_tipo_projeto === "Comercial" && (
                         <>
                           <option value="CAL-8">CAL-8</option>
@@ -714,8 +721,6 @@ export default function ProcessosDetalhes() {
                           <option value="CSL-16">CSL-16</option>
                         </>
                       )}
-
-                      {/* === OPÇÃO INDUSTRIAL === */}
                       {processo.cub_tipo_projeto === "Industrial" && (
                         <>
                           <option value="GI">GI </option>
@@ -726,7 +731,6 @@ export default function ProcessosDetalhes() {
                   </div>
                 )}
               </div>
-              {/* ======================================================== */}
             </div>
 
             {/* 4. Informações do Alvara */}

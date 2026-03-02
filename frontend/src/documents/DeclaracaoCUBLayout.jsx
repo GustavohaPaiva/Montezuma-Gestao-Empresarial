@@ -4,14 +4,26 @@ import {
   Page,
   Text,
   View,
-  Document,
   StyleSheet,
   Image,
+  Font,
+  Svg,
+  Path,
 } from "@react-pdf/renderer";
 
-// ==================================================================
-// ESTILOS DA DECLARAÇÃO DE CUSTOS (CUB) - CAIXA DE ENDEREÇO BLINDADA
-// ==================================================================
+// Fontes
+Font.register({
+  family: "Times-Roman",
+  fonts: [{ src: "https://fonts.cdnfonts.com/s/16014/Times New Roman.woff" }],
+});
+Font.register({
+  family: "Times-Bold",
+  fonts: [
+    { src: "https://fonts.cdnfonts.com/s/16014/Times New Roman Bold.woff" },
+  ],
+});
+
+// Estilos preservados
 const styles = StyleSheet.create({
   page: {
     paddingTop: 25,
@@ -39,7 +51,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 10,
   },
-  // --- Corpo de Texto ---
   formSection: {
     marginBottom: 8,
     width: "100%",
@@ -55,7 +66,10 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: 14,
   },
-  // --- Tabela CUB ---
+  paragraph: {
+    fontSize: 11,
+    lineHeight: 1.2,
+  },
   tableSection: {
     marginBottom: 8,
     width: "100%",
@@ -121,7 +135,6 @@ const styles = StyleSheet.create({
     padding: 3,
     justifyContent: "center",
   },
-  // --- Data e Declarantes ---
   dateRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -149,8 +162,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#000",
     height: 10,
+    position: "relative",
   },
-  // --- Rodapé e Observação ---
+  fillText: {
+    position: "absolute",
+    bottom: 2,
+    left: 0,
+    fontSize: 10,
+    textTransform: "uppercase",
+  },
   obs: {
     fontFamily: "Times-Bold",
     fontSize: 9.5,
@@ -177,9 +197,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// ==================================================================
-// SUBCOMPONENTE DE CHECKBOX
-// ==================================================================
 const Checkbox = ({ label, checked, noMargin }) => (
   <View
     style={{
@@ -197,35 +214,78 @@ const Checkbox = ({ label, checked, noMargin }) => (
         marginRight: 2,
         justifyContent: "center",
         alignItems: "center",
-        transform: "translateY(1px)",
+        backgroundColor: "#fff",
       }}
     >
       {checked && (
-        <Text style={{ fontSize: 7, fontFamily: "Times-Bold" }}>X</Text>
+        <Svg viewBox="0 0 24 24" width={7} height={7}>
+          <Path
+            d="M18.3 5.71a.996.996 0 0 0-1.41 0L12 10.59 7.11 5.7A.996.996 0 1 0 5.7 7.11L10.59 12 5.7 16.89a.996.996 0 1 0 1.41 1.41L12 13.41l4.89 4.89a.996.996 0 1 0 1.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"
+            fill="#000"
+          />
+        </Svg>
       )}
     </View>
     <Text style={{ fontSize: 8.5, paddingTop: 1 }}>{label}</Text>
   </View>
 );
 
-// ==================================================================
-// O COMPONENTE DO DOCUMENTO
-// ==================================================================
-const DeclaracaoCUBLayout = () => (
-  <Document>
+const DeclaracaoCUBLayout = ({ cliente }) => {
+  // 1. Validação do Checkbox Construção vs Reforma
+  const isReformaObra = cliente?.tipo?.toLowerCase().includes("reforma");
+  const isConstrucaoObra = !isReformaObra;
+
+  // 2. Extração limpa dos dados de CUB vindos do DB
+  const tipoProjeto = cliente?.cub_tipo_projeto || ""; // Residencial, Comercial, Industrial
+  const padraoProjeto = cliente?.cub_padrao || ""; // Baixo, Normal, Alto
+  const nomProjeto = cliente?.cub_nomenclatura
+    ? cliente.cub_nomenclatura.trim()
+    : ""; // R1, PP-4, R8, PIS, R16, CAL-8, CSL-8, CSL-16, GI, RP1Q
+
+  // Lógica de Contato (Telefone e Email) baseada no Escritório
+  let contatoTelefone = "";
+  let contatoEmail = "";
+  if (cliente?.escritorio_id === "YB") {
+    contatoTelefone = "34 9 9855-3710";
+    contatoEmail = "ybyoca.studio@gmail.com";
+  } else if (cliente?.escritorio_id === "VK") {
+    contatoTelefone = "34 9 8417-4206";
+    contatoEmail = "arquiteturavogelkop@gmail.com";
+  }
+
+  // Endereço Completo
+  const enderecoCompleto = `${cliente?.rua_obra || ""} ${cliente?.numero_obra ? `, ${cliente.numero_obra}` : ""} ${cliente?.bairro_obra ? `- ${cliente.bairro_obra}` : ""}`;
+
+  // Data Dinâmica
+  const hoje = new Date();
+  const meses = [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro",
+  ];
+
+  const codImovel = cliente?.codigo_identificacao_imovel || "";
+
+  return (
     <Page size="A4" style={styles.page}>
-      {/* 1. Cabeçalho */}
       <View style={styles.headerContainer}>
         <Image style={styles.image} src={logo} />
       </View>
 
-      {/* 2. Título */}
       <Text style={styles.title}>
         DECLARAÇÃO DE CLASSIFICAÇÃO CONFORME CUSTOS UNITÁRIOS BÁSICOS DE{"\n"}
         CONSTRUÇÃO (CUB)
       </Text>
 
-      {/* 3. Corpo de Texto */}
       <View style={styles.formSection}>
         <Text style={styles.paragraph}>
           {"        "}À Prefeitura Municipal de Uberaba,
@@ -235,12 +295,11 @@ const DeclaracaoCUBLayout = () => (
           execução da obra, referente a
         </Text>
 
-        {/* Linha 3: Checkboxes */}
         <View style={styles.rowInline}>
           <View style={styles.checkboxBox}>
-            <Checkbox label="CONSTRUÇÃO" />
-            <Checkbox label="REFORMA" />
-            <Checkbox label="AMPLIAÇÃO" noMargin />
+            <Checkbox label="CONSTRUÇÃO" checked={isConstrucaoObra} />
+            <Checkbox label="REFORMA" checked={isReformaObra} />
+            <Checkbox label="AMPLIAÇÃO" noMargin checked={false} />
           </View>
           <Text style={styles.textBase}>, de edificação com área de </Text>
           <View
@@ -249,12 +308,21 @@ const DeclaracaoCUBLayout = () => (
               borderBottomWidth: 1,
               borderColor: "#000",
               marginHorizontal: 2,
+              position: "relative",
             }}
-          />
+          >
+            <Text
+              style={[
+                styles.fillText,
+                { bottom: 1, width: "100%", textAlign: "center" },
+              ]}
+            >
+              {cliente?.tamanho_m2 || ""}
+            </Text>
+          </View>
           <Text style={styles.textBase}> m², a ser</Text>
         </View>
 
-        {/* Linha 4: Endereço 1 */}
         <View style={styles.rowInline}>
           <Text style={styles.textBase}>
             executada no imóvel localizado na{" "}
@@ -265,11 +333,15 @@ const DeclaracaoCUBLayout = () => (
               borderBottomWidth: 1,
               borderColor: "#000",
               marginLeft: 2,
+              position: "relative",
             }}
-          />
+          >
+            <Text style={[styles.fillText, { bottom: 1, marginLeft: 4 }]}>
+              {enderecoCompleto}
+            </Text>
+          </View>
         </View>
 
-        {/* Linha 5: Endereço 2 */}
         <View style={styles.rowInline}>
           <View
             style={{
@@ -282,52 +354,33 @@ const DeclaracaoCUBLayout = () => (
           <Text style={styles.textBase}> (ENDEREÇO),</Text>
         </View>
 
-        {/* Linha 6: Código do Imóvel */}
         <View style={styles.rowInline}>
           <Text style={styles.textBase}>
             código de identificação do imóvel{" "}
           </Text>
           <View
             style={{
-              width: 35,
+              flex: 1,
               borderBottomWidth: 1,
               borderColor: "#000",
               marginHorizontal: 2,
+              position: "relative",
             }}
-          />
-          <Text style={styles.textBase}>.</Text>
-          <View
-            style={{
-              width: 35,
-              borderBottomWidth: 1,
-              borderColor: "#000",
-              marginHorizontal: 2,
-            }}
-          />
-          <Text style={styles.textBase}>.</Text>
-          <View
-            style={{
-              width: 35,
-              borderBottomWidth: 1,
-              borderColor: "#000",
-              marginHorizontal: 2,
-            }}
-          />
-          <Text style={styles.textBase}>-</Text>
-          <View
-            style={{
-              width: 35,
-              borderBottomWidth: 1,
-              borderColor: "#000",
-              marginHorizontal: 2,
-            }}
-          />
+          >
+            <Text
+              style={[
+                styles.fillText,
+                { bottom: 1, textAlign: "center", width: "100%" },
+              ]}
+            >
+              {codImovel}
+            </Text>
+          </View>
           <Text style={styles.textBase}>
             , declaramos, para os devidos fins,
           </Text>
         </View>
 
-        {/* Linha 7 e 8: Restante do parágrafo */}
         <Text
           style={[styles.paragraph, { textAlign: "justify", marginTop: 2 }]}
         >
@@ -338,7 +391,7 @@ const DeclaracaoCUBLayout = () => (
         </Text>
       </View>
 
-      {/* 4. Tabelas CUB */}
+      {/* Tabelas CUB */}
       <View style={styles.tableSection}>
         <View style={styles.tableTitleBox}>
           <Text style={styles.tableTitleText}>
@@ -346,9 +399,8 @@ const DeclaracaoCUBLayout = () => (
           </Text>
         </View>
 
-        {/* Tabelas Lado a Lado (Separadas) */}
         <View style={styles.tablesWrapper}>
-          {/* Tabela 1: Esquerda */}
+          {/* TABELA 1: RESIDENCIAL */}
           <View style={styles.tableLeft}>
             <View style={styles.tr}>
               <View style={[styles.cellNoBorder, { alignItems: "flex-start" }]}>
@@ -369,50 +421,131 @@ const DeclaracaoCUBLayout = () => (
               </View>
             </View>
             <View style={styles.tr}>
+              {/* Linha R-1 */}
               <View style={styles.cell}>
-                <Checkbox label="R-1" />
+                <Checkbox
+                  label="R-1"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Baixo" &&
+                    nomProjeto === "R1"
+                  }
+                />
               </View>
               <View style={styles.cell}>
-                <Checkbox label="R-1" checked />
+                <Checkbox
+                  label="R-1"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Normal" &&
+                    nomProjeto === "R1"
+                  }
+                />
               </View>
               <View style={styles.cellNoBorder}>
-                <Checkbox label="R-1" />
+                <Checkbox
+                  label="R-1"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Alto" &&
+                    nomProjeto === "R1"
+                  }
+                />
               </View>
             </View>
             <View style={styles.tr}>
+              {/* Linha PP-4 / R-8 */}
               <View style={styles.cell}>
-                <Checkbox label="PP-4" />
+                <Checkbox
+                  label="PP-4"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Baixo" &&
+                    nomProjeto === "PP-4"
+                  }
+                />
               </View>
               <View style={styles.cell}>
-                <Checkbox label="PP-4" />
+                <Checkbox
+                  label="PP-4"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Normal" &&
+                    nomProjeto === "PP-4"
+                  }
+                />
               </View>
               <View style={styles.cellNoBorder}>
-                <Checkbox label="R-8" />
+                <Checkbox
+                  label="R-8"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Alto" &&
+                    nomProjeto === "R8"
+                  }
+                />
               </View>
             </View>
             <View style={styles.tr}>
+              {/* Linha R-8 / R-16 */}
               <View style={styles.cell}>
-                <Checkbox label="R-8" />
+                <Checkbox
+                  label="R-8"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Baixo" &&
+                    nomProjeto === "R8"
+                  }
+                />
               </View>
               <View style={styles.cell}>
-                <Checkbox label="R-8" />
+                <Checkbox
+                  label="R-8"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Normal" &&
+                    nomProjeto === "R8"
+                  }
+                />
               </View>
               <View style={styles.cellNoBorder}>
-                <Checkbox label="R-16" />
+                <Checkbox
+                  label="R-16"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Alto" &&
+                    nomProjeto === "R16"
+                  }
+                />
               </View>
             </View>
             <View style={[styles.tr, { borderBottomWidth: 0 }]}>
+              {/* Linha PIS / R-16 */}
               <View style={styles.cell}>
-                <Checkbox label="PIS" />
+                <Checkbox
+                  label="PIS"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Baixo" &&
+                    nomProjeto === "PIS"
+                  }
+                />
               </View>
               <View style={styles.cell}>
-                <Checkbox label="R-16" />
+                <Checkbox
+                  label="R-16"
+                  checked={
+                    tipoProjeto === "Residencial" &&
+                    padraoProjeto === "Normal" &&
+                    nomProjeto === "R16"
+                  }
+                />
               </View>
               <View style={styles.cellNoBorder}></View>
             </View>
           </View>
 
-          {/* Tabela 2: Direita */}
+          {/* TABELA 2: COMERCIAL */}
           <View style={styles.tableRight}>
             <View style={styles.tr}>
               <View style={[styles.cellNoBorder, { alignItems: "flex-start" }]}>
@@ -432,32 +565,74 @@ const DeclaracaoCUBLayout = () => (
             </View>
             <View style={styles.tr}>
               <View style={styles.cell}>
-                <Checkbox label="CAL-8" />
+                <Checkbox
+                  label="CAL-8"
+                  checked={
+                    tipoProjeto === "Comercial" &&
+                    padraoProjeto === "Normal" &&
+                    nomProjeto === "CAL-8"
+                  }
+                />
               </View>
               <View style={styles.cellNoBorder}>
-                <Checkbox label="CAL-8" />
+                <Checkbox
+                  label="CAL-8"
+                  checked={
+                    tipoProjeto === "Comercial" &&
+                    padraoProjeto === "Alto" &&
+                    nomProjeto === "CAL-8"
+                  }
+                />
               </View>
             </View>
             <View style={styles.tr}>
               <View style={styles.cell}>
-                <Checkbox label="CSL-8" />
+                <Checkbox
+                  label="CSL-8"
+                  checked={
+                    tipoProjeto === "Comercial" &&
+                    padraoProjeto === "Normal" &&
+                    nomProjeto === "CSL-8"
+                  }
+                />
               </View>
               <View style={styles.cellNoBorder}>
-                <Checkbox label="CSL-8" />
+                <Checkbox
+                  label="CSL-8"
+                  checked={
+                    tipoProjeto === "Comercial" &&
+                    padraoProjeto === "Alto" &&
+                    nomProjeto === "CSL-8"
+                  }
+                />
               </View>
             </View>
             <View style={[styles.tr, { borderBottomWidth: 0 }]}>
               <View style={styles.cell}>
-                <Checkbox label="CSL-16" />
+                <Checkbox
+                  label="CSL-16"
+                  checked={
+                    tipoProjeto === "Comercial" &&
+                    padraoProjeto === "Normal" &&
+                    nomProjeto === "CSL-16"
+                  }
+                />
               </View>
               <View style={styles.cellNoBorder}>
-                <Checkbox label="CSL-16" />
+                <Checkbox
+                  label="CSL-16"
+                  checked={
+                    tipoProjeto === "Comercial" &&
+                    padraoProjeto === "Alto" &&
+                    nomProjeto === "CSL-16"
+                  }
+                />
               </View>
             </View>
           </View>
         </View>
 
-        {/* Tabela 3: Inferior */}
+        {/* TABELA 3: INDUSTRIAL / POPULAR */}
         <View
           style={{
             width: "100%",
@@ -483,10 +658,16 @@ const DeclaracaoCUBLayout = () => (
                 padding: 3,
               }}
             >
-              <Checkbox label="RP1Q" />
+              <Checkbox
+                label="RP1Q"
+                checked={tipoProjeto === "Industrial" && nomProjeto === "RP1Q"}
+              />
             </View>
             <View style={{ width: "45%", padding: 3 }}>
-              <Checkbox label="GI" />
+              <Checkbox
+                label="GI"
+                checked={tipoProjeto === "Industrial" && nomProjeto === "GI"}
+              />
             </View>
           </View>
         </View>
@@ -501,8 +682,18 @@ const DeclaracaoCUBLayout = () => (
             borderBottomWidth: 1,
             borderColor: "#000",
             marginHorizontal: 2,
+            position: "relative",
           }}
-        />
+        >
+          <Text
+            style={[
+              styles.fillText,
+              { bottom: 1, width: "100%", textAlign: "center" },
+            ]}
+          >
+            {hoje.getDate()}
+          </Text>
+        </View>
         <Text style={styles.textBase}> , de </Text>
         <View
           style={{
@@ -510,8 +701,23 @@ const DeclaracaoCUBLayout = () => (
             borderBottomWidth: 1,
             borderColor: "#000",
             marginHorizontal: 2,
+            position: "relative",
           }}
-        />
+        >
+          <Text
+            style={[
+              styles.fillText,
+              {
+                bottom: 1,
+                width: "100%",
+                textAlign: "center",
+                textTransform: "lowercase",
+              },
+            ]}
+          >
+            {meses[hoje.getMonth()]}
+          </Text>
+        </View>
         <Text style={styles.textBase}> de </Text>
         <View
           style={{
@@ -522,7 +728,7 @@ const DeclaracaoCUBLayout = () => (
           }}
         >
           <Text style={{ fontSize: 10, textAlign: "center", paddingBottom: 1 }}>
-            2025
+            {hoje.getFullYear()}
           </Text>
         </View>
       </View>
@@ -536,41 +742,85 @@ const DeclaracaoCUBLayout = () => (
           <Text style={styles.decLabel}>
             Nome do titular/responsável pela obra:
           </Text>
-          <View style={styles.decInput} />
+          <View style={styles.decInput}>
+            <Text style={[styles.fillText, { marginLeft: 4 }]}>
+              {cliente?.nome || ""}
+            </Text>
+          </View>
         </View>
         <View style={styles.decRow}>
           <Text style={styles.decLabel}>CPF:</Text>
-          <View style={[styles.decInput, { flex: 0.6 }]} />
+          <View style={[styles.decInput, { flex: 0.6 }]}>
+            <Text style={[styles.fillText, { marginLeft: 4 }]}>
+              {cliente?.cpf || ""}
+            </Text>
+          </View>
           <Text style={[styles.decLabel, { marginLeft: 15 }]}>Telefone:</Text>
-          <View style={styles.decInput} />
+          <View style={styles.decInput}>
+            <Text style={[styles.fillText, { marginLeft: 4 }]}>
+              {contatoTelefone}
+            </Text>
+          </View>
         </View>
         <View style={styles.decRow}>
           <Text style={styles.decLabel}>E-mail:</Text>
-          <View style={styles.decInput} />
+          <View style={styles.decInput}>
+            <Text
+              style={[
+                styles.fillText,
+                { textTransform: "none", marginLeft: 4 },
+              ]}
+            >
+              {contatoEmail}
+            </Text>
+          </View>
         </View>
         <View style={styles.decRow}>
           <Text style={styles.decLabel}>Assinatura:</Text>
           <View style={styles.decInput} />
         </View>
 
-        {/* Responsável Técnico (Com espaçamento maior no topo) */}
+        {/* Responsável Técnico */}
         <View style={[styles.decRow, { marginTop: 20 }]}>
           <Text style={styles.decLabel}>
             Nome do responsável técnico pela obra:
           </Text>
-          <View style={styles.decInput} />
+          <View style={styles.decInput}>
+            <Text style={[styles.fillText, { marginLeft: 4 }]}>
+              LINCOLN SILVA DE OLIVEIRA
+            </Text>
+          </View>
         </View>
         <View style={styles.decRow}>
           <Text style={styles.decLabel}>Registro profissional:</Text>
-          <View style={[styles.decInput, { flex: 0.5 }]} />
+          <View style={[styles.decInput, { flex: 0.5 }]}>
+            <Text style={[styles.fillText, { marginLeft: 4 }]}>216305/D</Text>
+          </View>
           <Text style={[styles.decLabel, { marginLeft: 15 }]}>ART:</Text>
-          <View style={styles.decInput} />
+          <View style={styles.decInput}>
+            <Text style={[styles.fillText, { marginLeft: 4 }]}>
+              {cliente?.art || ""}
+            </Text>
+          </View>
         </View>
         <View style={styles.decRow}>
           <Text style={styles.decLabel}>Telefone:</Text>
-          <View style={[styles.decInput, { flex: 0.4 }]} />
+          <View style={[styles.decInput, { flex: 0.4 }]}>
+            <Text style={[styles.fillText, { marginLeft: 4 }]}>
+              {contatoTelefone}
+            </Text>
+          </View>
           <Text style={[styles.decLabel, { marginLeft: 15 }]}>E-mail:</Text>
-          <View style={styles.decInput} />
+          <View style={styles.decInput}>
+            <Text
+              style={[
+                styles.fillText,
+                { textTransform: "none", marginLeft: 4 },
+              ]}
+            >
+              {contatoEmail}
+            </Text>
+          </View>
         </View>
         <View style={styles.decRow}>
           <Text style={styles.decLabel}>Assinatura:</Text>
@@ -578,13 +828,11 @@ const DeclaracaoCUBLayout = () => (
         </View>
       </View>
 
-      {/* 7. Observação (Movida para fixar no fim da tela) */}
       <Text style={styles.obs}>
         Observação: É obrigatório selecionar a classificações do CUB e preencher
         corretamente todas as informações solicitadas acima.
       </Text>
 
-      {/* 8. Rodapé Cercado */}
       <View style={styles.footerBox}>
         <Text style={styles.footerText}>
           Av. Dom Luiz Maria Santana, 141 – CEP 38061-080 – Uberaba/MG – (34)
@@ -592,7 +840,7 @@ const DeclaracaoCUBLayout = () => (
         </Text>
       </View>
     </Page>
-  </Document>
-);
+  );
+};
 
 export default DeclaracaoCUBLayout;

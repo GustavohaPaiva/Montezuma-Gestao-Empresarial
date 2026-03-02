@@ -871,7 +871,7 @@ export default function Projetos() {
 
       <div className="w-full px-[5%] box-border">
         {/* === SELETOR DE ESCRITÓRIO === */}
-        <div className="flex justify-end mt-4 mb-2 gap-2 items-center">
+        <div className="flex justify-end mb-2 gap-2 items-center">
           <span className="text-sm font-bold text-gray-500">
             Escritório Ativo:
           </span>
