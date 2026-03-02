@@ -853,6 +853,16 @@ export default function Projetos() {
     handleExcluirCliente,
   ]);
 
+  const totalItensFechado = orcamentosProcessados.filter(
+    (item) => item.status === "Fechado",
+  ).length;
+  const totalItensOrcado = orcamentosProcessados.length;
+
+  const conversao =
+    totalItensOrcado > 0
+      ? ((totalItensFechado / totalItensOrcado) * 100).toFixed(2)
+      : "0.00";
+
   return (
     <div className="min-h-screen bg-[#EEEDF0] text-center pb-20">
       <ModalOrcamento
@@ -967,6 +977,14 @@ export default function Projetos() {
               </span>
               <span className="text-[18px] font-bold text-[#1B5E20]">
                 R$ {formatarMoeda(totalFechado)}
+              </span>
+            </div>
+            <div className="flex justify-center gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9]">
+              <span className="text-[18px] text-sm text-[#2E7D32] uppercase font-semibold">
+                Taxa de Conversão
+              </span>
+              <span className="text-[18px] font-bold text-[#1B5E20]">
+                {conversao}%
               </span>
             </div>
             <div className="flex justify-center gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] ">
