@@ -1,50 +1,20 @@
 import React from "react";
-import logo from "../assets/imgDocumentos/prefeitura.png"; // Ajuste o caminho se necessário
-import {
-  Page,
-  Text,
-  View,
-  Document,
-  StyleSheet,
-  Image,
-  Font,
-} from "@react-pdf/renderer";
+import logo from "../assets/imgDocumentos/prefeitura.png";
+import { Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 
-// Registrando as fontes (mantidas do projeto anterior)
-Font.register({
-  family: "Helvetica",
-  fonts: [
-    {
-      src: "https://cdn.jsdelivr.net/npm/@canvas-fonts/helvetica@1.0.4/Helvetica.ttf",
-    },
-    {
-      src: "https://cdn.jsdelivr.net/npm/@canvas-fonts/helvetica@1.0.4/Helvetica-Bold.ttf",
-      fontWeight: "bold",
-    },
-    {
-      src: "https://cdn.jsdelivr.net/npm/@canvas-fonts/helvetica@1.0.4/Helvetica-Oblique.ttf",
-      fontStyle: "italic",
-    },
-  ],
-});
-
-// ==================================================================
-// ESTILOS DA DECLARAÇÃO DE HABITE-SE
-// ==================================================================
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 35,
-    paddingBottom: 60,
+    paddingTop: 30,
+    paddingBottom: 40,
     paddingHorizontal: 55,
     fontFamily: "Helvetica",
     fontSize: 11,
   },
-  // --- Cabeçalho ---
   headerContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 5,
     height: 60,
   },
   image: {
@@ -57,54 +27,57 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     textTransform: "uppercase",
-    marginTop: 15,
-    marginBottom: 25,
+    marginTop: 10,
+    marginBottom: 15,
   },
-  // --- Corpo do Texto / Formulário ---
+  // Linha padrão para os campos de baixo (que são curtos)
   formRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 8,
-    minHeight: 16,
+    marginBottom: 6,
+    minHeight: 14,
   },
   textLabel: {
     fontSize: 11,
     marginRight: 4,
   },
   dottedLine: {
+    flex: 1,
     borderBottomWidth: 1.5,
     borderBottomColor: "#000",
     borderBottomStyle: "dotted",
-    height: 12, // Altura ajustada para a linha bater na base do texto
-    marginLeft: 2,
+    height: 12,
   },
-  // --- Datas e Assinaturas ---
+  inputText: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    paddingHorizontal: 4,
+    marginBottom: -2,
+  },
   dateSection: {
-    marginTop: 25,
+    marginTop: 40,
     textAlign: "center",
-    marginBottom: 35,
+    marginBottom: 30,
   },
   signatureSection: {
-    marginTop: 5,
+    marginTop: 15,
   },
   signatureBlock: {
-    marginBottom: 20, // Espaçamento um pouco menor para caberem as 5 assinaturas
+    marginBottom: 35,
   },
   signatureLine: {
     borderBottomWidth: 1.5,
     borderBottomColor: "#000",
     borderBottomStyle: "dotted",
-    width: "65%", // Mantém alinhado à esquerda ocupando a proporção da imagem
-    marginBottom: 3,
+    width: "65%",
+    marginBottom: 2,
   },
   signatureText: {
     fontSize: 10,
-    lineHeight: 1.3,
   },
-  // --- Rodapé (Sem a observação desta vez) ---
   footer: {
     position: "absolute",
-    bottom: 30,
+    bottom: 25,
     left: 55,
     right: 55,
     textAlign: "center",
@@ -122,93 +95,189 @@ const styles = StyleSheet.create({
   },
 });
 
-// ==================================================================
-// SUBCOMPONENTE DE ASSINATURA (Para manter o código limpo)
-// ==================================================================
 const SignatureBlock = ({ title, subtitle }) => (
-  <View style={styles.signatureBlock}>
+  <View style={styles.signatureBlock} wrap={false}>
     <View style={styles.signatureLine} />
     <Text style={styles.signatureText}>{title}</Text>
     {subtitle && <Text style={styles.signatureText}>{subtitle}</Text>}
   </View>
 );
 
-// ==================================================================
-// O COMPONENTE DO DOCUMENTO PRINCIPAL
-// ==================================================================
-const DeclaracaoHabiteseLayout = () => (
-  <Document>
+const DeclaracaoHabiteseLayout = ({ cliente }) => {
+  const hoje = new Date();
+  const meses = [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro",
+  ];
+  const dataExtenso = `Uberaba, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
+
+  const respNome = "LINCOLN SILVA DE OLIVEIRA";
+  const respCrea = "216305/D";
+
+  return (
     <Page size="A4" style={styles.page}>
-      {/* 1. Cabeçalho */}
       <View style={styles.headerContainer}>
         <Image style={styles.image} src={logo} />
       </View>
 
-      {/* 2. Título */}
       <Text style={styles.headerTitle}>DECLARAÇÃO DE HABITE-SE</Text>
 
-      {/* 3. Parágrafo Inicial com Linhas */}
-      <View style={styles.formRow}>
-        <Text style={styles.textLabel}>
-          Declaramos, para fins de HABITE-SE da construção situada na Rua/Av.:
+      {/* SEÇÃO DO ENDEREÇO: ESTRUTURA BLINDADA */}
+      <View style={{ marginBottom: 15 }}>
+        {/* Usamos um único bloco de texto para o rótulo e a rua. Isso garante a quebra correta para a esquerda. */}
+        <Text style={{ fontSize: 14, lineHeight: 1.5, textAlign: "justify" }}>
+          <Text>
+            Declaramos, para fins de HABITE-SE da construção situada na Rua/Av.:
+          </Text>
         </Text>
-        <View style={[styles.dottedLine, { flex: 1 }]} />
+        <View style={{ flexDirection: "row" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-end",
+              marginTop: 5,
+            }}
+          >
+            <View
+              style={{
+                width: "100%",
+                borderBottomWidth: 1.5,
+                borderBottomColor: "#000",
+                borderBottomStyle: "dotted",
+                marginLeft: 5,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 11,
+                  textAlign: "start",
+                  marginBottom: -1,
+                }}
+              >
+                {cliente?.rua || ""} {cliente?.numero_obra || ""},{" "}
+                {cliente?.bairro_obra || ""}
+              </Text>
+            </View>
+          </View>
+
+          {/* Linha do Número: Separada para evitar que o wrap da rua a empurre */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-end",
+              marginTop: 5,
+            }}
+          >
+            <Text style={{ fontSize: 11 }}>Nº:</Text>
+            <View
+              style={{
+                width: 80,
+                borderBottomWidth: 1.5,
+                borderBottomColor: "#000",
+                borderBottomStyle: "dotted",
+                marginLeft: 5,
+                height: 12,
+              }}
+            >
+              <Text
+                style={{ fontSize: 10, textAlign: "center", marginBottom: -2 }}
+              >
+                {cliente?.numero_obra || ""}
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.formRow}>
-        <View style={[styles.dottedLine, { flex: 1 }]} />
-        <Text style={[styles.textLabel, { marginLeft: 5 }]}>Nº:</Text>
-        <View style={[styles.dottedLine, { width: "25%" }]} />
-      </View>
-
-      <View style={[styles.formRow, { marginBottom: 25, marginTop: 5 }]}>
-        <Text style={styles.textLabel}>
+      <View style={{ marginBottom: 20 }}>
+        <Text style={{ fontSize: 11 }}>
           Que a mesma foi executada em conformidade com a legislação vigente.
         </Text>
       </View>
 
-      {/* 4. Lista de Detalhes do Imóvel (Com larguras variadas imitando o PDF original) */}
+      {/* CAMPOS TÉCNICOS */}
       <View style={styles.formRow}>
         <Text style={styles.textLabel}>Tipo de Edificação:</Text>
-        <View style={[styles.dottedLine, { width: "50%" }]} />
+        <View style={[styles.dottedLine, { maxWidth: 250 }]}>
+          <Text style={styles.inputText}>{cliente?.tipo || ""}</Text>
+        </View>
       </View>
+
       <View style={styles.formRow}>
         <Text style={styles.textLabel}>Número de Unidades:</Text>
-        <View style={[styles.dottedLine, { width: "55%" }]} />
+        <View style={[styles.dottedLine, { maxWidth: 250 }]}>
+          <Text style={styles.inputText}>1</Text>
+        </View>
       </View>
+
       <View style={styles.formRow}>
         <Text style={styles.textLabel}>Metragem Quadrada por Unidade:</Text>
-        <View style={[styles.dottedLine, { width: "40%" }]} />
+        <View style={[styles.dottedLine, { maxWidth: 250 }]}>
+          <Text style={styles.inputText}>
+            {cliente?.tamanho_m2 ? `${cliente.tamanho_m2} m²` : ""}
+          </Text>
+        </View>
       </View>
+
       <View style={styles.formRow}>
         <Text style={styles.textLabel}>Metragem Quadrada Total:</Text>
-        <View style={[styles.dottedLine, { width: "48%" }]} />
+        <View style={[styles.dottedLine, { maxWidth: 250 }]}>
+          <Text style={styles.inputText}>
+            {cliente?.tamanho_m2 ? `${cliente.tamanho_m2} m²` : ""}
+          </Text>
+        </View>
       </View>
+
       <View style={styles.formRow}>
         <Text style={styles.textLabel}>Número do Alvará de Construção:</Text>
-        <View style={[styles.dottedLine, { width: "38%" }]} />
+        <View style={[styles.dottedLine, { maxWidth: 250 }]}>
+          <Text style={styles.inputText}>{cliente?.numero_alvara || ""}</Text>
+        </View>
       </View>
+
       <View style={styles.formRow}>
         <Text style={styles.textLabel}>Expedido em:</Text>
-        <View style={[styles.dottedLine, { width: "30%" }]} />
+        <View style={[styles.dottedLine, { maxWidth: 250 }]}>
+          <Text style={styles.inputText}>{cliente?.data_expedicao || ""}</Text>
+        </View>
       </View>
 
-      {/* 5. Data */}
-      <Text style={styles.dateSection}>
-        Uberaba, ........ de ......................................... de
-        ................
-      </Text>
+      <Text style={styles.dateSection}>{dataExtenso}</Text>
 
-      {/* 6. Assinaturas */}
+      {/* ASSINATURAS */}
       <View style={styles.signatureSection}>
-        <SignatureBlock title="RESPONSÁVEL TÉCNICO – CREA/CAU" />
-        <SignatureBlock title="AUTOR DO PROJETO – CREA/CAU" />
-        <SignatureBlock title="PROJETO ELÉTRICO – CREA/CAU" />
-        <SignatureBlock title="PROJETO ESTRUTURAL – CREA/CAU" />
-        <SignatureBlock title="PROPRIETÁRIO" />
+        <SignatureBlock
+          title={`${respNome} – ${respCrea}`}
+          subtitle="RESPONSÁVEL TÉCNICO"
+        />
+        <SignatureBlock
+          title={`${respNome} – ${respCrea}`}
+          subtitle="AUTOR DO PROJETO"
+        />
+        <SignatureBlock
+          title={`${respNome} – ${respCrea}`}
+          subtitle="PROJETO ELÉTRICO"
+        />
+        <SignatureBlock
+          title={`${respNome} – ${respCrea}`}
+          subtitle="PROJETO ESTRUTURAL"
+        />
+        <SignatureBlock
+          title={cliente?.nome || "PROPRIETÁRIO"}
+          subtitle="PROPRIETÁRIO"
+        />
       </View>
 
-      {/* 7. Rodapé (Apenas endereço, conforme referência) */}
       <View style={styles.footer}>
         <View style={styles.footerAddressContainer}>
           <Text style={styles.footerAddress}>
@@ -219,7 +288,7 @@ const DeclaracaoHabiteseLayout = () => (
         </View>
       </View>
     </Page>
-  </Document>
-);
+  );
+};
 
 export default DeclaracaoHabiteseLayout;
