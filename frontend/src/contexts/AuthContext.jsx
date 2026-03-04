@@ -4,8 +4,6 @@ import { supabase } from "../services/supabase";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  // MUDANÇA 1: Usamos sessionStorage aqui.
-  // Ao fechar o navegador, o sessionStorage é limpo automaticamente.
   const [user, setUser] = useState(() => {
     const session = sessionStorage.getItem("montezuma_session");
     if (session) {
@@ -16,7 +14,7 @@ export function AuthProvider({ children }) {
 
   const [loading, setLoading] = useState(false);
 
-  // Login do Cliente
+  // Login do Cliente "Fantasma"
   const loginCliente = async (nome, local) => {
     setLoading(true);
     try {
@@ -27,10 +25,21 @@ export function AuthProvider({ children }) {
 
       if (error || !data) throw new Error("Dados incorretos.");
 
-      const userData = { ...data, tipo: "cliente" };
+      // Blindagem: Se a RPC retornar a linha toda, pegamos data.id.
+      // Se retornar só o UUID direto, pegamos o próprio data.
+      const idObra = typeof data === "object" ? data.id : data;
+
+      if (!idObra) throw new Error("A RPC não retornou um ID de obra válido.");
+
+      // Monta o usuário fantasma e converte o ID pra string pra RotaProtegida não barrar
+      const userData = {
+        ...(typeof data === "object" ? data : {}),
+        id: String(idObra),
+        nome: nome,
+        tipo: "cliente",
+      };
 
       setUser(userData);
-      // MUDANÇA 2: Salva na sessão temporária
       sessionStorage.setItem("montezuma_session", JSON.stringify(userData));
 
       return userData;
@@ -39,7 +48,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Login do Admin
+  // Login do Admin Real
   const loginAdmin = async (login, senha) => {
     setLoading(true);
     try {
@@ -58,7 +67,6 @@ export function AuthProvider({ children }) {
       };
 
       setUser(userData);
-      // MUDANÇA 3: Salva na sessão temporária
       sessionStorage.setItem("montezuma_session", JSON.stringify(userData));
 
       return userData;
@@ -70,7 +78,6 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    // MUDANÇA 4: Limpa a sessão temporária
     sessionStorage.removeItem("montezuma_session");
   };
 

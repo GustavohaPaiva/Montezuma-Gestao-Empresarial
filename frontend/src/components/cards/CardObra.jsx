@@ -1,5 +1,39 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Check,
+  X,
+  Pencil,
+  Trash2,
+  Clock,
+  Hammer,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
+
+// Dicionário de Status ATUALIZADO com as variáveis do Tailwind v4
+const STATUS_CONFIG = {
+  "Aguardando iniciação": {
+    bg: "bg-status-aguardando-bg",
+    text: "text-status-aguardando-text",
+    icon: Clock,
+  },
+  "Em andamento": {
+    bg: "bg-status-andamento-bg",
+    text: "text-status-andamento-text",
+    icon: Hammer,
+  },
+  Concluída: {
+    bg: "bg-status-concluida-bg",
+    text: "text-status-concluida-text",
+    icon: CheckCircle2,
+  },
+  default: {
+    bg: "bg-gray-100",
+    text: "text-gray-700",
+    icon: AlertCircle,
+  },
+};
 
 export default function ObraCard({
   id,
@@ -15,22 +49,8 @@ export default function ObraCard({
   const [editedName, setEditedName] = useState(nome);
   const [editedClient, setEditedClient] = useState(client);
 
-  let bgColor, textColor, iconFilter;
-
-  if (status === "Em andamento") {
-    bgColor = "bg-[#FFF4E5]";
-    textColor = "text-[#B95000]";
-    iconFilter = "invert(37%) sepia(93%) saturate(1200%) hue-rotate(10deg)";
-  } else if (status === "Aguardando iniciação") {
-    bgColor = "bg-[#FFEBEE]";
-    textColor = "text-[#C62828]";
-    iconFilter =
-      "invert(23%) sepia(51%) saturate(2793%) hue-rotate(338deg) brightness(88%) contrast(96%)";
-  } else {
-    bgColor = "bg-[#E6F4EA]";
-    textColor = "text-[#1E8E3E]";
-    iconFilter = "invert(36%) sepia(85%) saturate(450%) hue-rotate(95deg)";
-  }
+  const statusAtual = STATUS_CONFIG[status] || STATUS_CONFIG["default"];
+  const StatusIcon = statusAtual.icon;
 
   const handleCardClick = () => {
     if (!isEditing) navigate(`/obra/${id}`);
@@ -54,94 +74,83 @@ export default function ObraCard({
     setIsEditing(false);
   };
 
+  const handleStatusChange = async (e) => {
+    e.stopPropagation();
+    await onUpdate(id, { status: e.target.value });
+  };
+
   return (
     <div
       onClick={handleCardClick}
-      className={`relative no-underline text-inherit block bg-[#FAFAFA] rounded-[8px] w-full h-[220px] flex flex-col justify-between p-[15px] shadow-[0_5px_20px_rgba(0,0,0,0.15)] md:max-w-[350px] box-border transition-transform ${
-        !isEditing ? "hover:scale-[1.02] cursor-pointer" : "cursor-default"
-      } text-black`}
+      className={`relative flex flex-col justify-between w-full h-[220px] p-4 rounded-lg shadow-sm border border-gray-100 bg-[#FAFAFA] transition-all duration-200 md:max-w-[350px] ${
+        !isEditing
+          ? "hover:scale-[1.02] hover:shadow-md cursor-pointer"
+          : "cursor-default"
+      }`}
     >
-      <div className="flex items-center justify-between relative z-10 w-full">
+      <div className="flex items-center justify-between w-full z-10">
         {/* Indicativo Financeiro */}
-        <div className="flex items-center">
-          <div
-            className={`w-[12px] h-[12px] rounded-full shadow-sm transition-colors duration-300 ${
-              tudoPago ? "bg-[#2E7D32]" : "bg-[#F57C00]"
-            }`}
-            title={tudoPago ? "Tudo pago" : "Pagamento pendente"}
-          />
-        </div>
+        <div
+          className={`w-3 h-3 rounded-full shadow-sm transition-colors duration-300 ${
+            tudoPago ? "bg-[#2E7D32]" : "bg-[#F57C00]"
+          }`}
+          title={tudoPago ? "Tudo pago" : "Pagamento pendente"}
+        />
 
         {/* Botões de Ação */}
-        <div className="flex gap-[8px]">
+        <div className="flex gap-2">
           {isEditing ? (
             <>
               <button
                 onClick={handleSave}
-                className="border border-[#2E7D32] rounded-[50%] bg-[#cce7c9] hover:bg-[#C8E6C9] w-[28px] h-[28px] flex items-center justify-center"
+                className="flex items-center justify-center w-8 h-8 bg-green-100 border border-green-700 text-green-700 rounded-full hover:bg-green-200 transition-colors"
+                title="Salvar"
               >
-                <img
-                  width="18"
-                  height="18"
-                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
-                  alt="salvar"
-                />
+                <Check size={16} strokeWidth={3} />
               </button>
               <button
                 onClick={handleCancel}
-                className="border border-[#ff5252] rounded-[50%] bg-[#ffbaba] hover:bg-[#ff5252] w-[28px] h-[28px] flex items-center justify-center"
+                className="flex items-center justify-center w-8 h-8 bg-red-100 border border-red-600 text-red-600 rounded-full hover:bg-red-200 transition-colors"
+                title="Cancelar"
               >
-                <img
-                  width="18"
-                  height="18"
-                  src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
-                  alt="cancelar"
-                />
+                <X size={16} strokeWidth={3} />
               </button>
             </>
           ) : (
             <>
               <button
                 onClick={toggleEdit}
-                className="bg-transparent border-none cursor-pointer"
+                className="text-gray-500 hover:text-blue-600 transition-colors p-1"
+                title="Editar"
               >
-                <img
-                  width="18"
-                  height="18"
-                  src="https://img.icons8.com/ios/50/edit--v1.png"
-                  alt="editar"
-                />
+                <Pencil size={18} />
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete();
                 }}
-                className="bg-transparent border-none cursor-pointer"
+                className="text-gray-500 hover:text-red-600 transition-colors p-1"
+                title="Excluir"
               >
-                <img
-                  width="18"
-                  height="18"
-                  src="https://img.icons8.com/material-outlined/24/filled-trash.png"
-                  alt="trash"
-                />
+                <Trash2 size={18} />
               </button>
             </>
           )}
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col items-center w-full px-2">
+      <div className="flex flex-col items-center w-full mt-4 px-2">
         {isEditing ? (
           <div
-            className="flex flex-col gap-[10px] w-full"
+            className="flex flex-col gap-2 w-full"
             onClick={(e) => e.stopPropagation()}
           >
             <input
               type="text"
               value={editedName}
               onChange={(e) => setEditedName(e.target.value)}
-              className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
+              className="w-full h-8 px-2 text-base uppercase border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
               placeholder="Nome da Obra"
               autoFocus
             />
@@ -149,32 +158,30 @@ export default function ObraCard({
               type="text"
               value={editedClient}
               onChange={(e) => setEditedClient(e.target.value)}
-              className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
+              className="w-full h-8 px-2 text-base uppercase border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
               placeholder="Cliente"
             />
           </div>
         ) : (
           <>
-            <h2 className="text-[22px] font-bold leading-tight mb-1 text-center truncate w-full uppercase">
+            <h2 className="w-full text-xl font-bold text-center uppercase truncate leading-tight text-gray-800">
               {nome}
             </h2>
-            <p className="text-[16px] text-gray-600 flex justify-center items-center w-full gap-[4px]">
-              <span className="font-semibold mr-2">CLIENTE: </span>
-              <span className="uppercase truncate max-w-[200px]">{client}</span>
+            <p className="flex items-center justify-center w-full gap-1 text-base text-gray-600 mt-1">
+              <span className="font-semibold">CLIENTE:</span>
+              <span className="max-w-[200px] uppercase truncate">{client}</span>
             </p>
           </>
         )}
       </div>
 
-      <div className="flex justify-center mt-2 relative z-20">
+      <div className="flex justify-center mt-auto pt-4 relative z-20">
         <div
-          className={`relative ${bgColor} ${textColor} w-[60%] h-[35px] rounded-[8px] flex items-center justify-center font-bold text-sm`}
+          className={`relative flex items-center justify-center w-3/4 py-1.5 rounded-lg font-bold text-sm ${statusAtual.bg} ${statusAtual.text} border border-transparent hover:border-current transition-colors`}
         >
           <select
             value={status}
-            onChange={async (e) =>
-              await onUpdate(id, { status: e.target.value })
-            }
+            onChange={handleStatusChange}
             onClick={(e) => e.stopPropagation()}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30 appearance-none"
           >
@@ -182,15 +189,8 @@ export default function ObraCard({
             <option value="Em andamento">Em andamento</option>
             <option value="Concluída">Concluída</option>
           </select>
-          <div className="flex items-center justify-center pointer-events-none z-10">
-            <img
-              width="20"
-              height="20"
-              src="https://img.icons8.com/ios-glyphs/30/full-stop--v1.png"
-              alt="status-icon"
-              className="mr-1"
-              style={{ filter: iconFilter }}
-            />
+          <div className="flex items-center gap-1.5 pointer-events-none z-10">
+            <StatusIcon size={16} strokeWidth={2.5} />
             {status}
           </div>
         </div>

@@ -143,6 +143,7 @@ export default function ObraCliente() {
         <input
           type="checkbox"
           checked={m.validacao === 1}
+          readOnly
           onClick={(e) => e.preventDefault()}
           className={`h-[18px] w-[18px] cursor-default ${
             m.validacao === 1 ? "accent-[#00C853]" : ""

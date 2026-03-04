@@ -14,9 +14,20 @@ export default function LoginCliente() {
 
   const handleLogin = async () => {
     setErro("");
+
+    // Tratamento anti-usuário: limpa espaços nas bordas e espaços duplos no meio
+    const nomeTratado = nome.trim().replace(/\s+/g, " ");
+    const bairroTratado = bairro.trim().replace(/\s+/g, " ");
+
+    if (!nomeTratado || !bairroTratado) {
+      setErro("Preencha os campos corretamente.");
+      return;
+    }
+
     setCarregando(true);
     try {
-      const usuario = await loginCliente(nome, bairro);
+      // Passa os dados mastigados e limpos para o contexto
+      const usuario = await loginCliente(nomeTratado, bairroTratado);
       navigate(`/obraCliente/${usuario.id}`);
     } catch (error) {
       console.error(error);

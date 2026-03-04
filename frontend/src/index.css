@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@theme {
+  /* Cores de Status do Montezuma */
+  --color-status-andamento-bg: #fff4e5;
+  --color-status-andamento-text: #b95000;
+
+  --color-status-aguardando-bg: #ffebee;
+  --color-status-aguardando-text: #c62828;
+
+  --color-status-concluida-bg: #e6f4ea;
+  --color-status-concluida-text: #1e8e3e;
+}
+
 @font-face {
   font-family: "Montserrat";
   src: url("./assets/fonts/Montserrat-Regular.ttf") format("truetype");
