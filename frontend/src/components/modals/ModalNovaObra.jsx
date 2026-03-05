@@ -9,62 +9,83 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
 
   if (!isOpen) return null;
 
+  // PERFORMANCE: Limpamos o estado na AÇÃO (click) e não no EFEITO.
+  // Isso evita o erro do ESLint e impede renderizações duplas na tela.
+  const handleCloseAndReset = () => {
+    setFormData({ nomeObra: "", cliente: "" });
+    onClose();
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(formData);
+    handleCloseAndReset(); // Salva, avisa o pai e já limpa o lixo para a próxima vez
+  };
+
   return (
-    <div className="fixed w-full z-50 flex items-center justify-center p-[10px]">
-      <div className="bg-[#ffffff] max-w-[95%] w-[500px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
-        <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
-              Cadastrar Nova Obra
-            </h2>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-gray-200">
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">
+          <h2 className="text-lg font-bold text-gray-800 uppercase truncate">
+            Cadastrar Nova Obra
+          </h2>
           <button
-            onClick={onClose}
-            className="w-[35px] h-[35px] flex items-center justify-center border border-[#C4C4C9] rounded-[8px] text-[24px] text-[#71717A] hover:bg-gray-100 cursor-pointer "
+            onClick={handleCloseAndReset}
+            title="Fechar"
+            className="flex items-center justify-center w-8 h-8 text-2xl text-gray-500 bg-transparent border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-gray-800 transition-colors"
           >
             &times;
           </button>
         </div>
 
-        <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
-          <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] ">
+        {/* Corpo do Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4 p-5 overflow-y-auto"
+        >
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="nomeObra"
+              className="text-xs font-bold text-gray-500 uppercase"
+            >
               Local da Obra (Nome)
             </label>
             <input
+              id="nomeObra"
               type="text"
+              required
               placeholder="Ex: Edifício Aurora"
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border "
+              className="w-full h-11 px-3 text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:bg-white focus:outline-none transition-all"
+              value={formData.nomeObra}
               onChange={(e) =>
                 setFormData({ ...formData, nomeObra: e.target.value })
               }
             />
           </div>
 
-          <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] uppercase">
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="cliente"
+              className="text-xs font-bold text-gray-500 uppercase"
+            >
               Nome do Cliente
             </label>
             <input
+              id="cliente"
               type="text"
+              required
               placeholder="Ex: João Silva"
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+              className="w-full h-11 px-3 text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:bg-white focus:outline-none transition-all"
+              value={formData.cliente}
               onChange={(e) =>
                 setFormData({ ...formData, cliente: e.target.value })
               }
             />
           </div>
 
-          <ButtonDefault
-            onClick={() => {
-              onSave(formData);
-              onClose();
-            }}
-            className="w-full bg-[#464C54] text-[#000000] h-[50px] text-[16px] font-bold mt-[10px]"
-          >
-            Salvar Obra
-          </ButtonDefault>
-        </div>
+          <ButtonDefault type="submit">Salvar Obra</ButtonDefault>
+        </form>
       </div>
     </div>
   );

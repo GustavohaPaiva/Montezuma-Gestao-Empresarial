@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Navbar from "../../components/navbar/NavbarObras";
 import ObraCard from "../../components/cards/CardObra";
 import ModalNovaObra from "../../components/modals/ModalNovaObra";
@@ -12,87 +12,92 @@ export default function Obras() {
   const [refresh, setRefresh] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
+    // PERFORMANCE: AbortController cancela a requisição se o componente for desmontado antes de terminar
+    const controller = new AbortController();
+
     async function fetchData() {
       try {
-        const dados = await api.getObras();
-        if (isMounted) {
-          setObras(dados || []);
-        }
+        const dados = await api.getObras({ signal: controller.signal });
+        setObras(dados || []);
       } catch (err) {
-        console.error("Erro ao carregar obras:", err);
+        if (err.name !== "AbortError") {
+          console.error("Erro ao carregar obras:", err);
+        }
       }
     }
+
     fetchData();
-    return () => {
-      isMounted = false;
-    };
+    return () => controller.abort();
   }, [refresh]);
 
   const reloadObras = () => setRefresh((prev) => !prev);
 
-  // --- LÓGICA DE VERIFICAÇÃO RAIO-X ---
+  // Função isolada apenas para lógica (sem gargalos no JSX)
   const verificarStatusPagamento = (obra) => {
     const extrato = obra.extrato || obra.relatorioExtrato || [];
     const mdo = obra.maoDeObra || [];
     const mat = obra.materiais || [];
 
-    // 1. Obra nova, sem nenhum lançamento = Verde
     if (extrato.length === 0 && mdo.length === 0 && mat.length === 0)
       return true;
 
-    // 2. Procura no EXTRATO (O Extrato é o chefe!)
     for (let e of extrato) {
-      if ((e.status_financeiro || "").toLowerCase().trim() !== "pago") {
-        console.log(
-          `🟠 [${obra.local}] Laranja: Extrato pendente ->`,
-          e.descricao,
-        );
-        return false; // Achou dívida, fica Laranja!
-      }
+      if ((e.status_financeiro || "").toLowerCase().trim() !== "pago")
+        return false;
     }
 
-    // 3. Procura na MÃO DE OBRA
     for (let m of mdo) {
       const orcado = parseFloat(m.valor_orcado) || 0;
       const pago = parseFloat(m.valor_pago) || 0;
-
-      // Se tem saldo a pagar...
-      if (orcado - pago > 0.01) {
-        // Verifica se já foi mandado pro extrato
-        const taNoExtrato = extrato.some((e) => e.mao_de_obra_id === m.id);
-
-        // Se NÃO está no extrato, significa que nem foi cobrado ainda = Laranja!
-        // Se ESTÁ no extrato, a gente já conferiu no Passo 2 que tá pago.
-        if (!taNoExtrato) {
-          console.log(
-            `🟠 [${obra.local}] Laranja: Mão de Obra pendente de envio pro extrato ->`,
-            m.tipo,
-          );
-          return false;
-        }
+      if (
+        orcado - pago > 0.01 &&
+        !extrato.some((e) => e.mao_de_obra_id === m.id)
+      ) {
+        return false;
       }
     }
 
-    // 4. Procura nos MATERIAIS
     for (let m of mat) {
-      const valor = parseFloat(m.valor) || 0;
-      if (valor > 0) {
-        const taNoExtrato = extrato.some((e) => e.material_id === m.id);
-        if (!taNoExtrato) {
-          console.log(
-            `🟠 [${obra.local}] Laranja: Material com valor não enviado pro extrato ->`,
-            m.material,
-          );
-          return false;
-        }
+      if (
+        (parseFloat(m.valor) || 0) > 0 &&
+        !extrato.some((e) => e.material_id === m.id)
+      ) {
+        return false;
       }
     }
 
-    // Se chegou até aqui, tá limpo!
-    console.log(`🟢 [${obra.local}] TUDO PAGO!`);
     return true;
   };
+
+  // PERFORMANCE: useMemo evita que a lista seja filtrada, ordenada e calculada
+  // (status de pagamento) a cada renderização boba (como abrir um modal).
+  const obrasVisiveis = useMemo(() => {
+    const termo = busca.toLowerCase();
+
+    const filtradas = obras.filter((obra) => {
+      if (obra.active === false) return false;
+      if (filtroStatus !== "Tudo" && obra.status !== filtroStatus) return false;
+
+      return (
+        (obra.cliente?.toLowerCase() || "").includes(termo) ||
+        (obra.local?.toLowerCase() || "").includes(termo)
+      );
+    });
+
+    const pesos = {
+      "Em andamento": 1,
+      "Aguardando iniciação": 2,
+      Concluída: 3,
+    };
+
+    return filtradas
+      .sort((a, b) => (pesos[a.status] || 99) - (pesos[b.status] || 99))
+      .map((obra) => ({
+        ...obra,
+        // Calculamos aqui e gravamos no objeto, sem rodar no JSX
+        isTudoPago: verificarStatusPagamento(obra),
+      }));
+  }, [obras, busca, filtroStatus]);
 
   const handleCreateObra = async (formData) => {
     try {
@@ -110,12 +115,11 @@ export default function Obras() {
 
   const handleUpdateInline = async (id, dadosAtualizados) => {
     try {
-      setObras((prevObras) =>
-        prevObras.map((obra) =>
-          obra.id === id ? { ...obra, ...dadosAtualizados } : obra,
-        ),
-      );
       await api.updateObra(id, dadosAtualizados);
+      // Atualiza o state local DEPOIS da API confirmar, evitando dados dessincronizados na tela
+      setObras((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, ...dadosAtualizados } : o)),
+      );
     } catch (err) {
       console.error("Erro ao atualizar obra:", err);
       alert("Erro ao atualizar a obra.");
@@ -126,12 +130,10 @@ export default function Obras() {
   const handleDelete = async (id) => {
     if (window.confirm("Tem certeza que deseja remover esta obra?")) {
       try {
-        setObras((prevObras) =>
-          prevObras.map((obra) =>
-            obra.id === id ? { ...obra, active: false } : obra,
-          ),
-        );
         await api.deleteObra(id);
+        setObras((prev) =>
+          prev.map((o) => (o.id === id ? { ...o, active: false } : o)),
+        );
       } catch (err) {
         console.error("Erro ao deletar:", err);
         alert("Erro ao remover obra.");
@@ -140,31 +142,8 @@ export default function Obras() {
     }
   };
 
-  const ordenarObras = (lista) => {
-    const pesos = {
-      "Em andamento": 1,
-      "Aguardando iniciação": 2,
-      Concluída: 3,
-    };
-    return [...lista].sort(
-      (a, b) => (pesos[a.status] || 99) - (pesos[b.status] || 99),
-    );
-  };
-
-  const obrasFiltradas = obras.filter((obra) => {
-    if (obra.active === false) return false;
-    if (filtroStatus !== "Tudo" && obra.status !== filtroStatus) return false;
-    const termo = busca.toLowerCase();
-    return (
-      (obra.cliente?.toLowerCase() || "").includes(termo) ||
-      (obra.local?.toLowerCase() || "").includes(termo)
-    );
-  });
-
-  const obrasVisiveis = ordenarObras(obrasFiltradas);
-
   return (
-    <div className="flex flex-col min-h-screen w-full items-center bg-[#EEEDF0]">
+    <div className="flex flex-col items-center w-full min-h-screen bg-[#EEEDF0]">
       <Navbar
         searchTerm={busca}
         onSearchChange={setBusca}
@@ -173,8 +152,8 @@ export default function Obras() {
         onOpenModal={() => setIsModalOpen(true)}
       />
 
-      <main className="w-[90%] mt-[40px]">
-        <div className="grid w-full md:grid-cols-[repeat(auto-fit,minmax(0,380px))] gap-y-[30px] justify-center md:justify-between">
+      <main className="w-[90%] mt-10">
+        <div className="grid w-full gap-8 md:grid-cols-[repeat(auto-fit,minmax(0,380px))] justify-center md:justify-between">
           {obrasVisiveis.map((obra) => (
             <ObraCard
               key={obra.id}
@@ -182,13 +161,13 @@ export default function Obras() {
               nome={obra.local}
               client={obra.cliente}
               status={obra.status || "Aguardando iniciação"}
-              tudoPago={verificarStatusPagamento(obra)}
+              tudoPago={obra.isTudoPago} // Puxa direto do objeto pre-calculado
               onUpdate={handleUpdateInline}
               onDelete={() => handleDelete(obra.id)}
             />
           ))}
           {obrasVisiveis.length === 0 && (
-            <p className="col-span-full text-gray-400 mt-10 text-center">
+            <p className="w-full mt-10 text-center text-gray-500 col-span-full">
               Nenhuma obra encontrada.
             </p>
           )}
