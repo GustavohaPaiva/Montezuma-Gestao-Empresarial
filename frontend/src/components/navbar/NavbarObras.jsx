@@ -1,70 +1,65 @@
-import { useState, useEffect } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
 import logo from "../../assets/logos/logo sem fundo.png";
 import { useNavigate } from "react-router-dom";
 
-export default function Navbar({
+export default function NavbarObras({
   searchTerm,
   onSearchChange,
   filterStatus,
   onFilterChange,
   onOpenModal,
 }) {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1100);
-
   const navigate = useNavigate();
+
   const handleNavigation = () => {
     navigate("/");
   };
 
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1100);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   return (
     <header
-      className={`w-full px-[5%] box-border border-b border-[#DBDADE] flex justify-center bg-[#EEEDF0]  top-0 z-10 transition-all ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
+      className="relative z-50 flex justify-center w-full px-4 lg:px-[5%] py-4 lg:py-0 lg:h-[82px] transition-all bg-[#EEEDF0] border-b border-[#DBDADE] 
+sticky top-0"
     >
-      <div
-        className={`w-full flex items-center justify-between gap-[20px] ${isMobile ? "flex-col" : "flex-row h-full"}`}
-      >
-        <div className="flex flex-row justify-center items-center">
+      <div className="flex flex-col items-center justify-between w-full gap-4 lg:flex-row lg:h-full">
+        {/* LOGO */}
+        <div
+          onClick={handleNavigation}
+          className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+        >
           <img
             src={logo}
-            onClick={handleNavigation}
             alt="Logo Montezuma"
-            className="object-contain transition-all mr-[10px] w-[60px] h-[60px]"
+            className="object-contain w-[50px] h-[50px] lg:w-[60px] lg:h-[60px] mr-3"
           />
-          <p className="text-[40px]">Montezuma</p>
+          <p className="text-3xl lg:text-[40px] font-semibold text-[#464C54]">
+            Montezuma
+          </p>
         </div>
 
-        <div
-          className={`flex gap-[10px] sm:pr-[27px] ${isMobile ? "flex-col w-full" : "flex-row items-center"}`}
-        >
+        {/* CONTROLES (Filtros, Busca e Botão) */}
+        <div className="flex flex-col lg:flex-row items-center w-full lg:w-auto gap-3 lg:gap-4 lg:pr-6">
           <ButtonDefault
             onClick={onOpenModal}
-            className={`${isMobile ? "w-full h-[45px]" : "w-[150px]"} text-[14px] shrink-0`}
+            className="w-full lg:w-[150px] h-[45px] lg:h-[40px] text-[#464C54] bg-[#F7F7F8] text-sm font-medium shrink-0 shadow-sm"
           >
             + Nova Obra
           </ButtonDefault>
 
-          <div className={`relative ${isMobile ? "w-full" : "w-[200px]"}`}>
+          {/* Filtro Status */}
+          <div className="relative w-full lg:w-[200px]">
             <select
               value={filterStatus}
               onChange={(e) => onFilterChange(e.target.value)}
-              className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] text-[16px] text-[#464C54] px-[12px] focus:outline-none w-full box-border cursor-pointer appearance-none ${isMobile ? "h-[45px]" : "h-[40px]"}`}
-              style={{ backgroundImage: "none" }}
+              className="w-full h-[45px] lg:h-[40px] px-3 bg-[#F7F7F8] border border-[#C4C4C9] rounded-md text-[#464C54] focus:ring-2 focus:ring-blue-400 focus:outline-none cursor-pointer appearance-none shadow-sm"
             >
               <option value="Tudo">Todas as Obras</option>
               <option value="Em andamento">Em andamento</option>
               <option value="Aguardando iniciação">Aguardando iniciação</option>
               <option value="Concluída">Concluídas</option>
             </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+            <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-[#464C54]">
               <svg
-                className="w-4 h-4 text-gray-500"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -79,13 +74,14 @@ export default function Navbar({
             </div>
           </div>
 
-          <div className={`relative ${isMobile ? "w-full" : "w-[250px]"}`}>
+          {/* Busca */}
+          <div className="w-full lg:w-[250px]">
             <input
               type="text"
               placeholder="Buscar obra ou cliente..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] text-[16px] text-[#464C54] px-[12px] focus:outline-none w-full box-border ${isMobile ? "h-[45px]" : "h-[40px]"}`}
+              className="w-full h-[45px] lg:h-[40px] px-3 bg-[#F7F7F8] border border-[#C4C4C9] rounded-md text-[#464C54] focus:ring-2 focus:ring-blue-400 focus:outline-none shadow-sm"
             />
           </div>
         </div>

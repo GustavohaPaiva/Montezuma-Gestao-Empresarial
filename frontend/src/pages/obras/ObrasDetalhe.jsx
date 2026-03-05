@@ -315,8 +315,12 @@ export default function ObrasDetalhe() {
 
   const iniciarEdicaoMaoDeObra = useCallback((item, campo) => {
     setEditandoMaoDeObra({ id: item.id, campo: campo });
-    const valorAtual =
-      campo === "orcado" ? item.valor_orcado || 0 : item.valor_pago || 0;
+    // Define o valor inicial baseado no campo que está sendo editado
+    let valorAtual = 0;
+    if (campo === "orcado") valorAtual = item.valor_orcado || 0;
+    else if (campo === "pago") valorAtual = item.valor_pago || 0;
+    else if (campo === "cobrado") valorAtual = item.valor_cobrado || 0;
+
     setValorMaoDeObraEditado(valorAtual);
   }, []);
 
@@ -329,6 +333,8 @@ export default function ObrasDetalhe() {
         campoEditado === "orcado" ? novoValor : item.valor_orcado || 0;
       const valorPagoFinal =
         campoEditado === "pago" ? novoValor : item.valor_pago || 0;
+      const valorCobradoFinal =
+        campoEditado === "cobrado" ? novoValor : item.valor_cobrado || 0;
 
       setObra((prev) => {
         if (!prev) return prev;
@@ -340,6 +346,7 @@ export default function ObrasDetalhe() {
                   ...m,
                   valor_orcado: valorOrcadoFinal,
                   valor_pago: valorPagoFinal,
+                  valor_cobrado: valorCobradoFinal,
                   saldo: valorOrcadoFinal - valorPagoFinal,
                 }
               : m,
@@ -351,9 +358,11 @@ export default function ObrasDetalhe() {
       setValorMaoDeObraEditado("");
 
       try {
+        // Assegure-se de que a sua API aceita o envio do valor_cobrado nesta função
         await api.updateMaoDeObraFinanceiro(item.id, {
           valor_orcado: valorOrcadoFinal,
           valor_pago: valorPagoFinal,
+          valor_cobrado: valorCobradoFinal,
         });
         await fetchDados();
       } catch (err) {
@@ -731,6 +740,9 @@ export default function ObrasDetalhe() {
 
     return maoDeObraOrdenada.map((m) => {
       const saldo = (m.valor_orcado || 0) - (m.valor_pago || 0);
+
+      const isEditingCobrado =
+        editandoMaoDeObra.id === m.id && editandoMaoDeObra.campo === "cobrado";
       const isEditingOrcado =
         editandoMaoDeObra.id === m.id && editandoMaoDeObra.campo === "orcado";
       const isEditingPago =
@@ -749,7 +761,58 @@ export default function ObrasDetalhe() {
         </label>,
         <div className="uppercase">{m.tipo}</div>,
         <div className="uppercase">{m.profissional}</div>,
-        `R$ ${formatarMoeda(m.valor_cobrado || 0)}`,
+        // Valor Cobrado (Agora Editável)
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`cobrado-${m.id}`}
+        >
+          {isEditingCobrado ? (
+            <div className="flex items-center gap-1">
+              <span>R$</span>
+              <input
+                type="number"
+                step="0.01"
+                value={valorMaoDeObraEditado}
+                onChange={(e) => setValorMaoDeObraEditado(e.target.value)}
+                className="w-[70px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none"
+                autoFocus
+              />
+              <button
+                onClick={() => salvarEdicaoMaoDeObra(m)}
+                className="cursor-pointer border-none bg-transparent flex-shrink-0"
+              >
+                <img
+                  width="15"
+                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
+                  alt="ok"
+                />
+              </button>
+              <button
+                onClick={() => setEditandoMaoDeObra({ id: null, campo: null })}
+                className="cursor-pointer border-none bg-transparent"
+              >
+                <img
+                  width="15"
+                  src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
+                  alt="cancel"
+                />
+              </button>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => iniciarEdicaoMaoDeObra(m, "cobrado")}
+            >
+              <span>R$ {formatarMoeda(m.valor_cobrado || 0)}</span>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
+              />
+            </div>
+          )}
+        </div>,
         // Valor Orçado
         <div
           className="flex items-center justify-center gap-2"
