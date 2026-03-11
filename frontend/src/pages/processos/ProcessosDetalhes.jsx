@@ -169,6 +169,8 @@ export default function ProcessosDetalhes() {
 
   const getCorStatus = (status) => {
     switch (status) {
+      case "Produção de Projeto":
+        return "bg-[#e2ffff] text-[#00ffff]";
       case "Prefeitura":
         return "bg-[#E3F2FD] text-[#1565C0]";
       case "Codau":
@@ -209,6 +211,7 @@ export default function ProcessosDetalhes() {
         onChange={(e) => handleStatusChange("status_pmu", e.target.value)}
         className={`w-fit text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none cursor-pointer appearance-none ${getCorStatus(processo.status_pmu || "Prefeitura")}`}
       >
+        <option value="Produção de Projeto">Produção de Projeto</option>
         <option value="Prefeitura">Prefeitura</option>
         <option value="Codau">Codau</option>
         <option value="Paralizado">Paralizado</option>

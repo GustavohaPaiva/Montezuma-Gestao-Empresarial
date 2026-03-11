@@ -5,22 +5,22 @@ export default function Home() {
   const modulos = [
     {
       id: 1,
-      titulo: "Obras",
-      imagem: "https://img.icons8.com/ios/125/company--v1.png",
-      path: "/obras",
-    },
-    {
-      id: 2,
       titulo: "Projetos",
       imagem: "https://img.icons8.com/ios/125/project.png",
       path: "/projetos",
     },
     {
-      id: 3,
+      id: 2,
       titulo: "Processos",
       imagem:
         "https://img.icons8.com/external-outline-design-circle/125/external-Process-Lists-artificial-intelligence-outline-design-circle.png",
       path: "/processos",
+    },
+    {
+      id: 3,
+      titulo: "Obras",
+      imagem: "https://img.icons8.com/ios/125/company--v1.png",
+      path: "/obras",
     },
     {
       id: 4,
