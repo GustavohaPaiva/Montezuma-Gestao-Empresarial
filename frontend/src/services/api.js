@@ -170,17 +170,20 @@ export const api = {
     return data;
   },
 
-  // === NOVA FUNÇÃO AQUI ===
-  getClienteById: async (id) => {
-    const { data, error } = await supabase
-      .from("clientes")
-      .select("*")
-      .eq("id", id)
-      .single();
+  getClienteById: async (idOuNome) => {
+    let query = supabase.from("clientes").select("*");
+
+    if (!isNaN(idOuNome) && idOuNome !== null && idOuNome !== "") {
+      query = query.eq("id", idOuNome);
+    } else {
+      query = query.eq("nome", idOuNome);
+    }
+
+    const { data, error } = await query.maybeSingle();
+
     if (error) throw error;
     return data;
   },
-  // ========================
 
   createCliente: async (novoCliente) => {
     const { data, error } = await supabase
@@ -302,8 +305,9 @@ export const api = {
   getObraById: async (id) => {
     const { data, error } = await supabase
       .from("obras")
+      // Puxamos 'clientes(*)' usando a foreign key obra_id da tabela clientes
       .select(
-        `*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*)`,
+        `*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*), clientes(*)`,
       )
       .eq("id", id)
       .maybeSingle();
@@ -317,11 +321,13 @@ export const api = {
     const relatorioOrdenado = (data.relatorioExtrato || []).sort(
       (a, b) => new Date(b.data) - new Date(a.data),
     );
+
     return {
       ...data,
       materiais: data.materiais || [],
       maoDeObra: data.maoDeObra || [],
       relatorioExtrato: relatorioOrdenado,
+      processos: data.clientes || [],
     };
   },
 

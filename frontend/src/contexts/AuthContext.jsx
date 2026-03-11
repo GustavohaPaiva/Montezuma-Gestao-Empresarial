@@ -14,34 +14,65 @@ export function AuthProvider({ children }) {
 
   const [loading, setLoading] = useState(false);
 
-  // Login do Cliente "Fantasma"
+  // Login do Cliente (O Caminho Duplo)
   const loginCliente = async (nome, local) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc("validar_login_cliente", {
-        nome_digitado: nome,
-        local_digitado: local,
-      });
+      // TENTATIVA 1: O jeito antigo (RPC) - Para quem JÁ TEM Obra lançada
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
+        "validar_login_cliente",
+        {
+          nome_digitado: nome,
+          local_digitado: local,
+        },
+      );
 
-      if (error || !data) throw new Error("Dados incorretos.");
+      let idObra = rpcData
+        ? typeof rpcData === "object"
+          ? rpcData.id
+          : rpcData
+        : null;
 
-      // Blindagem: Se a RPC retornar a linha toda, pegamos data.id.
-      // Se retornar só o UUID direto, pegamos o próprio data.
-      const idObra = typeof data === "object" ? data.id : data;
+      // Se a RPC funcionou e achou o cara, ele é um cliente normal de obra
+      if (!rpcError && idObra) {
+        const userData = {
+          ...(typeof rpcData === "object" ? rpcData : {}),
+          id: String(idObra),
+          nome: nome,
+          tipo: "cliente",
+          isSomenteProcesso: false, // AVISA O FRONT QUE É PRA MOSTRAR RELATÓRIOS
+        };
+        setUser(userData);
+        sessionStorage.setItem("montezuma_session", JSON.stringify(userData));
+        return userData;
+      }
 
-      if (!idObra) throw new Error("A RPC não retornou um ID de obra válido.");
+      // TENTATIVA 2: Se a RPC falhou, é um cliente NOVO sem obra. Busca na tabela de clientes.
+      const nomeLimpo = nome.trim();
+      const bairroLimpo = local.trim();
 
-      // Monta o usuário fantasma e converte o ID pra string pra RotaProtegida não barrar
+      const { data: clienteData, error: clienteError } = await supabase
+        .from("clientes")
+        .select("*")
+        .ilike("nome", `%${nomeLimpo}%`)
+        .ilike("bairro", `%${bairroLimpo}%`)
+        .maybeSingle();
+
+      if (clienteError || !clienteData) {
+        throw new Error("Dados incorretos.");
+      }
+
+      // Cliente sem obra encontrado!
       const userData = {
-        ...(typeof data === "object" ? data : {}),
-        id: String(idObra),
-        nome: nome,
+        ...clienteData,
+        id: String(clienteData.id), // Vamos usar o ID do cliente na URL
+        nome: clienteData.nome,
         tipo: "cliente",
+        isSomenteProcesso: true, // AVISA O FRONT QUE É PRA MOSTRAR SÓ PROCESSOS
       };
 
       setUser(userData);
       sessionStorage.setItem("montezuma_session", JSON.stringify(userData));
-
       return userData;
     } finally {
       setLoading(false);
