@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
+import TabelaSimples from "../../components/gerais/TabelaSimples";
 import { useParams } from "react-router-dom";
 import { api } from "../../services/api";
-import TabelaSimples from "../../components/gerais/TabelaSimples";
-
+import CardProcessos from "../../components/cards/CardProcessos";
 // --- Funções Auxiliares de Formatação ---
 const formatarDataBR = (dataString) => {
   if (!dataString) return "-";
@@ -22,6 +22,7 @@ export default function ObraCliente() {
   const { id } = useParams();
 
   const [obra, setObra] = useState(null);
+  const [, setCliente] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   // --- Filtros de Visualização ---
@@ -36,12 +37,18 @@ export default function ObraCliente() {
 
     const carregarDados = async () => {
       try {
-        const dados = await api.getObraById(id);
-        if (dados) {
-          setObra(dados);
+        const dadosObra = await api.getObraById(id);
+
+        if (dadosObra) {
+          setObra(dadosObra);
+
+          if (dadosObra.cliente) {
+            const dadosCliente = await api.getClienteById(dadosObra.cliente);
+            setCliente(dadosCliente);
+          }
         }
       } catch (err) {
-        console.error("ERRO AO BUSCAR DADOS:", err);
+        console.error("ERRO AO BUSCAR DADOS DA OBRA/CLIENTE:", err);
       }
     };
 
@@ -53,6 +60,12 @@ export default function ObraCliente() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // --- PREPARAÇÃO DOS DADOS: PROCESSOS (SOMENTE LEITURA) ---
+  const processosProcessados = useMemo(() => {
+    if (!obra || !obra.processos) return [];
+    return obra.processos;
+  }, [obra]);
 
   // --- PREPARAÇÃO DOS DADOS: MATERIAIS ---
   const dadosMateriais = useMemo(() => {
@@ -66,7 +79,6 @@ export default function ObraCliente() {
       );
     }
 
-    // Ordenação Personalizada Materiais
     const ordemStatus = {
       Solicitado: 1,
       "Em cotação": 2,
@@ -76,7 +88,6 @@ export default function ObraCliente() {
     };
 
     lista.sort((a, b) => {
-      // 1. Ordenação por Status Específico
       const statusA = a.status || "Solicitado";
       const statusB = b.status || "Solicitado";
       const pesoA = ordemStatus[statusA] || 99;
@@ -85,8 +96,6 @@ export default function ObraCliente() {
       if (pesoA !== pesoB) {
         return pesoA - pesoB;
       }
-
-      // 2. Ordenação Secundária por Data (Menor para Maior)
       return new Date(a.data_solicitacao) - new Date(b.data_solicitacao);
     });
 
@@ -95,12 +104,14 @@ export default function ObraCliente() {
       const valorUnitario = qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
 
       return [
-        // Alterado de text-left para text-center
-        <div className="uppercase text-center font-medium">{m.material}</div>,
+        <div key={`mat-${m.id}`} className="uppercase text-center font-medium">
+          {m.material}
+        </div>,
         m.quantidade,
         `R$ ${formatarMoeda(valorUnitario)}`,
         `R$ ${formatarMoeda(m.valor || 0)}`,
         <div
+          key={`status-${m.id}`}
           className={`text-[12px] font-bold px-3 py-1 rounded-[20px] inline-block ${
             m.status === "Entregue"
               ? "bg-[#E8F5E9] text-[#2E7D32]"
@@ -109,7 +120,9 @@ export default function ObraCliente() {
         >
           {m.status || "Solicitado"}
         </div>,
-        <div className="uppercase text-center">{m.fornecedor || "-"}</div>,
+        <div key={`forn-${m.id}`} className="uppercase text-center">
+          {m.fornecedor || "-"}
+        </div>,
         formatarDataBR(m.data_solicitacao),
       ];
     });
@@ -130,7 +143,6 @@ export default function ObraCliente() {
       );
     }
 
-    // Ordenação: Não validados primeiro (0), Validados por último (1)
     lista.sort((a, b) => {
       const valA = a.validacao === 1 ? 1 : 0;
       const valB = b.validacao === 1 ? 1 : 0;
@@ -138,8 +150,7 @@ export default function ObraCliente() {
     });
 
     return lista.map((m) => [
-      // Coluna Validação
-      <div className="flex justify-center items-center">
+      <div key={`val-${m.id}`} className="flex justify-center items-center">
         <input
           type="checkbox"
           checked={m.validacao === 1}
@@ -150,9 +161,12 @@ export default function ObraCliente() {
           }`}
         />
       </div>,
-      // Adicionado text-center
-      <div className="uppercase text-center">{m.tipo}</div>,
-      <div className="uppercase text-center">{m.profissional}</div>,
+      <div key={`tipo-${m.id}`} className="uppercase text-center">
+        {m.tipo}
+      </div>,
+      <div key={`prof-${m.id}`} className="uppercase text-center">
+        {m.profissional}
+      </div>,
       `R$ ${formatarMoeda(m.valor_cobrado || 0)}`,
       formatarDataBR(m.data_solicitacao),
     ]);
@@ -178,7 +192,6 @@ export default function ObraCliente() {
       );
     }
 
-    // Ordenação Extrato
     lista.sort((a, b) => {
       const isPagoA = a.status_financeiro === "Pago";
       const isPagoB = b.status_financeiro === "Pago";
@@ -190,12 +203,16 @@ export default function ObraCliente() {
     });
 
     return lista.map((item) => [
-      // Alterado de text-left para text-center
-      <div className="uppercase text-center">{item.descricao}</div>,
-      <div className="uppercase text-center">{item.tipo}</div>,
+      <div key={`desc-${item.id}`} className="uppercase text-center">
+        {item.descricao}
+      </div>,
+      <div key={`tipo-${item.id}`} className="uppercase text-center">
+        {item.tipo}
+      </div>,
       item.quantidade,
       `R$ ${formatarMoeda(item.valor)}`,
       <div
+        key={`stat-${item.id}`}
         className={`text-[12px] font-bold px-3 py-1 rounded-[20px] inline-block ${
           item.status_financeiro === "Pago"
             ? "bg-[#E8F5E9] text-[#2E7D32]"
@@ -238,18 +255,36 @@ export default function ObraCliente() {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
-      {/* HEADER */}
-      <header className="h-[82px] border-b border-[#DBDADE] flex justify-center top-0 z-10 w-full bg-[#EEEDF0] ">
-        <div className="w-[90%] flex items-center justify-center">
-          <h1 className="text-[20px] font-bold uppercase tracking-[2px] text-[#464C54]">
-            {obra.local} - {obra.cliente}
-          </h1>
-        </div>
-      </header>
+    <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0]">
+      {/* PROCESSOS - APENAS LEITURA */}
+      <div className="w-[90%] bg-white h-auto mt-[24px] rounded-[12px] p-[24px] shadow-sm">
+        <h2 className="text-[24px] font-bold text-[#464C54]">Processos</h2>
+        <main className="w-[full] mt-[40px] flex flex-col gap-6">
+          {processosProcessados.length > 0 ? (
+            <div className="grid w-full md:grid-cols-[repeat(auto-fit,minmax(0,380px))] gap-[30px] justify-center md:justify-start">
+              {processosProcessados.map((item) => (
+                <CardProcessos
+                  key={item.id}
+                  id={item.id}
+                  client={item.nome}
+                  tipo={item.tipo}
+                  status={item.status}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex justify-center items-center w-full h-[100px] text-gray-500 font-medium">
+              Nenhum processo vinculado à obra até o momento.
+            </div>
+          )}
+        </main>
+      </div>
 
-      {/* MAIN CONTENT */}
-      <main className="w-[90%] mt-[24px] flex flex-col gap-[24px]">
+      {/* MAIN CONTENT RELATÓRIOS */}
+      <main
+        id="relatorios"
+        className="w-[90%] mt-[24px] flex flex-col gap-[24px] mb-[100px] md:mb-6"
+      >
         {/* --- TABELA MATERIAIS --- */}
         <div className="bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px]">
           <div
@@ -272,7 +307,6 @@ export default function ObraCliente() {
               </div>
             </div>
           </div>
-
           <TabelaSimples
             colunas={[
               "Material",
@@ -311,7 +345,6 @@ export default function ObraCliente() {
               </div>
             </div>
           </div>
-
           <TabelaSimples
             colunas={["Validação", "Tipo", "Profissional", "Valor", "Data"]}
             dados={dadosMaoDeObra}
@@ -326,7 +359,6 @@ export default function ObraCliente() {
             <h2 className="text-[24px] font-bold text-[#464C54]">
               Extrato Geral
             </h2>
-
             <div
               className={`flex ${isMobile ? "flex-col" : "flex-row"} gap-3 items-center`}
             >
@@ -339,7 +371,6 @@ export default function ObraCliente() {
                 <option value="Materiais">Materiais</option>
                 <option value="Mão de Obra">Mão de Obra</option>
               </select>
-
               <input
                 type="text"
                 placeholder="Buscar no extrato..."
@@ -347,7 +378,6 @@ export default function ObraCliente() {
                 onChange={(e) => setBuscaExtrato(e.target.value)}
                 className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
               />
-
               <div className="h-[40px] px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
                 Total:{" "}
                 <span className="font-bold ml-1 text-green-700">
@@ -356,7 +386,6 @@ export default function ObraCliente() {
               </div>
             </div>
           </div>
-
           <TabelaSimples
             colunas={[
               "Descrição",

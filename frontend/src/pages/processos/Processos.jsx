@@ -72,9 +72,6 @@ export default function Processos() {
   const processosProcessados = useMemo(() => {
     let lista = [...processos];
 
-    // NOVO: Exclui da listagem processos que estão no status "Produção"
-    lista = lista.filter((p) => p.status !== "Produção");
-
     // Filtro por Nome ou Tipo
     if (busca) {
       const termo = busca.toLowerCase();
