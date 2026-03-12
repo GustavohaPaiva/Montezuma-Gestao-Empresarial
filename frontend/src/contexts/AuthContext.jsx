@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import { supabase } from "../services/supabase";
+import { api } from "../services/api"; // <-- Importamos a API aqui!
 
 const AuthContext = createContext();
 
@@ -47,25 +48,25 @@ export function AuthProvider({ children }) {
         return userData;
       }
 
-      // TENTATIVA 2: Se a RPC falhou, é um cliente NOVO sem obra. Busca na tabela de clientes.
+      // TENTATIVA 2: Para clientes apenas de Processo (Usando a nova RPC via api.js)
       const nomeLimpo = nome.trim();
       const bairroLimpo = local.trim();
 
-      const { data: clienteData, error: clienteError } = await supabase
-        .from("clientes")
-        .select("*")
-        .ilike("nome", `%${nomeLimpo}%`)
-        .ilike("bairro", `%${bairroLimpo}%`)
-        .maybeSingle();
+      // Agora usamos a API que tem o poder do SECURITY DEFINER (RPC buscar_dados_cliente)
+      const clienteData = await api.loginClientePorNomeEBairro(
+        nomeLimpo,
+        bairroLimpo,
+      );
 
-      if (clienteError || !clienteData) {
+      // Se a RPC da TENTATIVA 2 falhar ou não achar ninguém, aí sim dá o erro final
+      if (!clienteData) {
         throw new Error("Dados incorretos.");
       }
 
-      // Cliente sem obra encontrado!
+      // Cliente de processo encontrado com sucesso!
       const userData = {
         ...clienteData,
-        id: String(clienteData.id), // Vamos usar o ID do cliente na URL
+        id: String(clienteData.id), // Usa o ID do cliente na URL
         nome: clienteData.nome,
         tipo: "cliente",
         isSomenteProcesso: true, // AVISA O FRONT QUE É PRA MOSTRAR SÓ PROCESSOS
