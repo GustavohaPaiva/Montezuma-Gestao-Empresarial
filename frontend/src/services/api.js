@@ -153,7 +153,24 @@ export const api = {
     if (error) throw error;
   },
 
-  // --- MÓDULO CLIENTES ---
+  // --- MÓDULO CLIENTES E LOGIN CLIENTE ---
+
+  // NOVA FUNÇÃO: Login seguro para clientes usando RPC
+  loginClientePorNomeEBairro: async (nomeCliente, bairroObra) => {
+    // Chama a função RPC criada no Supabase que tem permissões SECURITY DEFINER
+    const { data, error } = await supabase.rpc("buscar_dados_cliente", {
+      p_nome: nomeCliente,
+      p_bairro: bairroObra, // Alterado para buscar pelo bairro da obra
+    });
+
+    if (error) {
+      console.error("Erro na busca do cliente via RPC:", error);
+      throw error;
+    }
+
+    // Retorna o primeiro registo encontrado, ou null se não encontrar nada
+    return data && data.length > 0 ? data[0] : null;
+  },
 
   getClientes: async (escritorioId) => {
     let query = supabase
@@ -171,6 +188,19 @@ export const api = {
   },
 
   getClienteById: async (idOuNome) => {
+    if (!isNaN(idOuNome) && idOuNome !== null && idOuNome !== "") {
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
+        "obter_cliente_por_id",
+        {
+          p_id: parseInt(idOuNome),
+        },
+      );
+
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        return rpcData[0];
+      }
+    }
+
     let query = supabase.from("clientes").select("*");
 
     if (!isNaN(idOuNome) && idOuNome !== null && idOuNome !== "") {
