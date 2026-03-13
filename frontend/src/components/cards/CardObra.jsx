@@ -53,7 +53,7 @@ export default function ObraCard({
   const StatusIcon = statusAtual.icon;
 
   const handleCardClick = () => {
-    if (!isEditing) navigate(`/obra/${id}`);
+    if (!isEditing) navigate(`/obrasD/${id}`);
   };
 
   const toggleEdit = (e) => {

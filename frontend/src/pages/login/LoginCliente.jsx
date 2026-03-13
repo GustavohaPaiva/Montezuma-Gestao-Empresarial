@@ -28,7 +28,7 @@ export default function LoginCliente() {
     try {
       // Passa os dados mastigados e limpos para o contexto
       const usuario = await loginCliente(nomeTratado, bairroTratado);
-      navigate(`/obraCliente/${usuario.id}`);
+      navigate(`/obra/${usuario.id}`);
     } catch (error) {
       console.error(error);
       setErro("Cliente ou Bairro não encontrados.");

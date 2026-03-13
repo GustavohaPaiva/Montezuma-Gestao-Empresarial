@@ -248,6 +248,47 @@ export const api = {
     if (error) throw error;
   },
 
+  uploadFotoCliente: async (clienteId, file) => {
+    try {
+      // 1. Gera um nome de arquivo único para evitar conflitos
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${clienteId}-${Date.now()}.${fileExt}`;
+
+      // 2. Faz o upload da foto pro Supabase (o bucket precisa se chamar 'fotos_clientes')
+      const { error: uploadError } = await supabase.storage
+        .from("fotos_clientes")
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error("Erro no upload do Supabase:", uploadError);
+        throw uploadError;
+      }
+
+      // 3. Pega a URL pública gerada
+      const { data } = supabase.storage
+        .from("fotos_clientes")
+        .getPublicUrl(fileName);
+
+      const fotoUrl = data.publicUrl;
+
+      // 4. Salva a URL nova lá na tabela de clientes
+      const { error: updateError } = await supabase
+        .from("clientes")
+        .update({ foto: fotoUrl })
+        .eq("id", clienteId);
+
+      if (updateError) {
+        console.error("Erro ao atualizar o banco de dados:", updateError);
+        throw updateError;
+      }
+
+      return { fotoUrl };
+    } catch (error) {
+      console.error("Erro completo na função de upload:", error);
+      throw error;
+    }
+  },
+
   // --- MÓDULO OBRAS ---
 
   getObras: async () => {

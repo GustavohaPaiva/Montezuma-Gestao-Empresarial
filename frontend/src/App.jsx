@@ -9,7 +9,7 @@ import Projetos from "./pages/projetos/Projetos";
 import Processos from "./pages/processos/Processos";
 import LoginCliente from "./pages/login/LoginCliente";
 import LoginAdm from "./pages/login/LoginAdm";
-import ObrasCliente from "./pages/obras/ObraCliente";
+import Obra from "./pages/obras/ObraCliente";
 import Financeiro from "./pages/financeiro/Financeiro";
 import ProcessosDetalhes from "./pages/processos/ProcessosDetalhes";
 import DocumentosProcesso from "./pages/processos/DocumentosProcesso";
@@ -33,7 +33,7 @@ export default function App() {
             <Route path="/projetos" element={<Projetos />} />
             <Route path="/obras" element={<Obras />} />
             <Route path="/processos" element={<Processos />} />
-            <Route path="/obra/:id" element={<ObrasDetalhe />} />
+            <Route path="/obrasD/:id" element={<ObrasDetalhe />} />
             <Route path="/financeiro" element={<Financeiro />} />
             <Route path="/processo/:id" element={<ProcessosDetalhes />} />
             <Route path="/documentos/:id" element={<DocumentosProcesso />} />
@@ -43,7 +43,7 @@ export default function App() {
           <Route
             element={<RotaProtegida allowedTypes={["cliente", "admin"]} />}
           >
-            <Route path="/obraCliente/:id" element={<ObrasCliente />} />
+            <Route path="/obra/:id" element={<Obra />} />
           </Route>
         </Routes>
       </Router>
