@@ -1,29 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import { supabase } from "../../services/supabase";
 
 export default function ModalNovaObra({ isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState({
     nomeObra: "",
-    cliente: "",
+    cliente_id: "",
   });
+
+  const [clientes, setClientes] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchClientes = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("clientes")
+          .select("id, nome")
+          .order("nome", { ascending: true });
+
+        if (!error && data) {
+          setClientes(data);
+        } else {
+          console.error("Erro ao carregar clientes:", error);
+        }
+        setLoading(false);
+      };
+
+      fetchClientes();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // PERFORMANCE: Limpamos o estado na AÇÃO (click) e não no EFEITO.
-  // Isso evita o erro do ESLint e impede renderizações duplas na tela.
   const handleCloseAndReset = () => {
-    setFormData({ nomeObra: "", cliente: "" });
+    setFormData({ nomeObra: "", cliente_id: "" });
     onClose();
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!formData.cliente_id) {
+      alert("Selecione um cliente válido.");
+      return;
+    }
     onSave(formData);
-    handleCloseAndReset(); // Salva, avisa o pai e já limpa o lixo para a próxima vez
+    handleCloseAndReset();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-[10px]">
       <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-gray-200">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">
@@ -49,7 +76,7 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
               htmlFor="nomeObra"
               className="text-xs font-bold text-gray-500 uppercase"
             >
-              Local da Obra (Nome)
+              Local da Obra (Bairro ou Apelido)
             </label>
             <input
               id="nomeObra"
@@ -66,25 +93,39 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
 
           <div className="flex flex-col gap-1.5">
             <label
-              htmlFor="cliente"
+              htmlFor="cliente_id"
               className="text-xs font-bold text-gray-500 uppercase"
             >
-              Nome do Cliente
+              Cliente Responsável
             </label>
-            <input
-              id="cliente"
-              type="text"
-              required
-              placeholder="Ex: João Silva"
-              className="w-full h-11 px-3 text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:bg-white focus:outline-none transition-all"
-              value={formData.cliente}
-              onChange={(e) =>
-                setFormData({ ...formData, cliente: e.target.value })
-              }
-            />
+            <div className="flex gap-2">
+              <select
+                id="cliente_id"
+                required
+                className="flex-1 h-11 px-3 text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:bg-white focus:outline-none transition-all cursor-pointer"
+                value={formData.cliente_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, cliente_id: e.target.value })
+                }
+                disabled={loading}
+              >
+                <option value="" disabled>
+                  {loading
+                    ? "Carregando clientes..."
+                    : "Selecione um cliente..."}
+                </option>
+                {clientes.map((cli) => (
+                  <option key={cli.id} value={cli.id}>
+                    {cli.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <ButtonDefault type="submit">Salvar Obra</ButtonDefault>
+          <ButtonDefault type="submit" className="mt-2">
+            Salvar Obra
+          </ButtonDefault>
         </form>
       </div>
     </div>

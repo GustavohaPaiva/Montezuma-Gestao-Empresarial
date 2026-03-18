@@ -6,6 +6,9 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from "../../services/api";
 import ModalMateriais from "../../components/modals/ModalMateriais";
 import ModalMaoDeObra from "../../components/modals/ModalMaoDeObra";
+//import ModalEtapas from "../../components/modals/ModalEtapas";
+//import Etapas from "../../components/gerais/ObraEtapas";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 // --- Constantes ---
 const ORDEM_STATUS = {
@@ -271,8 +274,10 @@ export default function ObrasDetalhe() {
   const navigate = useNavigate();
   const [obra, setObra] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [categoriaAtiva, setCategoriaAtiva] = useState(null);
 
   // Modais
+  //const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
   const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
   const [modalRelatorioPrestadorOpen, setModalRelatorioPrestadorOpen] =
@@ -303,6 +308,55 @@ export default function ObrasDetalhe() {
     campo: null,
   });
 
+  const totais = useMemo(() => {
+    if (!obra) return { materiais: 0, maoDeObra: 0, totalExtrato: 0 };
+    return {
+      materiais: (obra.materiais || []).reduce(
+        (acc, m) => acc + (parseFloat(m.valor) || 0),
+        0,
+      ),
+      maoDeObra: (obra.maoDeObra || []).reduce(
+        (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
+        0,
+      ),
+      totalExtrato: (obra.relatorioExtrato || []).reduce(
+        (acc, item) => acc + (parseFloat(item.valor) || 0),
+        0,
+      ),
+    };
+  }, [obra]);
+
+  const dataGrafico = useMemo(() => {
+    const paletaCores = ["#860000", "#EE5B11", "#F67D15", "#FBA51B", "#FDC626"];
+    const totalGeral = totais.materiais + totais.maoDeObra;
+    const dados = [
+      {
+        name: "Materiais",
+        value: totais.materiais,
+        qtd: obra?.materiais?.length || 0,
+      },
+      {
+        name: "Mão de Obra",
+        value: totais.maoDeObra,
+        qtd: obra?.maoDeObra?.length || 0,
+      },
+    ];
+    dados.sort((a, b) => b.value - a.value);
+    return dados.map((d, index) => {
+      const percentual =
+        totalGeral > 0 ? ((d.value / totalGeral) * 100).toFixed(0) : 0;
+      return {
+        ...d,
+        percentual,
+        color: paletaCores[index] || paletaCores[paletaCores.length - 1],
+      };
+    });
+  }, [totais, obra]);
+
+  const toggleCategoria = (nome) => {
+    setCategoriaAtiva((prev) => (prev === nome ? null : nome));
+  };
+
   // Busca de Dados
   const fetchDados = useCallback(async () => {
     if (!id) return;
@@ -314,7 +368,6 @@ export default function ObrasDetalhe() {
     }
   }, [id]);
 
-  // CORREÇÃO 1: useEffect separado apenas para o fetch
   useEffect(() => {
     const carregarDados = async () => {
       await fetchDados();
@@ -323,14 +376,12 @@ export default function ObrasDetalhe() {
     carregarDados();
   }, [fetchDados]);
 
-  // CORREÇÃO 2: useEffect separado apenas para o resize da tela
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Extrair prestadores únicos para o Modal de Relatório
   const prestadoresUnicos = useMemo(() => {
     if (!obra || !obra.maoDeObra) return [];
     const prestadores = obra.maoDeObra
@@ -1169,23 +1220,6 @@ export default function ObrasDetalhe() {
   ]);
 
   // --- CÁLCULOS TOTAIS ---
-  const totais = useMemo(() => {
-    if (!obra) return { materiais: 0, maoDeObra: 0, totalExtrato: 0 };
-    return {
-      materiais: (obra.materiais || []).reduce(
-        (acc, m) => acc + (parseFloat(m.valor) || 0),
-        0,
-      ),
-      maoDeObra: (obra.maoDeObra || []).reduce(
-        (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
-        0,
-      ),
-      totalExtrato: (obra.relatorioExtrato || []).reduce(
-        (acc, item) => acc + (parseFloat(item.valor) || 0),
-        0,
-      ),
-    };
-  }, [obra]);
 
   const headerExtrato = useMemo(() => {
     let itensParaVerificar = obra?.relatorioExtrato || [];
@@ -1246,11 +1280,19 @@ export default function ObrasDetalhe() {
               />
             </button>
             <h1 className="text-[20px] font-bold uppercase tracking-[2px] text-[#464C54]">
-              {obra.local} - {obra.cliente}
+              {/* O AJUSTE DA EXIBIÇÃO DO NOME DO CLIENTE ESTÁ AQUI */}
+              {obra.local} - {obra.clientes?.nome || obra.cliente}
             </h1>
           </div>
           {!isMobile && (
             <div className="flex gap-[16px]">
+              {/*
+              <ButtonDefault
+                className="w-[135px]"
+                onClick={() => setModalEtapasisOpen(true)}
+              >
+                + Etapas
+              </ButtonDefault> */}
               <ButtonDefault
                 className="w-[135px]"
                 onClick={() => setModalMateriaisOpen(true)}
@@ -1270,6 +1312,10 @@ export default function ObrasDetalhe() {
       <main className="w-[90%] mt-[24px]">
         {isMobile && (
           <div className="flex flex-col gap-[12px] mb-[24px]">
+            {/*
+            <ButtonDefault onClick={() => setModalEtapasisOpen(true)}>
+              + Etapas
+            </ButtonDefault> */}
             <ButtonDefault onClick={() => setModalMateriaisOpen(true)}>
               + Materiais
             </ButtonDefault>
@@ -1279,6 +1325,183 @@ export default function ObrasDetalhe() {
           </div>
         )}
         <div>
+          {/* CONTROLE FINANCEIRO (LAYOUT DINÂMICO GRÁFICO / RESUMO) */}
+          <div
+            id="#financeiro"
+            className="w-full bg-white h-auto rounded-[12px] mb-[24px] p-[24px] shadow-sm relative overflow-hidden"
+          >
+            <h2 className="text-[24px] font-bold text-[#464C54] mb-[20px]">
+              Resumo Financeiro
+            </h2>
+            <div
+              className={`flex flex-col md:flex-row gap-[20px] transition-all duration-700 ease-in-out ${categoriaAtiva ? "md:h-[320px]" : "md:h-[280px] items-center justify-center"}`}
+            >
+              {/* Lado Esquerdo */}
+              <div
+                className={`flex flex-col transition-all duration-700 ease-in-out h-full ${categoriaAtiva ? "w-full md:w-[60%] justify-between" : "w-full md:w-[50%] justify-center items-center"}`}
+              >
+                <div
+                  className={`w-full transition-all duration-700 ease-in-out overflow-hidden ${categoriaAtiva ? "max-h-[250px] opacity-100 mb-4" : "max-h-0 opacity-0"}`}
+                >
+                  {categoriaAtiva &&
+                    (() => {
+                      const ativo = dataGrafico.find(
+                        (d) => d.name === categoriaAtiva,
+                      );
+                      return (
+                        <div className="bg-[#f6f6f6] border border-[#f1f1f1] rounded-[8px] p-5 shadow-sm h-auto">
+                          <h3 className="text-xl font-bold text-[#464C54] mb-2 uppercase">
+                            Visão: {ativo.name}
+                          </h3>
+                          <div className="flex flex-col md:flex-row md:items-end gap-3 mb-3">
+                            <span
+                              className="text-4xl font-bold"
+                              style={{ color: ativo.color }}
+                            >
+                              R$ {formatarMoeda(ativo.value)}
+                            </span>
+                            <span className="text-sm font-medium text-[#919191] mb-1">
+                              ({ativo.percentual}% do custo total da obra)
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#71717A] leading-relaxed">
+                            Este painel consolida todos os gastos referentes a{" "}
+                            <strong>{ativo.name.toLowerCase()}</strong>. Até o
+                            momento, foram registrados{" "}
+                            <strong className="text-black">{ativo.qtd}</strong>{" "}
+                            lançamentos.
+                          </p>
+                        </div>
+                      );
+                    })()}
+                </div>
+
+                <div
+                  className={`transition-all duration-700 ease-in-out ${categoriaAtiva ? "w-[140px] h-[140px] self-start" : "w-full h-[250px] md:h-full flex justify-center"}`}
+                >
+                  {totais.materiais > 0 || totais.maoDeObra > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={dataGrafico}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={categoriaAtiva ? 65 : 120}
+                          dataKey="value"
+                          stroke="none"
+                          onClick={(e, index) =>
+                            toggleCategoria(dataGrafico[index].name)
+                          }
+                          className="cursor-pointer outline-none"
+                        >
+                          {dataGrafico.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.color}
+                              style={{
+                                filter: `drop-shadow(0px 0px ${categoriaAtiva ? "4px" : "8px"} ${entry.color}99)`,
+                                opacity:
+                                  categoriaAtiva &&
+                                  categoriaAtiva !== entry.name
+                                    ? 0.3
+                                    : 1,
+                                transition: "opacity 0.4s ease",
+                              }}
+                            />
+                          ))}
+                        </Pie>
+                        {!categoriaAtiva && (
+                          <Tooltip
+                            formatter={(value) => `R$ ${formatarMoeda(value)}`}
+                          />
+                        )}
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full w-full text-[#919191] italic">
+                      Sem dados suficientes para gerar o gráfico.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Lado Direito */}
+              <div
+                className={`flex flex-col justify-center transition-all duration-700 ease-in-out w-full md:w-[40%]`}
+              >
+                <div className="flex flex-col w-full bg-[#fcfcfc] border border-[#f1f1f1] rounded-[8px] shadow-sm z-10 relative">
+                  {dataGrafico.map((item, index) => (
+                    <div
+                      key={index}
+                      onClick={() => toggleCategoria(item.name)}
+                      className={`flex justify-between items-center py-3 border-b border-[#f1f1f1] last:border-b-0 cursor-pointer transition-all duration-300 rounded-md px-2 ${categoriaAtiva === item.name ? "bg-[#EEEDF0] scale-[1.02] shadow-sm" : "hover:bg-gray-50"}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-3 h-3 rounded-full transition-all duration-300"
+                          style={{
+                            backgroundColor: item.color,
+                            boxShadow: `0 0 10px ${item.color}`,
+                            opacity:
+                              categoriaAtiva && categoriaAtiva !== item.name
+                                ? 0.4
+                                : 1,
+                          }}
+                        ></div>
+                        <span
+                          className={`font-medium text-sm transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-[#a1a1a1]" : "text-[#464C54]"}`}
+                        >
+                          {item.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`font-semibold text-sm transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-[#a1a1a1]" : "text-[#464C54]"}`}
+                        >
+                          R$ {formatarMoeda(item.value)}
+                        </span>
+                        <span
+                          className={`text-xs font-medium w-[35px] text-right transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-[#d1d1d1]" : "text-[#919191]"}`}
+                        >
+                          {item.percentual}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div
+                  className="bg-[#EEEDF0] border border-[#DBDADE] rounded-[8px] p-[8px] flex justify-between items-center shadow-sm mt-4 w-full cursor-pointer hover:bg-[#e4e3e6] transition-colors"
+                  onClick={() => setCategoriaAtiva(null)}
+                >
+                  <span className="font-bold text-black uppercase text-sm">
+                    Custo Total
+                  </span>
+                  <span className="font-bold text-[#2E7D32] text-lg">
+                    R$ {formatarMoeda(totais.materiais + totais.maoDeObra)}
+                  </span>
+                </div>
+
+                <div
+                  className={`text-center mt-3 transition-all duration-500 ${categoriaAtiva ? "opacity-100 max-h-[30px]" : "opacity-0 max-h-0"}`}
+                >
+                  <button
+                    onClick={() => setCategoriaAtiva(null)}
+                    className="text-xs text-[#DC3B0B] underline font-medium cursor-pointer"
+                  >
+                    Restaurar gráfico completo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Etapas */}
+          {/*
+          <div>
+            <Etapas />
+          </div> */}
+
           {/* TABELA DE MATERIAIS */}
           <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
             <div
@@ -1326,7 +1549,7 @@ export default function ObrasDetalhe() {
             >
               <ButtonDefault
                 onClick={() => {
-                  /* CÓDIGO DO RELATÓRIO MATERIAIS (mantido intacto como no seu original) */
+                  /* CÓDIGO DO RELATÓRIO MATERIAIS */
                 }}
                 className="w-[90%] max-w-[450px]"
               >
@@ -1504,6 +1727,13 @@ export default function ObrasDetalhe() {
           </div>
         </div>
       </main>
+      {/*
+      <ModalEtapas
+        isOpen={modalEtapasisOpen}
+        onClose={() => setModalEtapasisOpen(false)}
+        nomeObra={obra.local}
+        onSave={handleSaveMaterial}
+      /> */}
       <ModalMateriais
         isOpen={modalMateriaisOpen}
         onClose={() => setModalMateriaisOpen(false)}
@@ -1515,7 +1745,7 @@ export default function ObrasDetalhe() {
         onClose={() => setModalMaoDeObraOpen(false)}
         nomeObra={obra.local}
         onSave={handleSaveMaoDeObra}
-        opcoesPrestador={OPCOES_PRESTADOR} 
+        opcoesPrestador={OPCOES_PRESTADOR}
       />
 
       <ModalRelatorioPrestador

@@ -200,8 +200,10 @@ export default function CardProcessos({
             onClick={handleStatusClick}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30 appearance-none"
           >
+            <option value="Produção">Produção</option>
             <option value="Prefeitura">Prefeitura</option>
             <option value="Caixa">Caixa</option>
+            <option value="Cartorio">Cartorio</option>
             <option value="Obra">Obra</option>
             <option value="Finalizado">Finalizado</option>
           </select>

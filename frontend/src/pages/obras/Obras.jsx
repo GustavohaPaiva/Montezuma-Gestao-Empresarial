@@ -12,7 +12,6 @@ export default function Obras() {
   const [refresh, setRefresh] = useState(false);
 
   useEffect(() => {
-    // PERFORMANCE: AbortController cancela a requisição se o componente for desmontado antes de terminar
     const controller = new AbortController();
 
     async function fetchData() {
@@ -159,9 +158,9 @@ export default function Obras() {
               key={obra.id}
               id={obra.id}
               nome={obra.local}
-              client={obra.cliente}
+              client={obra.clientes?.nome || obra.cliente}
               status={obra.status || "Aguardando iniciação"}
-              tudoPago={obra.isTudoPago} // Puxa direto do objeto pre-calculado
+              tudoPago={obra.isTudoPago}
               onUpdate={handleUpdateInline}
               onDelete={() => handleDelete(obra.id)}
             />

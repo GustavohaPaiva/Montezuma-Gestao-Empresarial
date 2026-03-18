@@ -33,7 +33,7 @@ export default function ModalMaoDeObra({
   };
 
   return (
-    <div className="fixed z-50 flex w-full h-full items-center justify-center p-[10px] inset-0 bg-black/50">
+    <div className="fixed z-50 flex items-center justify-center w-[380px] sm:w-[500px] p-[10px]">
       <div className="bg-[#ffffff] w-[500px] max-w-[95%] rounded-[16px] shadow-2xl flex flex-col overflow-hidden border border-[#C4C4C9]">
         <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
           <div className="flex-1 min-w-0">

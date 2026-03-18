@@ -45,14 +45,38 @@ export default function Processos() {
       setIsModalOpen(false);
       carregarProcessos();
     } catch (err) {
-      console.error("Erro ao criar obra:", err);
-      alert("Erro ao criar obra.");
+      console.error("Erro ao criar cliente:", err);
+      alert("Erro ao criar cliente.");
     }
   };
 
+  // --- MÁGICA ACONTECENDO AQUI ---
   const handleUpdateProcesso = async (id, dadosAtualizados) => {
     try {
+      // 1. Atualiza o card/cliente normalmente
       await api.updateCliente(id, dadosAtualizados);
+
+      // 2. Se a atualização foi justamente mudar o status para "Obra"...
+      if (dadosAtualizados.status === "Obra") {
+        const clienteAtual = processos.find((p) => p.id === id);
+
+        if (clienteAtual) {
+          // 3. Cria a Obra vinculando o ID do cliente (cliente_id)
+          await api.createObra({
+            cliente: clienteAtual.nome, // Mantido por retrocompatibilidade
+            local:
+              clienteAtual.rua_obra ||
+              clienteAtual.bairro_obra ||
+              "Local a definir",
+            cliente_id: clienteAtual.id, // O vínculo crucial!
+          });
+          alert(
+            `Obra criada automaticamente para o cliente ${clienteAtual.nome}!`,
+          );
+        }
+      }
+
+      // Recarrega a tela para refletir o status novo
       carregarProcessos();
     } catch (error) {
       console.error("Erro ao atualizar processo:", error);

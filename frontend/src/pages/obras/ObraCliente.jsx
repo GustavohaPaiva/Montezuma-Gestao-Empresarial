@@ -4,11 +4,14 @@ import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import logo from "../../assets/logos/logo sem fundo.png";
+import Etapas from "../../components/gerais/ObraEtapas";
+//import { Icon } from "lucide-react";
+//import { stairs } from "@lucide/lab";
 
 import {
   Building,
   MapPin,
-  KeyRound,
+  ClipboardList,
   House,
   CircleDollarSign,
   Hourglass,
@@ -76,7 +79,6 @@ export default function ObraCliente() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [categoriaAtiva, setCategoriaAtiva] = useState(null);
 
-  // Estados do Modal e Upload
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -107,13 +109,11 @@ export default function ObraCliente() {
           if (dadosObra) {
             setObra(dadosObra);
 
-            // INTELIGÊNCIA DE BUSCA DO CLIENTE CORRIGIDA:
             if (user?.tipo === "cliente") {
               const dadosCliente = await api.getClienteById(user.id);
               setCliente(dadosCliente);
             } else if (dadosObra.cliente) {
               try {
-                // Tenta buscar na lista de clientes pelo nome
                 const todosClientes = await api.getClientes();
                 const donoDaObra = todosClientes.find(
                   (c) =>
@@ -153,7 +153,6 @@ export default function ObraCliente() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Lógica de manipulação do modal
   const handleAbrirModal = () => {
     setSelectedFile(null);
     setPreviewUrl(cliente?.foto || null);
@@ -161,7 +160,7 @@ export default function ObraCliente() {
   };
 
   const handleFecharModal = () => {
-    if (uploadingFoto) return; // Impede fechar enquanto envia
+    if (uploadingFoto) return;
     setIsModalOpen(false);
     setSelectedFile(null);
     setPreviewUrl(null);
@@ -171,7 +170,7 @@ export default function ObraCliente() {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file)); // Cria a prévia local
+      setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
@@ -183,7 +182,6 @@ export default function ObraCliente() {
       return;
     }
 
-    // Tenta pegar o ID do cliente do estado, ou forçadamente do usuário logado
     const idParaSalvar =
       cliente?.id || (user?.tipo === "cliente" ? user.id : null);
 
@@ -641,6 +639,13 @@ export default function ObraCliente() {
                     Financeiro
                   </li>
                 </a>
+                {/*
+                <a href="#etapas" onClick={(e) => handleScroll(e, "#etapas")}>
+                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline active:text-[#DC3B0B] cursor-pointer">
+                    Etapas
+                  </li>
+                </a>} 
+                */}
                 <a
                   href="#relatorios"
                   onClick={(e) => handleScroll(e, "#relatorios")}
@@ -712,12 +717,15 @@ export default function ObraCliente() {
                     </div>
                     <div className="mt-[25px] flex gap-2">
                       <div className="w-10 h-10 shadow-sm bg-[#f1f1f1] flex items-center justify-center rounded-[8px]">
-                        <KeyRound className="w-8 h-8 text-[#DC3B0B]" />
+                        <ClipboardList className="w-8 h-8 text-[#DC3B0B]" />
                       </div>
                       <div className="flex flex-col">
-                        <p className="text-[#919191] text-[14px]">Matrícula:</p>
+                        <p className="text-[#919191] text-[14px]">
+                          Status do Projeto:
+                        </p>
                         <p className="text-[16px] uppercase">
-                          {obra?.matricula || "Matrícula não disponível"}
+                          {cliente?.status ||
+                            "Status do projeto nao disponiveis"}
                         </p>
                       </div>
                     </div>
@@ -927,6 +935,11 @@ export default function ObraCliente() {
               </div>
             </div>
 
+            {/*
+            <div id="#etapas">
+              <Etapas />
+            </div> */}
+
             {/* TABELAS INFERIORES */}
             <div
               id="#relatorios"
@@ -1070,6 +1083,13 @@ export default function ObraCliente() {
                     <CircleDollarSign />
                   </li>
                 </a>
+
+                {/*
+                <a href="#etapas" onClick={(e) => handleScroll(e, "#etapas")}>
+                  <li className="text-2xl hover:text-[#DC3B0B] cursor-pointer">
+                    <Icon iconNode={stairs} />
+                  </li>
+                </a> */}
                 <a
                   href="#relatorios"
                   onClick={(e) => handleScroll(e, "#relatorios")}
