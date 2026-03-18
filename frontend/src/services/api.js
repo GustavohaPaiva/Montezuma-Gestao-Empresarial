@@ -294,9 +294,8 @@ export const api = {
   getObras: async () => {
     let query = supabase
       .from("obras")
-      // Adicionamos o extrato na busca!
       .select(
-        "*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), extrato:relatorio_extrato(*)",
+        "*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome)",
       )
       .eq("active", true)
       .order("created_at", { ascending: false });
@@ -315,6 +314,7 @@ export const api = {
           local: novaObra.local,
           status: "Aguardando iniciação",
           active: true,
+          cliente_id: novaObra.cliente_id,
         },
       ])
       .select();
@@ -376,9 +376,9 @@ export const api = {
   getObraById: async (id) => {
     const { data, error } = await supabase
       .from("obras")
-      // Puxamos 'clientes(*)' usando a foreign key obra_id da tabela clientes
+
       .select(
-        `*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*), clientes(*)`,
+        `*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
       )
       .eq("id", id)
       .maybeSingle();

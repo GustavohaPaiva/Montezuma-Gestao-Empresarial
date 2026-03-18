@@ -166,7 +166,7 @@ export default function Projetos() {
 
           await api.createCliente({
             nome: orcamentoAtual.nome,
-            tipo: "Pendente Definição",
+            tipo: "Residencial",
             status: "Produção",
             pagamento: "À combinar",
             valor_cobrado: valorCobrado,
@@ -512,17 +512,37 @@ export default function Projetos() {
     [editandoCliente, valorEdicaoCliente],
   );
 
-  const handleStatusClienteChange = useCallback(async (id, novoStatus) => {
-    setClientes((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: novoStatus } : c)),
-    );
-    try {
-      await api.updateCliente(id, { status: novoStatus });
-    } catch (err) {
-      console.error("Erro status cliente:", err);
-      setRecarregar((prev) => prev + 1);
-    }
-  }, []);
+  const handleStatusClienteChange = useCallback(
+    async (id, novoStatus) => {
+      const clienteAtual = clientes.find((c) => c.id === id);
+
+      setClientes((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: novoStatus } : c)),
+      );
+
+      try {
+        await api.updateCliente(id, { status: novoStatus });
+
+        if (novoStatus === "Obra" && clienteAtual) {
+          await api.createObra({
+            cliente: clienteAtual.nome,
+            local:
+              clienteAtual.rua_obra ||
+              clienteAtual.bairro_obra ||
+              "Local a definir",
+            cliente_id: clienteAtual.id,
+          });
+          alert(
+            `Obra criada automaticamente para o cliente ${clienteAtual.nome}!`,
+          );
+        }
+      } catch (err) {
+        console.error("Erro status cliente:", err);
+        setRecarregar((prev) => prev + 1);
+      }
+    },
+    [clientes],
+  );
 
   const handleExcluirCliente = useCallback(async (id) => {
     if (window.confirm("Tem certeza que deseja excluir este cliente?")) {
@@ -564,8 +584,9 @@ export default function Projetos() {
       Produção: 1,
       Prefeitura: 2,
       Caixa: 3,
-      Obra: 4,
-      Finalizado: 5,
+      Cartorio: 4,
+      Obra: 5,
+      Finalizado: 6,
     };
 
     lista.sort((a, b) => {
@@ -617,6 +638,8 @@ export default function Projetos() {
             return "bg-[#E3F2FD] text-[#1565C0]";
           case "Caixa":
             return "bg-[#E0F2F1] text-[#00695C]";
+          case "Cartorio":
+            return "bg-[#ffcfd7] text-[#de0226]";
           case "Obra":
             return "bg-[#FFF3E0] text-[#E65100]";
           case "Finalizado":
@@ -672,6 +695,7 @@ export default function Projetos() {
           <option value="Produção">Produção</option>
           <option value="Prefeitura">Prefeitura</option>
           <option value="Caixa">Caixa</option>
+          <option value="Cartorio">Cartorio</option>
           <option value="Obra">Obra</option>
           <option value="Finalizado">Finalizado</option>
         </select>,

@@ -39,6 +39,7 @@ export default function ObraCard({
   id,
   nome,
   client,
+  data,
   status,
   tudoPago,
   onUpdate,
@@ -47,7 +48,7 @@ export default function ObraCard({
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(nome);
-  const [editedClient, setEditedClient] = useState(client);
+  const [editedDataInicial, setEditedDataInicial] = useState(data);
 
   const statusAtual = STATUS_CONFIG[status] || STATUS_CONFIG["default"];
   const StatusIcon = statusAtual.icon;
@@ -64,13 +65,17 @@ export default function ObraCard({
   const handleCancel = (e) => {
     e.stopPropagation();
     setEditedName(nome);
-    setEditedClient(client);
+    setEditedDataInicial(data);
     setIsEditing(false);
   };
 
   const handleSave = async (e) => {
     e.stopPropagation();
-    await onUpdate(id, { local: editedName, cliente: editedClient });
+    await onUpdate(id, {
+      local: editedName,
+      // Não enviamos mais o 'cliente' em texto livre aqui, pois ele é relacional!
+      data: editedDataInicial,
+    });
     setIsEditing(false);
   };
 
@@ -154,12 +159,21 @@ export default function ObraCard({
               placeholder="Nome da Obra"
               autoFocus
             />
+            {/* Campo de cliente agora é read-only com um aviso no title */}
             <input
               type="text"
-              value={editedClient}
-              onChange={(e) => setEditedClient(e.target.value)}
-              className="w-full h-8 px-2 text-base uppercase border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              value={client}
+              disabled
+              title="O nome do cliente agora é gerido pela aba de Processos/Clientes"
+              className="w-full h-8 px-2 text-base uppercase border border-gray-200 bg-gray-100 text-gray-400 rounded-md cursor-not-allowed focus:outline-none"
               placeholder="Cliente"
+            />
+            <input
+              type="date"
+              value={editedDataInicial}
+              onChange={(e) => setEditedDataInicial(e.target.value)}
+              className="w-full h-8 px-2 text-base uppercase border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              placeholder="data"
             />
           </div>
         ) : (
@@ -170,6 +184,10 @@ export default function ObraCard({
             <p className="flex items-center justify-center w-full gap-1 text-base text-gray-600 mt-1">
               <span className="font-semibold">CLIENTE:</span>
               <span className="max-w-[200px] uppercase truncate">{client}</span>
+            </p>
+            <p className="flex items-center justify-center w-full gap-1 text-base text-gray-600 mt-1">
+              <span className="font-semibold">DATA:</span>
+              <span className="max-w-[200px] uppercase truncate">{data}</span>
             </p>
           </>
         )}
