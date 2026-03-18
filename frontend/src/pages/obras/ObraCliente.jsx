@@ -4,9 +4,10 @@ import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import logo from "../../assets/logos/logo sem fundo.png";
-import Etapas from "../../components/gerais/ObraEtapas";
-//import { Icon } from "lucide-react";
-//import { stairs } from "@lucide/lab";
+//import Etapas from "../../components/gerais/ObraEtapas";
+//import ListaEtapas from "../../components/obras/ListaEtapas";
+import { Icon } from "lucide-react";
+import { stairs } from "@lucide/lab";
 
 import {
   Building,
@@ -639,13 +640,13 @@ export default function ObraCliente() {
                     Financeiro
                   </li>
                 </a>
-                {/*
+
                 <a href="#etapas" onClick={(e) => handleScroll(e, "#etapas")}>
                   <li className="text-2xl hover:text-[#DC3B0B] hover:underline active:text-[#DC3B0B] cursor-pointer">
                     Etapas
                   </li>
-                </a>} 
-                */}
+                </a>
+
                 <a
                   href="#relatorios"
                   onClick={(e) => handleScroll(e, "#relatorios")}
@@ -935,10 +936,12 @@ export default function ObraCliente() {
               </div>
             </div>
 
+            {/* Etapas */}
             {/*
             <div id="#etapas">
-              <Etapas />
-            </div> */}
+              <Etapas etapas={obra?.etapas_selecionadas || []} />
+            </div>  
+            */}
 
             {/* TABELAS INFERIORES */}
             <div
@@ -1064,6 +1067,24 @@ export default function ObraCliente() {
                 />
               </div>
             </div>
+
+            {/* Lista de Etapas */}
+            {/*
+            <ListaEtapas
+              etapas={obra.etapas_selecionadas}
+              onUpdateEtapas={async (novasEtapas) => {
+                try {
+                  await api.updateEtapasObra(obra.id, novasEtapas);
+                  setObra((prev) => ({
+                    ...prev,
+                    etapas_selecionadas: novasEtapas,
+                  }));
+                } catch (error) {
+                  console.error(error);
+                  alert("Erro ao atualizar a etapa");
+                }
+              }}
+            /> */}
           </div>
 
           {/* HEADER MOBILE */}
@@ -1084,12 +1105,11 @@ export default function ObraCliente() {
                   </li>
                 </a>
 
-                {/*
                 <a href="#etapas" onClick={(e) => handleScroll(e, "#etapas")}>
                   <li className="text-2xl hover:text-[#DC3B0B] cursor-pointer">
                     <Icon iconNode={stairs} />
                   </li>
-                </a> */}
+                </a>
                 <a
                   href="#relatorios"
                   onClick={(e) => handleScroll(e, "#relatorios")}

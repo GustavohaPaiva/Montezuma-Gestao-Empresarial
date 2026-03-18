@@ -20,10 +20,39 @@ const ETAPAS_OBRA = [
   "Detalhes e limpeza final",
 ];
 
-export default function ModalEtapas({ isOpen, onClose, onSave, nomeObra }) {
+export default function ModalEtapas({
+  isOpen,
+  onClose,
+  onSave,
+  nomeObra,
+  etapasSalvas = [],
+}) {
   const [etapasSelecionadas, setEtapasSelecionadas] = useState([]);
 
+  const [prevIsOpen, setPrevIsOpen] = useState(false);
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      const nomesJaSalvos = etapasSalvas.map((etapa) => etapa.nome);
+      setEtapasSelecionadas(nomesJaSalvos);
+    }
+  }
+
   if (!isOpen) return null;
+
+  // Lógica para saber se todas estão marcadas
+  const isAllSelected = etapasSelecionadas.length === ETAPAS_OBRA.length;
+
+  const handleToggleAll = () => {
+    if (isAllSelected) {
+      // Se tudo estiver marcado, limpa o array
+      setEtapasSelecionadas([]);
+    } else {
+      // Se faltar alguma ou nenhuma estiver marcada, seleciona todas
+      setEtapasSelecionadas([...ETAPAS_OBRA]);
+    }
+  };
 
   const handleToggle = (etapa) => {
     setEtapasSelecionadas((prev) =>
@@ -34,7 +63,22 @@ export default function ModalEtapas({ isOpen, onClose, onSave, nomeObra }) {
   };
 
   const handleConfirmar = () => {
-    onSave(etapasSelecionadas);
+    const arrayFormatado = etapasSelecionadas.map((nomeEtapa) => {
+      const etapaExistente = etapasSalvas.find((e) => e.nome === nomeEtapa);
+
+      if (etapaExistente) {
+        return etapaExistente;
+      }
+
+      return {
+        nome: nomeEtapa,
+        status: "pendente",
+        data_inicio: null,
+        data_conclusao: null,
+      };
+    });
+
+    onSave(arrayFormatado);
   };
 
   return (
@@ -63,7 +107,19 @@ export default function ModalEtapas({ isOpen, onClose, onSave, nomeObra }) {
         </div>
 
         <div className="p-[20px] flex flex-col gap-[20px] overflow-y-auto">
-          {/* Grid com 8 linhas e fluxo em colunas (8 na esquerda, 8 na direita) */}
+          {/* Checkbox de Selecionar Todas */}
+          <div className="pb-4 border-b border-[#DBDADE]">
+            <label className="flex items-center gap-2 cursor-pointer text-[#464C54] text-[15px] font-bold">
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                onChange={handleToggleAll}
+                className="w-4 h-4 cursor-pointer accent-[#464C54] flex-shrink-0"
+              />
+              <span className="truncate">Selecionar todas as etapas</span>
+            </label>
+          </div>
+
           <div className="grid grid-rows-8 grid-flow-col gap-x-4 gap-y-3">
             {ETAPAS_OBRA.map((etapa) => (
               <label

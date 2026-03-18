@@ -6,8 +6,9 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from "../../services/api";
 import ModalMateriais from "../../components/modals/ModalMateriais";
 import ModalMaoDeObra from "../../components/modals/ModalMaoDeObra";
-//import ModalEtapas from "../../components/modals/ModalEtapas";
-//import Etapas from "../../components/gerais/ObraEtapas";
+import ModalEtapas from "../../components/modals/ModalEtapas";
+import Etapas from "../../components/gerais/ObraEtapas";
+import ListaEtapas from "../../components/obras/ListaEtapas";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 // --- Constantes ---
@@ -277,7 +278,7 @@ export default function ObrasDetalhe() {
   const [categoriaAtiva, setCategoriaAtiva] = useState(null);
 
   // Modais
-  //const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
+  const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
   const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
   const [modalRelatorioPrestadorOpen, setModalRelatorioPrestadorOpen] =
@@ -431,6 +432,17 @@ export default function ObrasDetalhe() {
     },
     [fetchDados],
   );
+
+  const handleSaveEtapas = async (etapasFormatadas) => {
+    try {
+      await api.updateEtapasObra(obra.id, etapasFormatadas);
+      setObra((prev) => ({ ...prev, etapas_selecionadas: etapasFormatadas }));
+      setModalEtapasisOpen(false);
+    } catch (error) {
+      console.error("Erro ao guardar etapas:", error);
+      alert("Erro ao guardar as etapas na base de dados.");
+    }
+  };
 
   const handleSaveMaterial = useCallback(
     async (dados) => {
@@ -1286,13 +1298,12 @@ export default function ObrasDetalhe() {
           </div>
           {!isMobile && (
             <div className="flex gap-[16px]">
-              {/*
               <ButtonDefault
                 className="w-[135px]"
                 onClick={() => setModalEtapasisOpen(true)}
               >
                 + Etapas
-              </ButtonDefault> */}
+              </ButtonDefault>
               <ButtonDefault
                 className="w-[135px]"
                 onClick={() => setModalMateriaisOpen(true)}
@@ -1312,10 +1323,9 @@ export default function ObrasDetalhe() {
       <main className="w-[90%] mt-[24px]">
         {isMobile && (
           <div className="flex flex-col gap-[12px] mb-[24px]">
-            {/*
             <ButtonDefault onClick={() => setModalEtapasisOpen(true)}>
               + Etapas
-            </ButtonDefault> */}
+            </ButtonDefault>
             <ButtonDefault onClick={() => setModalMateriaisOpen(true)}>
               + Materiais
             </ButtonDefault>
@@ -1497,10 +1507,9 @@ export default function ObrasDetalhe() {
           </div>
 
           {/* Etapas */}
-          {/*
           <div>
-            <Etapas />
-          </div> */}
+            <Etapas etapas={obra?.etapas_selecionadas || []} />
+          </div>
 
           {/* TABELA DE MATERIAIS */}
           <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
@@ -1725,15 +1734,33 @@ export default function ObrasDetalhe() {
               </div>
             </div>
           </div>
+
+          {/* Lista de Etapas */}
+          <ListaEtapas
+            etapas={obra.etapas_selecionadas}
+            onUpdateEtapas={async (novasEtapas) => {
+              try {
+                await api.updateEtapasObra(obra.id, novasEtapas);
+                setObra((prev) => ({
+                  ...prev,
+                  etapas_selecionadas: novasEtapas,
+                }));
+              } catch (error) {
+                console.error(error);
+                alert("Erro ao atualizar a etapa");
+              }
+            }}
+          />
         </div>
       </main>
-      {/*
+
       <ModalEtapas
         isOpen={modalEtapasisOpen}
         onClose={() => setModalEtapasisOpen(false)}
         nomeObra={obra.local}
-        onSave={handleSaveMaterial}
-      /> */}
+        onSave={handleSaveEtapas}
+        etapasSalvas={obra.etapas_selecionadas || []}
+      />
       <ModalMateriais
         isOpen={modalMateriaisOpen}
         onClose={() => setModalMateriaisOpen(false)}
@@ -1747,7 +1774,6 @@ export default function ObrasDetalhe() {
         onSave={handleSaveMaoDeObra}
         opcoesPrestador={OPCOES_PRESTADOR}
       />
-
       <ModalRelatorioPrestador
         isOpen={modalRelatorioPrestadorOpen}
         onClose={() => setModalRelatorioPrestadorOpen(false)}

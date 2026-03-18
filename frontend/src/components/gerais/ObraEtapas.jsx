@@ -20,7 +20,6 @@ import detalhesELimpezaFinal from "../../assets/imagensEtapas/DetalhesELimpezaFi
 
 const etapasMock = [
   {
-    id: 1,
     titulo: "Infraestrutura",
     descricao: (
       <>
@@ -30,25 +29,19 @@ const etapasMock = [
         resistência da terra.
         <br />
         <strong>Fundações rasas:</strong> Usadas em terrenos firmes. Incluem as
-        sapatas (blocos de concreto armado sob os pilares) e o radier (uma laje
-        contínua de concreto que pega toda a área da casa).
+        sapatas e o radier.
         <br />
         <strong>Fundações profundas:</strong> Necessárias quando o solo firme
         está muito abaixo da superfície. Envolve a perfuração e o uso de estacas
-        (que podem chegar a dezenas de metros de profundidade) ou tubulões.
+        ou tubulões.
         <br />
         <strong>Vigas Baldrame:</strong> São as vigas horizontais que conectam
-        as estacas ou sapatas, ficando no nível do solo. Elas suportam o peso
-        das paredes e precisam receber uma impermeabilização rigorosa para
-        evitar que a umidade da terra suba pelas paredes da casa (a famosa
-        umidade de rodapé).
+        as estacas ou sapatas, ficando no nível do solo.
       </>
     ),
-    dataConclusao: "12/03/2026",
     imagem: infraestrutura,
   },
   {
-    id: 2,
     titulo: "Supraestrutura",
     descricao: (
       <>
@@ -57,20 +50,15 @@ const etapasMock = [
         vigas descarregam nos pilares, e os pilares descarregam na fundação.
         <br />
         <strong>Fôrmas e Escoramentos:</strong> O concreto é líquido quando
-        chega à obra. Ele é despejado dentro de moldes de madeira ou metal
-        (fôrmas) que contêm armações de aço (vergalhões).
+        chega à obra. Ele é despejado dentro de moldes de madeira ou metal.
         <br />
-        <strong>Tempo de Cura:</strong> O concreto não seca, ele passa por uma
-        reação química chamado "cura". É fundamental molhar as lajes e vigas nos
-        primeiros dias para que o concreto não rache, e respeitar o tempo de
-        escoramento (geralmente de 21 a 28 dias) antes de retirar as madeiras.
+        <strong>Tempo de Cura:</strong> É fundamental molhar as lajes e vigas
+        nos primeiros dias para que o concreto não rache.
       </>
     ),
-    dataConclusao: "12/03/2026",
     imagem: supraestrutura,
   },
   {
-    id: 3,
     titulo: "Alvenaria",
     descricao: (
       <>
@@ -78,52 +66,37 @@ const etapasMock = [
         totalmente a dinâmica da obra:
         <br />
         <strong>Alvenaria de Vedação:</strong> Os tijolos servem apenas para
-        fechar os vãos e dividir os cômodos. Se você derrubar uma parede, a casa
-        não cai, pois o peso está nos pilares e vigas.
+        fechar os vãos e dividir os cômodos.
         <br />
         <strong>Alvenaria Estrutural:</strong> Aqui, não há pilares
-        convencionais. Os próprios blocos (geralmente de concreto ou cerâmica
-        estrutural) suportam o peso da laje e do telhado. É mais rápido e
-        econômico, mas não permite reformas futuras (como quebrar uma parede
-        para integrar a sala à cozinha).
+        convencionais. Os próprios blocos suportam o peso da laje e do telhado.
         <br />
         <strong>Vergas e Contravergas:</strong> Detalhe crucial. São pequenas
-        vigas de concreto colocadas em cima e embaixo das janelas e portas. Sem
-        elas, é quase certeza que aparecerão rachaduras nos cantos das
-        esquadrias.
+        vigas de concreto colocadas em cima e embaixo das janelas e portas.
       </>
     ),
-    dataConclusao: "12/03/2026",
     imagem: alvenaria,
   },
   {
-    id: 4,
     titulo: "Cobertura",
     descricao: (
       <>
         O telhado é um sistema complexo que vai muito além de colocar telhas
         lado a lado.
         <br />
-        <strong>Trama (Madeiramento ou Estrutura Metálica):</strong> É composta
-        por tesouras (a base triangular), terças (vigas horizontais), caibros
-        (que dão a inclinação) e ripas (onde as telhas se apoiam).
+        <strong>Trama:</strong> É composta por tesouras, terças, caibros e
+        ripas.
         <br />
-        <strong>Caimento:</strong> Cada tipo de telha (fibrocimento, cerâmica
-        colonial, concreto) exige um ângulo mínimo de inclinação. Se o telhado
-        for muito "reto" para uma telha que exige alta inclinação, a água da
-        chuva vai voltar e causar goteiras.
+        <strong>Caimento:</strong> Cada tipo de telha exige um ângulo mínimo de
+        inclinação.
         <br />
-        <strong>Manta Térmica e Calhas:</strong> Antes das telhas, é altamente
-        recomendado instalar uma manta subcobertura (para isolamento térmico e
-        proteção extra contra vazamentos). Também é nesta fase que se instalam
-        os rufos (chapas metálicas nos encontros do telhado com a parede) e
-        calhas.
+        <strong>Manta Térmica e Calhas:</strong> Altamente recomendado instalar
+        uma manta subcobertura para isolamento térmico e proteção extra.
       </>
     ),
     imagem: cobertura,
   },
   {
-    id: 5,
     titulo: "Revestimentos externos",
     descricao: (
       <>
@@ -131,21 +104,19 @@ const etapasMock = [
         isso o revestimento precisa ser muito bem executado.
         <br />
         <strong>Chapisco:</strong> É uma mistura áspera de cimento e areia
-        jogada na parede de tijolos para que a próxima camada não desgrude.
+        jogada na parede.
         <br />
         <strong>Emboço e Reboco:</strong> O emboço nivela a parede e cobre os
-        canos. O reboco é a camada final e fina. Para o exterior, é fundamental
-        respeitar o tempo de secagem entre essas camadas para evitar fissuras.
+        canos. O reboco é a camada final e fina.
         <br />
         <strong>Impermeabilização de Fachada:</strong> Adicionar aditivos
-        impermeabilizantes na argamassa do reboco externo é um cuidado que
-        aumenta a vida útil da pintura e evita mofo no lado de dentro da casa.
+        impermeabilizantes na argamassa do reboco externo aumenta a vida útil da
+        pintura.
       </>
     ),
     imagem: revestimentosExternos,
   },
   {
-    id: 6,
     titulo: "Revestimentos internos",
     descricao: (
       <>
@@ -153,311 +124,250 @@ const etapasMock = [
         <br />
         <strong>Gesso vs. Argamassa:</strong> Nas paredes internas, o reboco
         tradicional de cimento e areia vem sendo substituído pelo gesso
-        projetado ou reboco de gesso, que é mais rápido, mais barato e deixa a
-        parede perfeitamente lisa, economizando massa corrida depois.
+        projetado.
         <br />
         <strong>Contrapiso:</strong> É a camada de cimento e areia feita no chão
-        para deixá-lo 100% nivelado antes de receber o piso. Em áreas molhadas
-        (banheiros e varandas), o contrapiso deve ter um leve caimento em
-        direção ao ralo.
+        para deixá-lo 100% nivelado antes de receber o piso.
         <br />
         <strong>Argamassas Colantes:</strong> Cada tipo de piso exige uma "cola"
-        diferente. Cerâmicas comuns usam argamassa AC-I. Pisos externos usam
-        AC-II. Porcelanatos e pisos sobre pisos exigem AC-III (a mais forte).
+        diferente (AC-I, AC-II, AC-III).
       </>
     ),
     imagem: revestimentosInternos,
   },
   {
-    id: 7,
     titulo: "Hidráulica",
     descricao: (
       <>
         A regra de ouro da hidráulica é: faça testes antes de fechar as paredes.
         <br />
         <strong>Tubulações Específicas:</strong> Usa-se PVC marrom para água
-        fria e materiais mais resistentes para água quente, como CPVC (plástico
-        bege), PPR (plástico verde fundido a calor) ou Cobre.
+        fria e materiais mais resistentes para água quente.
         <br />
         <strong>Caimento do Esgoto:</strong> Os canos de esgoto e águas pluviais
-        dependem da gravidade. Eles precisam de uma inclinação precisa
-        (geralmente de 1% a 2%) para que os resíduos escoem sem entupir.
+        dependem da gravidade, exigindo inclinação precisa.
         <br />
-        <strong>Teste de Estanqueidade:</strong> Antes de cimentar o chão e
-        rebocar as paredes, toda a rede deve ser enchida de água e mantida sob
-        pressão por alguns dias para garantir que não há nenhum microvazamento
-        nas emendas.
+        <strong>Teste de Estanqueidade:</strong> Toda a rede deve ser enchida de
+        água e mantida sob pressão por alguns dias para garantir que não há
+        microvazamento.
       </>
     ),
     imagem: hidráulica,
   },
   {
-    id: 8,
     titulo: "Estrutura Elétrica",
     descricao: (
       <>
         Uma elétrica malfeita gera alto consumo de energia e risco de incêndio.
-        O projeto elétrico define a espessura dos fios de acordo com o que será
-        ligado neles.
         <br />
         <strong>Eletrodutos (Conduítes):</strong> São as mangueiras corrugadas
-        embutidas na parede e na laje. As amarelas são para paredes internas, as
-        laranjas (mais reforçadas) vão na laje ou no chão.
+        embutidas na parede e na laje.
         <br />
         <strong>Quadro de Distribuição (QDC):</strong> É o "cérebro" da casa,
         onde ficam os disjuntores. É vital ter circuitos separados para a
-        iluminação, para as tomadas gerais e circuitos exclusivos para aparelhos
-        de alta potência (chuveiros, ar-condicionado, forno elétrico).
+        iluminação, tomadas e aparelhos de alta potência.
       </>
     ),
     imagem: estruturaElétrica,
   },
   {
-    id: 9,
     titulo: "Primeira etapa de pintura",
     descricao: (
       <>
         A pintura é a maquiagem da obra. Se a pele (parede) não estiver bem
         tratada, a maquiagem fica ruim.
         <br />
-        <strong>Fundo Preparador e Selador:</strong> O tijolo e o reboco são
-        porosos e absorvem muito líquido. O selador fecha esses poros, fazendo
-        com que você gaste muito menos tinta e massa corrida.
+        <strong>Fundo Preparador e Selador:</strong> O selador fecha os poros,
+        fazendo com que você gaste muito menos tinta e massa corrida.
         <br />
-        <strong>Massa Corrida vs. Massa Acrílica:</strong> A Massa Corrida (PVA)
-        só pode ser usada dentro de casa, em áreas secas (salas, quartos). Se
-        molhar, ela estufa e descasca. Para áreas externas, banheiros e
-        cozinhas, deve-se usar a Massa Acrílica, que é resistente à água.
+        <strong>Massa Corrida vs. Massa Acrílica:</strong> A Massa Corrida só
+        pode ser usada em áreas secas. Para áreas úmidas, deve-se usar a Massa
+        Acrílica.
         <br />
         <strong>Lixamento e Primeira Demão:</strong> Após passar a massa, a
-        parede é lixada até ficar impecável. É necessário remover todo o pó com
-        panos úmidos antes de aplicar a primeira demão de tinta, que servirá de
-        base para a cor definitiva.
+        parede é lixada até ficar impecável.
       </>
     ),
     imagem: primeiraEtapaDePintura,
   },
   {
-    id: 10,
     titulo: "Assentamento de piso",
     descricao: (
       <>
         A escolha do piso dita o conforto e a estética, mas a instalação correta
-        é o que garante que ele não solte ou trinque com o passar dos anos.
+        é o que garante durabilidade.
         <br />
-        <strong>Argamassas e Dupla Colagem:</strong> Peças grandes (geralmente
-        acima de 30x30cm) exigem dupla colagem. Isso significa aplicar a
-        argamassa dentada tanto no chão quanto no verso da peça. Isso evita a
-        formação de bolsões de ar, que deixam o piso com "som oco" e propício a
-        quebrar se algo cair em cima.
+        <strong>Argamassas e Dupla Colagem:</strong> Peças grandes exigem dupla
+        colagem (argamassa no chão e na peça).
         <br />
-        <strong>Juntas de Dilatação e Niveladores:</strong> O piso expande no
-        calor. O uso de espaçadores (cunhas e clipes niveladores) garante a
-        distância milimétrica correta entre as peças. É o rejunte nesse espaço
-        que absorve a movimentação da casa sem que o piso estufe e salte do
-        chão.
+        <strong>Juntas de Dilatação e Niveladores:</strong> O uso de espaçadores
+        garante a distância milimétrica correta entre as peças.
         <br />
-        <strong>Tipos de Rejunte:</strong> O cimentício é comum e barato, mas
-        poroso e encarde fácil. O acrílico é mais liso e resistente. O epóxi é
-        100% impermeável e ideal para banheiros e piscinas, mas seca rápido e
-        exige mão de obra qualificada para não manchar a pedra.
+        <strong>Tipos de Rejunte:</strong> O cimentício é comum e barato. O
+        epóxi é 100% impermeável e ideal para banheiros.
       </>
     ),
     imagem: assentamentoDePiso,
   },
   {
-    id: 11,
     titulo: "Esquadrias",
     descricao: (
       <>
         Fechar os vãos exige precisão milimétrica para evitar infiltrações de
-        água e vento, além de garantir o isolamento acústico.
+        água e vento.
         <br />
         <strong>Contramarcos:</strong> Para esquadrias de alumínio ou PVC,
-        chumba-se o contramarco (uma moldura fina de alumínio) na parede ainda
-        durante o reboco. A janela ou porta final, que é cara e sensível, só é
-        encaixada ali no final da obra, evitando riscos e amassados.
+        chumba-se o contramarco na parede ainda durante o reboco.
         <br />
-        <strong>Espuma Expansiva e Vedação:</strong> Portas de madeira modernas
-        geralmente são fixadas com espuma expansiva de poliuretano, que preenche
-        todas as frestas, em vez de cimento tradicional. Pelo lado de fora das
-        janelas, a aplicação rigorosa de silicone ou selante PU é vital para que
-        a água da chuva não infiltre pelas laterais.
+        <strong>Espuma Expansiva e Vedação:</strong> A aplicação rigorosa de
+        silicone ou selante PU é vital para que a água da chuva não infiltre.
         <br />
-        <strong>Sentido de Abertura:</strong> Um detalhe prático muitas vezes
-        esquecido. Portas devem abrir em direção à parede mais próxima, e o lado
-        da maçaneta não pode bater em móveis planejados, pias ou bloquear
-        interruptores.
+        <strong>Sentido de Abertura:</strong> Portas devem abrir em direção à
+        parede mais próxima.
       </>
     ),
     imagem: esquadrias,
   },
   {
-    id: 12,
     titulo: "Pedras",
     descricao: (
       <>
-        Bancadas, pias e soleiras são itens pesados, caros e muitas vezes
-        frágeis antes de instalados, exigindo suportes robustos.
+        Bancadas, pias e soleiras são itens pesados e frágeis antes de
+        instalados, exigindo suportes robustos.
         <br />
         <strong>Chumbamento vs. Mão Francesa:</strong> Bancadas pesadas precisam
-        ser "chumbadas" (embutidas cerca de 3 a 5 centímetros dentro da parede
-        rasgada na alvenaria) ou apoiadas em mãos francesas (suportes metálicos)
-        chumbadas na parede para suportar o peso da pedra e das cubas cheias de
-        água.
+        ser chumbadas ou apoiadas em mãos francesas.
         <br />
         <strong>Soleiras e Pingadeiras:</strong> A soleira marca a transição de
-        pisos debaixo da porta e cria um pequeno degrau para barrar a água do
-        banheiro. A pingadeira é instalada na base das janelas ou no topo de
-        muros: ela tem um pequeno corte embaixo para que a água da chuva
-        "pingue" no chão, em vez de escorrer e manchar toda a parede.
+        pisos. A pingadeira evita que a água da chuva escorra e manche a parede.
         <br />
-        <strong>Naturais vs. Sintéticos:</strong> Granitos e mármores são
-        naturais e porosos (mármore pode manchar com vinho ou shampoo). Para
-        cozinhas, materiais industrializados como Quartzo (Silestone) não têm
-        porosidade e não mancham, mas não suportam panelas pelando de quentes
-        direto da boca do fogão.
+        <strong>Naturais vs. Sintéticos:</strong> Granitos são naturais e
+        porosos. Quartzos não têm porosidade e não mancham.
       </>
     ),
     imagem: pedras,
   },
   {
-    id: 13,
     titulo: "Louças e metais",
     descricao: (
       <>
-        A instalação dos acabamentos transforma os "canos saindo da parede" em
+        A instalação dos acabamentos transforma os canos saindo da parede em
         banheiros e cozinhas funcionais.
         <br />
         <strong>Pressão da Água (MCA):</strong> Chuveiros modernos e torneiras
-        monocomando (aquelas que misturam água quente e fria no mesmo registro)
-        exige uma pressão mínima, medida em Metros de Coluna de Água (MCA). Se a
-        caixa d'água não for alta o suficiente em relação ao chuveiro, a água
-        sairá fraca, exigindo a instalação de um pressurizador elétrico.
+        monocomando exigem uma pressão mínima.
         <br />
-        <strong>Sifões e Ralos (Fecho Hídrico):</strong> O sifão (aquele cano
-        torto debaixo da pia) e os ralos sifonados do chão têm um design feito
-        para manter um pouco de água parada no fundo (o fecho hídrico). É essa
-        barreirinha de água que impede que o gás e o mau cheiro do esgoto voltem
-        para dentro de casa.
+        <strong>Sifões e Ralos (Fecho Hídrico):</strong> O design mantém um
+        pouco de água parada no fundo para impedir o retorno de mau cheiro.
         <br />
-        <strong>Alturas e Ergonomia:</strong> Existe padrão para tudo. A altura
-        da bica da torneira precisa ser compatível com o modelo da cuba (seja
-        ela de apoio, embutida ou sobrepor) para que a água não espirre para
-        todo lado ao lavar as mãos.
+        <strong>Alturas e Ergonomia:</strong> A altura da bica da torneira
+        precisa ser compatível com o modelo da cuba.
       </>
     ),
     imagem: louçasEMetais,
   },
   {
-    id: 14,
     titulo: "Final Elétrica",
     descricao: (
       <>
-        É o momento de dar "vida" à casa instalando tomadas, luzes e ligando
-        tudo no quadro geral com segurança.
+        É o momento de dar vida à casa instalando tomadas, luzes e ligando tudo
+        no quadro geral.
         <br />
-        <strong>Disjuntores DR (Diferencial Residual):</strong> Obrigatório por
-        norma técnica, principalmente em áreas molhadas (banheiros, cozinhas,
-        lavanderias). O DR é um dispositivo no quadro de energia que detecta
-        fugas de corrente e desarma a energia em milissegundos se alguém tomar
-        um choque, salvando vidas.
+        <strong>Disjuntores DR:</strong> Obrigatório por norma técnica, o DR
+        detecta fugas de corrente e desarma a energia em milissegundos.
         <br />
-        <strong>Amperagem de Tomadas (TUG e TUE):</strong> Tomadas de Uso Geral
-        (TUG) são de 10A (pinos finos). Tomadas de Uso Específico (TUE) são para
-        aparelhos que "puxam" muita energia (micro-ondas, lava-louças, secador
-        de cabelo) e devem ser de 20A (pinos grossos), conectadas a fios mais
-        grossos e disjuntores exclusivos para não derreterem.
+        <strong>Amperagem de Tomadas:</strong> TUGs são de 10A. TUEs são para
+        aparelhos de alta potência e devem ser de 20A.
         <br />
-        <strong>Temperatura de Cor da Iluminação:</strong> Medida em Kelvins
-        (K). Luzes "quentes" (amareladas, 2700K a 3000K) trazem aconchego e
-        relaxamento para salas e quartos. Luzes "frias" (brancas, 4000K a 6000K)
-        mantêm a atenção e melhoram a visibilidade em cozinhas, banheiros e
-        escritórios.
+        <strong>Temperatura de Cor:</strong> Luzes quentes (2700K a 3000K)
+        trazem aconchego. Luzes frias (4000K a 6000K) melhoram a visibilidade.
       </>
     ),
     imagem: finalElétrica,
   },
   {
-    id: 15,
     titulo: "Final Pintura",
     descricao: (
       <>
-        A pintura final é muito sensível. É a última etapa úmida da casa e exige
-        isolamento total de tudo o que já foi instalado.
+        A pintura final é muito sensível e exige isolamento total de tudo o que
+        já foi instalado.
         <br />
-        <strong>Isolamento e Preparação:</strong> Antes de abrir a lata de
-        tinta, gasta-se muito tempo com lona, papelão e fita crepe cobrindo o
-        chão pronto, maçanetas, vidros e rodapés. A preparação é 70% do sucesso
-        de uma pintura sem dores de cabeça.
+        <strong>Isolamento e Preparação:</strong> A preparação com lona e fita
+        crepe é 70% do sucesso de uma pintura.
         <br />
-        <strong>Tipos de Acabamento:</strong> Tintas foscas não refletem luz,
-        então disfarçam pequenas ondulações da parede, mas sujam com facilidade.
-        Tintas acetinadas (brilho suave) ou semibrilho são fáceis de lavar, mas
-        revelam qualquer tortuosidade deixada pelo pedreiro ou gesseiro.
+        <strong>Tipos de Acabamento:</strong> Tintas foscas disfarçam pequenas
+        ondulações. Semibrilho revela qualquer tortuosidade.
         <br />
-        <strong>Tempo de Cura e Demãos:</strong> Nunca se pinta de uma vez só
-        com uma camada grossa. Aplicam-se de duas a três demãos finas. Respeitar
-        as horas de secagem do fabricante entre uma demão e outra é crucial;
-        caso contrário, o rolo de pintura "arranca" a tinta fresca de baixo,
-        descascando a parede.
+        <strong>Tempo de Cura e Demãos:</strong> Respeitar as horas de secagem
+        do fabricante entre uma demão e outra é crucial.
       </>
     ),
     imagem: finalPintura,
   },
   {
-    id: 16,
     titulo: "Detalhes e limpeza final",
     descricao: (
       <>
-        A obra acabou, mas a casa ainda não é um lar. A limpeza de uma obra é um
+        A obra acabou, mas a casa ainda não é um lar. A limpeza pós-obra é um
         processo pesado e químico.
         <br />
-        <strong>Remoção de Resíduos Químicos:</strong> Não adianta vassoura e
-        sabão neutro. A limpeza pós-obra usa removedores específicos
-        (desincrustantes e limpa-pedras) para diluir respingos de cimento, massa
-        corrida e o véu embaçado do rejunte epóxi que fica no porcelanato, sem
-        arranhar o esmalte do piso.
+        <strong>Remoção de Resíduos Químicos:</strong> Usa removedores
+        específicos para diluir respingos de cimento e massa corrida.
         <br />
-        <strong>Instalação de Acessórios:</strong> É a instalação cuidadosa do
-        box de vidro dos banheiros, espelhos, suportes de toalha, olho mágico,
-        números da fachada e varais. Exige cuidado com a furadeira para não
-        perfurar canos d'água acidentalmente (já que agora as paredes estão
-        todas fechadas e pintadas).
+        <strong>Instalação de Acessórios:</strong> Instalação cuidadosa do box
+        de vidro, espelhos e suportes.
         <br />
-        <strong>Check-list de Entrega (As-Built):</strong> O teste final.
-        Abrem-se todas as torneiras juntas, dá-se descarga para testar a
-        pressão, liga-se o chuveiro, todas as luzes, e testa-se tomada por
-        tomada com um multímetro ou carregador de celular. É comum atualizar a
-        planta da casa para o "As-Built" (Como Construído), registrando onde os
-        canos e fios realmente ficaram caso você precise furar a parede no
-        futuro.
+        <strong>Check-list de Entrega (As-Built):</strong> Testa-se a pressão da
+        água, luzes e tomadas. Atualiza-se a planta da casa para o "Como
+        Construído".
       </>
     ),
     imagem: detalhesELimpezaFinal,
   },
 ];
 
-const Etapas = ({ etapas = etapasMock }) => {
+const formatarData = (dataStr) => {
+  if (!dataStr) return null;
+  if (dataStr.includes("-")) {
+    const [ano, mes, dia] = dataStr.split("-");
+    return `${dia}/${mes}/${ano}`;
+  }
+  return dataStr;
+};
+
+const Etapas = ({ etapas = [] }) => {
   const [etapaAtiva, setEtapaAtiva] = useState(null);
   const [renderEtapa, setRenderEtapa] = useState(null);
   const [isFading, setIsFading] = useState(false);
-
   const [isMounted, setIsMounted] = useState(false);
   const [progressAnim, setProgressAnim] = useState(0);
 
-  const etapaAtualId = 5;
+  const dadosEtapas = (etapas || [])
+    .map((etapaBanco) => {
+      const mockItem = etapasMock.find((m) => m.titulo === etapaBanco.nome);
+      if (!mockItem) return null;
 
-  const etapaAtualIndex =
-    etapas.findIndex((e) => e.id === etapaAtualId) !== -1
-      ? etapas.findIndex((e) => e.id === etapaAtualId)
-      : 0;
+      return {
+        ...mockItem,
+        status: etapaBanco.status || "pendente",
+        dataInicio: formatarData(etapaBanco.data_inicio),
+        dataConclusao: formatarData(etapaBanco.data_conclusao),
+      };
+    })
+    .filter(Boolean);
 
-  const totalEtapas = etapas.length;
-  const concluidas = etapaAtualIndex;
+  const totalEtapas = dadosEtapas.length;
+  const concluidas = dadosEtapas.filter((e) => e.status === "concluído").length;
   const emAndamento = 1;
   const restantes = totalEtapas - concluidas - emAndamento;
-  const porcentagem = Math.round((concluidas / totalEtapas) * 100);
+  const porcentagem =
+    totalEtapas === 0 ? 0 : Math.round((concluidas / totalEtapas) * 100);
+
+  let currentIndex = dadosEtapas.findIndex((e) => e.status !== "concluído");
+  if (currentIndex === -1) {
+    currentIndex = totalEtapas > 0 ? totalEtapas - 1 : 0;
+  }
+  const etapaAtualIndex = currentIndex;
 
   useEffect(() => {
     const mountTimer = setTimeout(() => {
@@ -487,15 +397,34 @@ const Etapas = ({ etapas = etapasMock }) => {
     }, 250);
   };
 
-  if (!etapas || etapas.length === 0) return null;
+  if (!dadosEtapas || dadosEtapas.length === 0) {
+    return (
+      <div className="w-full flex justify-center items-center min-h-[30vh]">
+        <div className="w-full bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
+          <HardHat className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-[#464C54] mb-2">
+            Nenhuma etapa definida
+          </h2>
+          <p className="text-gray-500">
+            Acesse o menu de seleção de etapas para começar a montar o
+            cronograma desta obra.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const tituloAtual = etapas[etapaAtualIndex]?.titulo || "";
-  const proximoTitulo = etapas[etapaAtualIndex + 1]?.titulo || "Finalização";
+  const tituloAtual = dadosEtapas[etapaAtualIndex]?.titulo || "";
+  const proximoTitulo =
+    dadosEtapas[etapaAtualIndex + 1]?.titulo || "Finalização";
 
   const raioCirculo = 70;
   const circunferencia = 2 * Math.PI * raioCirculo;
   const preenchimentoArc =
     circunferencia - (circunferencia * progressAnim) / 100;
+
+  const fraction = totalEtapas <= 1 ? 0 : etapaAtualIndex / (totalEtapas - 1);
+  const redLineHeight = `calc(${fraction * 100}% - ${fraction * 40}px + 40px)`;
 
   return (
     <div className="w-full flex justify-center items-center min-h-[80vh]">
@@ -506,30 +435,30 @@ const Etapas = ({ etapas = etapasMock }) => {
 
         <div className="flex flex-1 relative gap-6 items-stretch">
           <div className="w-16 relative flex flex-col items-center">
-            <div className="relative flex flex-col gap-4 w-full items-center z-10">
-              <div className="absolute top-3 bottom-3 w-0.5 bg-gray-300 z-0 left-1/2 -translate-x-1/2"></div>
+            <div className="relative flex flex-col justify-between gap-4 w-full items-center z-10 h-full">
+              <div className="absolute top-0 bottom-0 w-0.5 bg-gray-300 z-0 left-1/2 -translate-x-1/2"></div>
 
               <div
-                className="absolute top-3 w-1 bg-[#DC3B0B] z-0 transition-all duration-500 ease-in-out left-1/2 -translate-x-1/2"
-                style={{ height: `${etapaAtualIndex * 60}px` }}
+                className="absolute top-0 w-1 bg-[#DC3B0B] z-0 transition-all duration-500 ease-in-out left-1/2 -translate-x-1/2"
+                style={{ height: redLineHeight }}
               ></div>
 
-              {etapas.map((_, index) => {
-                const isCompleted = index < etapaAtualIndex;
-                const isCurrent = index === etapaAtualIndex;
-                const isFuture = index > etapaAtualIndex;
+              {dadosEtapas.map((etapaItem, index) => {
+                const isCompleted = etapaItem.status === "concluído";
+                const isCurrent = index === etapaAtualIndex && !isCompleted;
+                const isFuture = !isCompleted && !isCurrent;
                 const isActive = etapaAtiva === index;
 
                 return (
                   <button
                     key={index}
                     onClick={() => handleToggleEtapa(index)}
-                    className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 transition-all duration-500 cursor-pointer focus:outline-none flex items-center justify-center text-sm md:text-base font-sans font-bold relative z-10 
+                    className={`flex-shrink-0 w-10 h-10 rounded-full border-2 transition-all duration-500 cursor-pointer focus:outline-none flex items-center justify-center text-sm font-sans font-bold relative z-10 
                       ${isCompleted ? "bg-[#DC3B0B] border-[#DC3B0B] text-white" : ""}
                       ${isCurrent ? "bg-white border-[#DC3B0B] text-[#DC3B0B]" : ""}
                       ${isFuture ? "bg-white border-gray-300 text-gray-400 hover:border-gray-400" : ""}
                       ${isActive ? "scale-115 shadow-lg" : "hover:scale-110"}`}
-                    title={`Ver etapa: ${etapas[index].titulo}`}
+                    title={`Ver etapa: ${etapaItem.titulo}`}
                   >
                     {isCompleted ? "✓" : index + 1}
                   </button>
@@ -642,7 +571,7 @@ const Etapas = ({ etapas = etapasMock }) => {
 
                     <div className="w-full rounded-lg overflow-hidden border border-gray-200 mb-4 bg-white flex justify-center items-center">
                       <img
-                        src={etapas[etapaAtualIndex].imagem}
+                        src={dadosEtapas[etapaAtualIndex]?.imagem}
                         alt={`Imagem da etapa atual: ${tituloAtual}`}
                         className="w-full h-auto max-h-[300px] object-contain transition-transform duration-700 group-hover:scale-105"
                       />
@@ -653,7 +582,7 @@ const Etapas = ({ etapas = etapasMock }) => {
                         Iniciado em:
                       </span>
                       <span className="text-sm font-bold text-[#464C54]">
-                        {etapas[etapaAtualIndex].dataInicio || "Recente"}
+                        {dadosEtapas[etapaAtualIndex]?.dataInicio || "Pendente"}
                       </span>
                     </div>
 
@@ -682,36 +611,37 @@ const Etapas = ({ etapas = etapasMock }) => {
                             </span>
                           </div>
                           <h3 className="sm:text-3xl text-xl font-bold">
-                            {etapas[renderEtapa].titulo}
+                            {dadosEtapas[renderEtapa].titulo}
                           </h3>
                         </div>
                       </div>
 
                       <div className="mb-4 md:items-center md:justify-center flex">
-                        {etapas[renderEtapa].dataConclusao && (
+                        {dadosEtapas[renderEtapa].dataConclusao && (
                           <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded font-sans">
-                            Concluído em {etapas[renderEtapa].dataConclusao}
+                            Concluído em{" "}
+                            {dadosEtapas[renderEtapa].dataConclusao}
                           </span>
                         )}
                         {renderEtapa === etapaAtualIndex &&
-                          etapas[renderEtapa].dataInicio && (
+                          dadosEtapas[renderEtapa].dataInicio && (
                             <span className="bg-orange-100 text-orange-800 text-xs font-semibold px-2.5 py-0.5 rounded font-sans">
-                              Iniciado em {etapas[renderEtapa].dataInicio}
+                              Iniciado em {dadosEtapas[renderEtapa].dataInicio}
                             </span>
                           )}
                       </div>
                     </div>
 
                     <p className="text-md sm:text-lg md:text-xl lg:text-2xl leading-relaxed font-sans mb-6">
-                      {etapas[renderEtapa].descricao}
+                      {dadosEtapas[renderEtapa].descricao}
                     </p>
 
                     <div className="w-full h-full flex justify-center items-center xl:mt-20">
                       <div className="w-full flex flex-col gap-4">
                         <div className="w-full rounded-xl overflow-hidden shadow-md border border-gray-200 bg-white p-2">
                           <img
-                            src={etapas[renderEtapa].imagem}
-                            alt={`Imagem da etapa: ${etapas[renderEtapa].titulo}`}
+                            src={dadosEtapas[renderEtapa].imagem}
+                            alt={`Imagem da etapa: ${dadosEtapas[renderEtapa].titulo}`}
                             className="w-full max-h-[300px] object-contain"
                           />
                         </div>
