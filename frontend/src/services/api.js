@@ -160,7 +160,7 @@ export const api = {
     // Chama a função RPC criada no Supabase que tem permissões SECURITY DEFINER
     const { data, error } = await supabase.rpc("buscar_dados_cliente", {
       p_nome: nomeCliente,
-      p_bairro: bairroObra, // Alterado para buscar pelo bairro da obra
+      p_bairro: bairroObra,
     });
 
     if (error) {
@@ -338,6 +338,20 @@ export const api = {
       .update({ active: false })
       .eq("id", id);
     if (error) throw error;
+  },
+
+  updateEtapasObra: async (idObra, etapasFormatadas) => {
+    const { data, error } = await supabase
+      .from("obras")
+      .update({ etapas_selecionadas: etapasFormatadas })
+      .eq("id", idObra);
+
+    if (error) {
+      console.error("Erro no updateEtapasObra:", error);
+      throw error;
+    }
+
+    return data;
   },
 
   // --- MÓDULO RELATÓRIOS E MATERIAIS ---
