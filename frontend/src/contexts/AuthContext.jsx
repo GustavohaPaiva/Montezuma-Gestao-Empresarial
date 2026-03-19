@@ -14,6 +14,18 @@ export function AuthProvider({ children }) {
 
   const [loading, setLoading] = useState(false);
 
+  // Função nova para atualizar a foto na sessão!
+  const updateUserFoto = (novaFotoUrl) => {
+    if (user) {
+      const usuarioAtualizado = { ...user, foto: novaFotoUrl };
+      setUser(usuarioAtualizado);
+      sessionStorage.setItem(
+        "montezuma_session",
+        JSON.stringify(usuarioAtualizado),
+      );
+    }
+  };
+
   // Login do Cliente (O Caminho Duplo)
   const loginCliente = async (nome, local) => {
     setLoading(true);
@@ -91,10 +103,14 @@ export function AuthProvider({ children }) {
 
       if (error) throw error;
 
+      // PUXANDO A FOTO AQUI!
+      const fotoDoAdmin = data.user.user_metadata?.foto || null;
+
       const userData = {
         id: data.user.id,
         email: data.user.email,
         tipo: "admin",
+        foto: fotoDoAdmin, // SALVANDO NA SESSÃO
       };
 
       setUser(userData);
@@ -114,7 +130,14 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loginCliente, loginAdmin, logout, loading }}
+      value={{
+        user,
+        loginCliente,
+        loginAdmin,
+        logout,
+        loading,
+        updateUserFoto,
+      }}
     >
       {children}
     </AuthContext.Provider>

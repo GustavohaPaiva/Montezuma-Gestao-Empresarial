@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../services/api";
 import { UserRound, Camera, X, Hourglass } from "lucide-react";
@@ -8,17 +8,22 @@ import imagemHome from "../../assets/img/ImagemHome.png";
 import Navbar from "../../components/navbar/Navbar";
 
 export default function Home() {
-  const { user } = useAuth(); // Puxa o usuário logado do contexto
+  const { user, updateUserFoto } = useAuth(); // <--- Função adicionada aqui!
 
-  // Estados do modal e da foto
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Fallback local caso o AuthContext não atualize a foto imediatamente em tela
-  const [fotoLocal, setFotoLocal] = useState(user?.foto || null);
+  const [fotoLocal, setFotoLocal] = useState(null);
+
+  // O SEGREDO ESTÁ AQUI: Escuta as mudanças no `user` e atualiza a foto assim que ele carregar.
+  useEffect(() => {
+    if (user) {
+      setFotoLocal(user?.user_metadata?.foto || user?.foto || null);
+    }
+  }, [user]);
 
   const modulos = [
     {
@@ -51,7 +56,7 @@ export default function Home() {
 
   const handleAbrirModal = () => {
     setSelectedFile(null);
-    setPreviewUrl(fotoLocal || user?.foto || null);
+    setPreviewUrl(fotoLocal);
     setIsModalOpen(true);
   };
 
@@ -77,22 +82,21 @@ export default function Home() {
     }
 
     if (!user?.id) {
-      alert("Erro: ID do usuário logado não encontrado.");
+      alert("Erro: ID do utilizador logado não encontrado.");
       return;
     }
 
     try {
       setUploadingFoto(true);
 
-      // ATENÇÃO: Verifique se o método existe na sua api.js.
-      // Se for a mesma rota de clientes, mude para api.uploadFotoCliente
       const response = await api.uploadFotoUsuario(user.id, selectedFile);
 
       setFotoLocal(response.fotoUrl);
+      updateUserFoto(response.fotoUrl); // <--- AVISA A SESSÃO QUE MUDOU A FOTO AQUI!
       setIsModalOpen(false);
     } catch (error) {
       console.error("Erro ao fazer upload da foto:", error);
-      alert("Falha ao salvar a foto. Verifique sua api.js.");
+      alert("Falha ao salvar a foto. Verifique a consola.");
     } finally {
       setUploadingFoto(false);
       if (fileInputRef.current) fileInputRef.current.value = null;
@@ -104,7 +108,6 @@ export default function Home() {
       className="text-center min-h-screen bg-cover bg-center bg-no-repeat relative"
       style={{ backgroundImage: `url(${imagemHome})` }}
     >
-      {/* Input oculto para imagem */}
       <input
         type="file"
         ref={fileInputRef}
@@ -113,7 +116,6 @@ export default function Home() {
         className="hidden"
       />
 
-      {/* MODAL DE UPLOAD DE FOTO */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col items-center shadow-xl relative animate-in fade-in zoom-in-95 duration-200">
@@ -174,16 +176,15 @@ export default function Home() {
         </div>
       )}
 
-      {/* ÁREA DA FOTO DO USUÁRIO LOGADO */}
       <div className="w-full flex justify-end pt-4 px-16 relative z-10">
         <div
           className="relative cursor-pointer group"
           onClick={handleAbrirModal}
           title="Alterar foto de perfil"
         >
-          {fotoLocal || user?.foto ? (
+          {fotoLocal ? (
             <img
-              src={fotoLocal || user?.foto}
+              src={fotoLocal}
               alt="Foto Usuário"
               className="w-[50px] h-[50px] rounded-[50%] border-2 border-[#DC3B0B] object-cover group-hover:opacity-70 transition-opacity bg-white"
             />

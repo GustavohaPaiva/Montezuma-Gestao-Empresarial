@@ -518,6 +518,40 @@ export const api = {
     if (error) throw error;
   },
 
+  uploadFotoUsuario: async (userId, file) => {
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `admin_${userId}_${Math.random()}.${fileExt}`;
+      const filePath = `admins/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("fotos_clientes")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error("Erro no Storage:", uploadError);
+        throw new Error("Falha ao subir imagem para o Storage");
+      }
+      const { data: publicUrlData } = supabase.storage
+        .from("fotos_clientes")
+        .getPublicUrl(filePath);
+
+      const fotoUrl = publicUrlData.publicUrl;
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { foto: fotoUrl },
+      });
+
+      if (updateError) {
+        console.error("Erro ao atualizar metadados do Auth:", updateError);
+        throw new Error("Falha ao vincular a foto ao perfil do Admin");
+      }
+
+      return { fotoUrl };
+    } catch (error) {
+      console.error("Erro completo no uploadFotoUsuario:", error);
+      throw error;
+    }
+  },
+
   addMaterial: async (dados) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")
