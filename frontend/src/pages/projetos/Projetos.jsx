@@ -6,10 +6,8 @@ import ButtonDefault from "../../components/gerais/ButtonDefault";
 import ModalOrcamento from "../../components/modals/ModalOrcamento";
 import ModalClientes from "../../components/modals/ModalClientes";
 
-// --- Formatações ---
 const formatarDataBR = (dataString) => {
   if (!dataString) return "-";
-  // Ajuste para evitar problemas de fuso horário na visualização simples
   const data = new Date(dataString);
   return data.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 };
@@ -23,10 +21,8 @@ const formatarMoeda = (valor) => {
 };
 
 export default function Projetos() {
-  // === CONTEXTO ESCRITÓRIO (SIMULADO) ===
   const [escritorioAtivo, setEscritorioAtivo] = useState("VK");
 
-  // === ESTADOS ORÇAMENTO ===
   const [orcamentos, setOrcamentos] = useState([]);
   const [filtroData, setFiltroData] = useState({ inicio: "", fim: "" });
   const [buscaOrcamento, setBuscaOrcamento] = useState("");
@@ -34,7 +30,6 @@ export default function Projetos() {
   const [editando, setEditando] = useState({ id: null, campo: null });
   const [valorEdicao, setValorEdicao] = useState("");
 
-  // === ESTADOS CLIENTES ===
   const [clientes, setClientes] = useState([]);
   const [filtroDataClientes, setFiltroDataClientes] = useState({
     inicio: "",
@@ -50,7 +45,6 @@ export default function Projetos() {
 
   const [recarregar, setRecarregar] = useState(0);
 
-  // === FETCH DADOS ===
   useEffect(() => {
     async function fetchDados() {
       try {
@@ -65,10 +59,6 @@ export default function Projetos() {
     }
     fetchDados();
   }, [recarregar, escritorioAtivo]);
-
-  // ==========================================================================
-  // LÓGICA DE ORÇAMENTOS
-  // ==========================================================================
 
   const handleNovoOrcamento = () => {
     setModalAberto(true);
@@ -91,7 +81,6 @@ export default function Projetos() {
     }
   }
 
-  // --- ALTERAÇÃO AQUI: Lógica para tratar Data na Edição ---
   const iniciarEdicao = useCallback((item, campo) => {
     setEditando({ id: item.id, campo });
     let valorInicial = "";
@@ -101,7 +90,6 @@ export default function Projetos() {
     } else if (campo === "nome") {
       valorInicial = item.nome;
     } else if (campo === "data") {
-      // Formata para YYYY-MM-DD para o input type="date" funcionar
       const rawDate = item.data || item.created_at;
       valorInicial = rawDate ? rawDate.split("T")[0] : "";
     }
@@ -124,9 +112,7 @@ export default function Projetos() {
         if (isNaN(novoValor)) novoValor = 0;
       }
 
-      // --- ALTERAÇÃO AQUI: Salvar Data ---
       if (campo === "data") {
-        // Garante que salve como ISO String se tiver valor
         if (valorEdicao) {
           novoValor = new Date(valorEdicao).toISOString();
         }
@@ -444,10 +430,6 @@ export default function Projetos() {
     handleExcluir,
   ]);
 
-  // ==========================================================================
-  // LÓGICA DE CLIENTES
-  // ==========================================================================
-
   const handleNovoCliente = () => {
     setModalClienteAberto(true);
   };
@@ -555,11 +537,9 @@ export default function Projetos() {
     }
   }, []);
 
-  // Processamento Clientes
   const clientesProcessados = useMemo(() => {
     let lista = [...clientes];
 
-    // Filtros
     if (filtroDataClientes.inicio && filtroDataClientes.fim) {
       const dataInicio = new Date(filtroDataClientes.inicio).getTime();
       const dataFim = new Date(filtroDataClientes.fim).getTime();
@@ -579,7 +559,6 @@ export default function Projetos() {
       );
     }
 
-    // === ORDENAÇÃO POR STATUS (REQ DO USUÁRIO) ===
     const pesosStatusClientes = {
       Produção: 1,
       Prefeitura: 2,
@@ -590,7 +569,6 @@ export default function Projetos() {
     };
 
     lista.sort((a, b) => {
-      // 1. Ordena por Status
       const pesoA = pesosStatusClientes[a.status] || 99;
       const pesoB = pesosStatusClientes[b.status] || 99;
 
@@ -598,7 +576,6 @@ export default function Projetos() {
         return pesoA - pesoB;
       }
 
-      // 2. Se status igual, ordena por Data (mais recente primeiro)
       const dataA = new Date(a.data || a.created_at).getTime();
       const dataB = new Date(b.data || b.created_at).getTime();
       return dataB - dataA;
@@ -607,13 +584,11 @@ export default function Projetos() {
     return lista;
   }, [clientes, filtroDataClientes, buscaCliente]);
 
-  // Totais Clientes
   const totalPagoClientes = clientesProcessados.reduce(
     (acc, item) => acc + (parseFloat(item.valor_pago) || 0),
     0,
   );
 
-  // Dados Tabela Clientes
   const dadosTabelaClientes = useMemo(() => {
     return clientesProcessados.map((c) => {
       editandoCliente.id === c.id && editandoCliente.campo === "tipo";
@@ -625,7 +600,6 @@ export default function Projetos() {
         editandoCliente.id === c.id &&
         editandoCliente.campo === "valor_cobrado";
 
-      // Cálculos de linha
       const valorCobrado = parseFloat(c.valor_cobrado) || 0;
       const valorPago = parseFloat(c.valor_pago) || 0;
       const saldo = valorCobrado - valorPago;
@@ -650,7 +624,6 @@ export default function Projetos() {
       };
 
       return [
-        // 1. NOME
         <span
           key={`cli-nome-${c.id}`}
           className="font-semibold uppercase text-left"
@@ -658,7 +631,6 @@ export default function Projetos() {
           {c.nome}
         </span>,
 
-        // 2. TIPO
         <select
           key={`cli-tipo-${c.id}`}
           value={c.tipo || "Residencial"}
@@ -685,7 +657,6 @@ export default function Projetos() {
           <option value="Institucional">Institucional</option>
         </select>,
 
-        // 3. STATUS
         <select
           key={`cli-status-${c.id}`}
           value={c.status || "Produção"}
@@ -700,7 +671,6 @@ export default function Projetos() {
           <option value="Finalizado">Finalizado</option>
         </select>,
 
-        // 4. PAGAMENTO
         <select
           key={`cli-pagamento-${c.id}`}
           value={c.pagamento || "Á vista"}
@@ -725,7 +695,6 @@ export default function Projetos() {
           <option value="À COMBINAR">À COMBINAR</option>
         </select>,
 
-        // 5. VALOR COBRADO (Editável)
         <div
           className="flex items-center justify-center gap-2"
           key={`cli-cobrado-${c.id}`}
@@ -780,7 +749,6 @@ export default function Projetos() {
           )}
         </div>,
 
-        // 6. VALOR PAGO (Editável)
         <div
           className="flex items-center justify-center gap-2"
           key={`cli-pago-${c.id}`}
@@ -835,7 +803,6 @@ export default function Projetos() {
           )}
         </div>,
 
-        // 7. SALDO (Calculado)
         <div
           className="flex items-center justify-center"
           key={`cli-saldo-${c.id}`}
@@ -847,10 +814,8 @@ export default function Projetos() {
           </span>
         </div>,
 
-        // 8. DATA
         formatarDataBR(c.data || c.created_at),
 
-        // 9. EXCLUIR
         <div className="flex justify-center group" key={`cli-del-${c.id}`}>
           <button
             onClick={() => handleExcluirCliente(c.id)}
@@ -904,7 +869,6 @@ export default function Projetos() {
       <Navbar />
 
       <div className="w-full px-[5%] box-border">
-        {/* === SELETOR DE ESCRITÓRIO === */}
         <div className="flex justify-end mb-2 gap-2 items-center">
           <span className="text-sm font-bold text-gray-500">
             Escritório Ativo:
@@ -919,7 +883,6 @@ export default function Projetos() {
           </select>
         </div>
 
-        {/* ================= SEÇÃO ORÇAMENTOS ================= */}
         <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[10px] pt-[24px] pb-[24px]">
           <div className="flex flex-col xl:flex-row justify-between w-full items-center gap-4">
             <div className="flex items-center gap-4">
@@ -1022,7 +985,6 @@ export default function Projetos() {
           </div>
         </div>
 
-        {/* ================= SEÇÃO CLIENTES ================= */}
         <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[40px] pt-[24px] pb-[24px]">
           <div className="flex flex-col xl:flex-row justify-between w-full items-center gap-4">
             <div className="flex items-center gap-4">

@@ -16,7 +16,6 @@ export default function CardProcessos({
 
   let bgColor, textColor, iconFilter;
 
-  // Sincronizado exatamente com as cores e status da tabela de Clientes (Projetos.jsx)
   if (status === "Produção") {
     bgColor = "bg-[#F3E5F5]";
     textColor = "text-[#7B1FA2]";
@@ -32,6 +31,11 @@ export default function CardProcessos({
     textColor = "text-[#00695C]";
     iconFilter =
       "invert(26%) sepia(97%) saturate(1478%) hue-rotate(164deg) brightness(95%) contrast(102%)";
+  } else if (status === "Cartorio") {
+    bgColor = "bg-[#ffcfd7]";
+    textColor = "text-[#de0226]";
+    iconFilter =
+      "invert(13%) sepia(89%) saturate(6032%) hue-rotate(346deg) brightness(94%) contrast(110%)";
   } else if (status === "Obra") {
     bgColor = "bg-[#FFF3E0]";
     textColor = "text-[#E65100]";
@@ -42,7 +46,6 @@ export default function CardProcessos({
     textColor = "text-[#2E7D32]";
     iconFilter = "invert(36%) sepia(85%) saturate(450%) hue-rotate(95deg)";
   } else {
-    // Fallback caso venha algum status diferente ou nulo
     bgColor = "bg-gray-100";
     textColor = "text-gray-600";
     iconFilter = "invert(50%)";
@@ -195,7 +198,7 @@ export default function CardProcessos({
           className={`relative ${bgColor} ${textColor} w-[60%] h-[35px] rounded-[8px] flex items-center justify-center font-bold text-sm`}
         >
           <select
-            value={status || "Produção"} // Fallback para exibir o valor inicial da lista caso venha vazio
+            value={status || "Produção"}
             onChange={handleStatusChange}
             onClick={handleStatusClick}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30 appearance-none"

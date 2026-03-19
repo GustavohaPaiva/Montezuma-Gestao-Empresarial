@@ -11,7 +11,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-// Dicionário de Status ATUALIZADO com as variáveis do Tailwind v4
 const STATUS_CONFIG = {
   "Aguardando iniciação": {
     bg: "bg-status-aguardando-bg",
@@ -73,7 +72,6 @@ export default function ObraCard({
     e.stopPropagation();
     await onUpdate(id, {
       local: editedName,
-      // Não enviamos mais o 'cliente' em texto livre aqui, pois ele é relacional!
       data: editedDataInicial,
     });
     setIsEditing(false);
@@ -94,7 +92,6 @@ export default function ObraCard({
       }`}
     >
       <div className="flex items-center justify-between w-full z-10">
-        {/* Indicativo Financeiro */}
         <div
           className={`w-3 h-3 rounded-full shadow-sm transition-colors duration-300 ${
             tudoPago ? "bg-[#2E7D32]" : "bg-[#F57C00]"
@@ -102,7 +99,6 @@ export default function ObraCard({
           title={tudoPago ? "Tudo pago" : "Pagamento pendente"}
         />
 
-        {/* Botões de Ação */}
         <div className="flex gap-2">
           {isEditing ? (
             <>
@@ -153,21 +149,22 @@ export default function ObraCard({
           >
             <input
               type="text"
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              className="w-full h-8 px-2 text-base uppercase border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              placeholder="Nome da Obra"
-              autoFocus
-            />
-            {/* Campo de cliente agora é read-only com um aviso no title */}
-            <input
-              type="text"
               value={client}
               disabled
               title="O nome do cliente agora é gerido pela aba de Processos/Clientes"
               className="w-full h-8 px-2 text-base uppercase border border-gray-200 bg-gray-100 text-gray-400 rounded-md cursor-not-allowed focus:outline-none"
               placeholder="Cliente"
             />
+
+            <input
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              className="w-full h-8 px-2 text-base uppercase border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              placeholder="Nome da Obra"
+              autoFocus
+            />
+
             <input
               type="date"
               value={editedDataInicial}
@@ -179,12 +176,13 @@ export default function ObraCard({
         ) : (
           <>
             <h2 className="w-full text-xl font-bold text-center uppercase truncate leading-tight text-gray-800">
-              {nome}
+              {client}
             </h2>
+
             <p className="flex items-center justify-center w-full gap-1 text-base text-gray-600 mt-1">
-              <span className="font-semibold">CLIENTE:</span>
-              <span className="max-w-[200px] uppercase truncate">{client}</span>
+              <span className="max-w-[200px] uppercase truncate">{nome}</span>
             </p>
+
             <p className="flex items-center justify-center w-full gap-1 text-base text-gray-600 mt-1">
               <span className="font-semibold">DATA:</span>
               <span className="max-w-[200px] uppercase truncate">{data}</span>

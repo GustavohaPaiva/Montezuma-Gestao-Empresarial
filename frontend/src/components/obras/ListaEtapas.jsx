@@ -1,8 +1,14 @@
 import React from "react";
 import { HardHat } from "lucide-react";
 
-export default function ListaEtapas({ etapas = [], onUpdateEtapas }) {
+export default function ListaEtapas({
+  etapas = [],
+  onUpdateEtapas,
+  isCliente = false,
+}) {
   const handleChange = (nomeEtapa, campo, valor) => {
+    if (isCliente) return; // Trava de segurança extra
+
     const novasEtapas = etapas.map((etapa) => {
       if (etapa.nome === nomeEtapa) {
         const etapaAtualizada = { ...etapa, [campo]: valor };
@@ -106,10 +112,13 @@ export default function ListaEtapas({ etapas = [], onUpdateEtapas }) {
                 </div>
 
                 {/* Checkbox de Conclusão mobile */}
-                <label className="flex md:hidden items-center justify-center w-8 h-8 cursor-pointer rounded-full hover:bg-gray-100 flex-shrink-0">
+                <label
+                  className={`flex md:hidden items-center justify-center w-8 h-8 rounded-full flex-shrink-0 ${isCliente ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-100"}`}
+                >
                   <input
                     type="checkbox"
                     checked={isConcluido}
+                    disabled={isCliente}
                     onChange={(e) =>
                       handleChange(
                         etapa.nome,
@@ -117,8 +126,10 @@ export default function ListaEtapas({ etapas = [], onUpdateEtapas }) {
                         e.target.checked,
                       )
                     }
-                    className="w-5 h-5 cursor-pointer accent-green-600"
-                    title="Marcar como concluído"
+                    className={`w-5 h-5 accent-green-600 ${isCliente ? "cursor-not-allowed" : "cursor-pointer"}`}
+                    title={
+                      isCliente ? "Apenas leitura" : "Marcar como concluído"
+                    }
                   />
                 </label>
               </div>
@@ -133,10 +144,11 @@ export default function ListaEtapas({ etapas = [], onUpdateEtapas }) {
                     <input
                       type="date"
                       value={etapa.data_inicio || ""}
+                      disabled={isCliente}
                       onChange={(e) =>
                         handleChange(etapa.nome, "data_inicio", e.target.value)
                       }
-                      className="p-1 text-[13px] border border-[#DBDADE] rounded-md focus:outline-none focus:border-[#464C54] bg-transparent"
+                      className={`p-1 text-[13px] border border-[#DBDADE] rounded-md bg-transparent ${isCliente ? "cursor-not-allowed opacity-60" : "focus:outline-none focus:border-[#464C54]"}`}
                     />
                   </div>
                   <div className="flex flex-col flex-1">
@@ -146,6 +158,7 @@ export default function ListaEtapas({ etapas = [], onUpdateEtapas }) {
                     <input
                       type="date"
                       value={etapa.data_conclusao || ""}
+                      disabled={isCliente}
                       onChange={(e) =>
                         handleChange(
                           etapa.nome,
@@ -153,15 +166,18 @@ export default function ListaEtapas({ etapas = [], onUpdateEtapas }) {
                           e.target.value,
                         )
                       }
-                      className="p-1 text-[13px] border border-[#DBDADE] rounded-md focus:outline-none focus:border-[#464C54] bg-transparent"
+                      className={`p-1 text-[13px] border border-[#DBDADE] rounded-md bg-transparent ${isCliente ? "cursor-not-allowed opacity-60" : "focus:outline-none focus:border-[#464C54]"}`}
                     />
                   </div>
                 </div>
                 {/* Checkbox de Conclusão desktop */}
-                <label className="md:flex hidden items-center justify-center w-8 h-8 cursor-pointer rounded-full hover:bg-gray-100 flex-shrink-0">
+                <label
+                  className={`md:flex hidden items-center justify-center w-8 h-8 rounded-full flex-shrink-0 ${isCliente ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-100"}`}
+                >
                   <input
                     type="checkbox"
                     checked={isConcluido}
+                    disabled={isCliente}
                     onChange={(e) =>
                       handleChange(
                         etapa.nome,
@@ -169,8 +185,10 @@ export default function ListaEtapas({ etapas = [], onUpdateEtapas }) {
                         e.target.checked,
                       )
                     }
-                    className="w-5 h-5 cursor-pointer accent-green-600"
-                    title="Marcar como concluído"
+                    className={`w-5 h-5 accent-green-600 ${isCliente ? "cursor-not-allowed" : "cursor-pointer"}`}
+                    title={
+                      isCliente ? "Apenas leitura" : "Marcar como concluído"
+                    }
                   />
                 </label>{" "}
               </div>

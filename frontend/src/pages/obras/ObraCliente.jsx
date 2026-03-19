@@ -4,8 +4,8 @@ import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import logo from "../../assets/logos/logo sem fundo.png";
-//import Etapas from "../../components/gerais/ObraEtapas";
-//import ListaEtapas from "../../components/obras/ListaEtapas";
+import Etapas from "../../components/gerais/ObraEtapas";
+import ListaEtapas from "../../components/obras/ListaEtapas";
 import { Icon } from "lucide-react";
 import { stairs } from "@lucide/lab";
 
@@ -937,11 +937,10 @@ export default function ObraCliente() {
             </div>
 
             {/* Etapas */}
-            {/*
+
             <div id="#etapas">
               <Etapas etapas={obra?.etapas_selecionadas || []} />
-            </div>  
-            */}
+            </div>
 
             {/* TABELAS INFERIORES */}
             <div
@@ -1069,9 +1068,10 @@ export default function ObraCliente() {
             </div>
 
             {/* Lista de Etapas */}
-            {/*
+
             <ListaEtapas
               etapas={obra.etapas_selecionadas}
+              isCliente={user?.tipo === "cliente"}
               onUpdateEtapas={async (novasEtapas) => {
                 try {
                   await api.updateEtapasObra(obra.id, novasEtapas);
@@ -1084,7 +1084,7 @@ export default function ObraCliente() {
                   alert("Erro ao atualizar a etapa");
                 }
               }}
-            /> */}
+            />
           </div>
 
           {/* HEADER MOBILE */}

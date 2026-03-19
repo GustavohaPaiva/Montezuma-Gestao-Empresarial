@@ -16,10 +16,7 @@ export default function NavbarObras({
   };
 
   return (
-    <header
-      className="relative z-50 flex justify-center w-full px-4 lg:px-[5%] py-4 lg:py-0 lg:h-[82px] transition-all bg-[#EEEDF0] border-b border-[#DBDADE] 
-sticky top-0"
-    >
+    <header className="relative z-50 flex justify-center w-full px-4 lg:px-[5%] py-4 lg:py-0 lg:h-[82px] transition-all bg-[#EEEDF0] border-b border-[#DBDADE] sticky top-0">
       <div className="flex flex-col items-center justify-between w-full gap-4 lg:flex-row lg:h-full">
         {/* LOGO */}
         <div

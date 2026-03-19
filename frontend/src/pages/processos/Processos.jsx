@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import Navbar from "../../components/navbar/NavbarProcessos"; // Importando a sua Navbar
+import Navbar from "../../components/navbar/NavbarProcessos";
 import ModalCliente from "../../components/modals/ModalClientes";
 import CardProcessos from "../../components/cards/CardProcessos";
 import { api } from "../../services/api";
@@ -8,7 +8,6 @@ export default function Processos() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [processos, setProcessos] = useState([]);
 
-  // Estados que serão passados para a Navbar
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Tudo");
 
@@ -50,25 +49,21 @@ export default function Processos() {
     }
   };
 
-  // --- MÁGICA ACONTECENDO AQUI ---
   const handleUpdateProcesso = async (id, dadosAtualizados) => {
     try {
-      // 1. Atualiza o card/cliente normalmente
       await api.updateCliente(id, dadosAtualizados);
 
-      // 2. Se a atualização foi justamente mudar o status para "Obra"...
       if (dadosAtualizados.status === "Obra") {
         const clienteAtual = processos.find((p) => p.id === id);
 
         if (clienteAtual) {
-          // 3. Cria a Obra vinculando o ID do cliente (cliente_id)
           await api.createObra({
-            cliente: clienteAtual.nome, // Mantido por retrocompatibilidade
+            cliente: clienteAtual.nome,
             local:
               clienteAtual.rua_obra ||
               clienteAtual.bairro_obra ||
               "Local a definir",
-            cliente_id: clienteAtual.id, // O vínculo crucial!
+            cliente_id: clienteAtual.id,
           });
           alert(
             `Obra criada automaticamente para o cliente ${clienteAtual.nome}!`,
@@ -76,7 +71,6 @@ export default function Processos() {
         }
       }
 
-      // Recarrega a tela para refletir o status novo
       carregarProcessos();
     } catch (error) {
       console.error("Erro ao atualizar processo:", error);
@@ -92,11 +86,9 @@ export default function Processos() {
     }
   };
 
-  // Processamento e filtragem dos dados
   const processosProcessados = useMemo(() => {
     let lista = [...processos];
 
-    // Filtro por Nome ou Tipo
     if (busca) {
       const termo = busca.toLowerCase();
       lista = lista.filter(
@@ -106,17 +98,17 @@ export default function Processos() {
       );
     }
 
-    // Filtro por Status
     if (filtroStatus !== "Tudo") {
       lista = lista.filter((p) => p.status === filtroStatus);
     }
 
-    // Ordenação (Mesma lógica da tela de clientes, ignorando Produção)
     const pesosStatus = {
-      Prefeitura: 1,
-      Caixa: 2,
-      Obra: 3,
-      Finalizado: 4,
+      Produção: 1,
+      Prefeitura: 2,
+      Caixa: 3,
+      Cartorio: 4,
+      Obra: 5,
+      Finalizado: 6,
     };
 
     lista.sort((a, b) => {
@@ -127,7 +119,6 @@ export default function Processos() {
         return pesoA - pesoB;
       }
 
-      // Desempate pela data (mais recentes primeiro)
       const dataA = new Date(a.data || a.created_at).getTime();
       const dataB = new Date(b.data || b.created_at).getTime();
       return dataB - dataA;
@@ -138,7 +129,6 @@ export default function Processos() {
 
   return (
     <div className="flex flex-col min-h-screen w-full items-center bg-[#EEEDF0] pb-10">
-      {/* Passando as props para a sua Navbar controlar os estados */}
       <Navbar
         searchTerm={busca}
         onSearchChange={setBusca}
