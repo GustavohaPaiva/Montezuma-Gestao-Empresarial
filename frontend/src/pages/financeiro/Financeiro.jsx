@@ -26,7 +26,7 @@ export default function Financeiro() {
   const [modalSaidaAberto, setModalSaidaAberto] = useState(false);
 
   const [escritorioId, setEscritorioId] = useState(null);
-  const [selectedProject, setSelectedProject] = useState("Montezuma");
+  const [selectedProject, setSelectedProject] = useState("Escritório");
 
   const [entradas, setEntradas] = useState([]);
   const [saidas, setSaidas] = useState([]);
@@ -42,6 +42,31 @@ export default function Financeiro() {
   });
   const [valorEditado, setValorEditado] = useState("");
 
+  const [dialogo, setDialogo] = useState({
+    aberto: false,
+    titulo: "",
+    mensagem: "",
+    botoes: [],
+  });
+
+  const fecharDialogo = () =>
+    setDialogo({ aberto: false, titulo: "", mensagem: "", botoes: [] });
+
+  const mostrarAlerta = (titulo, mensagem) => {
+    setDialogo({
+      aberto: true,
+      titulo,
+      mensagem,
+      botoes: [
+        {
+          texto: "Ok",
+          className: "bg-[#2E7D32] text-white hover:bg-[#1B5E20]",
+          onClick: fecharDialogo,
+        },
+      ],
+    });
+  };
+
   const dataAtual = new Date();
   const [mesSelecionado, setMesSelecionado] = useState(
     String(dataAtual.getMonth() + 1).padStart(2, "0"),
@@ -52,11 +77,15 @@ export default function Financeiro() {
     new Date().getFullYear(),
   );
   const [dadosAnuais, setDadosAnuais] = useState([]);
+  const [totaisAnuais, setTotaisAnuais] = useState({
+    validado: 0,
+    previsto: 0,
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
       if (selectedProject === "Montezuma") {
-        setEscritorioId("Montezuma"); // Passamos a string que a API agora entende como gatilho
+        setEscritorioId("Montezuma");
       } else {
         const {
           data: { user },
@@ -125,7 +154,7 @@ export default function Financeiro() {
       ];
 
       try {
-        const promessas = meses.map(async (mes, index) => {
+        const promessas = meses.map(async (mes) => {
           const ent = await api.getFinanceiro(
             "entradas",
             escritorioId,
@@ -142,29 +171,70 @@ export default function Financeiro() {
           const totalEntVal = ent
             .filter((i) => i.validacao === 1)
             .reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+          const totalEntPrev = ent.reduce(
+            (acc, c) => acc + (parseFloat(c.valor) || 0),
+            0,
+          );
           const totalSaiVal = sai
             .filter((i) => i.validacao === 1)
             .reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+          const totalSaiPrev = sai.reduce(
+            (acc, c) => acc + (parseFloat(c.valor) || 0),
+            0,
+          );
+
+          return { totalEntVal, totalEntPrev, totalSaiVal, totalSaiPrev };
+        });
+
+        const resultadosRaw = await Promise.all(promessas);
+        let sumVal = 0;
+        let sumPrev = 0;
+
+        const resultadosFormatados = resultadosRaw.map((r, index) => {
+          const balVal = r.totalEntVal - r.totalSaiVal;
+          const balPrev = r.totalEntPrev - r.totalSaiPrev;
+          sumVal += balVal;
+          sumPrev += balPrev;
 
           return [
             nomesMeses[index],
-            `R$ ${formatarMoeda(totalEntVal)}`,
-            `R$ ${formatarMoeda(totalSaiVal)}`,
-            <span
-              key={index}
-              className={
-                totalEntVal - totalSaiVal >= 0
-                  ? "text-green-600 font-bold"
-                  : "text-red-600 font-bold"
-              }
-            >
-              R$ {formatarMoeda(totalEntVal - totalSaiVal)}
-            </span>,
+            <div key={`ent-${index}`} className="flex flex-col">
+              <span className="font-bold">
+                R$ {formatarMoeda(r.totalEntVal)}
+              </span>
+              <span className="text-xs text-gray-500">
+                Total: R$ {formatarMoeda(r.totalEntPrev)}
+              </span>
+            </div>,
+            <div key={`sai-${index}`} className="flex flex-col">
+              <span className="font-bold">
+                R$ {formatarMoeda(r.totalSaiVal)}
+              </span>
+              <span className="text-xs text-gray-500">
+                Total: R$ {formatarMoeda(r.totalSaiPrev)}
+              </span>
+            </div>,
+            <div key={`bal-${index}`} className="flex flex-col">
+              <span
+                className={
+                  balVal >= 0
+                    ? "text-green-600 font-bold"
+                    : "text-red-600 font-bold"
+                }
+              >
+                R$ {formatarMoeda(balVal)}
+              </span>
+              <span
+                className={`text-xs ${balPrev >= 0 ? "text-green-600/70" : "text-red-600/70"}`}
+              >
+                Prev: R$ {formatarMoeda(balPrev)}
+              </span>
+            </div>,
           ];
         });
 
-        const resultados = await Promise.all(promessas);
-        setDadosAnuais(resultados);
+        setDadosAnuais(resultadosFormatados);
+        setTotaisAnuais({ validado: sumVal, previsto: sumPrev });
       } catch (erro) {
         console.error("Erro no resumo anual:", erro);
       }
@@ -176,7 +246,6 @@ export default function Financeiro() {
     try {
       const dataFinal =
         dadosFormulario.data || new Date().toISOString().split("T")[0];
-      // O lançamento usa o escritorioId atual (Seja "Montezuma" ou o ID do user)
       await api.createFinanceiro("entradas", {
         ...dadosFormulario,
         data: dataFinal,
@@ -186,7 +255,7 @@ export default function Financeiro() {
       setRecarregar((prev) => prev + 1);
     } catch (err) {
       console.error(err);
-      alert("Erro ao salvar entrada.");
+      mostrarAlerta("Erro", "Erro ao salvar entrada.");
     }
   };
 
@@ -203,20 +272,123 @@ export default function Financeiro() {
       setRecarregar((prev) => prev + 1);
     } catch (err) {
       console.error(err);
-      alert("Erro ao salvar saída.");
+      mostrarAlerta("Erro", "Erro ao salvar saída.");
     }
   };
 
-  const handleDelete = async (tabela, id) => {
-    if (window.confirm("Tem certeza que deseja excluir este registro?")) {
-      try {
-        await api.deleteFinanceiro(tabela, id);
-        setRecarregar((prev) => prev + 1);
-      } catch (err) {
-        console.error(err);
-        alert("Erro ao excluir item.");
-      }
+  const executarExclusao = async (tabela, id, excluirTodas) => {
+    try {
+      await api.deleteFinanceiro(tabela, id, excluirTodas);
+      setRecarregar((prev) => prev + 1);
+    } catch (err) {
+      console.error(err);
+      mostrarAlerta("Erro", "Erro ao excluir item.");
     }
+  };
+
+  const handleDelete = (tabela, item) => {
+    const isParcelado = item.parcelado || /\(\d+\/\d+\)/.test(item.descricao);
+
+    if (isParcelado) {
+      setDialogo({
+        aberto: true,
+        titulo: "Excluir Parcela",
+        mensagem:
+          "Este item faz parte de um parcelamento. Como deseja excluir?",
+        botoes: [
+          {
+            texto: "Cancelar",
+            className: "bg-gray-200 text-[#464C54] hover:bg-gray-300",
+            onClick: fecharDialogo,
+          },
+          {
+            texto: "Apenas Esta",
+            className: "bg-orange-500 text-white hover:bg-orange-600",
+            onClick: () => {
+              executarExclusao(tabela, item.id, false);
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Excluir Todas",
+            className: "bg-red-500 text-white hover:bg-red-600",
+            onClick: () => {
+              executarExclusao(tabela, item.id, true);
+              fecharDialogo();
+            },
+          },
+        ],
+      });
+    } else {
+      setDialogo({
+        aberto: true,
+        titulo: "Excluir Registro",
+        mensagem:
+          "Tem certeza que deseja excluir este registro permanentemente?",
+        botoes: [
+          {
+            texto: "Cancelar",
+            className: "bg-gray-200 text-[#464C54] hover:bg-gray-300",
+            onClick: fecharDialogo,
+          },
+          {
+            texto: "Excluir",
+            className: "bg-red-500 text-white hover:bg-red-600",
+            onClick: () => {
+              executarExclusao(tabela, item.id, false);
+              fecharDialogo();
+            },
+          },
+        ],
+      });
+    }
+  };
+
+  const executarAdiar = async (tabela, item) => {
+    try {
+      const isParcelado = item.parcelado || /\(\d+\/\d+\)/.test(item.descricao);
+      let novaDescricao = item.descricao;
+
+      if (isParcelado && !item.descricao.includes("(Mês Anterior)")) {
+        novaDescricao += " (Mês Anterior)";
+      }
+
+      const dataObj = new Date(item.data + "T12:00:00Z");
+      dataObj.setMonth(dataObj.getMonth() + 1);
+      const novaData = dataObj.toISOString().split("T")[0];
+
+      await api.updateFinanceiro(tabela, item.id, {
+        data: novaData,
+        descricao: novaDescricao,
+      });
+      setRecarregar((prev) => prev + 1);
+    } catch (err) {
+      console.error(err);
+      mostrarAlerta("Erro", "Erro ao adiar item.");
+    }
+  };
+
+  const handleAdiarMes = (tabela, item) => {
+    setDialogo({
+      aberto: true,
+      titulo: "Adiar Lançamento",
+      mensagem: "Deseja mover este lançamento para o próximo mês?",
+      botoes: [
+        {
+          texto: "Cancelar",
+          className: "bg-gray-200 text-[#464C54] hover:bg-gray-300",
+          onClick: fecharDialogo,
+        },
+        {
+          texto: "Adiar",
+          className: "bg-blue-500 text-white hover:bg-blue-600",
+          onClick: () => {
+            executarAdiar(tabela, item);
+            fecharDialogo();
+          },
+        },
+      ],
+    });
   };
 
   const iniciarEdicao = (tabela, item, campo) => {
@@ -229,17 +401,100 @@ export default function Financeiro() {
     setValorEditado("");
   };
 
-  const salvarEdicao = async (tabela, id, campo) => {
+  const executarSalvarEdicao = async (tabela, id, payload) => {
     try {
-      let valorFinal = valorEditado;
-      if (campo === "valor") valorFinal = parseFloat(valorEditado) || 0;
-      await api.updateFinanceiro(tabela, id, { [campo]: valorFinal });
+      await api.updateFinanceiro(tabela, id, payload);
       setRecarregar((prev) => prev + 1);
       cancelarEdicao();
     } catch (err) {
       console.error(err);
-      alert("Erro ao salvar edição.");
+      mostrarAlerta("Erro", "Erro ao salvar edição.");
     }
+  };
+
+  const salvarEdicao = (tabela, itemOriginal, campo) => {
+    let valorFinal = valorEditado;
+
+    if (campo === "valor") {
+      valorFinal = parseFloat(valorEditado) || 0;
+      const valorAntigo = parseFloat(itemOriginal.valor) || 0;
+
+      if (valorFinal !== valorAntigo) {
+        const isParcelado =
+          itemOriginal.parcelado || /\(\d+\/\d+\)/.test(itemOriginal.descricao);
+
+        if (isParcelado) {
+          const diferenca = valorAntigo - valorFinal;
+          const textoAcao = diferenca > 0 ? "Abater" : "Acrescer";
+
+          setDialogo({
+            aberto: true,
+            titulo: "Edição de Parcela",
+            mensagem: `Diferença de R$ ${Math.abs(diferenca).toFixed(2)}. Como aplicar a mudança?`,
+            botoes: [
+              {
+                texto: "Aplicar Fixo nas Restantes",
+                className:
+                  "bg-indigo-500 text-white text-sm hover:bg-indigo-600 m-1",
+                onClick: () => {
+                  executarSalvarEdicao(tabela, itemOriginal.id, {
+                    [campo]: valorFinal,
+                    alterar_todas_parcelas: true,
+                  });
+                  fecharDialogo();
+                },
+              },
+              {
+                texto: `${textoAcao} na Próxima`,
+                className:
+                  "bg-blue-500 text-white text-sm hover:bg-blue-600 m-1",
+                onClick: () => {
+                  executarSalvarEdicao(tabela, itemOriginal.id, {
+                    [campo]: valorFinal,
+                    diferenca_proxima_parcela: diferenca,
+                  });
+                  fecharDialogo();
+                },
+              },
+              {
+                texto: `Ratear ${textoAcao} nas Restantes`,
+                className:
+                  "bg-green-600 text-white text-sm hover:bg-green-700 m-1",
+                onClick: () => {
+                  executarSalvarEdicao(tabela, itemOriginal.id, {
+                    [campo]: valorFinal,
+                    ratear_diferenca_todas: diferenca,
+                  });
+                  fecharDialogo();
+                },
+              },
+              {
+                texto: "Apenas Esta",
+                className:
+                  "bg-orange-500 text-white text-sm hover:bg-orange-600 m-1",
+                onClick: () => {
+                  executarSalvarEdicao(tabela, itemOriginal.id, {
+                    [campo]: valorFinal,
+                  });
+                  fecharDialogo();
+                },
+              },
+              {
+                texto: "Cancelar",
+                className:
+                  "bg-transparent underline text-red-500 text-sm hover:text-red-700 m-1",
+                onClick: () => {
+                  cancelarEdicao();
+                  fecharDialogo();
+                },
+              },
+            ],
+          });
+          return;
+        }
+      }
+    }
+    executarSalvarEdicao(tabela, itemOriginal.id, { [campo]: valorFinal });
   };
 
   const handleToggleValidacao = async (tabela, item) => {
@@ -249,11 +504,8 @@ export default function Financeiro() {
         i.id === item.id ? { ...i, validacao: novoStatus } : i,
       );
 
-    if (tabela === "entradas") {
-      setEntradas((prev) => atualizarLista(prev));
-    } else {
-      setSaidas((prev) => atualizarLista(prev));
-    }
+    if (tabela === "entradas") setEntradas((prev) => atualizarLista(prev));
+    else setSaidas((prev) => atualizarLista(prev));
 
     try {
       await api.updateFinanceiro(tabela, item.id, { validacao: novoStatus });
@@ -279,15 +531,6 @@ export default function Financeiro() {
     (acc, curr) => acc + (parseFloat(curr.valor) || 0),
     0,
   );
-
-  const somaBalançoAnual = dadosAnuais.reduce((acc, curr) => {
-    const valorStr = curr[3].props ? curr[3].props.children[1] : 0;
-    const valorLimpo =
-      typeof valorStr === "string"
-        ? parseFloat(valorStr.replace(/\./g, "").replace(",", "."))
-        : 0;
-    return acc + valorLimpo;
-  }, 0);
 
   const gerarLinhasTabela = (dadosIniciais, termoBusca, nomeTabela) => {
     if (!Array.isArray(dadosIniciais)) return [];
@@ -335,7 +578,7 @@ export default function Financeiro() {
                 autoFocus
               />
               <button
-                onClick={() => salvarEdicao(nomeTabela, item.id, "valor")}
+                onClick={() => salvarEdicao(nomeTabela, item, "valor")}
                 className="cursor-pointer border-none bg-transparent"
               >
                 <img
@@ -366,9 +609,24 @@ export default function Financeiro() {
         >
           <span>{formatarDataBR(item.data)}</span>
         </div>,
-        <div className="flex justify-center group" key={`del-${item.id}`}>
+        <div
+          className="flex justify-center gap-2 group"
+          key={`actions-${item.id}`}
+        >
           <button
-            onClick={() => handleDelete(nomeTabela, item.id)}
+            title="Jogar para o próximo mês"
+            onClick={() => handleAdiarMes(nomeTabela, item)}
+            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-blue-50 rounded-full border-none bg-transparent cursor-pointer"
+          >
+            <img
+              width="18"
+              src="https://img.icons8.com/material-outlined/24/228BE6/forward.png"
+              alt="adiar"
+            />
+          </button>
+          <button
+            title="Excluir"
+            onClick={() => handleDelete(nomeTabela, item)}
             className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 rounded-full border-none bg-transparent cursor-pointer"
           >
             <img
@@ -384,6 +642,28 @@ export default function Financeiro() {
 
   return (
     <div className="relative">
+      {dialogo.aberto && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-[12px] p-6 w-full max-w-md shadow-2xl flex flex-col gap-3 text-center animate-fade-in">
+            <h3 className="text-xl font-bold text-[#464C54]">
+              {dialogo.titulo}
+            </h3>
+            <p className="text-[#71717A] text-sm mb-2">{dialogo.mensagem}</p>
+            <div className="flex flex-wrap justify-center items-center mt-2">
+              {dialogo.botoes.map((btn, i) => (
+                <button
+                  key={i}
+                  onClick={btn.onClick}
+                  className={`px-4 py-2 rounded-[8px] font-bold transition-colors ${btn.className}`}
+                >
+                  {btn.texto}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="absolute top-0 right-0 h-[80px] flex items-center z-[60] px-[5%] pointer-events-none">
         <select
           value={mesSelecionado}
@@ -418,8 +698,8 @@ export default function Financeiro() {
           onChange={(e) => setSelectedProject(e.target.value)}
           className="pointer-events-auto h-[40px] text-[14px] font-bold px-3 border border-[#C4C4C9] rounded-[8px] bg-white shadow-sm"
         >
-          <option value="Montezuma">Montezuma</option>
           <option value="Escritório">Escritório</option>
+          <option value="Montezuma">Montezuma</option>
         </select>
       </div>
 
@@ -443,7 +723,7 @@ export default function Financeiro() {
               Extrato de {mesSelecionado}/{anoAtual} ({selectedProject})
             </h2>
             <p className="text-sm opacity-80">
-              Apenas itens validados entram no cálculo
+              Apenas itens validados entram no cálculo principal
             </p>
           </div>
           <h1
@@ -478,7 +758,7 @@ export default function Financeiro() {
           <div className="grid xl:grid-cols-2 gap-[10px] w-full mt-4">
             <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2">
               <span className="text-sm text-[#71717A] uppercase font-semibold">
-                Total Orçado:
+                Total Lançado:
               </span>
               <span className="text-[18px] font-bold text-[#464C54]">
                 R$ {formatarMoeda(somaTotalEntradas)}
@@ -486,7 +766,7 @@ export default function Financeiro() {
             </div>
             <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9] gap-2">
               <span className="text-sm text-[#2E7D32] uppercase font-semibold">
-                Total Fechado:
+                Total Validado:
               </span>
               <span className="text-[18px] font-bold text-[#1B5E20]">
                 R$ {formatarMoeda(totalEntradasValidadas)}
@@ -518,7 +798,7 @@ export default function Financeiro() {
           <div className="grid xl:grid-cols-2 gap-[10px] w-full mt-4">
             <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2">
               <span className="text-sm text-[#71717A] uppercase font-semibold">
-                Total Orçado:
+                Total Lançado:
               </span>
               <span className="text-[18px] font-bold text-[#464C54]">
                 R$ {formatarMoeda(somaTotalSaidas)}
@@ -526,7 +806,7 @@ export default function Financeiro() {
             </div>
             <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#FFEBEE] gap-2">
               <span className="text-sm text-[#C62828] uppercase font-semibold">
-                Total Fechado:
+                Total Validado:
               </span>
               <span className="text-[18px] font-bold text-[#B71C1C]">
                 R$ {formatarMoeda(totalSaidasValidadas)}
@@ -551,15 +831,27 @@ export default function Financeiro() {
             colunas={["Mês", "Entrada", "Saida", "Balanço"]}
             dados={dadosAnuais}
           />
-          <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2 mt-4">
-            <span className="text-sm text-[#71717A] uppercase font-semibold">
-              Balanço Total do Ano:
-            </span>
-            <span
-              className={`text-[18px] font-bold ${somaBalançoAnual >= 0 ? "text-green-600" : "text-red-600"}`}
-            >
-              R$ {formatarMoeda(somaBalançoAnual)}
-            </span>
+          <div className="flex flex-col md:flex-row justify-center items-center border border-[#DBDADE] rounded-[8px] p-4 bg-[#F8F9FA] gap-8 mt-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[#71717A] uppercase font-semibold">
+                Balanço Validado do Ano:
+              </span>
+              <span
+                className={`text-[18px] font-bold ${totaisAnuais.validado >= 0 ? "text-green-600" : "text-red-600"}`}
+              >
+                R$ {formatarMoeda(totaisAnuais.validado)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[#71717A] uppercase font-semibold">
+                Balanço Previsto (Total Lançado):
+              </span>
+              <span
+                className={`text-[18px] font-bold ${totaisAnuais.previsto >= 0 ? "text-green-600/70" : "text-red-600/70"}`}
+              >
+                R$ {formatarMoeda(totaisAnuais.previsto)}
+              </span>
+            </div>
           </div>
         </div>
       </div>

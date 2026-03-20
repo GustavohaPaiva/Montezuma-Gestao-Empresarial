@@ -10,9 +10,8 @@ export const api = {
 
     let query = supabase.from(tabela).select("*");
 
-    // LÓGICA DE FILTRO NOVA:
     if (escritorioId === "Montezuma") {
-      query = query.eq("montezuma", true); // Filtra pela nova coluna
+      query = query.eq("montezuma", true);
     } else {
       query = query.eq("escritorio_id", escritorioId);
     }
@@ -30,8 +29,6 @@ export const api = {
     let registros = [];
     const isParcelado = dadosBase.formaPagamento === "Parcelado";
     const grupoId = isParcelado ? `grp_${Date.now()}` : null;
-
-    // Define se é Montezuma ou Escritório Pessoal
     const isMontezuma = dadosBase.escritorio_id === "Montezuma";
 
     const prepararDado = (valor, dataParcela, index, total) => ({
@@ -41,7 +38,6 @@ export const api = {
         : dadosBase.formaPagamento,
       valor: valor,
       data: dataParcela,
-      // Se for Montezuma, preenche a coluna nova. Se não, preenche o UUID.
       montezuma: isMontezuma ? true : false,
       escritorio_id: isMontezuma ? null : dadosBase.escritorio_id,
       grupo_id: grupoId,
@@ -76,32 +72,102 @@ export const api = {
   },
 
   updateFinanceiro: async (tabela, id, dados) => {
+    const {
+      alterar_todas_parcelas,
+      diferenca_proxima_parcela,
+      ratear_diferenca_todas,
+      ...dadosLimpos
+    } = dados;
+
+    if (
+      alterar_todas_parcelas ||
+      diferenca_proxima_parcela !== undefined ||
+      ratear_diferenca_todas !== undefined
+    ) {
+      const { data: itemAtual } = await supabase
+        .from(tabela)
+        .select("grupo_id, data")
+        .eq("id", id)
+        .single();
+
+      if (itemAtual?.grupo_id) {
+        if (alterar_todas_parcelas && dadosLimpos.valor !== undefined) {
+          await supabase
+            .from(tabela)
+            .update({ valor: dadosLimpos.valor })
+            .eq("grupo_id", itemAtual.grupo_id)
+            .gt("data", itemAtual.data);
+        } else if (diferenca_proxima_parcela !== undefined) {
+          const { data: proximaParcela } = await supabase
+            .from(tabela)
+            .select("id, valor")
+            .eq("grupo_id", itemAtual.grupo_id)
+            .gt("data", itemAtual.data)
+            .order("data", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (proximaParcela) {
+            const novoValorProxima =
+              parseFloat(proximaParcela.valor) +
+              parseFloat(diferenca_proxima_parcela);
+            await supabase
+              .from(tabela)
+              .update({ valor: novoValorProxima })
+              .eq("id", proximaParcela.id);
+          }
+        } else if (ratear_diferenca_todas !== undefined) {
+          const { data: parcelasRestantes } = await supabase
+            .from(tabela)
+            .select("id, valor")
+            .eq("grupo_id", itemAtual.grupo_id)
+            .gt("data", itemAtual.data);
+
+          if (parcelasRestantes && parcelasRestantes.length > 0) {
+            const diffPorParcela =
+              parseFloat(ratear_diferenca_todas) / parcelasRestantes.length;
+            for (const parcela of parcelasRestantes) {
+              const novoValorParcela =
+                parseFloat(parcela.valor) + diffPorParcela;
+              await supabase
+                .from(tabela)
+                .update({ valor: novoValorParcela })
+                .eq("id", parcela.id);
+            }
+          }
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from(tabela)
-      .update(dados)
+      .update(dadosLimpos)
       .eq("id", id)
       .select();
     if (error) throw error;
     return data[0];
   },
 
-  deleteFinanceiro: async (tabela, id) => {
-    const { data: item } = await supabase
-      .from(tabela)
-      .select("grupo_id")
-      .eq("id", id)
-      .single();
-
-    if (item?.grupo_id) {
-      const { error } = await supabase
+  deleteFinanceiro: async (tabela, id, excluirTodas = false) => {
+    if (excluirTodas) {
+      const { data: item } = await supabase
         .from(tabela)
-        .delete()
-        .eq("grupo_id", item.grupo_id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase.from(tabela).delete().eq("id", id);
-      if (error) throw error;
+        .select("grupo_id")
+        .eq("id", id)
+        .single();
+      if (item?.grupo_id) {
+        const { error } = await supabase
+          .from(tabela)
+          .delete()
+          .eq("grupo_id", item.grupo_id);
+        if (error) throw error;
+        return;
+      }
     }
+
+    // Cai aqui se for item único ou se o usuário selecionou "Apenas Esta"
+    const { error } = await supabase.from(tabela).delete().eq("id", id);
+    if (error) throw error;
   },
 
   // --- MÓDULO ORÇAMENTOS ---
@@ -111,11 +177,7 @@ export const api = {
       .from("orcamentos")
       .select("*")
       .order("data", { ascending: false });
-
-    if (escritorioId) {
-      query = query.eq("escritorio_id", escritorioId);
-    }
-
+    if (escritorioId) query = query.eq("escritorio_id", escritorioId);
     const { data, error } = await query;
     if (error) throw error;
     return data;
@@ -155,20 +217,15 @@ export const api = {
 
   // --- MÓDULO CLIENTES E LOGIN CLIENTE ---
 
-  // NOVA FUNÇÃO: Login seguro para clientes usando RPC
   loginClientePorNomeEBairro: async (nomeCliente, bairroObra) => {
-    // Chama a função RPC criada no Supabase que tem permissões SECURITY DEFINER
     const { data, error } = await supabase.rpc("buscar_dados_cliente", {
       p_nome: nomeCliente,
       p_bairro: bairroObra,
     });
-
     if (error) {
       console.error("Erro na busca do cliente via RPC:", error);
       throw error;
     }
-
-    // Retorna o primeiro registo encontrado, ou null se não encontrar nada
     return data && data.length > 0 ? data[0] : null;
   },
 
@@ -177,11 +234,7 @@ export const api = {
       .from("clientes")
       .select("*")
       .order("data", { ascending: false });
-
-    if (escritorioId) {
-      query = query.eq("escritorio_id", escritorioId);
-    }
-
+    if (escritorioId) query = query.eq("escritorio_id", escritorioId);
     const { data, error } = await query;
     if (error) throw error;
     return data;
@@ -191,26 +244,16 @@ export const api = {
     if (!isNaN(idOuNome) && idOuNome !== null && idOuNome !== "") {
       const { data: rpcData, error: rpcError } = await supabase.rpc(
         "obter_cliente_por_id",
-        {
-          p_id: parseInt(idOuNome),
-        },
+        { p_id: parseInt(idOuNome) },
       );
-
-      if (!rpcError && rpcData && rpcData.length > 0) {
-        return rpcData[0];
-      }
+      if (!rpcError && rpcData && rpcData.length > 0) return rpcData[0];
     }
-
     let query = supabase.from("clientes").select("*");
-
-    if (!isNaN(idOuNome) && idOuNome !== null && idOuNome !== "") {
+    if (!isNaN(idOuNome) && idOuNome !== null && idOuNome !== "")
       query = query.eq("id", idOuNome);
-    } else {
-      query = query.eq("nome", idOuNome);
-    }
+    else query = query.eq("nome", idOuNome);
 
     const { data, error } = await query.maybeSingle();
-
     if (error) throw error;
     return data;
   },
@@ -250,38 +293,22 @@ export const api = {
 
   uploadFotoCliente: async (clienteId, file) => {
     try {
-      // 1. Gera um nome de arquivo único para evitar conflitos
       const fileExt = file.name.split(".").pop();
       const fileName = `${clienteId}-${Date.now()}.${fileExt}`;
-
-      // 2. Faz o upload da foto pro Supabase (o bucket precisa se chamar 'fotos_clientes')
       const { error: uploadError } = await supabase.storage
         .from("fotos_clientes")
         .upload(fileName, file);
+      if (uploadError) throw uploadError;
 
-      if (uploadError) {
-        console.error("Erro no upload do Supabase:", uploadError);
-        throw uploadError;
-      }
-
-      // 3. Pega a URL pública gerada
       const { data } = supabase.storage
         .from("fotos_clientes")
         .getPublicUrl(fileName);
-
       const fotoUrl = data.publicUrl;
-
-      // 4. Salva a URL nova lá na tabela de clientes
       const { error: updateError } = await supabase
         .from("clientes")
         .update({ foto: fotoUrl })
         .eq("id", clienteId);
-
-      if (updateError) {
-        console.error("Erro ao atualizar o banco de dados:", updateError);
-        throw updateError;
-      }
-
+      if (updateError) throw updateError;
       return { fotoUrl };
     } catch (error) {
       console.error("Erro completo na função de upload:", error);
@@ -299,7 +326,6 @@ export const api = {
       )
       .eq("active", true)
       .order("created_at", { ascending: false });
-
     const { data, error } = await query;
     if (error) throw error;
     return data;
@@ -345,12 +371,7 @@ export const api = {
       .from("obras")
       .update({ etapas_selecionadas: etapasFormatadas })
       .eq("id", idObra);
-
-    if (error) {
-      console.error("Erro no updateEtapasObra:", error);
-      throw error;
-    }
-
+    if (error) throw error;
     return data;
   },
 
@@ -362,13 +383,7 @@ export const api = {
       .delete()
       .eq("id", id);
     if (error) throw error;
-
-    const { error: errorExtrato } = await supabase
-      .from("relatorio_extrato")
-      .delete()
-      .eq("material_id", id);
-
-    if (errorExtrato) console.error("Erro ao limpar extrato:", errorExtrato);
+    await supabase.from("relatorio_extrato").delete().eq("material_id", id);
   },
 
   deleteMaoDeObra: async (id) => {
@@ -377,36 +392,23 @@ export const api = {
       .delete()
       .eq("id", id);
     if (error) throw error;
-
-    const { error: errorExtrato } = await supabase
-      .from("relatorio_extrato")
-      .delete()
-      .eq("mao_de_obra_id", id);
-
-    if (errorExtrato)
-      console.error("Erro ao limpar extrato MDO:", errorExtrato);
+    await supabase.from("relatorio_extrato").delete().eq("mao_de_obra_id", id);
   },
 
   getObraById: async (id) => {
     const { data, error } = await supabase
       .from("obras")
-
       .select(
         `*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
       )
       .eq("id", id)
       .maybeSingle();
-
     if (error) throw error;
-
-    if (!data) {
+    if (!data)
       throw new Error("Obra não encontrada ou sem permissão de acesso.");
-    }
-
     const relatorioOrdenado = (data.relatorioExtrato || []).sort(
       (a, b) => new Date(b.data) - new Date(a.data),
     );
-
     return {
       ...data,
       materiais: data.materiais || [],
@@ -442,7 +444,6 @@ export const api = {
       .update({ valor: novoValor })
       .eq("id", id)
       .select("*");
-
     if (error) throw error;
     const materialAtualizado = data[0];
 
@@ -452,14 +453,10 @@ export const api = {
         .select("*")
         .eq("material_id", id)
         .maybeSingle();
-
       if (extratoData) {
         await supabase
           .from("relatorio_extrato")
-          .update({
-            valor: novoValor,
-            descricao: materialAtualizado.material,
-          })
+          .update({ valor: novoValor, descricao: materialAtualizado.material })
           .eq("id", extratoData.id);
       } else if (parseFloat(novoValor) > 0) {
         await supabase.from("relatorio_extrato").insert([
@@ -526,24 +523,17 @@ export const api = {
       const { error: uploadError } = await supabase.storage
         .from("fotos_clientes")
         .upload(filePath, file);
+      if (uploadError) throw new Error("Falha ao subir imagem para o Storage");
 
-      if (uploadError) {
-        console.error("Erro no Storage:", uploadError);
-        throw new Error("Falha ao subir imagem para o Storage");
-      }
       const { data: publicUrlData } = supabase.storage
         .from("fotos_clientes")
         .getPublicUrl(filePath);
-
       const fotoUrl = publicUrlData.publicUrl;
       const { error: updateError } = await supabase.auth.updateUser({
         data: { foto: fotoUrl },
       });
-
-      if (updateError) {
-        console.error("Erro ao atualizar metadados do Auth:", updateError);
+      if (updateError)
         throw new Error("Falha ao vincular a foto ao perfil do Admin");
-      }
 
       return { fotoUrl };
     } catch (error) {
@@ -620,7 +610,6 @@ export const api = {
       dadosOriginais.valor_pago > 0
         ? dadosOriginais.valor_pago
         : dadosOriginais.valor_cobrado;
-
     const { error: errorExtrato } = await supabase
       .from("relatorio_extrato")
       .insert([

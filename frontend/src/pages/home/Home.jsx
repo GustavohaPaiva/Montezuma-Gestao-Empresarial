@@ -8,7 +8,7 @@ import imagemHome from "../../assets/img/ImagemHome.png";
 import Navbar from "../../components/navbar/Navbar";
 
 export default function Home() {
-  const { user, updateUserFoto } = useAuth(); // <--- Função adicionada aqui!
+  const { user, updateUserFoto } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -18,7 +18,6 @@ export default function Home() {
 
   const [fotoLocal, setFotoLocal] = useState(null);
 
-  // O SEGREDO ESTÁ AQUI: Escuta as mudanças no `user` e atualiza a foto assim que ele carregar.
   useEffect(() => {
     if (user) {
       setFotoLocal(user?.user_metadata?.foto || user?.foto || null);

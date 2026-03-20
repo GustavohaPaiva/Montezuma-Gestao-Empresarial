@@ -21,6 +21,7 @@ import detalhesELimpezaFinal from "../../assets/imagensEtapas/DetalhesELimpezaFi
 const etapasMock = [
   {
     titulo: "Infraestrutura",
+    peso: 9.33,
     descricao: (
       <>
         Esta é a fase que exige a maior precisão técnica, pois erros aqui são
@@ -43,6 +44,7 @@ const etapasMock = [
   },
   {
     titulo: "Supraestrutura",
+    peso: 13.33,
     descricao: (
       <>
         É a armação que mantém o prédio de pé. A lógica de distribuição de peso
@@ -60,6 +62,7 @@ const etapasMock = [
   },
   {
     titulo: "Alvenaria",
+    peso: 8.89,
     descricao: (
       <>
         Existem duas formas principais de erguer essas paredes, e a escolha muda
@@ -79,6 +82,7 @@ const etapasMock = [
   },
   {
     titulo: "Cobertura",
+    peso: 7.56,
     descricao: (
       <>
         O telhado é um sistema complexo que vai muito além de colocar telhas
@@ -98,6 +102,7 @@ const etapasMock = [
   },
   {
     titulo: "Revestimentos externos",
+    peso: 8.45,
     descricao: (
       <>
         O lado de fora da casa sofre com dilatação térmica (sol) e chuva, por
@@ -118,6 +123,7 @@ const etapasMock = [
   },
   {
     titulo: "Revestimentos internos",
+    peso: 10.93,
     descricao: (
       <>
         Aqui a casa começa a ficar confortável e pronta para a decoração.
@@ -137,6 +143,7 @@ const etapasMock = [
   },
   {
     titulo: "Hidráulica",
+    peso: 8.44,
     descricao: (
       <>
         A regra de ouro da hidráulica é: faça testes antes de fechar as paredes.
@@ -156,6 +163,7 @@ const etapasMock = [
   },
   {
     titulo: "Estrutura Elétrica",
+    peso: 2.5,
     descricao: (
       <>
         Uma elétrica malfeita gera alto consumo de energia e risco de incêndio.
@@ -172,6 +180,7 @@ const etapasMock = [
   },
   {
     titulo: "Primeira etapa de pintura",
+    peso: 2.5,
     descricao: (
       <>
         A pintura é a maquiagem da obra. Se a pele (parede) não estiver bem
@@ -192,6 +201,7 @@ const etapasMock = [
   },
   {
     titulo: "Assentamento de piso",
+    peso: 8.89,
     descricao: (
       <>
         A escolha do piso dita o conforto e a estética, mas a instalação correta
@@ -211,6 +221,7 @@ const etapasMock = [
   },
   {
     titulo: "Esquadrias",
+    peso: 7.34,
     descricao: (
       <>
         Fechar os vãos exige precisão milimétrica para evitar infiltrações de
@@ -230,6 +241,7 @@ const etapasMock = [
   },
   {
     titulo: "Pedras",
+    peso: 1.33,
     descricao: (
       <>
         Bancadas, pias e soleiras são itens pesados e frágeis antes de
@@ -249,6 +261,7 @@ const etapasMock = [
   },
   {
     titulo: "Louças e metais",
+    peso: 4.84,
     descricao: (
       <>
         A instalação dos acabamentos transforma os canos saindo da parede em
@@ -268,6 +281,7 @@ const etapasMock = [
   },
   {
     titulo: "Final Elétrica",
+    peso: 1.72,
     descricao: (
       <>
         É o momento de dar vida à casa instalando tomadas, luzes e ligando tudo
@@ -287,6 +301,7 @@ const etapasMock = [
   },
   {
     titulo: "Final Pintura",
+    peso: 2.39,
     descricao: (
       <>
         A pintura final é muito sensível e exige isolamento total de tudo o que
@@ -306,13 +321,14 @@ const etapasMock = [
   },
   {
     titulo: "Detalhes e limpeza final",
+    peso: 1.56,
     descricao: (
       <>
         A obra acabou, mas a casa ainda não é um lar. A limpeza pós-obra é um
         processo pesado e químico.
         <br />
-        <strong>Remoção de Resíduos Químicos:</strong> Usa removedores
-        específicos para diluir respingos de cimento e massa corrida.
+        <strong>Remoção de Resíduos Químicos:</strong> Usa removedores específos
+        para diluir respingos de cimento e massa corrida.
         <br />
         <strong>Instalação de Acessórios:</strong> Instalação cuidadosa do box
         de vidro, espelhos e suportes.
@@ -335,7 +351,7 @@ const formatarData = (dataStr) => {
   return dataStr;
 };
 
-const Etapas = ({ etapas = [] }) => {
+export default function Etapas({ etapas = [] }) {
   const [etapaAtiva, setEtapaAtiva] = useState(null);
   const [renderEtapa, setRenderEtapa] = useState(null);
   const [isFading, setIsFading] = useState(false);
@@ -360,8 +376,14 @@ const Etapas = ({ etapas = [] }) => {
   const concluidas = dadosEtapas.filter((e) => e.status === "concluído").length;
   const emAndamento = 1;
   const restantes = totalEtapas - concluidas - emAndamento;
-  const porcentagem =
-    totalEtapas === 0 ? 0 : Math.round((concluidas / totalEtapas) * 100);
+
+  // Cálculo ajustado de progresso: Soma do peso de todas as etapas concluídas
+  const porcentagemExata = dadosEtapas.reduce(
+    (acc, etapa) =>
+      etapa.status === "concluído" ? acc + (etapa.peso || 0) : acc,
+    0,
+  );
+  const porcentagem = totalEtapas === 0 ? 0 : Math.round(porcentagemExata);
 
   let currentIndex = dadosEtapas.findIndex((e) => e.status !== "concluído");
   if (currentIndex === -1) {
@@ -665,6 +687,4 @@ const Etapas = ({ etapas = [] }) => {
       </div>
     </div>
   );
-};
-
-export default Etapas;
+}

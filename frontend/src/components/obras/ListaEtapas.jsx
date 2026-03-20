@@ -59,7 +59,7 @@ export default function ListaEtapas({
     );
   }
 
-  // Descobre qual é a primeira etapa não concluída para marcá-line como "em andamento"
+  // Descobre qual é a primeira etapa não concluída para marcá-la como "em andamento"
   const indicePrimeiraPendente = etapas.findIndex(
     (e) => e.status !== "concluído",
   );
