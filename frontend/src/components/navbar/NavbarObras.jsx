@@ -19,14 +19,12 @@ export default function NavbarObras({
     <header className="relative z-50 flex justify-center w-full px-4 lg:px-[5%] py-4 lg:py-0 lg:h-[82px] transition-all bg-[#EEEDF0] border-b border-[#DBDADE] sticky top-0">
       <div className="flex flex-col items-center justify-between w-full gap-4 lg:flex-row lg:h-full">
         {/* LOGO */}
-        <div
-          onClick={handleNavigation}
-          className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
-        >
+        <div className="flex items-center justify-center transition-opacity">
           <img
             src={logo}
             alt="Logo Montezuma"
-            className="object-contain w-[50px] h-[50px] lg:w-[60px] lg:h-[60px] mr-3"
+            onClick={handleNavigation}
+            className="object-contain w-[50px] h-[50px] lg:w-[60px] lg:h-[60px] mr-3 cursor-pointer"
           />
           <p className="text-3xl lg:text-[40px] font-semibold text-[#464C54]">
             Montezuma
