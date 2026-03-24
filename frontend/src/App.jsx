@@ -1,6 +1,7 @@
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import RotaProtegida from "./services/RotaProtegida";
+import PageTransition from "./components/gerais/PageTransition";
 
 import Obras from "./pages/obras/Obras";
 import ObrasDetalhe from "./pages/obras/ObrasDetalhe";
@@ -22,28 +23,110 @@ export default function App() {
       <Router>
         <Routes>
           {/* Login do Cliente */}
-          <Route path="/login" element={<LoginCliente />} />
+          <Route
+            path="/login"
+            element={
+              <PageTransition>
+                <LoginCliente />
+              </PageTransition>
+            }
+          />
 
           {/* Login do Admin (RotaSecreta) */}
-          <Route path="/loginadm" element={<LoginAdm />} />
+          <Route
+            path="/loginadm"
+            element={
+              <PageTransition>
+                <LoginAdm />
+              </PageTransition>
+            }
+          />
 
-          {/* --- ÁREA DO ADMIN --- */}
-          <Route element={<RotaProtegida allowedTypes={["admin"]} />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/projetos" element={<Projetos />} />
-            <Route path="/obras" element={<Obras />} />
-            <Route path="/processos" element={<Processos />} />
-            <Route path="/obrasD/:id" element={<ObrasDetalhe />} />
-            <Route path="/financeiro" element={<Financeiro />} />
-            <Route path="/processo/:id" element={<ProcessosDetalhes />} />
-            <Route path="/documentos/:id" element={<DocumentosProcesso />} />
+          {/* --- ÁREA EXCLUSIVA DO ADM (Obras, Projetos) --- */}
+          <Route element={<RotaProtegida allowedTypes={["adm"]} />}>
+            <Route
+              path="/projetos"
+              element={
+                <PageTransition>
+                  <Projetos />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/obras"
+              element={
+                <PageTransition>
+                  <Obras />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/obrasD/:id"
+              element={
+                <PageTransition>
+                  <ObrasDetalhe />
+                </PageTransition>
+              }
+            />
           </Route>
 
-          {/* --- ÁREA COMUM --- */}
+          {/* --- ÁREA COMPARTILHADA (ADM + SECRETARIA) --- */}
           <Route
-            element={<RotaProtegida allowedTypes={["cliente", "admin"]} />}
+            element={<RotaProtegida allowedTypes={["adm", "secretaria"]} />}
           >
-            <Route path="/obra/:id" element={<Obra />} />
+            {/* A HOME AGORA ESTÁ AQUI, PARA A SECRETÁRIA ACESSAR O PAINEL DE CARDS */}
+            <Route
+              path="/"
+              element={
+                <PageTransition>
+                  <Home />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/processos"
+              element={
+                <PageTransition>
+                  <Processos />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/processo/:id"
+              element={
+                <PageTransition>
+                  <ProcessosDetalhes />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/documentos/:id"
+              element={
+                <PageTransition>
+                  <DocumentosProcesso />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/financeiro"
+              element={
+                <PageTransition>
+                  <Financeiro />
+                </PageTransition>
+              }
+            />
+          </Route>
+
+          {/* --- ÁREA COMUM (CLIENTE + ADM) --- */}
+          <Route element={<RotaProtegida allowedTypes={["cliente", "adm"]} />}>
+            <Route
+              path="/obra/:id"
+              element={
+                <PageTransition>
+                  <Obra />
+                </PageTransition>
+              }
+            />
           </Route>
         </Routes>
       </Router>

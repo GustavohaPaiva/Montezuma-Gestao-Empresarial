@@ -5,7 +5,6 @@ import { UserRound, Camera, X, Hourglass } from "lucide-react";
 import CardHome from "../../components/cards/CardHome";
 import logo from "../../assets/logos/logo sem fundo.png";
 import imagemHome from "../../assets/img/ImagemHome.png";
-import Navbar from "../../components/navbar/Navbar";
 
 export default function Home() {
   const { user, updateUserFoto } = useAuth();
@@ -30,6 +29,7 @@ export default function Home() {
       titulo: "Projetos",
       imagem: "https://img.icons8.com/ios/125/project.png",
       path: "/projetos",
+      roles: ["adm"],
     },
     {
       id: 2,
@@ -37,12 +37,14 @@ export default function Home() {
       imagem:
         "https://img.icons8.com/external-outline-design-circle/125/external-Process-Lists-artificial-intelligence-outline-design-circle.png",
       path: "/processos",
+      roles: ["adm", "secretaria"],
     },
     {
       id: 3,
       titulo: "Obras",
       imagem: "https://img.icons8.com/ios/125/company--v1.png",
       path: "/obras",
+      roles: ["adm"],
     },
     {
       id: 4,
@@ -50,8 +52,13 @@ export default function Home() {
       imagem:
         "https://img.icons8.com/external-outline-wichaiwi/125/external-financial-business-continuity-plan-outline-wichaiwi.png",
       path: "/financeiro",
+      roles: ["adm", "secretaria"],
     },
   ];
+
+  const modulosPermitidos = modulos.filter((modulo) =>
+    modulo.roles.includes(user?.tipo),
+  );
 
   const handleAbrirModal = () => {
     setSelectedFile(null);
@@ -91,7 +98,7 @@ export default function Home() {
       const response = await api.uploadFotoUsuario(user.id, selectedFile);
 
       setFotoLocal(response.fotoUrl);
-      updateUserFoto(response.fotoUrl); // <--- AVISA A SESSÃO QUE MUDOU A FOTO AQUI!
+      updateUserFoto(response.fotoUrl);
       setIsModalOpen(false);
     } catch (error) {
       console.error("Erro ao fazer upload da foto:", error);
@@ -195,22 +202,25 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="w-full p-5 md:p-20 flex flex-row justify-center items-center gap-8 md:gap-14 relative z-10">
+      <div className="w-full p-5 md:p-20 flex md:flex-row flex-col justify-center items-center gap-8 md:gap-14 relative z-10">
         <img src={logo} className="w-30 md:w-60" alt="Logo Montezuma" />
-        <div className="flex md:gap-5 items-start flex-col">
+        <div className="flex md:gap-5 items-center md:items-start flex-col">
           <h2 className="text-3xl md:text-7xl font-bold">MONTEZUMA</h2>
           <p className="text-xl md:text-3xl">Sistema de Gestão Empresarial</p>
         </div>
       </div>
 
-      <div className="px-[5%] gap-8 mt-8 grid grid-cols-[repeat(auto-fit,minmax(0,300px))] justify-center sm:justify-between pb-4 relative z-10">
-        {modulos.map((item) => (
-          <CardHome
-            key={item.id}
-            titulo={item.titulo}
-            img={item.imagem}
-            path={item.path}
-          />
+      <div
+        className={`mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center relative z-10 px-10 mx-auto ${
+          modulosPermitidos.length <= 2
+            ? "lg:grid-cols-2 max-w-[800px]"
+            : "lg:grid-cols-4 max-w-[1400px]"
+        }`}
+      >
+        {modulosPermitidos.map((item) => (
+          <div key={item.id} className="w-full max-w-[320px]">
+            <CardHome titulo={item.titulo} img={item.imagem} path={item.path} />
+          </div>
         ))}
       </div>
     </div>

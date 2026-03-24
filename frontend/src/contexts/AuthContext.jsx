@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import { supabase } from "../services/supabase";
 import { api } from "../services/api";
+
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -14,7 +15,6 @@ export function AuthProvider({ children }) {
 
   const [loading, setLoading] = useState(false);
 
-  // Função nova para atualizar a foto na sessão!
   const updateUserFoto = (novaFotoUrl) => {
     if (user) {
       const usuarioAtualizado = { ...user, foto: novaFotoUrl };
@@ -26,11 +26,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Login do Cliente (O Caminho Duplo)
   const loginCliente = async (nome, local) => {
     setLoading(true);
     try {
-      // TENTATIVA 1: O jeito antigo (RPC) - Para quem JÁ TEM Obra lançada
       const { data: rpcData, error: rpcError } = await supabase.rpc(
         "validar_login_cliente",
         {
@@ -45,42 +43,37 @@ export function AuthProvider({ children }) {
           : rpcData
         : null;
 
-      // Se a RPC funcionou e achou o cara, ele é um cliente normal de obra
       if (!rpcError && idObra) {
         const userData = {
           ...(typeof rpcData === "object" ? rpcData : {}),
           id: String(idObra),
           nome: nome,
           tipo: "cliente",
-          isSomenteProcesso: false, // AVISA O FRONT QUE É PRA MOSTRAR RELATÓRIOS
+          isSomenteProcesso: false,
         };
         setUser(userData);
         sessionStorage.setItem("montezuma_session", JSON.stringify(userData));
         return userData;
       }
 
-      // TENTATIVA 2: Para clientes apenas de Processo (Usando a nova RPC via api.js)
       const nomeLimpo = nome.trim();
       const bairroLimpo = local.trim();
 
-      // Agora usamos a API que tem o poder do SECURITY DEFINER (RPC buscar_dados_cliente)
       const clienteData = await api.loginClientePorNomeEBairro(
         nomeLimpo,
         bairroLimpo,
       );
 
-      // Se a RPC da TENTATIVA 2 falhar ou não achar ninguém, aí sim dá o erro final
       if (!clienteData) {
         throw new Error("Dados incorretos.");
       }
 
-      // Cliente de processo encontrado com sucesso!
       const userData = {
         ...clienteData,
-        id: String(clienteData.id), // Usa o ID do cliente na URL
+        id: String(clienteData.id),
         nome: clienteData.nome,
         tipo: "cliente",
-        isSomenteProcesso: true, // AVISA O FRONT QUE É PRA MOSTRAR SÓ PROCESSOS
+        isSomenteProcesso: true,
       };
 
       setUser(userData);
@@ -91,7 +84,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Login do Admin Real
   const loginAdmin = async (login, senha) => {
     setLoading(true);
     try {
@@ -103,14 +95,22 @@ export function AuthProvider({ children }) {
 
       if (error) throw error;
 
-      // PUXANDO A FOTO AQUI!
+      const { data: usuarioData, error: usuarioError } = await supabase
+        .from("usuarios")
+        .select("tipo")
+        .eq("id", data.user.id)
+        .single();
+
+      if (usuarioError)
+        throw new Error("Erro ao buscar permissões do usuário.");
+
       const fotoDoAdmin = data.user.user_metadata?.foto || null;
 
       const userData = {
         id: data.user.id,
         email: data.user.email,
-        tipo: "admin",
-        foto: fotoDoAdmin, // SALVANDO NA SESSÃO
+        tipo: usuarioData.tipo,
+        foto: fotoDoAdmin,
       };
 
       setUser(userData);

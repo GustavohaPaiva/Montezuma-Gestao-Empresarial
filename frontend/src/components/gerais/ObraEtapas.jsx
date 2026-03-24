@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { CheckCircle2, HardHat, Hourglass } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { CheckCircle2, HardHat, Hourglass, Download } from "lucide-react";
+import { toPng } from "html-to-image";
 
 import infraestrutura from "../../assets/imagensEtapas/Infraestrutura.png";
 import supraestrutura from "../../assets/imagensEtapas/Supraestrutura.png";
@@ -351,21 +352,28 @@ const formatarData = (dataStr) => {
   return dataStr;
 };
 
-export default function Etapas({ etapas = [] }) {
+export default function Etapas({ etapas = [], isCliente = false }) {
   const [etapaAtiva, setEtapaAtiva] = useState(null);
   const [renderEtapa, setRenderEtapa] = useState(null);
   const [isFading, setIsFading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [progressAnim, setProgressAnim] = useState(0);
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const resumoRef = useRef(null);
 
   const dadosEtapas = (etapas || [])
     .map((etapaBanco) => {
       const mockItem = etapasMock.find((m) => m.titulo === etapaBanco.nome);
       if (!mockItem) return null;
 
+      const progressoAtual =
+        etapaBanco.status === "concluído" ? 100 : etapaBanco.progresso || 0;
+
       return {
         ...mockItem,
         status: etapaBanco.status || "pendente",
+        progresso: progressoAtual,
         dataInicio: formatarData(etapaBanco.data_inicio),
         dataConclusao: formatarData(etapaBanco.data_conclusao),
       };
@@ -374,18 +382,23 @@ export default function Etapas({ etapas = [] }) {
 
   const totalEtapas = dadosEtapas.length;
   const concluidas = dadosEtapas.filter((e) => e.status === "concluído").length;
-  const emAndamento = 1;
+  const emAndamento = dadosEtapas.filter(
+    (e) => e.status === "em andamento",
+  ).length;
   const restantes = totalEtapas - concluidas - emAndamento;
 
-  // Cálculo ajustado de progresso: Soma do peso de todas as etapas concluídas
   const porcentagemExata = dadosEtapas.reduce(
-    (acc, etapa) =>
-      etapa.status === "concluído" ? acc + (etapa.peso || 0) : acc,
+    (acc, etapa) => acc + (etapa.peso || 0) * (etapa.progresso / 100),
     0,
   );
-  const porcentagem = totalEtapas === 0 ? 0 : Math.round(porcentagemExata);
 
-  let currentIndex = dadosEtapas.findIndex((e) => e.status !== "concluído");
+  const porcentagem =
+    totalEtapas === 0 ? 0 : Math.min(100, Math.round(porcentagemExata));
+
+  let currentIndex = dadosEtapas.findIndex((e) => e.status === "em andamento");
+  if (currentIndex === -1) {
+    currentIndex = dadosEtapas.findIndex((e) => e.status !== "concluído");
+  }
   if (currentIndex === -1) {
     currentIndex = totalEtapas > 0 ? totalEtapas - 1 : 0;
   }
@@ -419,6 +432,34 @@ export default function Etapas({ etapas = [] }) {
     }, 250);
   };
 
+  const handlePrint = async () => {
+    if (!resumoRef.current) return;
+    setIsPrinting(true);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const dataUrl = await toPng(resumoRef.current, {
+        quality: 1,
+        backgroundColor: "#ffffff",
+        pixelRatio: 2,
+        filter: (node) => {
+          return node?.id !== "botao-print";
+        },
+      });
+
+      const link = document.createElement("a");
+      link.download = `resumo-obra-${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Erro ao gerar a imagem:", error);
+      alert("Houve um erro ao gerar o print. Tente novamente.");
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   if (!dadosEtapas || dadosEtapas.length === 0) {
     return (
       <div className="w-full flex justify-center items-center min-h-[30vh]">
@@ -450,13 +491,41 @@ export default function Etapas({ etapas = [] }) {
 
   return (
     <div className="w-full flex justify-center items-center min-h-[80vh]">
-      <div className="w-full h-full mb-6 bg-white p-2 md:p-8 flex flex-col relative font-serif text-black shadow-sm rounded-lg border border-gray-200">
+      <div
+        ref={resumoRef}
+        className="w-full h-full mb-6 bg-white p-2 md:p-8 flex flex-col relative font-serif text-black shadow-sm rounded-lg border border-gray-200"
+      >
+        {!isCliente && renderEtapa === null && (
+          <button
+            id="botao-print"
+            onClick={handlePrint}
+            disabled={isPrinting}
+            className="mb-4 text-sm absolute top-6 right-6 z-50 hidden md:flex hidden items-center flex-row gap-2 px-4 py-2 bg-white border border-[#DC3B0B] text-[#DC3B0B] hover:bg-[#DC3B0B] hover:text-white font-bold rounded-xl transition-all duration-300 shadow-sm hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group"
+            title="Baixar imagem do resumo da obra"
+          >
+            <Download className="w-4 h-4 transition-transform duration-300 group-hover:-translate-y-1" />
+            {isPrinting ? "Gerando..." : "Exportar Resumo"}
+          </button>
+        )}
         <h2 className="text-3xl font-bold text-center mb-10 tracking-wide">
           Etapas da Obra
         </h2>
 
-        <div className="flex flex-1 relative gap-6 items-stretch">
-          <div className="w-16 relative flex flex-col items-center">
+        {!isCliente && renderEtapa === null && (
+          <button
+            id="botao-print"
+            onClick={handlePrint}
+            disabled={isPrinting}
+            className="mb-4 top-6 right-6 z-50 flex md:hidden items-center gap-2 px-4 py-2 bg-white border border-[#DC3B0B] text-[#DC3B0B] hover:bg-[#DC3B0B] hover:text-white font-bold rounded-xl transition-all duration-300 shadow-sm hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group"
+            title="Baixar imagem do resumo da obra"
+          >
+            <Download className="w-4 h-4 transition-transform duration-300 group-hover:-translate-y-1" />
+            {isPrinting ? "Gerando..." : "Exportar Resumo"}
+          </button>
+        )}
+
+        <div className="flex flex-1 relative gap-6 items-stretch min-w-0">
+          <div className="w-16 relative flex flex-col items-center flex-shrink-0">
             <div className="relative flex flex-col justify-between gap-4 w-full items-center z-10 h-full">
               <div className="absolute top-0 bottom-0 w-0.5 bg-gray-300 z-0 left-1/2 -translate-x-1/2"></div>
 
@@ -467,7 +536,9 @@ export default function Etapas({ etapas = [] }) {
 
               {dadosEtapas.map((etapaItem, index) => {
                 const isCompleted = etapaItem.status === "concluído";
-                const isCurrent = index === etapaAtualIndex && !isCompleted;
+                const isCurrent =
+                  etapaItem.status === "em andamento" ||
+                  (!isCompleted && index === etapaAtualIndex);
                 const isFuture = !isCompleted && !isCurrent;
                 const isActive = etapaAtiva === index;
 
@@ -475,14 +546,35 @@ export default function Etapas({ etapas = [] }) {
                   <button
                     key={index}
                     onClick={() => handleToggleEtapa(index)}
-                    className={`flex-shrink-0 w-10 h-10 rounded-full border-2 transition-all duration-500 cursor-pointer focus:outline-none flex items-center justify-center text-sm font-sans font-bold relative z-10 
-                      ${isCompleted ? "bg-[#DC3B0B] border-[#DC3B0B] text-white" : ""}
-                      ${isCurrent ? "bg-white border-[#DC3B0B] text-[#DC3B0B]" : ""}
-                      ${isFuture ? "bg-white border-gray-300 text-gray-400 hover:border-gray-400" : ""}
+                    className={`flex-shrink-0 w-10 h-10 rounded-full border-2 transition-all duration-500 cursor-pointer focus:outline-none flex items-center justify-center text-sm font-sans font-bold relative z-10 overflow-hidden
+                      ${
+                        isCompleted
+                          ? "bg-[#DC3B0B] border-[#DC3B0B] text-white"
+                          : ""
+                      }
+                      ${
+                        isCurrent
+                          ? "bg-white border-[#DC3B0B] text-[#DC3B0B]"
+                          : ""
+                      }
+                      ${
+                        isFuture
+                          ? "bg-white border-gray-300 text-gray-400 hover:border-gray-400"
+                          : ""
+                      }
                       ${isActive ? "scale-115 shadow-lg" : "hover:scale-110"}`}
-                    title={`Ver etapa: ${etapaItem.titulo}`}
+                    title={`Ver etapa: ${etapaItem.titulo} (${etapaItem.progresso}%)`}
                   >
-                    {isCompleted ? "✓" : index + 1}
+                    {isCurrent && (
+                      <div
+                        className="absolute bottom-0 left-0 w-full bg-[#DC3B0B] opacity-20 transition-all duration-700 ease-in-out z-0"
+                        style={{ height: `${etapaItem.progresso}%` }}
+                      ></div>
+                    )}
+
+                    <span className="relative z-10">
+                      {isCompleted ? "✓" : index + 1}
+                    </span>
                   </button>
                 );
               })}
@@ -490,12 +582,12 @@ export default function Etapas({ etapas = [] }) {
           </div>
 
           <div
-            className={`flex-1 relative flex flex-col h-full transition-all duration-300 ease-out transform ${
+            className={`flex-1 flex flex-col h-full min-w-0 transition-all duration-300 ease-out transform ${
               isFading ? "opacity-0 translate-y-3" : "opacity-100 translate-y-0"
             }`}
           >
             {renderEtapa === null ? (
-              <div className="w-full flex flex-col gap-8 items-center justify-center font-sans overflow-hidden py-4 my-auto h-full">
+              <div className="w-full flex flex-col gap-8 items-center justify-center font-sans overflow-hidden pb-4 my-auto h-full relative">
                 <div
                   className={`w-full flex flex-col items-center gap-8 transition-all duration-1000 ease-out delay-100 ${
                     isMounted
@@ -503,35 +595,37 @@ export default function Etapas({ etapas = [] }) {
                       : "opacity-0 -translate-x-12"
                   }`}
                 >
-                  <h3 className="text-2xl font-bold text-[#464C54] text-center">
+                  <h3 className="text-md md:text-2xl font-bold text-[#464C54] text-center">
                     Sua obra está ganhando forma!
                   </h3>
 
                   <div className="relative flex items-center justify-center">
-                    <svg className="w-56 h-56 transform -rotate-90 drop-shadow-sm">
+                    <svg
+                      viewBox="0 0 224 224"
+                      className="w-full max-w-[14rem] aspect-square transform -rotate-90 drop-shadow-sm"
+                    >
                       <circle
                         cx="112"
                         cy="112"
                         r={raioCirculo}
-                        stroke="currentColor"
+                        stroke="#F3F4F6"
                         strokeWidth="16"
                         fill="transparent"
-                        className="text-gray-100"
                       />
                       <circle
                         cx="112"
                         cy="112"
                         r={raioCirculo}
-                        stroke="currentColor"
+                        stroke="#DC3B0B"
                         strokeWidth="16"
                         fill="transparent"
-                        className="text-[#DC3B0B]"
                         strokeLinecap="round"
+                        strokeDasharray={circunferencia}
+                        strokeDashoffset={preenchimentoArc}
                         style={{
-                          strokeDasharray: circunferencia,
-                          strokeDashoffset: preenchimentoArc,
-                          transition:
-                            "stroke-dashoffset 1.5s cubic-bezier(0.25, 1, 0.5, 1)",
+                          transition: isPrinting
+                            ? "none"
+                            : "stroke-dashoffset 1.5s cubic-bezier(0.25, 1, 0.5, 1)",
                         }}
                       />
                     </svg>
@@ -587,35 +681,39 @@ export default function Etapas({ etapas = [] }) {
                     <span className="text-xs font-bold text-[#DC3B0B] tracking-widest uppercase mb-1">
                       Fase Atual
                     </span>
-                    <h4 className="text-2xl font-bold text-[#464C54] text-center mb-4 uppercase">
+                    <h4 className="text-2xl font-bold text-[#464C54] text-center mb-4 uppercase break-words">
                       {tituloAtual}
                     </h4>
+                    <div className="flex flex-col items-center md:flex-row md:justify-around w-full gap-4">
+                      <div className="w-full max-w-[300px] px-2 rounded-lg overflow-hidden border border-gray-200 mb-4 md:mb-0 bg-white flex justify-center items-center">
+                        <img
+                          src={dadosEtapas[etapaAtualIndex]?.imagem}
+                          alt={`Imagem da etapa atual: ${tituloAtual}`}
+                          className="w-full h-auto max-h-[300px] object-contain transition-transform duration-700 group-hover:scale-105"
+                        />
+                      </div>
 
-                    <div className="w-full rounded-lg overflow-hidden border border-gray-200 mb-4 bg-white flex justify-center items-center">
-                      <img
-                        src={dadosEtapas[etapaAtualIndex]?.imagem}
-                        alt={`Imagem da etapa atual: ${tituloAtual}`}
-                        className="w-full h-auto max-h-[300px] object-contain transition-transform duration-700 group-hover:scale-105"
-                      />
-                    </div>
+                      <div className="w-full max-w-[350px] flex flex-col gap-6">
+                        <div className="w-full flex flex-wrap justify-between items-center gap-2 bg-gray-50 rounded-md px-4 py-3 border border-gray-100">
+                          <span className="text-sm md:text-xl text-gray-600 font-medium">
+                            Iniciado em:
+                          </span>
+                          <span className="text-sm md:text-xl font-bold text-[#464C54]">
+                            {dadosEtapas[etapaAtualIndex]?.dataInicio ||
+                              "Pendente"}
+                          </span>
+                        </div>
 
-                    <div className="w-full flex justify-between items-center bg-gray-50 rounded-md px-4 py-3 border border-gray-100">
-                      <span className="text-sm text-gray-600 font-medium">
-                        Iniciado em:
-                      </span>
-                      <span className="text-sm font-bold text-[#464C54]">
-                        {dadosEtapas[etapaAtualIndex]?.dataInicio || "Pendente"}
-                      </span>
-                    </div>
-
-                    <div className="w-full mt-4 flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse"></div>
-                      <span className="text-sm text-gray-500 font-medium">
-                        Próximo passo:{" "}
-                        <strong className="text-gray-700">
-                          {proximoTitulo}
-                        </strong>
-                      </span>
+                        <div className="w-full flex flex-row gap-2 items-center bg-gray-50 rounded-md px-4 py-3 border border-gray-100">
+                          <div className="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0"></div>
+                          <span className="text-sm md:text-xl flex flex-col md:flex-row text-gray-500 gap-2 md:gap-4 font-medium min-w-0 break-words w-full">
+                            <p>Próximo passo:</p>
+                            <strong className="text-gray-700">
+                              {proximoTitulo}
+                            </strong>
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

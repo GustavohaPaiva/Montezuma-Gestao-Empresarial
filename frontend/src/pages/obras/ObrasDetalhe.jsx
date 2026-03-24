@@ -20,7 +20,6 @@ const ORDEM_STATUS = {
   Entregue: 5,
 };
 
-// REMOVIDO o "export" daqui para corrigir o erro do Fast Refresh
 const OPCOES_PRESTADOR = [
   "Pintor",
   "Empreiteiro",
@@ -146,7 +145,6 @@ const CellInputText = ({ valorInicial, onSave, onCancel }) => {
   );
 };
 
-// Componente: Edição in-line para o Select de Prestador
 const CellSelectPrestador = ({ valorInicial, onSave, onCancel }) => {
   const isOutrosInicial =
     valorInicial &&
@@ -209,7 +207,6 @@ const CellSelectPrestador = ({ valorInicial, onSave, onCancel }) => {
   );
 };
 
-// Modal Exclusivo para Relatório por Prestador
 const ModalRelatorioPrestador = ({
   isOpen,
   onClose,
@@ -277,17 +274,14 @@ export default function ObrasDetalhe() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [categoriaAtiva, setCategoriaAtiva] = useState(null);
 
-  // Modais
   const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
   const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
   const [modalRelatorioPrestadorOpen, setModalRelatorioPrestadorOpen] =
     useState(false);
 
-  // Filtros Globais
   const [filtroExtrato, setFiltroExtrato] = useState("Tudo");
 
-  // Estados de Busca e Ordenação
   const [buscaMateriais, setBuscaMateriais] = useState("");
   const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
   const [buscaExtrato, setBuscaExtrato] = useState("");
@@ -298,7 +292,6 @@ export default function ObrasDetalhe() {
     direcao: "asc",
   });
 
-  // Estados de Edição In-line
   const [editandoId, setEditandoId] = useState(null);
   const [editandoMaterial, setEditandoMaterial] = useState({
     id: null,
@@ -310,7 +303,13 @@ export default function ObrasDetalhe() {
   });
 
   const totais = useMemo(() => {
-    if (!obra) return { materiais: 0, maoDeObra: 0, totalExtrato: 0 };
+    if (!obra)
+      return {
+        materiais: 0,
+        maoDeObra: 0,
+        maoDeObraGrafico: 0,
+        totalExtrato: 0,
+      };
     return {
       materiais: (obra.materiais || []).reduce(
         (acc, m) => acc + (parseFloat(m.valor) || 0),
@@ -320,6 +319,10 @@ export default function ObrasDetalhe() {
         (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
         0,
       ),
+      // NOVO: Pega apenas as que foram validadas (para o extrato) para colocar no gráfico
+      maoDeObraGrafico: (obra.maoDeObra || [])
+        .filter((m) => m.validacao === 1)
+        .reduce((acc, m) => acc + (parseFloat(m.valor_orcado) || 0), 0),
       totalExtrato: (obra.relatorioExtrato || []).reduce(
         (acc, item) => acc + (parseFloat(item.valor) || 0),
         0,
@@ -329,7 +332,8 @@ export default function ObrasDetalhe() {
 
   const dataGrafico = useMemo(() => {
     const paletaCores = ["#860000", "#EE5B11", "#F67D15", "#FBA51B", "#FDC626"];
-    const totalGeral = totais.materiais + totais.maoDeObra;
+    // Usa apenas a mão de obra que foi para o extrato no total geral do gráfico
+    const totalGeral = totais.materiais + totais.maoDeObraGrafico;
     const dados = [
       {
         name: "Materiais",
@@ -338,8 +342,8 @@ export default function ObrasDetalhe() {
       },
       {
         name: "Mão de Obra",
-        value: totais.maoDeObra,
-        qtd: obra?.maoDeObra?.length || 0,
+        value: totais.maoDeObraGrafico, // Valor apenas das validadas
+        qtd: obra?.maoDeObra?.filter((m) => m.validacao === 1).length || 0, // Conta apenas as validadas
       },
     ];
     dados.sort((a, b) => b.value - a.value);
@@ -358,7 +362,6 @@ export default function ObrasDetalhe() {
     setCategoriaAtiva((prev) => (prev === nome ? null : nome));
   };
 
-  // Busca de Dados
   const fetchDados = useCallback(async () => {
     if (!id) return;
     try {
@@ -1379,7 +1382,8 @@ export default function ObrasDetalhe() {
                             <strong>{ativo.name.toLowerCase()}</strong>. Até o
                             momento, foram registrados{" "}
                             <strong className="text-black">{ativo.qtd}</strong>{" "}
-                            lançamentos.
+                            lançamentos{" "}
+                            {ativo.name === "Mão de Obra" ? "validados" : ""}.
                           </p>
                         </div>
                       );
@@ -1389,7 +1393,7 @@ export default function ObrasDetalhe() {
                 <div
                   className={`transition-all duration-700 ease-in-out ${categoriaAtiva ? "w-[140px] h-[140px] self-start" : "w-full h-[250px] md:h-full flex justify-center"}`}
                 >
-                  {totais.materiais > 0 || totais.maoDeObra > 0 ? (
+                  {totais.materiais > 0 || totais.maoDeObraGrafico > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -1485,10 +1489,12 @@ export default function ObrasDetalhe() {
                   onClick={() => setCategoriaAtiva(null)}
                 >
                   <span className="font-bold text-black uppercase text-sm">
-                    Custo Total
+                    Custo Total (Validado)
                   </span>
                   <span className="font-bold text-[#2E7D32] text-lg">
-                    R$ {formatarMoeda(totais.materiais + totais.maoDeObra)}
+                    {/* Exibe a soma dos materiais com a mão de obra que foi para o extrato */}
+                    R${" "}
+                    {formatarMoeda(totais.materiais + totais.maoDeObraGrafico)}
                   </span>
                 </div>
 
@@ -1565,7 +1571,8 @@ export default function ObrasDetalhe() {
                 Relatório Materiais
               </ButtonDefault>
               <div className="w-[90%] h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
-                Total gasto: <span> R$ {formatarMoeda(totais.materiais)}</span>
+                Total Lançado:{" "}
+                <span> R$ {formatarMoeda(totais.materiais)}</span>
               </div>
             </div>
           </div>
@@ -1683,7 +1690,8 @@ export default function ObrasDetalhe() {
                 </ButtonDefault>
               </div>
               <div className="w-full h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
-                Total gasto: <span> R$ {formatarMoeda(totais.maoDeObra)}</span>
+                Total Lançado:{" "}
+                <span> R$ {formatarMoeda(totais.maoDeObra)}</span>
               </div>
             </div>
           </div>
@@ -1729,7 +1737,7 @@ export default function ObrasDetalhe() {
                 Gerar pedido
               </ButtonDefault>
               <div className="w-full h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
-                Total gasto:{" "}
+                Total no Extrato:{" "}
                 <span> R$ {formatarMoeda(totais.totalExtrato)}</span>
               </div>
             </div>

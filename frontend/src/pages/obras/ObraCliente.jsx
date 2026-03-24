@@ -8,7 +8,6 @@ import Etapas from "../../components/gerais/ObraEtapas";
 import ListaEtapas from "../../components/obras/ListaEtapas";
 import { Icon } from "lucide-react";
 import { stairs } from "@lucide/lab";
-
 import {
   Building,
   MapPin,
@@ -21,8 +20,31 @@ import {
   Camera,
   X,
 } from "lucide-react";
-
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+
+function useScrollFadeIn() {
+  const [element, setElement] = useState(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0, rootMargin: "0px" },
+    );
+
+    observer.observe(element);
+
+    return () => {
+      if (element) observer.unobserve(element);
+    };
+  }, [element]);
+
+  return { ref: setElement, isVisible };
+}
 
 const formatarDataBR = (dataString) => {
   if (!dataString) return "-";
@@ -79,12 +101,27 @@ export default function ObraCliente() {
   const [carregando, setCarregando] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [categoriaAtiva, setCategoriaAtiva] = useState(null);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const fileInputRef = useRef(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  const animProcessos = useScrollFadeIn();
+  const animProcPref = useScrollFadeIn();
+  const animProcCaixa = useScrollFadeIn();
+  const animProcFin = useScrollFadeIn();
+
+  const animInfo = useScrollFadeIn();
+  const animFin = useScrollFadeIn();
+  const animEtapas = useScrollFadeIn();
+
+  const animMat = useScrollFadeIn();
+  const animMao = useScrollFadeIn();
+  const animExt = useScrollFadeIn();
+
+  const animLista = useScrollFadeIn();
 
   const isSomenteProcessos = user?.isSomenteProcesso === true;
 
@@ -120,26 +157,15 @@ export default function ObraCliente() {
                   (c) =>
                     c.nome?.toLowerCase() === dadosObra.cliente?.toLowerCase(),
                 );
-                if (donoDaObra) {
-                  setCliente(donoDaObra);
-                } else {
-                  console.warn(
-                    "Cliente não encontrado na base de clientes com o nome:",
-                    dadosObra.cliente,
-                  );
-                }
+                if (donoDaObra) setCliente(donoDaObra);
               } catch (e) {
-                console.warn(
-                  "Aviso: Falha ao buscar lista de clientes. Usando fallback.",
-                  e,
-                );
+                console.warn(e);
               }
             }
           }
         }
       } catch (err) {
-        console.error("ERRO AO BUSCAR DADOS:", err);
-        setObra({ materiais: [], maoDeObra: [], relatorioExtrato: [] });
+        console.error(err);
       } finally {
         setCarregando(false);
       }
@@ -147,6 +173,15 @@ export default function ObraCliente() {
 
     carregarDados();
   }, [id, isSomenteProcessos, user]);
+
+  useEffect(() => {
+    if (!carregando) {
+      const timer = setTimeout(() => setIsMounted(true), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setIsMounted(false);
+    }
+  }, [carregando]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -176,28 +211,15 @@ export default function ObraCliente() {
   };
 
   const handleConfirmarUpload = async () => {
-    if (!selectedFile) {
-      alert(
-        "Por favor, escolha uma imagem primeiro antes de clicar em salvar!",
-      );
-      return;
-    }
+    if (!selectedFile) return alert("Por favor, escolha uma imagem primeiro!");
 
     const idParaSalvar =
       cliente?.id || (user?.tipo === "cliente" ? user.id : null);
-
-    if (!idParaSalvar) {
-      alert(
-        "Erro: O sistema não encontrou o ID do cliente para salvar a foto. Verifique a consola.",
-      );
-      return;
-    }
+    if (!idParaSalvar) return alert("Erro: ID do cliente não encontrado.");
 
     try {
       setUploadingFoto(true);
-
       const response = await api.uploadFotoCliente(idParaSalvar, selectedFile);
-
       setCliente((prev) => ({
         ...prev,
         foto: response.fotoUrl,
@@ -205,10 +227,8 @@ export default function ObraCliente() {
       }));
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Erro ao fazer upload da foto:", error);
-      alert(
-        "Falha ao salvar a foto. Verifique se a sua api.js está configurada certinho.",
-      );
+      console.error(error);
+      alert("Falha ao salvar a foto.");
     } finally {
       setUploadingFoto(false);
       if (fileInputRef.current) fileInputRef.current.value = null;
@@ -410,7 +430,8 @@ export default function ObraCliente() {
   }, [obra, buscaExtrato, filtroExtrato]);
 
   const totais = useMemo(() => {
-    if (!obra) return { materiais: 0, maoDeObra: 0, extrato: 0 };
+    if (!obra)
+      return { materiais: 0, maoDeObra: 0, maoDeObraGrafico: 0, extrato: 0 };
     return {
       materiais: (obra.materiais || []).reduce(
         (acc, m) => acc + (parseFloat(m.valor) || 0),
@@ -420,6 +441,9 @@ export default function ObraCliente() {
         (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
         0,
       ),
+      maoDeObraGrafico: (obra.maoDeObra || [])
+        .filter((m) => m.validacao === 1)
+        .reduce((acc, m) => acc + (parseFloat(m.valor_orcado) || 0), 0),
       extrato: (obra.relatorioExtrato || []).reduce(
         (acc, item) => acc + (parseFloat(item.valor) || 0),
         0,
@@ -429,7 +453,7 @@ export default function ObraCliente() {
 
   const dataGrafico = useMemo(() => {
     const paletaCores = ["#860000", "#EE5B11", "#F67D15", "#FBA51B", "#FDC626"];
-    const totalGeral = totais.materiais + totais.maoDeObra;
+    const totalGeral = totais.materiais + totais.maoDeObraGrafico;
     const dados = [
       {
         name: "Materiais",
@@ -438,8 +462,8 @@ export default function ObraCliente() {
       },
       {
         name: "Mão de Obra",
-        value: totais.maoDeObra,
-        qtd: obra?.maoDeObra?.length || 0,
+        value: totais.maoDeObraGrafico,
+        qtd: obra?.maoDeObra?.filter((m) => m.validacao === 1).length || 0,
       },
     ];
     dados.sort((a, b) => b.value - a.value);
@@ -454,14 +478,16 @@ export default function ObraCliente() {
     });
   }, [totais, obra]);
 
-  const toggleCategoria = (nome) => {
+  const toggleCategoria = (nome) =>
     setCategoriaAtiva((prev) => (prev === nome ? null : nome));
-  };
 
   if (carregando) {
     return (
       <div className="flex justify-center items-center h-screen bg-[#EEEDF0]">
-        <span className="font-bold text-[#71717A]">Carregando dados...</span>
+        <span className="font-bold text-[#71717A] flex items-center gap-2">
+          <Hourglass className="w-5 h-5 animate-spin text-[#DC3B0B]" />
+          Carregando dados...
+        </span>
       </div>
     );
   }
@@ -487,14 +513,11 @@ export default function ObraCliente() {
   const handleScroll = (e, id) => {
     e.preventDefault();
     const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+    if (element) element.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0]">
-      {/* Input oculto para carregar a foto isolado para o modal */}
       <input
         type="file"
         ref={fileInputRef}
@@ -503,10 +526,9 @@ export default function ObraCliente() {
         className="hidden"
       />
 
-      {/* MODAL DE UPLOAD DE FOTO */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col items-center shadow-xl relative animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col items-center shadow-xl relative transition-all duration-300 transform scale-100 opacity-100">
             <button
               onClick={handleFecharModal}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors"
@@ -514,11 +536,9 @@ export default function ObraCliente() {
             >
               <X size={24} />
             </button>
-
             <h2 className="text-xl font-bold text-[#464C54] mb-6">
               Foto de Perfil
             </h2>
-
             <div className="relative w-[150px] h-[150px] rounded-full border-[3px] border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] overflow-hidden mb-6 shadow-sm">
               {previewUrl ? (
                 <img
@@ -530,7 +550,6 @@ export default function ObraCliente() {
                 <UserRound className="w-[80px] h-[80px] text-[#DC3B0B]" />
               )}
             </div>
-
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingFoto}
@@ -539,7 +558,6 @@ export default function ObraCliente() {
               <Camera className="w-5 h-5" />
               {selectedFile ? "Trocar Imagem" : "Escolher Imagem"}
             </button>
-
             <div className="w-full flex gap-3">
               <button
                 onClick={handleFecharModal}
@@ -564,13 +582,18 @@ export default function ObraCliente() {
         </div>
       )}
 
-      {/* RENDERIZAÇÃO 1: APENAS PROCESSOS */}
       {isSomenteProcessos && (
-        <div className="w-[90%] flex flex-col items-center mb-[100px] md:mb-6">
+        <div
+          ref={animProcessos.ref}
+          className={`w-[90%] flex flex-col items-center mb-[100px] md:mb-6 transition-all duration-500 ease-out transform ${animProcessos.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+        >
           <div className="w-full bg-white p-9 rounded-[12px] mt-[30px] flex flex-col items-start justify-center">
             <h2 className="text-5xl font-bold text-[#464C54]">Processos</h2>
             <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] py-[24px] overflow-x-auto">
-              <div className="bg-[#ffffff] w-full rounded-[12px] text-center flex flex-col items-center gap-[24px] overflow-x-auto">
+              <div
+                ref={animProcPref.ref}
+                className={`bg-[#ffffff] w-full rounded-[12px] text-center flex flex-col items-center gap-[24px] overflow-x-auto transition-all duration-500 ease-out transform ${animProcPref.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+              >
                 <h1 className="text-[30px] font-bold text-[#464C54]">
                   Prefeitura
                 </h1>
@@ -579,10 +602,12 @@ export default function ObraCliente() {
                   dados={dadosPrefeitura}
                 />
               </div>
-
               <div className="w-full h-0.5 bg-[#DBDADE]"></div>
 
-              <div className="bg-[#ffffff] w-full rounded-[12px] text-center flex flex-col items-center gap-[24px] overflow-x-auto">
+              <div
+                ref={animProcCaixa.ref}
+                className={`bg-[#ffffff] w-full rounded-[12px] text-center flex flex-col items-center gap-[24px] overflow-x-auto transition-all duration-500 ease-out transform ${animProcCaixa.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+              >
                 <h1 className="text-[30px] font-bold text-[#464C54]">Caixa</h1>
                 <TabelaSimples
                   colunas={[
@@ -594,10 +619,12 @@ export default function ObraCliente() {
                   dados={dadosCaixa}
                 />
               </div>
-
               <div className="w-full h-0.5 bg-[#DBDADE]"></div>
 
-              <div className="bg-[#ffffff] w-full rounded-[12px] text-center flex flex-col items-center gap-[24px] overflow-x-auto">
+              <div
+                ref={animProcFin.ref}
+                className={`bg-[#ffffff] w-full rounded-[12px] text-center flex flex-col items-center gap-[24px] overflow-x-auto transition-all duration-500 ease-out transform ${animProcFin.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+              >
                 <h1 className="text-[30px] font-bold text-[#464C54]">
                   Finalizados
                 </h1>
@@ -617,18 +644,18 @@ export default function ObraCliente() {
         </div>
       )}
 
-      {/* RENDERIZAÇÃO 2: OBRA COMPLETA (RELATÓRIOS E GRÁFICOS) */}
       {!isSomenteProcessos && (
         <div
           id="#home"
           className="w-full flex flex-col gap-[24px] md:mb-6 mt-6 md:mt-0 justify-center items-center"
         >
-          {/* HEADER DESKTOP */}
-          <header className="hidden md:flex h-[65px] sticky z-50 border-[#DBDADE] justify-center top-0 w-full shadow-md bg-[#EEEDF0]">
+          <header
+            className={`hidden md:flex h-[65px] sticky z-50 border-[#DBDADE] justify-center top-0 w-full shadow-md bg-[#EEEDF0] transition-all duration-500 ease-out transform ${isMounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full"}`}
+          >
             <div className="w-full flex items-center justify-center">
               <ul className="w-full flex justify-around items-center gap-6 list-none m-0 p-0">
                 <a href="#home" onClick={(e) => handleScroll(e, "#home")}>
-                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline active:text-[#DC3B0B] cursor-pointer">
+                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline cursor-pointer">
                     Inicio
                   </li>
                 </a>
@@ -636,27 +663,23 @@ export default function ObraCliente() {
                   href="#financeiro"
                   onClick={(e) => handleScroll(e, "#financeiro")}
                 >
-                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline active:text-[#DC3B0B] cursor-pointer">
+                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline cursor-pointer">
                     Financeiro
                   </li>
                 </a>
-
                 <a href="#etapas" onClick={(e) => handleScroll(e, "#etapas")}>
-                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline active:text-[#DC3B0B] cursor-pointer">
+                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline cursor-pointer">
                     Etapas
                   </li>
                 </a>
-
                 <a
                   href="#relatorios"
                   onClick={(e) => handleScroll(e, "#relatorios")}
                 >
-                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline active:text-[#DC3B0B] cursor-pointer">
+                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline cursor-pointer">
                     Relatorios
                   </li>
                 </a>
-
-                {/* Botão de abrir modal no Desktop */}
                 <li
                   className="relative cursor-pointer group"
                   onClick={handleAbrirModal}
@@ -665,11 +688,11 @@ export default function ObraCliente() {
                   {cliente?.foto ? (
                     <img
                       src={cliente.foto}
-                      alt="Foto Cliente"
-                      className="w-[50px] h-[50px] rounded-[50%] border-2 border-[#DC3B0B] object-cover group-hover:opacity-70 transition-opacity"
+                      alt="Foto"
+                      className="w-[50px] h-[50px] rounded-[50%] border-2 border-[#DC3B0B] object-cover group-hover:opacity-70"
                     />
                   ) : (
-                    <div className="w-[50px] h-[50px] rounded-[50%] border-2 border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] group-hover:opacity-70 transition-opacity">
+                    <div className="w-[50px] h-[50px] rounded-[50%] border-2 border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] group-hover:opacity-70">
                       <UserRound className="w-[30px] h-[30px] text-[#DC3B0B]" />
                     </div>
                   )}
@@ -679,8 +702,10 @@ export default function ObraCliente() {
           </header>
 
           <div className="w-[90%]">
-            {/* INFORMAÇÕES DO CLIENTE / OBRA */}
-            <div className="w-full rounded-[12px] gap-[50px] mb-[24px] items-center md:p-[24px] p-[10px] flex flex-col md:flex-row h-auto bg-white shadow-sm">
+            <div
+              ref={animInfo.ref}
+              className={`w-full rounded-[12px] gap-[50px] mb-[24px] items-center md:p-[24px] p-[10px] flex flex-col md:flex-row h-auto bg-white shadow-sm transition-all duration-500 ease-out transform ${animInfo.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+            >
               <div>
                 <img
                   src={logo}
@@ -725,19 +750,15 @@ export default function ObraCliente() {
                           Status do Projeto:
                         </p>
                         <p className="text-[16px] uppercase">
-                          {cliente?.status ||
-                            "Status do projeto nao disponiveis"}
+                          {cliente?.status || "Status não disponível"}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-
               <div className="h-[3px] w-[85%] md:h-[85%] md:w-[3px] bg-[#DC3B0B] "></div>
-
               <div className="w-full md:w-[30%] flex flex-col items-center justify-center mb-[30px] md:mb-0">
-                {/* Card fixo da foto */}
                 <div className="relative rounded-[50%]">
                   {cliente?.foto ? (
                     <img
@@ -751,7 +772,6 @@ export default function ObraCliente() {
                     </div>
                   )}
                 </div>
-
                 <h2 className="text-2xl font-bold text-black mt-4 text-center">
                   {obra?.cliente || "Cliente não informado"}
                 </h2>
@@ -761,23 +781,22 @@ export default function ObraCliente() {
               </div>
             </div>
 
-            {/* CONTROLE FINANCEIRO (LAYOUT DINÂMICO GRÁFICO / RESUMO) */}
             <div
               id="#financeiro"
-              className="w-full bg-white h-auto rounded-[12px] mb-[24px] p-[24px] shadow-sm relative overflow-hidden"
+              ref={animFin.ref}
+              className={`w-full bg-white h-auto rounded-[12px] mb-[24px] p-[24px] shadow-sm relative overflow-hidden transition-all duration-500 ease-out transform ${animFin.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
             >
               <h2 className="text-[24px] font-bold text-[#464C54] mb-[20px]">
                 Resumo Financeiro
               </h2>
               <div
-                className={`flex flex-col md:flex-row gap-[20px] transition-all duration-700 ease-in-out ${categoriaAtiva ? "md:h-[320px]" : "md:h-[280px] items-center justify-center"}`}
+                className={`flex flex-col md:flex-row gap-[20px] transition-all duration-500 ease-in-out ${categoriaAtiva ? "md:h-[320px]" : "md:h-[280px] items-center justify-center"}`}
               >
-                {/* Lado Esquerdo */}
                 <div
-                  className={`flex flex-col transition-all duration-700 ease-in-out h-full ${categoriaAtiva ? "w-full md:w-[60%] justify-between" : "w-full md:w-[50%] justify-center items-center"}`}
+                  className={`flex flex-col transition-all duration-500 ease-in-out h-full ${categoriaAtiva ? "w-full md:w-[60%] justify-between" : "w-full md:w-[50%] justify-center items-center"}`}
                 >
                   <div
-                    className={`w-full transition-all duration-700 ease-in-out overflow-hidden ${categoriaAtiva ? "max-h-[250px] opacity-100 mb-4" : "max-h-0 opacity-0"}`}
+                    className={`w-full transition-all duration-500 ease-in-out overflow-hidden ${categoriaAtiva ? "max-h-[250px] opacity-100 mb-4" : "max-h-0 opacity-0"}`}
                   >
                     {categoriaAtiva &&
                       (() => {
@@ -797,13 +816,13 @@ export default function ObraCliente() {
                                 R$ {formatarMoeda(ativo.value)}
                               </span>
                               <span className="text-sm font-medium text-[#919191] mb-1">
-                                ({ativo.percentual}% do custo total da obra)
+                                ({ativo.percentual}% do custo)
                               </span>
                             </div>
                             <p className="text-sm text-[#71717A] leading-relaxed">
                               Este painel consolida todos os gastos referentes a{" "}
-                              <strong>{ativo.name.toLowerCase()}</strong>. Até o
-                              momento, foram registrados{" "}
+                              <strong>{ativo.name.toLowerCase()}</strong>. Foram
+                              registrados{" "}
                               <strong className="text-black">
                                 {ativo.qtd}
                               </strong>{" "}
@@ -813,11 +832,10 @@ export default function ObraCliente() {
                         );
                       })()}
                   </div>
-
                   <div
-                    className={`transition-all duration-700 ease-in-out ${categoriaAtiva ? "w-[140px] h-[140px] self-start" : "w-full h-[250px] md:h-full flex justify-center"}`}
+                    className={`transition-all duration-500 ease-in-out ${categoriaAtiva ? "w-[140px] h-[140px] self-start" : "w-full h-[250px] md:h-full flex justify-center"}`}
                   >
-                    {totais.materiais > 0 || totais.maoDeObra > 0 ? (
+                    {totais.materiais > 0 || totais.maoDeObraGrafico > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -859,15 +877,13 @@ export default function ObraCliente() {
                       </ResponsiveContainer>
                     ) : (
                       <div className="flex items-center justify-center h-full w-full text-[#919191] italic">
-                        Sem dados suficientes para gerar o gráfico.
+                        Sem dados para gráfico.
                       </div>
                     )}
                   </div>
                 </div>
-
-                {/* Lado Direito */}
                 <div
-                  className={`flex flex-col justify-center transition-all duration-700 ease-in-out w-full md:w-[40%]`}
+                  className={`flex flex-col justify-center transition-all duration-500 ease-in-out w-full md:w-[40%]`}
                 >
                   <div className="flex flex-col w-full bg-[#fcfcfc] border border-[#f1f1f1] rounded-[8px] shadow-sm z-10 relative">
                     {dataGrafico.map((item, index) => (
@@ -909,7 +925,6 @@ export default function ObraCliente() {
                       </div>
                     ))}
                   </div>
-
                   <div
                     className="bg-[#EEEDF0] border border-[#DBDADE] rounded-[8px] p-[8px] flex justify-between items-center shadow-sm mt-4 w-full cursor-pointer hover:bg-[#e4e3e6] transition-colors"
                     onClick={() => setCategoriaAtiva(null)}
@@ -918,43 +933,42 @@ export default function ObraCliente() {
                       Custo Total
                     </span>
                     <span className="font-bold text-[#2E7D32] text-lg">
-                      R$ {formatarMoeda(totais.materiais + totais.maoDeObra)}
+                      R${" "}
+                      {formatarMoeda(
+                        totais.materiais + totais.maoDeObraGrafico,
+                      )}
                     </span>
-                  </div>
-
-                  <div
-                    className={`text-center mt-3 transition-all duration-500 ${categoriaAtiva ? "opacity-100 max-h-[30px]" : "opacity-0 max-h-0"}`}
-                  >
-                    <button
-                      onClick={() => setCategoriaAtiva(null)}
-                      className="text-xs text-[#DC3B0B] underline font-medium cursor-pointer"
-                    >
-                      Restaurar gráfico completo
-                    </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Etapas */}
-
-            <div id="#etapas">
-              <Etapas etapas={obra?.etapas_selecionadas || []} />
+            <div
+              id="#etapas"
+              ref={animEtapas.ref}
+              className={`transition-all duration-500 ease-out transform ${animEtapas.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+            >
+              <Etapas
+                etapas={obra?.etapas_selecionadas || []}
+                isCliente={user?.tipo === "cliente"}
+              />
             </div>
 
-            {/* TABELAS INFERIORES */}
             <div
               id="#relatorios"
               className="w-full flex flex-col mb-[24px] gap-[24px]"
             >
-              <div className="bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px]">
+              <div
+                ref={animMat.ref}
+                className={`bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px] transition-all duration-500 ease-out transform ${animMat.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+              >
                 <div
                   className={`flex ${isMobile ? "flex-col gap-3" : "justify-between items-center"}`}
                 >
                   <h2 className="text-[24px] font-bold text-[#464C54]">
                     Materiais
                   </h2>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col md:flex-row items-center gap-4">
                     <input
                       type="text"
                       placeholder="Buscar material..."
@@ -962,8 +976,8 @@ export default function ObraCliente() {
                       onChange={(e) => setBuscaMateriais(e.target.value)}
                       className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
                     />
-                    <div className="h-[40px] px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
-                      Total:{" "}
+                    <div className="h-[40px] justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center w-full whitespace-nowrap bg-gray-50">
+                      Total Lançado:{" "}
                       <span className="font-bold ml-1 text-green-700">
                         R$ {formatarMoeda(totais.materiais)}
                       </span>
@@ -984,14 +998,17 @@ export default function ObraCliente() {
                 />
               </div>
 
-              <div className="bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px]">
+              <div
+                ref={animMao.ref}
+                className={`bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px] transition-all duration-500 ease-out transform ${animMao.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+              >
                 <div
                   className={`flex ${isMobile ? "flex-col gap-3" : "justify-between items-center"}`}
                 >
                   <h2 className="text-[24px] font-bold text-[#464C54]">
                     Mão de Obra
                   </h2>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col md:flex-row items-center gap-4">
                     <input
                       type="text"
                       placeholder="Buscar serviço..."
@@ -999,8 +1016,8 @@ export default function ObraCliente() {
                       onChange={(e) => setBuscaMaoDeObra(e.target.value)}
                       className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
                     />
-                    <div className="h-[40px] px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
-                      Total:{" "}
+                    <div className="h-[40px] w-full justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
+                      Total Lançado:{" "}
                       <span className="font-bold ml-1 text-green-700">
                         R$ {formatarMoeda(totais.maoDeObra)}
                       </span>
@@ -1019,20 +1036,19 @@ export default function ObraCliente() {
                 />
               </div>
 
-              <div className="bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px]">
-                <div
-                  className={`flex ${isMobile ? "flex-col gap-3" : "justify-between items-center"}`}
-                >
+              <div
+                ref={animExt.ref}
+                className={`bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px] transition-all duration-500 ease-out transform ${animExt.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+              >
+                <div className="flex flex-col lg:flex-row gap-3 lg:justify-between lg:items-center">
                   <h2 className="text-[24px] font-bold text-[#464C54]">
                     Extrato Geral
                   </h2>
-                  <div
-                    className={`flex ${isMobile ? "flex-col" : "flex-row"} gap-3 items-center`}
-                  >
+                  <div className="flex flex-col lg:flex-row gap-3 items-center">
                     <select
                       value={filtroExtrato}
                       onChange={(e) => setFiltroExtrato(e.target.value)}
-                      className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none bg-white cursor-pointer"
+                      className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none bg-white cursor-pointer"
                     >
                       <option value="Tudo">Todos</option>
                       <option value="Materiais">Materiais</option>
@@ -1043,10 +1059,10 @@ export default function ObraCliente() {
                       placeholder="Buscar no extrato..."
                       value={buscaExtrato}
                       onChange={(e) => setBuscaExtrato(e.target.value)}
-                      className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
+                      className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none lg:w-[250px]"
                     />
-                    <div className="h-[40px] px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
-                      Total:{" "}
+                    <div className="h-[40px] w-full px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
+                      Total Extrato:{" "}
                       <span className="font-bold ml-1 text-green-700">
                         R$ {formatarMoeda(totais.extrato)}
                       </span>
@@ -1067,28 +1083,30 @@ export default function ObraCliente() {
               </div>
             </div>
 
-            {/* Lista de Etapas */}
-
-            <ListaEtapas
-              etapas={obra.etapas_selecionadas}
-              isCliente={user?.tipo === "cliente"}
-              onUpdateEtapas={async (novasEtapas) => {
-                try {
-                  await api.updateEtapasObra(obra.id, novasEtapas);
-                  setObra((prev) => ({
-                    ...prev,
-                    etapas_selecionadas: novasEtapas,
-                  }));
-                } catch (error) {
-                  console.error(error);
-                  alert("Erro ao atualizar a etapa");
-                }
-              }}
-            />
+            <div
+              ref={animLista.ref}
+              className={`transition-all duration-500 ease-out transform ${animLista.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+            >
+              <ListaEtapas
+                etapas={obra.etapas_selecionadas}
+                isCliente={user?.tipo === "cliente"}
+                onUpdateEtapas={async (novasEtapas) => {
+                  try {
+                    await api.updateEtapasObra(obra.id, novasEtapas);
+                    setObra((prev) => ({
+                      ...prev,
+                      etapas_selecionadas: novasEtapas,
+                    }));
+                  } catch (error) {
+                    console.error(error);
+                    alert("Erro ao atualizar a etapa");
+                  }
+                }}
+              />
+            </div>
           </div>
 
-          {/* HEADER MOBILE */}
-          <header className="h-[70px] items-center md:hidden shadow-[0_-4px_8px_rgba(0,0,0,0.3)] fixed z-50 border-[#DBDADE] flex justify-center bottom-0 w-full bg-[#EEEDF0]">
+          <header className="h-[70px] items-center md:hidden shadow-[0_-4px_8px_rgba(0,0,0,0.3)] fixed z-50 border-[#DBDADE] flex justify-center bottom-0 w-full bg-[#EEEDF0] transition-all duration-500 ease-out transform opacity-100 translate-y-0 opacity-0 translate-y-full">
             <div className="w-full flex items-center justify-center">
               <ul className="w-full flex justify-around items-center gap-6 list-none m-0 p-0">
                 <a href="#home" onClick={(e) => handleScroll(e, "#home")}>
@@ -1104,7 +1122,6 @@ export default function ObraCliente() {
                     <CircleDollarSign />
                   </li>
                 </a>
-
                 <a href="#etapas" onClick={(e) => handleScroll(e, "#etapas")}>
                   <li className="text-2xl hover:text-[#DC3B0B] cursor-pointer">
                     <Icon iconNode={stairs} />
@@ -1118,8 +1135,6 @@ export default function ObraCliente() {
                     <ClipboardPlus />
                   </li>
                 </a>
-
-                {/* Botão de abrir modal no Mobile */}
                 <li
                   className="relative cursor-pointer group"
                   onClick={handleAbrirModal}
@@ -1128,11 +1143,11 @@ export default function ObraCliente() {
                   {cliente?.foto ? (
                     <img
                       src={cliente.foto}
-                      alt="Foto Cliente"
-                      className="w-[32px] h-[32px] rounded-[50%] border-2 border-[#DC3B0B] object-cover group-hover:opacity-70 transition-opacity"
+                      alt="Foto"
+                      className="w-[32px] h-[32px] rounded-[50%] border-2 border-[#DC3B0B] object-cover group-hover:opacity-70"
                     />
                   ) : (
-                    <div className="w-[32px] h-[32px] rounded-[50%] border-2 border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] group-hover:opacity-70 transition-opacity">
+                    <div className="w-[32px] h-[32px] rounded-[50%] border-2 border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] group-hover:opacity-70">
                       <UserRound className="w-[20px] h-[20px] text-[#DC3B0B]" />
                     </div>
                   )}
