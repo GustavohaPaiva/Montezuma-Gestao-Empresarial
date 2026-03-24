@@ -6,6 +6,7 @@ import ModalFinanceiroSaida from "../../components/modals/ModalFinanceiroSaida";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { api } from "../../services/api";
 import { supabase } from "../../services/supabase";
+import { useAuth } from "../../contexts/AuthContext";
 
 const formatarDataBR = (dataString) => {
   if (!dataString) return "-";
@@ -21,12 +22,28 @@ const formatarMoeda = (valor) => {
   }).format(valorNumerico);
 };
 
+const checkIsParcelado = (item) => {
+  if (!item) return false;
+  return Boolean(
+    item.grupo_id ||
+    (item.forma && String(item.forma).toLowerCase().includes("parcelado")) ||
+    (item.descricao && /\(\d+\/\d+\)/.test(item.descricao)),
+  );
+};
+
 export default function Financeiro() {
+  const { user } = useAuth();
+  const isAdmin = user?.tipo === "adm";
+
   const [modalEntradaAberto, setModalEntradaAberto] = useState(false);
   const [modalSaidaAberto, setModalSaidaAberto] = useState(false);
 
   const [escritorioId, setEscritorioId] = useState(null);
-  const [selectedProject, setSelectedProject] = useState("Escritório");
+
+  // SE FOR ADM, INICIA NO ESCRITÓRIO. SE FOR SECRETARIA, CRAVA NO MONTEZUMA.
+  const [selectedProject, setSelectedProject] = useState(
+    isAdmin ? "Escritório" : "Montezuma",
+  );
 
   const [entradas, setEntradas] = useState([]);
   const [saidas, setSaidas] = useState([]);
@@ -59,8 +76,8 @@ export default function Financeiro() {
       mensagem,
       botoes: [
         {
-          texto: "Ok",
-          className: "bg-[#2E7D32] text-white hover:bg-[#1B5E20]",
+          texto: "Entendido",
+          className: "bg-[#2E7D32] text-white hover:bg-[#1B5E20] shadow-sm",
           onClick: fecharDialogo,
         },
       ],
@@ -100,29 +117,32 @@ export default function Financeiro() {
     if (!escritorioId) return;
     const carregarDados = async () => {
       try {
-        const dadosEntradas = await api.getFinanceiro(
-          "entradas",
-          escritorioId,
-          mesSelecionado,
-          anoAtual,
-        );
+        if (isAdmin) {
+          const dadosEntradas = await api.getFinanceiro(
+            "entradas",
+            escritorioId,
+            mesSelecionado,
+            anoAtual,
+          );
+          setEntradas(Array.isArray(dadosEntradas) ? dadosEntradas : []);
+        }
+
         const dadosSaidas = await api.getFinanceiro(
           "saida",
           escritorioId,
           mesSelecionado,
           anoAtual,
         );
-        setEntradas(Array.isArray(dadosEntradas) ? dadosEntradas : []);
         setSaidas(Array.isArray(dadosSaidas) ? dadosSaidas : []);
       } catch (erro) {
         console.error("Erro ao buscar financeiro:", erro);
       }
     };
     carregarDados();
-  }, [escritorioId, mesSelecionado, anoAtual, recarregar]);
+  }, [escritorioId, mesSelecionado, anoAtual, recarregar, isAdmin]);
 
   useEffect(() => {
-    if (!escritorioId) return;
+    if (!escritorioId || !isAdmin) return;
     const carregarResumoAnual = async () => {
       const meses = [
         "01",
@@ -240,7 +260,7 @@ export default function Financeiro() {
       }
     };
     carregarResumoAnual();
-  }, [escritorioId, anoFiltroAnual, recarregar]);
+  }, [escritorioId, anoFiltroAnual, recarregar, isAdmin]);
 
   const handleSalvarEntrada = async (dadosFormulario) => {
     try {
@@ -287,35 +307,36 @@ export default function Financeiro() {
   };
 
   const handleDelete = (tabela, item) => {
-    const isParcelado = item.parcelado || /\(\d+\/\d+\)/.test(item.descricao);
+    const isParcelado = checkIsParcelado(item);
 
     if (isParcelado) {
       setDialogo({
         aberto: true,
         titulo: "Excluir Parcela",
         mensagem:
-          "Este item faz parte de um parcelamento. Como deseja excluir?",
+          "Este lançamento faz parte de um parcelamento em andamento. Como você prefere excluir?",
         botoes: [
           {
-            texto: "Cancelar",
-            className: "bg-gray-200 text-[#464C54] hover:bg-gray-300",
-            onClick: fecharDialogo,
-          },
-          {
-            texto: "Apenas Esta",
-            className: "bg-orange-500 text-white hover:bg-orange-600",
+            texto: "Apenas Esta Parcela",
+            className:
+              "bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100",
             onClick: () => {
               executarExclusao(tabela, item.id, false);
               fecharDialogo();
             },
           },
           {
-            texto: "Excluir Todas",
-            className: "bg-red-500 text-white hover:bg-red-600",
+            texto: "Excluir Todas as Parcelas",
+            className: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
             onClick: () => {
               executarExclusao(tabela, item.id, true);
               fecharDialogo();
             },
+          },
+          {
+            texto: "Cancelar",
+            className: "bg-gray-100 text-[#464C54] hover:bg-gray-200",
+            onClick: fecharDialogo,
           },
         ],
       });
@@ -324,16 +345,16 @@ export default function Financeiro() {
         aberto: true,
         titulo: "Excluir Registro",
         mensagem:
-          "Tem certeza que deseja excluir este registro permanentemente?",
+          "Tem certeza que deseja excluir este registro? Essa ação não pode ser desfeita.",
         botoes: [
           {
             texto: "Cancelar",
-            className: "bg-gray-200 text-[#464C54] hover:bg-gray-300",
+            className: "bg-gray-100 text-[#464C54] hover:bg-gray-200",
             onClick: fecharDialogo,
           },
           {
             texto: "Excluir",
-            className: "bg-red-500 text-white hover:bg-red-600",
+            className: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
             onClick: () => {
               executarExclusao(tabela, item.id, false);
               fecharDialogo();
@@ -346,7 +367,7 @@ export default function Financeiro() {
 
   const executarAdiar = async (tabela, item) => {
     try {
-      const isParcelado = item.parcelado || /\(\d+\/\d+\)/.test(item.descricao);
+      const isParcelado = checkIsParcelado(item);
       let novaDescricao = item.descricao;
 
       if (isParcelado && !item.descricao.includes("(Mês Anterior)")) {
@@ -372,16 +393,17 @@ export default function Financeiro() {
     setDialogo({
       aberto: true,
       titulo: "Adiar Lançamento",
-      mensagem: "Deseja mover este lançamento para o próximo mês?",
+      mensagem:
+        "Deseja mover este lançamento para o próximo mês mantendo o mesmo dia de vencimento?",
       botoes: [
         {
           texto: "Cancelar",
-          className: "bg-gray-200 text-[#464C54] hover:bg-gray-300",
+          className: "bg-gray-100 text-[#464C54] hover:bg-gray-200",
           onClick: fecharDialogo,
         },
         {
           texto: "Adiar",
-          className: "bg-blue-500 text-white hover:bg-blue-600",
+          className: "bg-blue-500 text-white hover:bg-blue-600 shadow-sm",
           onClick: () => {
             executarAdiar(tabela, item);
             fecharDialogo();
@@ -420,8 +442,7 @@ export default function Financeiro() {
       const valorAntigo = parseFloat(itemOriginal.valor) || 0;
 
       if (valorFinal !== valorAntigo) {
-        const isParcelado =
-          itemOriginal.parcelado || /\(\d+\/\d+\)/.test(itemOriginal.descricao);
+        const isParcelado = checkIsParcelado(itemOriginal);
 
         if (isParcelado) {
           const diferenca = valorAntigo - valorFinal;
@@ -429,13 +450,13 @@ export default function Financeiro() {
 
           setDialogo({
             aberto: true,
-            titulo: "Edição de Parcela",
-            mensagem: `Diferença de R$ ${Math.abs(diferenca).toFixed(2)}. Como aplicar a mudança?`,
+            titulo: "Reajuste de Parcela",
+            mensagem: `Você alterou o valor desta parcela. A diferença gerada foi de R$ ${Math.abs(diferenca).toFixed(2)}. Como o sistema deve lidar com o restante do parcelamento?`,
             botoes: [
               {
-                texto: "Aplicar Fixo nas Restantes",
+                texto: "Aplicar valor fixo nas restantes",
                 className:
-                  "bg-indigo-500 text-white text-sm hover:bg-indigo-600 m-1",
+                  "bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -445,9 +466,9 @@ export default function Financeiro() {
                 },
               },
               {
-                texto: `${textoAcao} na Próxima`,
+                texto: `${textoAcao} valor na próxima parcela`,
                 className:
-                  "bg-blue-500 text-white text-sm hover:bg-blue-600 m-1",
+                  "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -457,9 +478,9 @@ export default function Financeiro() {
                 },
               },
               {
-                texto: `Ratear ${textoAcao} nas Restantes`,
+                texto: `Ratear diferença nas restantes`,
                 className:
-                  "bg-green-600 text-white text-sm hover:bg-green-700 m-1",
+                  "bg-green-50 border border-green-200 text-green-700 hover:bg-green-100",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -469,9 +490,9 @@ export default function Financeiro() {
                 },
               },
               {
-                texto: "Apenas Esta",
+                texto: "Alterar apenas esta parcela",
                 className:
-                  "bg-orange-500 text-white text-sm hover:bg-orange-600 m-1",
+                  "bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -480,9 +501,8 @@ export default function Financeiro() {
                 },
               },
               {
-                texto: "Cancelar",
-                className:
-                  "bg-transparent underline text-red-500 text-sm hover:text-red-700 m-1",
+                texto: "Cancelar Alteração",
+                className: "bg-gray-100 text-[#464C54] hover:bg-gray-200 mt-2",
                 onClick: () => {
                   cancelarEdicao();
                   fecharDialogo();
@@ -624,17 +644,19 @@ export default function Financeiro() {
               alt="adiar"
             />
           </button>
-          <button
-            title="Excluir"
-            onClick={() => handleDelete(nomeTabela, item)}
-            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 rounded-full border-none bg-transparent cursor-pointer"
-          >
-            <img
-              width="18"
-              src="https://img.icons8.com/material-outlined/24/FA5252/trash.png"
-              alt="excluir"
-            />
-          </button>
+          {isAdmin && (
+            <button
+              title="Excluir"
+              onClick={() => handleDelete(nomeTabela, item)}
+              className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 rounded-full border-none bg-transparent cursor-pointer"
+            >
+              <img
+                width="18"
+                src="https://img.icons8.com/material-outlined/24/FA5252/trash.png"
+                alt="excluir"
+              />
+            </button>
+          )}
         </div>,
       ];
     });
@@ -643,18 +665,39 @@ export default function Financeiro() {
   return (
     <div className="relative">
       {dialogo.aberto && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-[12px] p-6 w-full max-w-md shadow-2xl flex flex-col gap-3 text-center animate-fade-in">
-            <h3 className="text-xl font-bold text-[#464C54]">
-              {dialogo.titulo}
-            </h3>
-            <p className="text-[#71717A] text-sm mb-2">{dialogo.mensagem}</p>
-            <div className="flex flex-wrap justify-center items-center mt-2">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-opacity">
+          <div className="bg-white rounded-[16px] p-6 w-full max-w-md shadow-2xl flex flex-col gap-4 text-center transform transition-transform scale-100">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
+              <svg
+                className="h-7 w-7 text-orange-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-[#464C54] mb-2">
+                {dialogo.titulo}
+              </h3>
+              <p className="text-[#71717A] text-sm leading-relaxed">
+                {dialogo.mensagem}
+              </p>
+            </div>
+            <div
+              className={`mt-2 flex ${dialogo.botoes.length > 2 ? "flex-col gap-2" : "flex-row justify-center gap-3 w-full"}`}
+            >
               {dialogo.botoes.map((btn, i) => (
                 <button
                   key={i}
                   onClick={btn.onClick}
-                  className={`px-4 py-2 rounded-[8px] font-bold transition-colors ${btn.className}`}
+                  className={`px-4 py-2.5 rounded-[8px] font-semibold text-sm transition-all duration-200 ${btn.className} ${dialogo.botoes.length > 2 ? "w-full" : "flex-1"}`}
                 >
                   {btn.texto}
                 </button>
@@ -664,11 +707,24 @@ export default function Financeiro() {
         </div>
       )}
 
-      <div className="absolute top-0 right-0 h-[80px] flex items-center z-[60] px-[5%] pointer-events-none">
+      <ModalFinanceiroEntrada
+        isOpen={modalEntradaAberto}
+        onClose={() => setModalEntradaAberto(false)}
+        onSave={handleSalvarEntrada}
+      />
+      <ModalFinanceiroSaida
+        isOpen={modalSaidaAberto}
+        onClose={() => setModalSaidaAberto(false)}
+        onSave={handleSalvarSaida}
+      />
+
+      <Navbar className="static" />
+
+      <div className="md:absolute w-full mt-4 md:w-auto top-0 right-0 flex items-center z-[60] px-[5%] pointer-events-none">
         <select
           value={mesSelecionado}
           onChange={(e) => setMesSelecionado(e.target.value)}
-          className="pointer-events-auto h-[40px] text-[14px] font-bold px-3 border border-[#C4C4C9] rounded-[8px] bg-white shadow-sm"
+          className="pointer-events-auto h-[40px] w-full md:w-auto text-[14px] font-bold px-3 border border-[#C4C4C9] rounded-[8px] bg-white shadow-sm"
         >
           {[
             "01",
@@ -692,103 +748,106 @@ export default function Financeiro() {
           ))}
         </select>
       </div>
-      <div className="absolute top-0 right-[150px] h-[80px] flex items-center z-[60] px-[5%] pointer-events-none">
-        <select
-          value={selectedProject}
-          onChange={(e) => setSelectedProject(e.target.value)}
-          className="pointer-events-auto h-[40px] text-[14px] font-bold px-3 border border-[#C4C4C9] rounded-[8px] bg-white shadow-sm"
-        >
-          <option value="Escritório">Escritório</option>
-          <option value="Montezuma">Montezuma</option>
-        </select>
-      </div>
 
-      <ModalFinanceiroEntrada
-        isOpen={modalEntradaAberto}
-        onClose={() => setModalEntradaAberto(false)}
-        onSave={handleSalvarEntrada}
-      />
-      <ModalFinanceiroSaida
-        isOpen={modalSaidaAberto}
-        onClose={() => setModalSaidaAberto(false)}
-        onSave={handleSalvarSaida}
-      />
-
-      <Navbar className="static" />
-
-      <div className="px-[5%] mb-4">
-        <div className="text-black rounded-[12px] border border-[#DBDADE] p-6 shadow-md mt-6 flex flex-col md:flex-row justify-between items-center bg-white gap-4">
-          <div className="text-center md:text-left">
-            <h2 className="text-xl font-medium">
-              Extrato de {mesSelecionado}/{anoAtual} ({selectedProject})
-            </h2>
-            <p className="text-sm opacity-80">
-              Apenas itens validados entram no cálculo principal
-            </p>
-          </div>
-          <h1
-            className={`text-4xl font-bold ${saldoFinal >= 0 ? "text-green-500" : "text-red-500"}`}
+      {/* SÓ MOSTRA A SELEÇÃO DO ESCRITÓRIO/MONTEZUMA SE FOR ADM */}
+      {isAdmin && (
+        <div className="md:absolute top-0 mt-4 w-full md:w-auto right-[150px] flex items-center z-[60] px-[5%] pointer-events-none">
+          <select
+            value={selectedProject}
+            onChange={(e) => setSelectedProject(e.target.value)}
+            className="pointer-events-auto h-[40px] w-full md:w-auto text-[14px] font-bold px-3 border border-[#C4C4C9] rounded-[8px] bg-white shadow-sm"
           >
-            R$ {formatarMoeda(saldoFinal)}
-          </h1>
+            <option value="Escritório">Escritório</option>
+            <option value="Montezuma">Montezuma</option>
+          </select>
         </div>
-      </div>
+      )}
+
+      {isAdmin && (
+        <div className="px-[5%] mb-4">
+          <div className="text-black rounded-[12px] border border-[#DBDADE] p-6 shadow-md mt-6 flex flex-col md:flex-row justify-between items-center bg-white gap-4">
+            <div className="text-center md:text-left">
+              <h2 className="text-xl font-medium">
+                Extrato de {mesSelecionado}/{anoAtual} ({selectedProject})
+              </h2>
+              <p className="text-sm opacity-80">
+                Apenas itens validados entram no cálculo principal
+              </p>
+            </div>
+            <h1
+              className={`text-2xl md:text-4xl font-bold ${saldoFinal >= 0 ? "text-green-500" : "text-red-500"}`}
+            >
+              R$ {formatarMoeda(saldoFinal)}
+            </h1>
+          </div>
+        </div>
+      )}
 
       <div className="px-[5%]">
-        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[24px]">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 className="text-[30px] font-bold text-[#464C54]">Entradas</h1>
-            <div className="flex flex-col md:flex-row gap-4">
-              <input
-                type="text"
-                placeholder="Pesquisar..."
-                value={buscaEntrada}
-                onChange={(e) => setBuscaEntrada(e.target.value)}
-                className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
-              />
-              <ButtonDefault onClick={() => setModalEntradaAberto(true)}>
-                + Nova Entrada
-              </ButtonDefault>
+        {isAdmin && (
+          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[24px]">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+              <h1 className="text-[30px] font-bold text-[#464C54]">Entradas</h1>
+              <div className="flex w-full md:w-[375px] flex-col md:flex-row gap-4">
+                <input
+                  type="text"
+                  placeholder="Pesquisar..."
+                  value={buscaEntrada}
+                  onChange={(e) => setBuscaEntrada(e.target.value)}
+                  className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+                />
+                <ButtonDefault
+                  onClick={() => setModalEntradaAberto(true)}
+                  className="w-full"
+                >
+                  + Nova Entrada
+                </ButtonDefault>
+              </div>
+            </div>
+            <TabelaSimples
+              colunas={["Pago", "Descrição", "Forma Pag.", "Valor", "Data", ""]}
+              dados={gerarLinhasTabela(entradas, buscaEntrada, "entradas")}
+            />
+            <div className="grid xl:grid-cols-2 gap-[10px] w-full mt-4">
+              <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2">
+                <span className="text-sm text-[#71717A] uppercase font-semibold">
+                  Total Lançado:
+                </span>
+                <span className="text-sm md:text-[18px] font-bold text-[#464C54]">
+                  R$ {formatarMoeda(somaTotalEntradas)}
+                </span>
+              </div>
+              <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9] gap-2">
+                <span className="text-sm text-[#2E7D32] uppercase font-semibold">
+                  Total Validado:
+                </span>
+                <span className="text-sm md:text-[18px] font-bold text-[#1B5E20]">
+                  R$ {formatarMoeda(totalEntradasValidadas)}
+                </span>
+              </div>
             </div>
           </div>
-          <TabelaSimples
-            colunas={["Pago", "Descrição", "Forma Pag.", "Valor", "Data", ""]}
-            dados={gerarLinhasTabela(entradas, buscaEntrada, "entradas")}
-          />
-          <div className="grid xl:grid-cols-2 gap-[10px] w-full mt-4">
-            <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2">
-              <span className="text-sm text-[#71717A] uppercase font-semibold">
-                Total Lançado:
-              </span>
-              <span className="text-[18px] font-bold text-[#464C54]">
-                R$ {formatarMoeda(somaTotalEntradas)}
-              </span>
-            </div>
-            <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9] gap-2">
-              <span className="text-sm text-[#2E7D32] uppercase font-semibold">
-                Total Validado:
-              </span>
-              <span className="text-[18px] font-bold text-[#1B5E20]">
-                R$ {formatarMoeda(totalEntradasValidadas)}
-              </span>
-            </div>
-          </div>
-        </div>
+        )}
 
-        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[24px]">
+        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[24px] mt-6">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <h1 className="text-[30px] font-bold text-[#464C54]">Saídas</h1>
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row w-full md:w-[375px] gap-4">
               <input
                 type="text"
                 placeholder="Pesquisar..."
                 value={buscaSaida}
                 onChange={(e) => setBuscaSaida(e.target.value)}
-                className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+                className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
               />
-              <ButtonDefault onClick={() => setModalSaidaAberto(true)}>
-                + Nova Saída
-              </ButtonDefault>
+              {isAdmin && (
+                <ButtonDefault
+                  className="w-full"
+                  onClick={() => setModalSaidaAberto(true)}
+                >
+                  + Nova Saída
+                </ButtonDefault>
+              )}
             </div>
           </div>
           <TabelaSimples
@@ -800,7 +859,7 @@ export default function Financeiro() {
               <span className="text-sm text-[#71717A] uppercase font-semibold">
                 Total Lançado:
               </span>
-              <span className="text-[18px] font-bold text-[#464C54]">
+              <span className="text-sm md:text-[18px] font-bold text-[#464C54]">
                 R$ {formatarMoeda(somaTotalSaidas)}
               </span>
             </div>
@@ -808,52 +867,54 @@ export default function Financeiro() {
               <span className="text-sm text-[#C62828] uppercase font-semibold">
                 Total Validado:
               </span>
-              <span className="text-[18px] font-bold text-[#B71C1C]">
+              <span className="text-sm md:text-[18px] font-bold text-[#B71C1C]">
                 R$ {formatarMoeda(totalSaidasValidadas)}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[40px]">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-[30px] font-bold text-[#464C54]">
-              Controle Anual
-            </h1>
-            <input
-              type="number"
-              value={anoFiltroAnual}
-              onChange={(e) => setAnoFiltroAnual(e.target.value)}
-              className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+        {isAdmin && (
+          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[40px]">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+              <h1 className="text-[30px] font-bold text-[#464C54]">
+                Controle Anual
+              </h1>
+              <input
+                type="number"
+                value={anoFiltroAnual}
+                onChange={(e) => setAnoFiltroAnual(e.target.value)}
+                className="h-[40px] w-full sm:w-auto border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+              />
+            </div>
+            <TabelaSimples
+              colunas={["Mês", "Entrada", "Saida", "Balanço"]}
+              dados={dadosAnuais}
             />
-          </div>
-          <TabelaSimples
-            colunas={["Mês", "Entrada", "Saida", "Balanço"]}
-            dados={dadosAnuais}
-          />
-          <div className="flex flex-col md:flex-row justify-center items-center border border-[#DBDADE] rounded-[8px] p-4 bg-[#F8F9FA] gap-8 mt-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-[#71717A] uppercase font-semibold">
-                Balanço Validado do Ano:
-              </span>
-              <span
-                className={`text-[18px] font-bold ${totaisAnuais.validado >= 0 ? "text-green-600" : "text-red-600"}`}
-              >
-                R$ {formatarMoeda(totaisAnuais.validado)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-[#71717A] uppercase font-semibold">
-                Balanço Previsto (Total Lançado):
-              </span>
-              <span
-                className={`text-[18px] font-bold ${totaisAnuais.previsto >= 0 ? "text-green-600/70" : "text-red-600/70"}`}
-              >
-                R$ {formatarMoeda(totaisAnuais.previsto)}
-              </span>
+            <div className="flex flex-col lg:flex-row justify-center items-center border border-[#DBDADE] rounded-[8px] p-4 bg-[#F8F9FA] gap-8 mt-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm text-[#71717A] uppercase font-semibold">
+                  Balanço Validado do Ano:
+                </span>
+                <span
+                  className={`text-[18px] font-bold ${totaisAnuais.validado >= 0 ? "text-green-600" : "text-red-600"}`}
+                >
+                  R$ {formatarMoeda(totaisAnuais.validado)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-[#71717A] uppercase font-semibold">
+                  Balanço Previsto (Total Lançado):
+                </span>
+                <span
+                  className={`text-[18px] font-bold ${totaisAnuais.previsto >= 0 ? "text-green-600/70" : "text-red-600/70"}`}
+                >
+                  R$ {formatarMoeda(totaisAnuais.previsto)}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

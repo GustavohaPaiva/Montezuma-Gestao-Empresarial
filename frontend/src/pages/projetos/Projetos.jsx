@@ -951,34 +951,34 @@ export default function Projetos() {
 
           <div className="grid xl:grid-cols-[repeat(auto-fit,minmax(0,362px))] gap-y-[30px] w-full xl:justify-between">
             <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2 ">
-              <span className="text-[18px] text-sm text-[#71717A] uppercase font-semibold">
+              <span className="text-[14px] md:text-[18px] text-sm text-[#71717A] uppercase font-semibold">
                 Total Orçado:
               </span>
-              <span className="text-[18px] font-bold text-[#464C54]">
+              <span className="text-[14px] md:text-[18px] font-bold text-[#464C54]">
                 R$ {formatarMoeda(totalOrcado)}
               </span>
             </div>
             <div className="flex justify-center gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9]">
-              <span className="text-[18px] text-sm text-[#2E7D32] uppercase font-semibold">
+              <span className="text-[14px] md:text-[18px] text-sm text-[#2E7D32] uppercase font-semibold">
                 Total Fechado:
               </span>
-              <span className="text-[18px] font-bold text-[#1B5E20]">
+              <span className="text-[14px] md:text-[18px] font-bold text-[#1B5E20]">
                 R$ {formatarMoeda(totalFechado)}
               </span>
             </div>
             <div className="flex justify-center gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9]">
-              <span className="text-[18px] text-sm text-[#2E7D32] uppercase font-semibold">
+              <span className="text-[14px] md:text-[18px] text-sm text-[#2E7D32] uppercase font-semibold">
                 Taxa de Conversão
               </span>
-              <span className="text-[18px] font-bold text-[#1B5E20]">
+              <span className="text-[14px] md:text-[18px] font-bold text-[#1B5E20]">
                 {conversao}%
               </span>
             </div>
             <div className="flex justify-center gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] ">
-              <span className="text-sm text-[18px] text-[#71717A] uppercase font-semibold">
+              <span className="text-sm text-[14px] md:text-[18px] text-[#71717A] uppercase font-semibold">
                 Diferença:
               </span>
-              <span className="text-[18px] font-bold text-[#464C54]">
+              <span className="text-[14px] md:text-[18px] font-bold text-[#464C54]">
                 R$ {formatarMoeda(diferenca)}
               </span>
             </div>
@@ -1063,10 +1063,10 @@ export default function Projetos() {
           )}
 
           <div className="flex w-full justify-between gap-2 items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9]">
-            <span className="text-[18px] text-sm text-[#2E7D32] uppercase font-semibold">
+            <span className="text-[14px] md:text-[18px] text-sm text-[#2E7D32] uppercase font-semibold">
               Total Pago:
             </span>
-            <span className="text-[18px] font-bold text-[#1B5E20]">
+            <span className="text-[14px] md:text-[18px] font-bold text-[#1B5E20]">
               R$ {formatarMoeda(totalPagoClientes)}
             </span>
           </div>

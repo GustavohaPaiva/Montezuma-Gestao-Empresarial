@@ -1,46 +1,205 @@
-import React from "react";
+import React, { useState, useCallback, memo } from "react";
 import { HardHat } from "lucide-react";
+const EtapaCard = memo(
+  ({ etapa, index, isCliente, indicePrimeiraPendente, onChange }) => {
+    const [progressoLocal, setProgressoLocal] = useState(etapa.progresso || 0);
+    const [prevProgresso, setPrevProgresso] = useState(etapa.progresso || 0);
+
+    if ((etapa.progresso || 0) !== prevProgresso) {
+      setPrevProgresso(etapa.progresso || 0);
+      setProgressoLocal(etapa.progresso || 0);
+    }
+
+    const isConcluido = etapa.status === "concluído";
+
+    const statusExibicao = isConcluido
+      ? "concluído"
+      : etapa.status === "em andamento" || index === indicePrimeiraPendente
+        ? "em andamento"
+        : "pendente";
+
+    const handleSliderChange = (e) => {
+      setProgressoLocal(e.target.value);
+    };
+
+    const handleSliderCommit = () => {
+      if (parseInt(progressoLocal) !== (etapa.progresso || 0)) {
+        onChange(etapa.nome, "progresso", parseInt(progressoLocal));
+      }
+    };
+    const corPreenchimento = isConcluido ? "#16a34a" : "#DC3B0B";
+
+    return (
+      <div
+        className={`p-4 rounded-xl border flex flex-col gap-4 shadow-sm transition-colors duration-200 ${
+          isConcluido
+            ? "bg-green-50 border-green-200"
+            : "bg-white border-[#C4C4C9]"
+        }`}
+      >
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <h3
+              className={`font-bold text-[16px] ${isConcluido ? "text-green-800 line-through" : "text-[#464C54]"}`}
+            >
+              {etapa.nome}
+            </h3>
+            <div className="flex items-center gap-2 mt-1">
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                  isConcluido
+                    ? "bg-green-200 text-green-800"
+                    : statusExibicao === "em andamento"
+                      ? "bg-orange-100 text-orange-800"
+                      : "bg-gray-200 text-gray-700"
+                }`}
+              >
+                {statusExibicao}
+              </span>
+              <span className="text-[12px] font-semibold text-gray-500">
+                {progressoLocal}%
+              </span>
+            </div>
+          </div>
+
+          <input
+            type="checkbox"
+            checked={isConcluido}
+            disabled={isCliente}
+            onChange={(e) =>
+              onChange(etapa.nome, "status_checkbox", e.target.checked)
+            }
+            className={`w-5 h-5 accent-green-600 flex-shrink-0 ${isCliente ? "cursor-not-allowed" : "cursor-pointer"}`}
+          />
+        </div>
+
+        <div className="w-full flex flex-col gap-1">
+          <label className="text-[11px] text-[#71717A] font-medium uppercase tracking-wider">
+            Progresso da Etapa
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={progressoLocal}
+            disabled={isCliente}
+            onChange={handleSliderChange}
+            onMouseUp={handleSliderCommit}
+            onTouchEnd={handleSliderCommit}
+            className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#464C54] ${
+              isCliente ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            style={{
+              background: `linear-gradient(to right, ${corPreenchimento} ${progressoLocal}%, #E5E7EB ${progressoLocal}%)`,
+            }}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col">
+            <label className="text-[12px] text-[#71717A] mb-1 font-medium">
+              Início
+            </label>
+            <input
+              type="date"
+              value={etapa.data_inicio || ""}
+              disabled={isCliente}
+              onChange={(e) =>
+                onChange(etapa.nome, "data_inicio", e.target.value)
+              }
+              className="p-1.5 text-[13px] border border-[#DBDADE] rounded-md bg-transparent focus:outline-none focus:border-[#464C54]"
+            />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-[12px] text-[#71717A] mb-1 font-medium">
+              Conclusão
+            </label>
+            <input
+              type="date"
+              value={etapa.data_conclusao || ""}
+              disabled={isCliente}
+              onChange={(e) =>
+                onChange(etapa.nome, "data_conclusao", e.target.value)
+              }
+              className="p-1.5 text-[13px] border border-[#DBDADE] rounded-md bg-transparent focus:outline-none focus:border-[#464C54]"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  },
+);
 
 export default function ListaEtapas({
   etapas = [],
   onUpdateEtapas,
   isCliente = false,
 }) {
-  const handleChange = (nomeEtapa, campo, valor) => {
-    if (isCliente) return; // Trava de segurança extra
+  const handleChange = useCallback(
+    (nomeEtapa, campo, valor) => {
+      if (isCliente) return;
 
-    const novasEtapas = etapas.map((etapa) => {
-      if (etapa.nome === nomeEtapa) {
-        const etapaAtualizada = { ...etapa, [campo]: valor };
+      const novasEtapas = etapas.map((etapa) => {
+        if (etapa.nome === nomeEtapa) {
+          let etapaAtualizada = { ...etapa, [campo]: valor };
 
-        if (campo === "status_checkbox") {
-          etapaAtualizada.status = valor
-            ? "concluído"
-            : etapaAtualizada.data_inicio
-              ? "em andamento"
-              : "pendente";
-          if (valor && !etapaAtualizada.data_conclusao) {
-            etapaAtualizada.data_conclusao = new Date()
-              .toISOString()
-              .split("T")[0];
+          if (campo === "progresso") {
+            const progressoNum = parseInt(valor);
+            etapaAtualizada.progresso = progressoNum;
+
+            if (progressoNum === 100) {
+              etapaAtualizada.status = "concluído";
+              if (!etapaAtualizada.data_conclusao) {
+                etapaAtualizada.data_conclusao = new Date()
+                  .toISOString()
+                  .split("T")[0];
+              }
+            } else if (progressoNum > 0) {
+              etapaAtualizada.status = "em andamento";
+              etapaAtualizada.data_conclusao = "";
+            } else {
+              etapaAtualizada.status = "pendente";
+            }
           }
-          delete etapaAtualizada.status_checkbox;
-        }
-        if (
-          campo === "data_inicio" &&
-          etapaAtualizada.status === "pendente" &&
-          valor
-        ) {
-          etapaAtualizada.status = "em andamento";
-        }
 
-        return etapaAtualizada;
-      }
-      return etapa;
-    });
+          if (campo === "status_checkbox") {
+            const concluido = valor;
+            etapaAtualizada.status = concluido
+              ? "concluído"
+              : etapaAtualizada.data_inicio
+                ? "em andamento"
+                : "pendente";
+            etapaAtualizada.progresso = concluido
+              ? 100
+              : etapaAtualizada.progresso === 100
+                ? 99
+                : etapaAtualizada.progresso;
 
-    onUpdateEtapas(novasEtapas);
-  };
+            if (concluido && !etapaAtualizada.data_conclusao) {
+              etapaAtualizada.data_conclusao = new Date()
+                .toISOString()
+                .split("T")[0];
+            } else if (!concluido) {
+              etapaAtualizada.data_conclusao = "";
+            }
+          }
+
+          if (
+            campo === "data_inicio" &&
+            etapaAtualizada.status === "pendente" &&
+            valor
+          ) {
+            etapaAtualizada.status = "em andamento";
+          }
+
+          return etapaAtualizada;
+        }
+        return etapa;
+      });
+
+      onUpdateEtapas(novasEtapas);
+    },
+    [etapas, isCliente, onUpdateEtapas],
+  );
 
   if (!etapas || etapas.length === 0) {
     return (
@@ -51,15 +210,13 @@ export default function ListaEtapas({
             Nenhuma etapa definida
           </h2>
           <p className="text-gray-500">
-            Acesse o menu de seleção de etapas para começar a montar o
-            cronograma desta obra.
+            Acesse o menu de seleção de etapas para começar o cronograma.
           </p>
         </div>
       </div>
     );
   }
 
-  // Descobre qual é a primeira etapa não concluída para marcá-la como "em andamento"
   const indicePrimeiraPendente = etapas.findIndex(
     (e) => e.status !== "concluído",
   );
@@ -69,132 +226,17 @@ export default function ListaEtapas({
       <h2 className="text-[24px] font-bold text-[#464C54] mb-[20px]">
         Lista de Etapas
       </h2>
-      <div className="grid grid-cols-1 gap-4 mt-4 mb-4">
-        {etapas.map((etapa, index) => {
-          const isConcluido = etapa.status === "concluído";
-
-          // Regra de visualização: se não tá concluído e é a primeira da fila, joga "em andamento"
-          const statusExibicao = isConcluido
-            ? "concluído"
-            : etapa.status === "em andamento" ||
-                index === indicePrimeiraPendente
-              ? "em andamento"
-              : "pendente";
-
-          return (
-            <div
-              key={etapa.nome}
-              className={`py-2 px-3 rounded-xl border flex flex-col md:flex-row md:justify-between gap-4 shadow-sm transition-all duration-200 ${
-                isConcluido
-                  ? "bg-green-50 border-green-200"
-                  : "bg-white border-[#C4C4C9]"
-              }`}
-            >
-              {/* Cabeçalho do Card */}
-              <div className="flex justify-between w-full items-start gap-2">
-                <div className="flex-1">
-                  <h3
-                    className={`font-bold text-[16px] leading-tight ${isConcluido ? "text-green-800 line-through" : "text-[#464C54]"}`}
-                  >
-                    {etapa.nome}
-                  </h3>
-                  <span
-                    className={`text-[12px] mt-4 font-semibold px-2 py-0.5 rounded-full inline-block mt-1 ${
-                      isConcluido
-                        ? "bg-green-200 text-green-800"
-                        : statusExibicao === "em andamento"
-                          ? "bg-orange-100 text-orange-800"
-                          : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {statusExibicao.toUpperCase()}
-                  </span>
-                </div>
-
-                {/* Checkbox de Conclusão mobile */}
-                <label
-                  className={`flex md:hidden items-center justify-center w-8 h-8 rounded-full flex-shrink-0 ${isCliente ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-100"}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isConcluido}
-                    disabled={isCliente}
-                    onChange={(e) =>
-                      handleChange(
-                        etapa.nome,
-                        "status_checkbox",
-                        e.target.checked,
-                      )
-                    }
-                    className={`w-5 h-5 accent-green-600 ${isCliente ? "cursor-not-allowed" : "cursor-pointer"}`}
-                    title={
-                      isCliente ? "Apenas leitura" : "Marcar como concluído"
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className="flex flex-row justify-center items-center md:justify-end w-full">
-                {/* Datas */}
-                <div className="flex gap-3 mt-2 md:mx-5 md:w-auto w-full">
-                  <div className="flex flex-col flex-1">
-                    <label className="text-[12px] text-[#71717A] mb-1 font-medium">
-                      Data Início
-                    </label>
-                    <input
-                      type="date"
-                      value={etapa.data_inicio || ""}
-                      disabled={isCliente}
-                      onChange={(e) =>
-                        handleChange(etapa.nome, "data_inicio", e.target.value)
-                      }
-                      className={`p-1 text-[13px] border border-[#DBDADE] rounded-md bg-transparent ${isCliente ? "cursor-not-allowed opacity-60" : "focus:outline-none focus:border-[#464C54]"}`}
-                    />
-                  </div>
-                  <div className="flex flex-col flex-1">
-                    <label className="text-[12px] text-[#71717A] mb-1 font-medium">
-                      Data Conclusão
-                    </label>
-                    <input
-                      type="date"
-                      value={etapa.data_conclusao || ""}
-                      disabled={isCliente}
-                      onChange={(e) =>
-                        handleChange(
-                          etapa.nome,
-                          "data_conclusao",
-                          e.target.value,
-                        )
-                      }
-                      className={`p-1 text-[13px] border border-[#DBDADE] rounded-md bg-transparent ${isCliente ? "cursor-not-allowed opacity-60" : "focus:outline-none focus:border-[#464C54]"}`}
-                    />
-                  </div>
-                </div>
-                {/* Checkbox de Conclusão desktop */}
-                <label
-                  className={`md:flex hidden items-center justify-center w-8 h-8 rounded-full flex-shrink-0 ${isCliente ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-100"}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isConcluido}
-                    disabled={isCliente}
-                    onChange={(e) =>
-                      handleChange(
-                        etapa.nome,
-                        "status_checkbox",
-                        e.target.checked,
-                      )
-                    }
-                    className={`w-5 h-5 accent-green-600 ${isCliente ? "cursor-not-allowed" : "cursor-pointer"}`}
-                    title={
-                      isCliente ? "Apenas leitura" : "Marcar como concluído"
-                    }
-                  />
-                </label>{" "}
-              </div>
-            </div>
-          );
-        })}
+      <div className="flex flex-col gap-4">
+        {etapas.map((etapa, index) => (
+          <EtapaCard
+            key={etapa.nome}
+            etapa={etapa}
+            index={index}
+            isCliente={isCliente}
+            indicePrimeiraPendente={indicePrimeiraPendente}
+            onChange={handleChange}
+          />
+        ))}
       </div>
     </div>
   );
