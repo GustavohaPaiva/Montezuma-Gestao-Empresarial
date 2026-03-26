@@ -430,8 +430,7 @@ export default function ObraCliente() {
   }, [obra, buscaExtrato, filtroExtrato]);
 
   const totais = useMemo(() => {
-    if (!obra)
-      return { materiais: 0, maoDeObra: 0, maoDeObraGrafico: 0, extrato: 0 };
+    if (!obra) return { materiais: 0, maoDeObra: 0, extrato: 0 };
     return {
       materiais: (obra.materiais || []).reduce(
         (acc, m) => acc + (parseFloat(m.valor) || 0),
@@ -441,9 +440,6 @@ export default function ObraCliente() {
         (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
         0,
       ),
-      maoDeObraGrafico: (obra.maoDeObra || [])
-        .filter((m) => m.validacao === 1)
-        .reduce((acc, m) => acc + (parseFloat(m.valor_orcado) || 0), 0),
       extrato: (obra.relatorioExtrato || []).reduce(
         (acc, item) => acc + (parseFloat(item.valor) || 0),
         0,
@@ -453,7 +449,7 @@ export default function ObraCliente() {
 
   const dataGrafico = useMemo(() => {
     const paletaCores = ["#860000", "#EE5B11", "#F67D15", "#FBA51B", "#FDC626"];
-    const totalGeral = totais.materiais + totais.maoDeObraGrafico;
+    const totalGeral = totais.materiais + totais.maoDeObra;
     const dados = [
       {
         name: "Materiais",
@@ -462,8 +458,8 @@ export default function ObraCliente() {
       },
       {
         name: "Mão de Obra",
-        value: totais.maoDeObraGrafico,
-        qtd: obra?.maoDeObra?.filter((m) => m.validacao === 1).length || 0,
+        value: totais.maoDeObra,
+        qtd: obra?.maoDeObra?.length || 0,
       },
     ];
     dados.sort((a, b) => b.value - a.value);
@@ -835,7 +831,7 @@ export default function ObraCliente() {
                   <div
                     className={`transition-all duration-500 ease-in-out ${categoriaAtiva ? "w-[140px] h-[140px] self-start" : "w-full h-[250px] md:h-full flex justify-center"}`}
                   >
-                    {totais.materiais > 0 || totais.maoDeObraGrafico > 0 ? (
+                    {totais.materiais > 0 || totais.maoDeObra > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -930,14 +926,21 @@ export default function ObraCliente() {
                     onClick={() => setCategoriaAtiva(null)}
                   >
                     <span className="font-bold text-black uppercase text-sm">
-                      Custo Total
+                      Custo Total Lançado
                     </span>
                     <span className="font-bold text-[#2E7D32] text-lg">
-                      R${" "}
-                      {formatarMoeda(
-                        totais.materiais + totais.maoDeObraGrafico,
-                      )}
+                      R$ {formatarMoeda(totais.materiais + totais.maoDeObra)}
                     </span>
+                  </div>
+                  <div
+                    className={`text-center mt-3 transition-all duration-500 ${categoriaAtiva ? "opacity-100 max-h-[30px]" : "opacity-0 max-h-0"}`}
+                  >
+                    <button
+                      onClick={() => setCategoriaAtiva(null)}
+                      className="text-xs text-[#DC3B0B] underline font-medium cursor-pointer"
+                    >
+                      Restaurar gráfico completo
+                    </button>
                   </div>
                 </div>
               </div>

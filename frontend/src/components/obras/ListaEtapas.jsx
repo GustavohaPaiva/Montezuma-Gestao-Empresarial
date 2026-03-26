@@ -1,16 +1,20 @@
 import React, { useState, useCallback, memo } from "react";
 import { HardHat } from "lucide-react";
+
 const EtapaCard = memo(
   ({ etapa, index, isCliente, indicePrimeiraPendente, onChange }) => {
     const [progressoLocal, setProgressoLocal] = useState(etapa.progresso || 0);
     const [prevProgresso, setPrevProgresso] = useState(etapa.progresso || 0);
 
+    // Ajuste de estado derivado de prop diretamente no render (Padrão Oficial do React)
     if ((etapa.progresso || 0) !== prevProgresso) {
       setPrevProgresso(etapa.progresso || 0);
       setProgressoLocal(etapa.progresso || 0);
     }
 
-    const isConcluido = etapa.status === "concluído";
+    // O status visual responde instantaneamente ao estado local (UX fluido)
+    const progressoNum = parseInt(progressoLocal) || 0;
+    const isConcluido = progressoNum === 100 || etapa.status === "concluído";
 
     const statusExibicao = isConcluido
       ? "concluído"
@@ -22,11 +26,32 @@ const EtapaCard = memo(
       setProgressoLocal(e.target.value);
     };
 
-    const handleSliderCommit = () => {
-      if (parseInt(progressoLocal) !== (etapa.progresso || 0)) {
-        onChange(etapa.nome, "progresso", parseInt(progressoLocal));
+    const handleCommitProgresso = (valorDigitado) => {
+      let val = parseInt(valorDigitado);
+      if (isNaN(val)) val = 0;
+      if (val < 0) val = 0;
+      if (val > 100) val = 100;
+
+      setProgressoLocal(val);
+
+      if (val !== (etapa.progresso || 0)) {
+        onChange(etapa.nome, "progresso", val);
       }
     };
+
+    const handleCheckboxChange = (e) => {
+      const isChecked = e.target.checked;
+
+      // Atualiza visualmente na hora antes de bater no pai
+      if (isChecked) {
+        setProgressoLocal(100);
+      } else if (progressoNum === 100) {
+        setProgressoLocal(99);
+      }
+
+      onChange(etapa.nome, "status_checkbox", isChecked);
+    };
+
     const corPreenchimento = isConcluido ? "#16a34a" : "#DC3B0B";
 
     return (
@@ -56,9 +81,33 @@ const EtapaCard = memo(
               >
                 {statusExibicao}
               </span>
-              <span className="text-[12px] font-semibold text-gray-500">
-                {progressoLocal}%
-              </span>
+
+              <div className="flex items-center">
+                {isCliente ? (
+                  <span className="text-[12px] font-semibold text-gray-500">
+                    {progressoLocal}%
+                  </span>
+                ) : (
+                  <>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={progressoLocal}
+                      onChange={(e) => setProgressoLocal(e.target.value)}
+                      onBlur={() => handleCommitProgresso(progressoLocal)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" &&
+                        handleCommitProgresso(progressoLocal)
+                      }
+                      className="w-8 text-[12px] font-semibold text-gray-700 bg-transparent border-b border-gray-300 focus:outline-none focus:border-[#464C54] text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="text-[12px] font-semibold text-gray-500 ml-0.5">
+                      %
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -66,9 +115,7 @@ const EtapaCard = memo(
             type="checkbox"
             checked={isConcluido}
             disabled={isCliente}
-            onChange={(e) =>
-              onChange(etapa.nome, "status_checkbox", e.target.checked)
-            }
+            onChange={handleCheckboxChange}
             className={`w-5 h-5 accent-green-600 flex-shrink-0 ${isCliente ? "cursor-not-allowed" : "cursor-pointer"}`}
           />
         </div>
@@ -84,13 +131,13 @@ const EtapaCard = memo(
             value={progressoLocal}
             disabled={isCliente}
             onChange={handleSliderChange}
-            onMouseUp={handleSliderCommit}
-            onTouchEnd={handleSliderCommit}
+            onMouseUp={() => handleCommitProgresso(progressoLocal)}
+            onTouchEnd={() => handleCommitProgresso(progressoLocal)}
             className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#464C54] ${
               isCliente ? "opacity-50 cursor-not-allowed" : ""
             }`}
             style={{
-              background: `linear-gradient(to right, ${corPreenchimento} ${progressoLocal}%, #E5E7EB ${progressoLocal}%)`,
+              background: `linear-gradient(to right, ${corPreenchimento} ${progressoNum}%, #E5E7EB ${progressoNum}%)`,
             }}
           />
         </div>

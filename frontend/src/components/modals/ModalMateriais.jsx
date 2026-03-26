@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import { api } from "../../services/api";
 
 export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
   const [material, setMaterial] = useState("");
-  const [fornecedor, setFornecedor] = useState("");
+  const [fornecedorId, setFornecedorId] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [unidade, setUnidade] = useState("Un.");
+
+  const [listaFornecedores, setListaFornecedores] = useState([]);
+  const [carregandoFornecedores, setCarregandoFornecedores] = useState(false);
 
   const listaUnidades = [
     "Sc.",
@@ -23,21 +27,35 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
     "Cx.",
   ];
 
+  useEffect(() => {
+    if (isOpen) {
+      const carregarFornecedores = async () => {
+        setCarregandoFornecedores(true);
+        try {
+          const dados = await api.getFornecedoresSimples();
+          setListaFornecedores(dados || []);
+        } catch (error) {
+          console.error("Erro ao carregar lista de fornecedores", error);
+        } finally {
+          setCarregandoFornecedores(false);
+        }
+      };
+      carregarFornecedores();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleConfirmar = () => {
-    // Validação básica
-    if (!material || !quantidade) {
-      alert("Preencha o material e a quantidade!");
+    if (!material || !quantidade || !fornecedorId) {
+      alert("Preencha o material, a quantidade e selecione um fornecedor!");
       return;
     }
 
-    // --- ALTERAÇÃO AQUI: Adicionado 'fornecedor' ao objeto salvo ---
-    onSave({ material, fornecedor, quantidade, unidade });
+    onSave({ material, fornecedor_id: fornecedorId, quantidade, unidade });
 
-    // Limpa os campos
     setMaterial("");
-    setFornecedor("");
+    setFornecedorId("");
     setQuantidade("");
     setUnidade("Un.");
   };
@@ -68,7 +86,6 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
         </div>
 
         <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
-          {/* Input Material */}
           <div className="flex flex-col gap-[5px]">
             <label className="text-[12px] font-bold text-[#71717A] uppercase">
               Material
@@ -82,18 +99,27 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
             />
           </div>
 
-          {/* Input Fornecedor */}
           <div className="flex flex-col gap-[5px]">
             <label className="text-[12px] font-bold text-[#71717A] uppercase">
               Fornecedor
             </label>
-            <input
-              type="text"
-              placeholder="Ex: RC, Casa do pintor..."
-              value={fornecedor}
-              onChange={(e) => setFornecedor(e.target.value)}
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border"
-            />
+            <select
+              value={fornecedorId}
+              onChange={(e) => setFornecedorId(e.target.value)}
+              disabled={carregandoFornecedores}
+              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border cursor-pointer disabled:opacity-50"
+            >
+              <option value="">
+                {carregandoFornecedores
+                  ? "Carregando..."
+                  : "Selecione um fornecedor"}
+              </option>
+              {listaFornecedores.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-[12px] w-full">

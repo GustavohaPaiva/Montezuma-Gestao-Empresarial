@@ -4,7 +4,7 @@ import ButtonDefault from "../gerais/ButtonDefault";
 const ETAPAS_OBRA = [
   "Infraestrutura",
   "Supraestrutura",
-  "Alvenaria",
+  "Paredes e Painéis",
   "Cobertura",
   "Revestimentos externos",
   "Revestimentos internos",

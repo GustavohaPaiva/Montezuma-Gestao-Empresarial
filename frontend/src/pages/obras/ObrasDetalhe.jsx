@@ -31,6 +31,10 @@ const OPCOES_PRESTADOR = [
   "Marceneiro",
   "Serralheiro",
   "Servente",
+  "Calheiro",
+  "Gerente de Obras",
+  "Acabamentista",
+  "Encarregado",
   "Outros",
 ];
 
@@ -124,6 +128,67 @@ const CellInputText = ({ valorInicial, onSave, onCancel }) => {
       <button
         onClick={() => onSave(val)}
         className="cursor-pointer border-none bg-transparent flex-shrink-0"
+      >
+        <img
+          width="15"
+          src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
+          alt="salvar"
+        />
+      </button>
+      <button
+        onClick={onCancel}
+        className="cursor-pointer border-none bg-transparent flex-shrink-0"
+      >
+        <img
+          width="15"
+          src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
+          alt="cancelar"
+        />
+      </button>
+    </div>
+  );
+};
+
+// NOVO COMPONENTE: Select Inteligente de Fornecedores para edição In-line
+const CellSelectFornecedor = ({ valorInicialId, onSave, onCancel }) => {
+  const [val, setVal] = useState(valorInicialId || "");
+  const [lista, setLista] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFornecedores = async () => {
+      try {
+        const dados = await api.getFornecedoresSimples();
+        setLista(dados || []);
+      } catch (error) {
+        console.error("Erro ao buscar fornecedores", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFornecedores();
+  }, []);
+
+  return (
+    <div className="flex items-center gap-1">
+      <select
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        className="w-[120px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-[13px] uppercase disabled:opacity-50"
+        disabled={loading}
+        autoFocus
+      >
+        <option value="">{loading ? "Carregando..." : "Selecione..."}</option>
+        {lista.map((f) => (
+          <option key={f.id} value={f.id}>
+            {f.nome}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={() => onSave(val)}
+        disabled={loading || !val}
+        className="cursor-pointer border-none bg-transparent flex-shrink-0 disabled:opacity-50"
       >
         <img
           width="15"
@@ -307,7 +372,6 @@ export default function ObrasDetalhe() {
       return {
         materiais: 0,
         maoDeObra: 0,
-        maoDeObraGrafico: 0,
         totalExtrato: 0,
       };
     return {
@@ -319,10 +383,6 @@ export default function ObrasDetalhe() {
         (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
         0,
       ),
-      // NOVO: Pega apenas as que foram validadas (para o extrato) para colocar no gráfico
-      maoDeObraGrafico: (obra.maoDeObra || [])
-        .filter((m) => m.validacao === 1)
-        .reduce((acc, m) => acc + (parseFloat(m.valor_orcado) || 0), 0),
       totalExtrato: (obra.relatorioExtrato || []).reduce(
         (acc, item) => acc + (parseFloat(item.valor) || 0),
         0,
@@ -332,8 +392,7 @@ export default function ObrasDetalhe() {
 
   const dataGrafico = useMemo(() => {
     const paletaCores = ["#860000", "#EE5B11", "#F67D15", "#FBA51B", "#FDC626"];
-    // Usa apenas a mão de obra que foi para o extrato no total geral do gráfico
-    const totalGeral = totais.materiais + totais.maoDeObraGrafico;
+    const totalGeral = totais.materiais + totais.maoDeObra;
     const dados = [
       {
         name: "Materiais",
@@ -342,8 +401,8 @@ export default function ObrasDetalhe() {
       },
       {
         name: "Mão de Obra",
-        value: totais.maoDeObraGrafico, // Valor apenas das validadas
-        qtd: obra?.maoDeObra?.filter((m) => m.validacao === 1).length || 0, // Conta apenas as validadas
+        value: totais.maoDeObra,
+        qtd: obra?.maoDeObra?.length || 0,
       },
     ];
     dados.sort((a, b) => b.value - a.value);
@@ -454,13 +513,14 @@ export default function ObrasDetalhe() {
         await api.addMaterial({
           obra_id: id,
           material: dados.material,
-          fornecedor: dados.fornecedor,
+          fornecedor_id: dados.fornecedor_id, // Enviando o UUID pelo modal
           valor: 0,
           quantidade: `${dados.quantidade} ${dados.unidade || "Un."}`,
           data_solicitacao: dataAtual,
           status_financeiro: "Aguardando pagamento",
         });
         await fetchDados();
+        setModalMateriaisOpen(false);
       } catch (err) {
         console.error("Erro ao salvar material:", err);
         alert("Erro ao salvar material.");
@@ -491,16 +551,12 @@ export default function ObrasDetalhe() {
   );
 
   const salvarFornecedorMaterial = useCallback(
-    async (materialId, novoFornecedor) => {
-      setObra((prev) => ({
-        ...prev,
-        materiais: prev.materiais.map((m) =>
-          m.id === materialId ? { ...m, fornecedor: novoFornecedor } : m,
-        ),
-      }));
+    async (materialId, novoFornecedorId) => {
+      // Como o objeto obra.materiais atual ainda não terá o nome atualizado instantaneamente,
+      // confiamos no fetchDados() para trazer o nome via view/relacionamento do supabase.
       setEditandoMaterial({ id: null, campo: null });
       try {
-        await api.updateMaterialFornecedor(materialId, novoFornecedor);
+        await api.updateMaterialFornecedor(materialId, novoFornecedorId);
         await fetchDados();
       } catch (err) {
         console.error("Erro ao atualizar fornecedor:", err);
@@ -548,6 +604,7 @@ export default function ObrasDetalhe() {
           valor_pago: 0,
         });
         await fetchDados();
+        setModalMaoDeObraOpen(false);
       } catch (err) {
         console.error("Erro ao salvar mão de obra:", err);
         alert("Erro ao salvar mão de obra.");
@@ -802,7 +859,8 @@ export default function ObrasDetalhe() {
       listaMateriais = listaMateriais.filter(
         (m) =>
           m.material?.toLowerCase().includes(termo) ||
-          m.fornecedor?.toLowerCase().includes(termo),
+          m.fornecedores?.nome?.toLowerCase().includes(termo) ||
+          m.fornecedor?.toLowerCase().includes(termo), // fallback pro texto antigo se existir
       );
     }
 
@@ -810,8 +868,9 @@ export default function ObrasDetalhe() {
       listaMateriais.sort((a, b) => {
         let valA, valB;
         if (sortConfig.campo === "fornecedor") {
-          valA = (a.fornecedor || "").toLowerCase();
-          valB = (b.fornecedor || "").toLowerCase();
+          // Ajustado para olhar o objeto aninhado que vem do banco (se configurado)
+          valA = (a.fornecedores?.nome || a.fornecedor || "").toLowerCase();
+          valB = (b.fornecedores?.nome || b.fornecedor || "").toLowerCase();
         } else if (sortConfig.campo === "data") {
           valA = new Date(a.data_solicitacao).getTime();
           valB = new Date(b.data_solicitacao).getTime();
@@ -840,6 +899,10 @@ export default function ObrasDetalhe() {
         editandoMaterial.id === m.id && editandoMaterial.campo === "fornecedor";
       const qtdNumerica = parseFloat(m.quantidade) || 0;
       const valorUnitario = qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
+
+      // Nome do fornecedor: prioriza o relacionamento (f.nome), depois o texto antigo
+      const nomeFornecedorExibicao =
+        m.fornecedores?.nome || m.fornecedor || "-";
 
       return [
         <div className="uppercase">{m.material}</div>,
@@ -889,9 +952,9 @@ export default function ObrasDetalhe() {
           key={`forn-${m.id}`}
         >
           {isEditingFornecedor ? (
-            <CellInputText
-              valorInicial={m.fornecedor || ""}
-              onSave={(val) => salvarFornecedorMaterial(m.id, val)}
+            <CellSelectFornecedor
+              valorInicialId={m.fornecedor_id} // Passamos o ID atual se tiver
+              onSave={(novoId) => salvarFornecedorMaterial(m.id, novoId)}
               onCancel={() => setEditandoMaterial({ id: null, campo: null })}
             />
           ) : (
@@ -901,7 +964,9 @@ export default function ObrasDetalhe() {
                 setEditandoMaterial({ id: m.id, campo: "fornecedor" })
               }
             >
-              <div className="uppercase text-[13px]">{m.fornecedor || "-"}</div>
+              <div className="uppercase text-[13px]">
+                {nomeFornecedorExibicao}
+              </div>
               <img
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
@@ -1295,7 +1360,6 @@ export default function ObrasDetalhe() {
               />
             </button>
             <h1 className="text-[20px] font-bold uppercase tracking-[2px] text-[#464C54]">
-              {/* O AJUSTE DA EXIBIÇÃO DO NOME DO CLIENTE ESTÁ AQUI */}
               {obra.local} - {obra.clientes?.nome || obra.cliente}
             </h1>
           </div>
@@ -1382,8 +1446,7 @@ export default function ObrasDetalhe() {
                             <strong>{ativo.name.toLowerCase()}</strong>. Até o
                             momento, foram registrados{" "}
                             <strong className="text-black">{ativo.qtd}</strong>{" "}
-                            lançamentos{" "}
-                            {ativo.name === "Mão de Obra" ? "validados" : ""}.
+                            lançamentos.
                           </p>
                         </div>
                       );
@@ -1393,7 +1456,7 @@ export default function ObrasDetalhe() {
                 <div
                   className={`transition-all duration-700 ease-in-out ${categoriaAtiva ? "w-[140px] h-[140px] self-start" : "w-full h-[250px] md:h-full flex justify-center"}`}
                 >
-                  {totais.materiais > 0 || totais.maoDeObraGrafico > 0 ? (
+                  {totais.materiais > 0 || totais.maoDeObra > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -1489,12 +1552,10 @@ export default function ObrasDetalhe() {
                   onClick={() => setCategoriaAtiva(null)}
                 >
                   <span className="font-bold text-black uppercase text-sm">
-                    Custo Total (Validado)
+                    Custo Total Lançado
                   </span>
                   <span className="font-bold text-[#2E7D32] text-lg">
-                    {/* Exibe a soma dos materiais com a mão de obra que foi para o extrato */}
-                    R${" "}
-                    {formatarMoeda(totais.materiais + totais.maoDeObraGrafico)}
+                    R$ {formatarMoeda(totais.materiais + totais.maoDeObra)}
                   </span>
                 </div>
 

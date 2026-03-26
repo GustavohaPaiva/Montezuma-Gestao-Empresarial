@@ -85,7 +85,7 @@ export default function ObraCard({
   return (
     <div
       onClick={handleCardClick}
-      className={`relative flex flex-col justify-between w-full h-[220px] p-4 rounded-lg shadow-sm border border-gray-100 bg-[#FAFAFA] transition-all duration-200 md:max-w-[350px] ${
+      className={`relative flex flex-col justify-between w-full h-[220px] p-4 rounded-lg shadow-sm border border-gray-100 bg-[#FFFFFF] transition-all duration-200 md:max-w-[350px] ${
         !isEditing
           ? "hover:scale-[1.02] hover:shadow-md cursor-pointer"
           : "cursor-default"
@@ -184,7 +184,7 @@ export default function ObraCard({
             </p>
 
             <p className="flex items-center justify-center w-full gap-1 text-base text-gray-600 mt-1">
-              <span className="font-semibold">DATA:</span>
+              <span className="font-semibold">Data de Início:</span>
               <span className="max-w-[200px] uppercase truncate">{data}</span>
             </p>
           </>

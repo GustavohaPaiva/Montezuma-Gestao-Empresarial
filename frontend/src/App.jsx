@@ -14,6 +14,8 @@ import Obra from "./pages/obras/ObraCliente";
 import Financeiro from "./pages/financeiro/Financeiro";
 import ProcessosDetalhes from "./pages/processos/ProcessosDetalhes";
 import DocumentosProcesso from "./pages/processos/DocumentosProcesso";
+import Fornecedores from "./pages/fornecedores/Fornecedores";
+import FornecedorDetalhes from "./pages/fornecedores/FornecedorDetalhes";
 
 import "./index.css";
 
@@ -42,7 +44,7 @@ export default function App() {
             }
           />
 
-          {/* --- ÁREA EXCLUSIVA DO ADM (Obras, Projetos) --- */}
+          {/* --- ÁREA EXCLUSIVA DO ADM (Obras, Projetos, Fornecedores) --- */}
           <Route element={<RotaProtegida allowedTypes={["adm"]} />}>
             <Route
               path="/projetos"
@@ -65,6 +67,22 @@ export default function App() {
               element={
                 <PageTransition>
                   <ObrasDetalhe />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/fornecedores/:id"
+              element={
+                <PageTransition>
+                  <FornecedorDetalhes />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/fornecedores"
+              element={
+                <PageTransition>
+                  <Fornecedores />
                 </PageTransition>
               }
             />

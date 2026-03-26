@@ -62,7 +62,7 @@ const etapasMock = [
     imagem: supraestrutura,
   },
   {
-    titulo: "Alvenaria",
+    titulo: "Paredes e Painéis",
     peso: 8.89,
     descricao: (
       <>
