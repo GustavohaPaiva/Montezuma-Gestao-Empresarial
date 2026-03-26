@@ -101,6 +101,25 @@ export default function Obras() {
 
   const reloadObras = () => setRefresh((prev) => !prev);
 
+  // --- CÁLCULO DE MÉTRICAS (GARANTINDO QUE OS STATUS BATEM COM O BD) ---
+  const metricas = useMemo(() => {
+    const ativas = obras.filter((o) => o.active !== false);
+    const emAndamento = ativas.filter(
+      (o) => o.status === "Em andamento",
+    ).length;
+    const aguardando = ativas.filter(
+      (o) => o.status === "Aguardando iniciação",
+    ).length;
+    const concluidas = ativas.filter((o) => o.status === "Concluída").length;
+
+    return {
+      total: ativas.length,
+      emAndamento,
+      aguardando,
+      concluidas,
+    };
+  }, [obras]);
+
   const obrasVisiveis = useMemo(() => {
     const termo = busca.toLowerCase();
 
@@ -189,17 +208,56 @@ export default function Obras() {
         />
       </div>
 
-      <main ref={refMain} className="w-[90%] mt-10">
+      <main ref={refMain} className="w-[90%] mt-10 pb-10">
+        {/* CARDS DE MÉTRICAS */}
+        {!carregando && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 w-full">
+            <div className="bg-white p-6 rounded-xl border border-[#DBDADE] shadow-sm flex flex-col items-center justify-center text-center">
+              <span className="text-[12px] font-bold text-[#71717A] uppercase tracking-wider">
+                Total de Obras
+              </span>
+              <span className="text-4xl font-bold text-[#464C54] mt-2">
+                {metricas.total}
+              </span>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center">
+              <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">
+                Aguardando
+              </span>
+              <span className="text-4xl font-bold text-gray-700 mt-2">
+                {metricas.aguardando}
+              </span>
+            </div>
+            <div className="bg-orange-50 p-6 rounded-xl border border-orange-200 shadow-sm flex flex-col items-center justify-center text-center">
+              <span className="text-[12px] font-bold text-orange-800 uppercase tracking-wider">
+                Em Andamento
+              </span>
+              <span className="text-4xl font-bold text-orange-600 mt-2">
+                {metricas.emAndamento}
+              </span>
+            </div>
+            <div className="bg-green-50 p-6 rounded-xl border border-green-200 shadow-sm flex flex-col items-center justify-center text-center">
+              <span className="text-[12px] font-bold text-green-800 uppercase tracking-wider">
+                Concluídas
+              </span>
+              <span className="text-4xl font-bold text-green-600 mt-2">
+                {metricas.concluidas}
+              </span>
+            </div>
+          </div>
+        )}
+
         {carregando ? (
           <div className="flex justify-center items-center py-20">
             <Hourglass className="w-8 h-8 animate-spin text-[#DC3B0B]" />
           </div>
         ) : (
-          <div className="grid w-full gap-8 grid-cols-[repeat(auto-fit,minmax(0,322px))] justify-center md:justify-between">
+          <div className="grid w-full gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 place-items-center">
             {obrasVisiveis.map((obra, index) => (
               <div
                 key={obra.id}
-                className={`transition-all duration-700 ease-out transform ${
+                className={`transition-all duration-700 ease-out transform w-full flex justify-center ${
                   showContent
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-8"
@@ -210,6 +268,7 @@ export default function Obras() {
                   id={obra.id}
                   nome={obra.local}
                   client={obra.clientes?.nome || obra.cliente}
+                  data={obra.data}
                   status={obra.status || "Aguardando iniciação"}
                   tudoPago={obra.isTudoPago}
                   onUpdate={handleUpdateInline}

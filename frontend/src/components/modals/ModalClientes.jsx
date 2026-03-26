@@ -27,10 +27,8 @@ export default function ModalClientes({ isOpen, onClose, onSave }) {
   };
 
   return (
-    // Wrapper posicionado no topo com mt-[15px], igual ao Orçamento
-    <div className="fixed z-50 flex justify-center w-full mt-[15px]">
+    <div className="fixed top-0 z-50 flex justify-center w-full mt-[15px]">
       <div className="bg-[#ffffff] gap-[20px] w-[400px] max-w-[95%] rounded-[16px] p-[20px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
-        {/* Header com o mesmo estilo e ícone de fechar */}
         <div className="flex justify-between">
           <h2 className="text-[24px] font-bold text-[#000000] text-center">
             Novo Cliente

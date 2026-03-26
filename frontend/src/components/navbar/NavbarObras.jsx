@@ -45,7 +45,7 @@ export default function NavbarObras({
             <select
               value={filterStatus}
               onChange={(e) => onFilterChange(e.target.value)}
-              className="w-full h-[45px] lg:h-[40px] px-3 bg-[#F7F7F8] border border-[#C4C4C9] rounded-md text-[#464C54] focus:ring-2 focus:ring-blue-400 focus:outline-none cursor-pointer appearance-none shadow-sm"
+              className="w-full h-[45px] lg:h-[40px] px-3 bg-[#FFFFFF] border border-[#C4C4C9] rounded-md text-[#464C54] focus:ring-2 focus:ring-blue-400 focus:outline-none cursor-pointer appearance-none shadow-sm"
             >
               <option value="Tudo">Todas as Obras</option>
               <option value="Em andamento">Em andamento</option>
@@ -76,7 +76,7 @@ export default function NavbarObras({
               placeholder="Buscar obra ou cliente..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full h-[45px] lg:h-[40px] px-3 bg-[#F7F7F8] border border-[#C4C4C9] rounded-md text-[#464C54] focus:ring-2 focus:ring-blue-400 focus:outline-none shadow-sm"
+              className="w-full h-[45px] lg:h-[40px] px-3 bg-[#FFFFFF] border border-[#C4C4C9] rounded-md text-[#464C54] focus:ring-2 focus:ring-blue-400 focus:outline-none shadow-sm"
             />
           </div>
         </div>

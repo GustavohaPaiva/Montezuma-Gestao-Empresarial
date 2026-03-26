@@ -321,8 +321,9 @@ export const api = {
   getObras: async () => {
     let query = supabase
       .from("obras")
+      // ATENÇÃO AQUI: Adicionado o join fornecedores(nome) para os materiais
       .select(
-        "*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome)",
+        "*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome)",
       )
       .eq("active", true)
       .order("created_at", { ascending: false });
@@ -398,8 +399,9 @@ export const api = {
   getObraById: async (id) => {
     const { data, error } = await supabase
       .from("obras")
+      // ATENÇÃO AQUI: Adicionado o join fornecedores(nome) nos materiais
       .select(
-        `*, materiais:relatorio_materiais(*), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
+        `*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
       )
       .eq("id", id)
       .maybeSingle();
@@ -428,10 +430,10 @@ export const api = {
     return data[0];
   },
 
-  updateMaterialFornecedor: async (id, novoFornecedor) => {
+  updateMaterialFornecedor: async (id, novoFornecedorId) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")
-      .update({ fornecedor: novoFornecedor })
+      .update({ fornecedor_id: novoFornecedorId })
       .eq("id", id)
       .select();
     if (error) throw error;
@@ -551,7 +553,7 @@ export const api = {
           material: dados.material,
           quantidade: dados.quantidade,
           valor: dados.valor,
-          fornecedor: dados.fornecedor,
+          fornecedor_id: dados.fornecedor_id,
           data_solicitacao: dados.data_solicitacao,
           status_financeiro: "Aguardando pagamento",
         },
@@ -627,5 +629,98 @@ export const api = {
       ]);
     if (errorExtrato) throw errorExtrato;
     return true;
+  },
+
+  getFornecedoresSimples: async () => {
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .select("id, nome")
+      .eq("ativo", true)
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  getFornecedores: async () => {
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .select(
+        `
+        *,
+        relatorio_materiais (
+          valor,
+          status_financeiro
+        )
+      `,
+      )
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  getFornecedorById: async (id) => {
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .select(
+        `
+        *,
+        relatorio_materiais (
+          id, material, valor, status_financeiro, status, data_solicitacao, obra_id,
+          obras ( cliente, local )
+        )
+      `,
+      )
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  createFornecedor: async (novoFornecedor) => {
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .insert([novoFornecedor])
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateFornecedor: async (id, dadosAtualizados) => {
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .update(dadosAtualizados)
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  uploadFotoFornecedor: async (fornecedorId, file) => {
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `fornecedor_${fornecedorId}_${Math.random()}.${fileExt}`;
+      const filePath = `fornecedores/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("fotos_clientes")
+        .upload(filePath, file);
+      if (uploadError) throw new Error("Falha ao subir imagem para o Storage");
+
+      const { data: publicUrlData } = supabase.storage
+        .from("fotos_clientes")
+        .getPublicUrl(filePath);
+      const fotoUrl = publicUrlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from("fornecedores")
+        .update({ foto: fotoUrl })
+        .eq("id", fornecedorId);
+      if (updateError) throw updateError;
+
+      return { fotoUrl };
+    } catch (error) {
+      console.error("Erro completo no uploadFotoFornecedor:", error);
+      throw error;
+    }
   },
 };

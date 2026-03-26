@@ -54,6 +54,14 @@ export default function Home() {
       path: "/financeiro",
       roles: ["adm", "secretaria"],
     },
+
+    {
+      id: 5,
+      titulo: "Fornecedores",
+      imagem: "https://img.icons8.com/ios/125/supplier.png",
+      path: "/fornecedores",
+      roles: ["adm"],
+    },
   ];
 
   const modulosPermitidos = modulos.filter((modulo) =>
@@ -111,7 +119,7 @@ export default function Home() {
 
   return (
     <div
-      className="text-center min-h-screen bg-cover bg-center bg-no-repeat relative"
+      className="text-center min-h-screen bg-cover bg-center bg-no-repeat relative pb-[60px]"
       style={{ backgroundImage: `url(${imagemHome})` }}
     >
       <input
@@ -210,15 +218,12 @@ export default function Home() {
         </div>
       </div>
 
-      <div
-        className={`mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center relative z-10 px-10 mx-auto ${
-          modulosPermitidos.length <= 2
-            ? "lg:grid-cols-2 max-w-[800px]"
-            : "lg:grid-cols-4 max-w-[1400px]"
-        }`}
-      >
+      <div className="mt-8 flex flex-wrap justify-center gap-8 relative z-10 px-4 md:px-10 mx-auto max-w-[1200px]">
         {modulosPermitidos.map((item) => (
-          <div key={item.id} className="w-full max-w-[320px]">
+          <div
+            key={item.id}
+            className="w-full md:w-[calc(33.333%-22px)] lg:w-[calc(20%-26px)] min-w-[200px] max-w-[320px]"
+          >
             <CardHome titulo={item.titulo} img={item.imagem} path={item.path} />
           </div>
         ))}

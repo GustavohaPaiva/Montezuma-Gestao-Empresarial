@@ -840,14 +840,13 @@ export default function Financeiro() {
                 onChange={(e) => setBuscaSaida(e.target.value)}
                 className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
               />
-              {isAdmin && (
-                <ButtonDefault
-                  className="w-full"
-                  onClick={() => setModalSaidaAberto(true)}
-                >
-                  + Nova Saída
-                </ButtonDefault>
-              )}
+
+              <ButtonDefault
+                className="w-full"
+                onClick={() => setModalSaidaAberto(true)}
+              >
+                + Nova Saída
+              </ButtonDefault>
             </div>
           </div>
           <TabelaSimples
