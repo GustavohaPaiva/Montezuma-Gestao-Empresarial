@@ -139,9 +139,29 @@ export default function FornecedorDetalhes() {
 
   const dadosTabela = useMemo(() => {
     if (!fornecedor || !fornecedor.relatorio_materiais) return [];
+
+    // ORDENAÇÃO: Pendentes primeiro, Pagos depois. Desempate pela data.
     const materiaisOrdenados = [...fornecedor.relatorio_materiais].sort(
-      (a, b) =>
-        new Date(b.data_solicitacao || 0) - new Date(a.data_solicitacao || 0),
+      (a, b) => {
+        const statusA = a.status_financeiro
+          ? a.status_financeiro.trim().toLowerCase()
+          : "";
+        const statusB = b.status_financeiro
+          ? b.status_financeiro.trim().toLowerCase()
+          : "";
+
+        const isPagoA = statusA === "pago";
+        const isPagoB = statusB === "pago";
+
+        // Se um está pago e o outro não, o pendente vem primeiro
+        if (isPagoA && !isPagoB) return 1;
+        if (!isPagoA && isPagoB) return -1;
+
+        // Se tiverem o mesmo status, ordena pela data mais recente
+        return (
+          new Date(b.data_solicitacao || 0) - new Date(a.data_solicitacao || 0)
+        );
+      },
     );
 
     return materiaisOrdenados.map((m) => {
@@ -151,31 +171,35 @@ export default function FornecedorDetalhes() {
 
       const isPago = status === "pago";
 
+      // ALINHAMENTO: Classes text-center, flex justify-center e mx-auto adicionadas
       return [
         <div
           key={`data-${m.id}`}
-          className="font-medium text-[#464C54] whitespace-nowrap"
+          className="font-medium text-[#464C54] whitespace-nowrap text-center"
         >
           {formatarData(m.data_solicitacao)}
         </div>,
         <div
           key={`obra-${m.id}`}
-          className="font-bold text-[#464C54] uppercase max-w-[200px] truncate"
+          className="font-bold text-[#464C54] uppercase max-w-[200px] truncate mx-auto text-center"
           title={m.obras?.cliente}
         >
           {m.obras?.cliente || "Obra Desconhecida"}
         </div>,
         <div
           key={`material-${m.id}`}
-          className="uppercase text-[#71717A] max-w-[250px] truncate"
+          className="uppercase text-[#71717A] max-w-[250px] truncate mx-auto text-center"
           title={m.material}
         >
           {m.material}
         </div>,
-        <div key={`valor-${m.id}`} className="font-bold whitespace-nowrap">
+        <div
+          key={`valor-${m.id}`}
+          className="font-bold whitespace-nowrap text-center"
+        >
           R$ {formatarMoeda(m.valor)}
         </div>,
-        <div key={`status-${m.id}`}>
+        <div key={`status-${m.id}`} className="flex justify-center">
           <span
             className={`px-3 py-1 rounded-[20px] text-[12px] font-bold whitespace-nowrap ${
               isPago
