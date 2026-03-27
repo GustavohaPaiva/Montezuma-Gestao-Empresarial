@@ -61,7 +61,6 @@ export default function FornecedorDetalhes() {
     fetchFornecedor();
   }, [fetchFornecedor]);
 
-  // Salvar a edição in-line
   const handleSaveEdit = async () => {
     if (!editForm.nome) {
       alert("O nome do fornecedor é obrigatório!");
@@ -87,7 +86,6 @@ export default function FornecedorDetalhes() {
     setIsEditing(false);
   };
 
-  // Upload da Foto
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -117,7 +115,6 @@ export default function FornecedorDetalhes() {
     return data.toLocaleDateString("pt-BR");
   };
 
-  // Cálculos Financeiros
   const resumoFinanceiro = useMemo(() => {
     if (!fornecedor || !fornecedor.relatorio_materiais)
       return { comprado: 0, pago: 0, pendente: 0 };
@@ -131,7 +128,8 @@ export default function FornecedorDetalhes() {
       const status = m.status_financeiro
         ? m.status_financeiro.trim().toLowerCase()
         : "";
-      if (status === "" || status === "pago") {
+
+      if (status === "pago") {
         pago += val;
       }
     });
@@ -139,7 +137,6 @@ export default function FornecedorDetalhes() {
     return { comprado, pago, pendente: comprado - pago };
   }, [fornecedor]);
 
-  // Tabela
   const dadosTabela = useMemo(() => {
     if (!fornecedor || !fornecedor.relatorio_materiais) return [];
     const materiaisOrdenados = [...fornecedor.relatorio_materiais].sort(
@@ -151,7 +148,8 @@ export default function FornecedorDetalhes() {
       const status = m.status_financeiro
         ? m.status_financeiro.trim().toLowerCase()
         : "";
-      const isPago = status === "" || status === "pago";
+
+      const isPago = status === "pago";
 
       return [
         <div
@@ -204,7 +202,6 @@ export default function FornecedorDetalhes() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
-      {/* Input de Arquivo Escondido */}
       <input
         type="file"
         ref={fileInputRef}
@@ -235,9 +232,7 @@ export default function FornecedorDetalhes() {
       </header>
 
       <main className="w-[90%] mt-[24px] flex flex-col gap-[24px]">
-        {/* Painel do Fornecedor (O Layout original que você pediu) */}
         <div className="bg-white rounded-[16px] border border-[#DBDADE] shadow-sm p-6 lg:p-8 flex flex-col lg:flex-row gap-8 items-start relative">
-          {/* Controle de Edição */}
           <div className="absolute top-6 right-6 flex gap-2 z-10">
             {isEditing ? (
               <>
@@ -268,7 +263,6 @@ export default function FornecedorDetalhes() {
           </div>
 
           <div className="flex flex-col items-center gap-4 min-w-[150px]">
-            {/* Foto Interativa */}
             <div
               onClick={() => fileInputRef.current.click()}
               className="w-28 h-28 rounded-full bg-[#EEEDF0] border-[3px] border-[#DBDADE] flex items-center justify-center overflow-hidden shadow-sm relative cursor-pointer group"
@@ -309,7 +303,6 @@ export default function FornecedorDetalhes() {
 
           <div className="flex-1 flex flex-col gap-6 w-full mt-2">
             {isEditing ? (
-              /* MODO EDIÇÃO (Substitui os textos) */
               <div className="w-full flex flex-col gap-4 animate-in fade-in pt-12 sm:pt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div className="flex flex-col text-left gap-1">
@@ -370,7 +363,6 @@ export default function FornecedorDetalhes() {
                 </div>
               </div>
             ) : (
-              /* MODO VISUALIZAÇÃO (O seu layout original) */
               <div className="animate-in fade-in">
                 <h1 className="text-3xl font-extrabold text-[#464C54] uppercase mb-1 sm:pr-[150px]">
                   {fornecedor.nome}
@@ -416,7 +408,6 @@ export default function FornecedorDetalhes() {
           </div>
         </div>
 
-        {/* Resumo Financeiro */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-[16px] border border-[#DBDADE] shadow-sm flex flex-col justify-center items-center md:items-start">
             <span className="text-[14px] font-bold text-[#71717A] flex items-center gap-2 uppercase mb-1">
@@ -450,9 +441,8 @@ export default function FornecedorDetalhes() {
           </div>
         </div>
 
-        {/* Histórico / Tabela de Materiais */}
         <div className="bg-white border border-[#DBDADE] rounded-[16px] shadow-sm px-[30px] pt-[30px] pb-[40px]">
-          <h2 className="text-[22px] font-bold text-[#464C54] mb-6 mt-6 uppercase flex items-center gap-2">
+          <h2 className="text-[22px] font-bold text-[#464C54] mb-6 uppercase flex items-center gap-2">
             <FileText /> Histórico de Relatórios
           </h2>
 

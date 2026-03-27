@@ -165,7 +165,6 @@ export const api = {
       }
     }
 
-    // Cai aqui se for item único ou se o usuário selecionou "Apenas Esta"
     const { error } = await supabase.from(tabela).delete().eq("id", id);
     if (error) throw error;
   },
@@ -321,7 +320,6 @@ export const api = {
   getObras: async () => {
     let query = supabase
       .from("obras")
-      // ATENÇÃO AQUI: Adicionado o join fornecedores(nome) para os materiais
       .select(
         "*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome)",
       )
@@ -399,7 +397,6 @@ export const api = {
   getObraById: async (id) => {
     const { data, error } = await supabase
       .from("obras")
-      // ATENÇÃO AQUI: Adicionado o join fornecedores(nome) nos materiais
       .select(
         `*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
       )
@@ -491,6 +488,7 @@ export const api = {
     return data[0];
   },
 
+  // AQUI FOI ALTERADO: Sincronia Automática com relatorio_materiais
   updateExtratoStatusFinanceiro: async (id, novoStatus) => {
     const { data, error } = await supabase
       .from("relatorio_extrato")
@@ -498,7 +496,23 @@ export const api = {
       .eq("id", id)
       .select();
     if (error) throw error;
-    return data[0];
+
+    const extratoAtualizado = data[0];
+
+    if (extratoAtualizado && extratoAtualizado.material_id) {
+      const { error: errorMat } = await supabase
+        .from("relatorio_materiais")
+        .update({ status_financeiro: novoStatus })
+        .eq("id", extratoAtualizado.material_id);
+      if (errorMat) {
+        console.error(
+          "Erro ao sincronizar status com relatorio_materiais:",
+          errorMat,
+        );
+      }
+    }
+
+    return extratoAtualizado;
   },
 
   updateExtratoValidacao: async (id, status) => {
