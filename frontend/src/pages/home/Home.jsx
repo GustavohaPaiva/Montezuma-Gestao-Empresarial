@@ -8,13 +8,11 @@ import imagemHome from "../../assets/img/ImagemHome.png";
 
 export default function Home() {
   const { user, updateUserFoto } = useAuth();
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const fileInputRef = useRef(null);
-
   const [fotoLocal, setFotoLocal] = useState(null);
 
   useEffect(() => {
@@ -222,7 +220,7 @@ export default function Home() {
         {modulosPermitidos.map((item) => (
           <div
             key={item.id}
-            className="w-full md:w-[calc(33.333%-22px)] lg:w-[calc(20%-26px)] min-w-[200px] max-w-[320px]"
+            className="w-full md:w-[calc(33.333%-22px)] min-w-[200px] max-w-[320px]"
           >
             <CardHome titulo={item.titulo} img={item.imagem} path={item.path} />
           </div>

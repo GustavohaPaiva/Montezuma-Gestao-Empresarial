@@ -16,7 +16,6 @@ import {
   Wallet,
   AlertCircle,
   CheckCircle2,
-  ArrowRight,
 } from "lucide-react";
 
 export default function Fornecedores() {
@@ -80,12 +79,6 @@ export default function Fornecedores() {
     }
   };
 
-  // Upload da Foto Clicando no Card
-  const handleClickFoto = (fornecedor) => {
-    setFornecedorParaFoto(fornecedor);
-    fileInputRef.current.click();
-  };
-
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file || !fornecedorParaFoto) return;
@@ -104,11 +97,21 @@ export default function Fornecedores() {
     }
   };
 
-  const fornecedoresFiltrados = fornecedores.filter(
-    (f) =>
-      f.nome?.toLowerCase().includes(busca.toLowerCase()) ||
-      f.cnpj?.toLowerCase().includes(busca.toLowerCase()),
-  );
+  // 1. ORDENAÇÃO E FILTRO: Ativos primeiro (ordem alfabética), depois inativos
+  const fornecedoresFiltrados = useMemo(() => {
+    return fornecedores
+      .filter(
+        (f) =>
+          f.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+          f.cnpj?.toLowerCase().includes(busca.toLowerCase()),
+      )
+      .sort((a, b) => {
+        if (a.ativo === b.ativo) {
+          return (a.nome || "").localeCompare(b.nome || "");
+        }
+        return a.ativo ? -1 : 1; // Ativos (-1) vêm antes dos inativos (1)
+      });
+  }, [fornecedores, busca]);
 
   const formatarMoeda = (valor) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -116,6 +119,7 @@ export default function Fornecedores() {
       maximumFractionDigits: 2,
     }).format(valor || 0);
   };
+
   const totaisGerais = useMemo(() => {
     let comprado = 0;
     let pago = 0;
@@ -130,8 +134,7 @@ export default function Fornecedores() {
           ? m.status_financeiro.trim().toLowerCase()
           : "";
 
-        // Se estiver vazio ou for explicitamente "pago", consideramos como pago.
-        if (status === "" || status === "pago") {
+        if (status === "pago") {
           pago += val;
         }
       });
@@ -146,7 +149,6 @@ export default function Fornecedores() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
-      {/* Input de Arquivo Escondido */}
       <input
         type="file"
         ref={fileInputRef}
@@ -155,7 +157,6 @@ export default function Fornecedores() {
         className="hidden"
       />
 
-      {/* Cabeçalho */}
       <header className="h-[60px] border-b border-[#DBDADE] flex justify-center top-0 z-10 w-full bg-[#EEEDF0]">
         <div className="w-[90%] flex items-center justify-between">
           <div className="flex items-center gap-[16px]">
@@ -195,7 +196,6 @@ export default function Fornecedores() {
         )}
 
         <div className="bg-transparent flex flex-col items-center gap-[24px] pb-[40px]">
-          {/* DASHBOARD FINANCEIRO GERAL NO TOPO */}
           <div className="w-full bg-white rounded-[16px] shadow-sm border border-[#DBDADE] p-6 mb-2">
             <h2 className="text-[18px] font-bold text-[#464C54] mb-4 uppercase tracking-wide">
               Visão Financeira Global
@@ -234,7 +234,6 @@ export default function Fornecedores() {
             </div>
           </div>
 
-          {/* Barra de Pesquisa */}
           <div className="w-full flex justify-between items-center bg-white p-4 rounded-[12px] shadow-sm border border-[#DBDADE]">
             <h1 className="text-[20px] md:text-[25px] font-bold text-[#464C54] hidden md:block">
               Diretório
@@ -254,7 +253,6 @@ export default function Fornecedores() {
             </div>
           </div>
 
-          {/* Grid de Cards */}
           {loading ? (
             <div className="text-[#71717A] font-bold py-10">
               A carregar dados...
@@ -266,7 +264,6 @@ export default function Fornecedores() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 w-full">
               {fornecedoresFiltrados.map((f) => {
-                // CÁLCULO INDIVIDUAL DE CADA CARD (mesma lógica)
                 const materiais = f.relatorio_materiais || [];
                 const totalCompradoCard = materiais.reduce(
                   (acc, curr) => acc + (parseFloat(curr.valor) || 0),
@@ -276,7 +273,7 @@ export default function Fornecedores() {
                   const status = curr.status_financeiro
                     ? curr.status_financeiro.trim().toLowerCase()
                     : "";
-                  if (status === "" || status === "pago") {
+                  if (status === "pago") {
                     return acc + (parseFloat(curr.valor) || 0);
                   }
                   return acc;
@@ -287,15 +284,16 @@ export default function Fornecedores() {
                   <div
                     key={f.id}
                     onClick={() => navigate(`/fornecedores/${f.id}`)}
-                    className={`bg-white rounded-[16px] border border-[#DBDADE] shadow-sm hover:shadow-md transition-all duration-300 p-5 flex flex-col relative ${!f.ativo ? "opacity-70 grayscale-[30%]" : ""}`}
+                    className={`bg-white rounded-[16px] border border-[#DBDADE] shadow-sm hover:shadow-md transition-all duration-300 p-5 flex flex-col relative ${!f.ativo ? "opacity-70 grayscale-[30%]" : "cursor-pointer"}`}
                   >
-                    {/* Header (Foto + Nome) */}
                     <div className="flex items-center gap-4 mb-5 border-b border-gray-100 pb-4">
-                      {/* Foto Interativa */}
+                      {/* 2. PROTEÇÃO DO CLIQUE: stopPropagation + preventDefault */}
                       <div
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
-                          handleClickFoto(f);
+                          setFornecedorParaFoto(f);
+                          fileInputRef.current.click();
                         }}
                         className="relative w-14 h-14 rounded-full bg-[#EEEDF0] border border-[#DBDADE] flex items-center justify-center text-[#464C54] shrink-0 overflow-hidden shadow-sm cursor-pointer group"
                         title="Alterar imagem"
@@ -341,7 +339,6 @@ export default function Fornecedores() {
                       </div>
                     </div>
 
-                    {/* Dados de Contato */}
                     <div className="flex flex-col gap-2.5 text-[12px] text-[#71717A] mb-2">
                       <div className="flex items-center gap-3">
                         <FileText size={15} className="text-[#A1A1AA]" />
@@ -364,27 +361,37 @@ export default function Fornecedores() {
                           {f.email || "Sem e-mail"}
                         </span>
                       </div>
+
+                      {/* 3. TUDO PAGO VS PENDENTE */}
                       <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
-                        <AlertCircle
-                          size={15}
-                          className={
-                            totalPendenteCard > 0
-                              ? "text-[#E65100]"
-                              : "text-[#2E7D32]"
-                          }
-                        />
-                        <span
-                          className={`font-bold ${totalPendenteCard > 0 ? "text-[#E65100]" : "text-[#2E7D32]"}`}
-                        >
-                          Pendente: R$ {formatarMoeda(totalPendenteCard)}
-                        </span>
+                        {totalPendenteCard > 0 ? (
+                          <>
+                            <AlertCircle size={15} className="text-[#E65100]" />
+                            <span className="font-bold text-[#E65100]">
+                              Pendente: R$ {formatarMoeda(totalPendenteCard)}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2
+                              size={15}
+                              className="text-[#2E7D32]"
+                            />
+                            <span className="font-bold text-[#2E7D32]">
+                              Tudo Pago
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    {/* Rodapé (Ações) */}
                     <div className="mt-auto border-t border-[#DBDADE] pt-4 flex justify-between items-center">
                       <button
-                        onClick={() => toggleAtivo(f.id, f.ativo)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleAtivo(f.id, f.ativo);
+                        }}
                         className={`flex items-center gap-1.5 text-[11px] font-bold transition-colors cursor-pointer bg-transparent border-none ${f.ativo ? "text-[#E65100] hover:text-[#b33d00]" : "text-[#2E7D32] hover:text-[#1b4b1e]"}`}
                       >
                         {f.ativo ? <PowerOff size={14} /> : <Power size={14} />}
