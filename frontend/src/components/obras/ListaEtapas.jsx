@@ -6,13 +6,10 @@ const EtapaCard = memo(
     const [progressoLocal, setProgressoLocal] = useState(etapa.progresso || 0);
     const [prevProgresso, setPrevProgresso] = useState(etapa.progresso || 0);
 
-    // Ajuste de estado derivado de prop diretamente no render (Padrão Oficial do React)
     if ((etapa.progresso || 0) !== prevProgresso) {
       setPrevProgresso(etapa.progresso || 0);
       setProgressoLocal(etapa.progresso || 0);
     }
-
-    // O status visual responde instantaneamente ao estado local (UX fluido)
     const progressoNum = parseInt(progressoLocal) || 0;
     const isConcluido = progressoNum === 100 || etapa.status === "concluído";
 
@@ -42,7 +39,6 @@ const EtapaCard = memo(
     const handleCheckboxChange = (e) => {
       const isChecked = e.target.checked;
 
-      // Atualiza visualmente na hora antes de bater no pai
       if (isChecked) {
         setProgressoLocal(100);
       } else if (progressoNum === 100) {

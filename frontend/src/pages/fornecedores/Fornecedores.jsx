@@ -27,7 +27,6 @@ export default function Fornecedores() {
 
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Estados para Upload de Foto direto no card
   const fileInputRef = useRef(null);
   const [fornecedorParaFoto, setFornecedorParaFoto] = useState(null);
   const [uploadingFotoId, setUploadingFotoId] = useState(null);
@@ -54,7 +53,6 @@ export default function Fornecedores() {
     fetchFornecedores();
   }, [fetchFornecedores]);
 
-  // Salva dados de texto do Modal
   const handleSaveFornecedor = async (dados) => {
     try {
       await api.createFornecedor({ ...dados, ativo: true });
@@ -65,8 +63,6 @@ export default function Fornecedores() {
       alert("Falha ao criar o fornecedor.");
     }
   };
-
-  // Desativar/Ativar
   const toggleAtivo = async (id, statusAtual) => {
     try {
       setFornecedores((prev) =>
@@ -97,7 +93,6 @@ export default function Fornecedores() {
     }
   };
 
-  // 1. ORDENAÇÃO E FILTRO: Ativos primeiro (ordem alfabética), depois inativos
   const fornecedoresFiltrados = useMemo(() => {
     return fornecedores
       .filter(
@@ -109,7 +104,7 @@ export default function Fornecedores() {
         if (a.ativo === b.ativo) {
           return (a.nome || "").localeCompare(b.nome || "");
         }
-        return a.ativo ? -1 : 1; // Ativos (-1) vêm antes dos inativos (1)
+        return a.ativo ? -1 : 1;
       });
   }, [fornecedores, busca]);
 
@@ -287,7 +282,6 @@ export default function Fornecedores() {
                     className={`bg-white rounded-[16px] border border-[#DBDADE] shadow-sm hover:shadow-md transition-all duration-300 p-5 flex flex-col relative ${!f.ativo ? "opacity-70 grayscale-[30%]" : "cursor-pointer"}`}
                   >
                     <div className="flex items-center gap-4 mb-5 border-b border-gray-100 pb-4">
-                      {/* 2. PROTEÇÃO DO CLIQUE: stopPropagation + preventDefault */}
                       <div
                         onClick={(e) => {
                           e.preventDefault();
@@ -362,7 +356,6 @@ export default function Fornecedores() {
                         </span>
                       </div>
 
-                      {/* 3. TUDO PAGO VS PENDENTE */}
                       <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
                         {totalPendenteCard > 0 ? (
                           <>

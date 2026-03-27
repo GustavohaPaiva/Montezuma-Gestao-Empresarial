@@ -512,6 +512,10 @@ export default function ObraCliente() {
     if (element) element.scrollIntoView({ behavior: "smooth" });
   };
 
+  const isReforma =
+    cliente?.tipo?.toLowerCase() === "reforma" ||
+    obra?.clientes?.tipo?.toLowerCase() === "reforma";
+
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0]">
       <input
@@ -769,7 +773,8 @@ export default function ObraCliente() {
                   )}
                 </div>
                 <h2 className="text-2xl font-bold text-black mt-4 text-center">
-                  {obra?.cliente || "Cliente não informado"}
+                  {obra?.cliente || "Cliente não informado"}{" "}
+                  {isReforma && "- Reforma"}
                 </h2>
                 <p className="text-sm text-[#919191] text-center">
                   {obra?.local || "Local não informada"}
@@ -954,6 +959,7 @@ export default function ObraCliente() {
               <Etapas
                 etapas={obra?.etapas_selecionadas || []}
                 isCliente={user?.tipo === "cliente"}
+                isReforma={isReforma}
               />
             </div>
 
@@ -1093,6 +1099,7 @@ export default function ObraCliente() {
               <ListaEtapas
                 etapas={obra.etapas_selecionadas}
                 isCliente={user?.tipo === "cliente"}
+                isReforma={isReforma}
                 onUpdateEtapas={async (novasEtapas) => {
                   try {
                     await api.updateEtapasObra(obra.id, novasEtapas);

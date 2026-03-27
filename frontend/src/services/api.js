@@ -321,7 +321,7 @@ export const api = {
     let query = supabase
       .from("obras")
       .select(
-        "*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome)",
+        "*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome, tipo)",
       )
       .eq("active", true)
       .order("created_at", { ascending: false });
@@ -408,8 +408,28 @@ export const api = {
     const relatorioOrdenado = (data.relatorioExtrato || []).sort(
       (a, b) => new Date(b.data) - new Date(a.data),
     );
+
+    let etapas = data.etapas_selecionadas || [];
+
+    // AUTO-INJEÇÃO: Se o projeto é reforma e ainda não tem "Demolição", cria e salva no DB de forma transparente
+    if (data.clientes?.tipo?.toLowerCase() === "reforma" && etapas.length > 0) {
+      const temDemolicao = etapas.some((e) => e.nome === "Demolição");
+      if (!temDemolicao) {
+        etapas = [
+          { nome: "Demolição", progresso: 0, status: "pendente" },
+          ...etapas,
+        ];
+        supabase
+          .from("obras")
+          .update({ etapas_selecionadas: etapas })
+          .eq("id", id)
+          .then();
+      }
+    }
+
     return {
       ...data,
+      etapas_selecionadas: etapas,
       materiais: data.materiais || [],
       maoDeObra: data.maoDeObra || [],
       relatorioExtrato: relatorioOrdenado,
@@ -488,7 +508,6 @@ export const api = {
     return data[0];
   },
 
-  // AQUI FOI ALTERADO: Sincronia Automática com relatorio_materiais
   updateExtratoStatusFinanceiro: async (id, novoStatus) => {
     const { data, error } = await supabase
       .from("relatorio_extrato")

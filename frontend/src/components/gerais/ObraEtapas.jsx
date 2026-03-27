@@ -18,8 +18,22 @@ import louçasEMetais from "../../assets/imagensEtapas/LouçasEMetais.png";
 import finalElétrica from "../../assets/imagensEtapas/FinalElétrica.png";
 import finalPintura from "../../assets/imagensEtapas/FinalPintura.png";
 import detalhesELimpezaFinal from "../../assets/imagensEtapas/DetalhesELimpezaFinal.png";
+import demolicao from "../../assets/imagensEtapas/Demolição.png";
 
 const etapasMock = [
+  {
+    titulo: "Demolição",
+    peso: 0,
+    descricao: (
+      <>
+        Etapa inicial exclusiva para projetos de reforma. Consiste na derrubada
+        e remoção de estruturas, paredes, pisos ou revestimentos antigos para
+        preparar o local para as novas execuções, garantindo a segurança e
+        limpeza do ambiente.
+      </>
+    ),
+    imagem: demolicao,
+  },
   {
     titulo: "Infraestrutura",
     peso: 9.33,

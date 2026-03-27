@@ -24,7 +24,6 @@ export default function FornecedorDetalhes() {
   const [fornecedor, setFornecedor] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Estados para Edição In-line
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     nome: "",
@@ -33,7 +32,6 @@ export default function FornecedorDetalhes() {
     email: "",
   });
 
-  // Estados para Foto
   const fileInputRef = useRef(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
 
@@ -140,7 +138,6 @@ export default function FornecedorDetalhes() {
   const dadosTabela = useMemo(() => {
     if (!fornecedor || !fornecedor.relatorio_materiais) return [];
 
-    // ORDENAÇÃO: Pendentes primeiro, Pagos depois. Desempate pela data.
     const materiaisOrdenados = [...fornecedor.relatorio_materiais].sort(
       (a, b) => {
         const statusA = a.status_financeiro
@@ -153,11 +150,9 @@ export default function FornecedorDetalhes() {
         const isPagoA = statusA === "pago";
         const isPagoB = statusB === "pago";
 
-        // Se um está pago e o outro não, o pendente vem primeiro
         if (isPagoA && !isPagoB) return 1;
         if (!isPagoA && isPagoB) return -1;
 
-        // Se tiverem o mesmo status, ordena pela data mais recente
         return (
           new Date(b.data_solicitacao || 0) - new Date(a.data_solicitacao || 0)
         );
@@ -171,7 +166,6 @@ export default function FornecedorDetalhes() {
 
       const isPago = status === "pago";
 
-      // ALINHAMENTO: Classes text-center, flex justify-center e mx-auto adicionadas
       return [
         <div
           key={`data-${m.id}`}

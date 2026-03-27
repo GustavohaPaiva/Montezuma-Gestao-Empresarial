@@ -23,6 +23,7 @@ const ORDEM_STATUS = {
 const OPCOES_PRESTADOR = [
   "Pintor",
   "Empreiteiro",
+  "Carpinteiro",
   "Pedreiro",
   "Encanador",
   "Eletricista",
@@ -149,7 +150,6 @@ const CellInputText = ({ valorInicial, onSave, onCancel }) => {
   );
 };
 
-// NOVO COMPONENTE: Select Inteligente de Fornecedores para edição In-line
 const CellSelectFornecedor = ({ valorInicialId, onSave, onCancel }) => {
   const [val, setVal] = useState(valorInicialId || "");
   const [lista, setLista] = useState([]);
@@ -453,6 +453,11 @@ export default function ObrasDetalhe() {
     return Array.from(new Set(prestadores)).sort();
   }, [obra]);
 
+  // Checagem se o projeto é de reforma (para injetar "Demolição")
+  const isReforma =
+    obra?.clientes?.tipo?.toLowerCase() === "reforma" ||
+    obra?.cliente?.tipo?.toLowerCase() === "reforma";
+
   // --- HANDLERS MATERIAIS ---
   const handleSortMateriais = (campo) => {
     setSortConfig((prev) => ({
@@ -552,8 +557,6 @@ export default function ObrasDetalhe() {
 
   const salvarFornecedorMaterial = useCallback(
     async (materialId, novoFornecedorId) => {
-      // Como o objeto obra.materiais atual ainda não terá o nome atualizado instantaneamente,
-      // confiamos no fetchDados() para trazer o nome via view/relacionamento do supabase.
       setEditandoMaterial({ id: null, campo: null });
       try {
         await api.updateMaterialFornecedor(materialId, novoFornecedorId);
@@ -860,7 +863,7 @@ export default function ObrasDetalhe() {
         (m) =>
           m.material?.toLowerCase().includes(termo) ||
           m.fornecedores?.nome?.toLowerCase().includes(termo) ||
-          m.fornecedor?.toLowerCase().includes(termo), // fallback pro texto antigo se existir
+          m.fornecedor?.toLowerCase().includes(termo),
       );
     }
 
@@ -868,7 +871,6 @@ export default function ObrasDetalhe() {
       listaMateriais.sort((a, b) => {
         let valA, valB;
         if (sortConfig.campo === "fornecedor") {
-          // Ajustado para olhar o objeto aninhado que vem do banco (se configurado)
           valA = (a.fornecedores?.nome || a.fornecedor || "").toLowerCase();
           valB = (b.fornecedores?.nome || b.fornecedor || "").toLowerCase();
         } else if (sortConfig.campo === "data") {
@@ -900,7 +902,6 @@ export default function ObrasDetalhe() {
       const qtdNumerica = parseFloat(m.quantidade) || 0;
       const valorUnitario = qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
 
-      // Nome do fornecedor: prioriza o relacionamento (f.nome), depois o texto antigo
       const nomeFornecedorExibicao =
         m.fornecedores?.nome || m.fornecedor || "-";
 
@@ -953,7 +954,7 @@ export default function ObrasDetalhe() {
         >
           {isEditingFornecedor ? (
             <CellSelectFornecedor
-              valorInicialId={m.fornecedor_id} // Passamos o ID atual se tiver
+              valorInicialId={m.fornecedor_id}
               onSave={(novoId) => salvarFornecedorMaterial(m.id, novoId)}
               onCancel={() => setEditandoMaterial({ id: null, campo: null })}
             />
@@ -1360,7 +1361,8 @@ export default function ObrasDetalhe() {
               />
             </button>
             <h1 className="text-[20px] font-bold uppercase tracking-[2px] text-[#464C54]">
-              {obra.local} - {obra.clientes?.nome || obra.cliente}
+              {obra.local} - {obra.clientes?.nome || obra.cliente}{" "}
+              {isReforma && "(Reforma)"}
             </h1>
           </div>
           {!isMobile && (
@@ -1575,7 +1577,10 @@ export default function ObrasDetalhe() {
 
           {/* Etapas */}
           <div>
-            <Etapas etapas={obra?.etapas_selecionadas || []} />
+            <Etapas
+              etapas={obra?.etapas_selecionadas || []}
+              isReforma={isReforma}
+            />
           </div>
 
           {/* TABELA DE MATERIAIS */}
@@ -1624,9 +1629,7 @@ export default function ObrasDetalhe() {
               className={`flex ${isMobile ? "flex-col h-auto gap-4" : "flex-row h-[42px]"} justify-between px-[5%] gap-[20px] text-center w-full box-border items-center`}
             >
               <ButtonDefault
-                onClick={() => {
-                  /* CÓDIGO DO RELATÓRIO MATERIAIS */
-                }}
+                onClick={() => {}}
                 className="w-[90%] max-w-[450px]"
               >
                 Relatório Materiais
@@ -1807,6 +1810,7 @@ export default function ObrasDetalhe() {
           {/* Lista de Etapas */}
           <ListaEtapas
             etapas={obra.etapas_selecionadas}
+            isReforma={isReforma}
             onUpdateEtapas={async (novasEtapas) => {
               try {
                 await api.updateEtapasObra(obra.id, novasEtapas);
