@@ -3,15 +3,47 @@ import Navbar from "../../components/navbar/NavbarProcessos";
 import ModalCliente from "../../components/modals/ModalClientes";
 import CardProcessos from "../../components/cards/CardProcessos";
 import { api } from "../../services/api";
+import { Hourglass } from "lucide-react";
+
+function useScrollFadeIn() {
+  const [element, setElement] = useState(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0, rootMargin: "0px" },
+    );
+
+    observer.observe(element);
+
+    return () => {
+      if (element) observer.unobserve(element);
+    };
+  }, [element]);
+
+  return [setElement, isVisible];
+}
 
 export default function Processos() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [processos, setProcessos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [showElements, setShowElements] = useState(false);
 
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Tudo");
 
+  const [refNav, isNavVisible] = useScrollFadeIn();
+  const [refMain] = useScrollFadeIn();
+
   const carregarProcessos = useCallback(async () => {
+    setCarregando(true);
+    setShowElements(false);
     try {
       const data = await api.getClientes();
 
@@ -25,13 +57,23 @@ export default function Processos() {
       setProcessos(filtrados);
     } catch (error) {
       console.error("Erro ao carregar processos:", error);
+    } finally {
+      setCarregando(false);
     }
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarProcessos();
   }, [carregarProcessos]);
+
+  useEffect(() => {
+    if (!carregando) {
+      const timer = setTimeout(() => setShowElements(true), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setShowElements(false);
+    }
+  }, [carregando]);
 
   const handleCreateClient = async (formData) => {
     try {
@@ -129,27 +171,47 @@ export default function Processos() {
 
   return (
     <div className="flex flex-col min-h-screen w-full items-center bg-[#EEEDF0] pb-10">
-      <Navbar
-        searchTerm={busca}
-        onSearchChange={setBusca}
-        filterStatus={filtroStatus}
-        onFilterChange={setFiltroStatus}
-        onOpenModal={() => setIsModalOpen(true)}
-      />
+      <div
+        ref={refNav}
+        className={`w-full transition-all duration-500 ease-out transform ${
+          isNavVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        }`}
+      >
+        <Navbar
+          searchTerm={busca}
+          onSearchChange={setBusca}
+          filterStatus={filtroStatus}
+          onFilterChange={setFiltroStatus}
+          onOpenModal={() => setIsModalOpen(true)}
+        />
+      </div>
 
-      <main className="w-[90%] mt-[40px] flex flex-col gap-6">
-        {processosProcessados.length > 0 ? (
+      <main ref={refMain} className="w-[90%] mt-[40px] flex flex-col gap-6">
+        {carregando ? (
+          <div className="flex justify-center items-center py-20">
+            <Hourglass className="w-8 h-8 animate-spin text-[#DC3B0B]" />
+          </div>
+        ) : processosProcessados.length > 0 ? (
           <div className="grid w-full md:grid-cols-[repeat(auto-fit,minmax(0,380px))] gap-[30px] justify-center md:justify-between">
-            {processosProcessados.map((item) => (
-              <CardProcessos
+            {processosProcessados.map((item, index) => (
+              <div
                 key={item.id}
-                id={item.id}
-                client={item.nome}
-                tipo={item.tipo}
-                status={item.status}
-                onUpdate={handleUpdateProcesso}
-                onDelete={() => handleDeleteProcesso(item.id)}
-              />
+                className={`transition-all duration-700 ease-out transform w-full flex justify-center ${
+                  showElements
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8"
+                }`}
+                style={{ transitionDelay: `${index * 50}ms` }}
+              >
+                <CardProcessos
+                  id={item.id}
+                  client={item.nome}
+                  tipo={item.tipo}
+                  status={item.status}
+                  onUpdate={handleUpdateProcesso}
+                  onDelete={() => handleDeleteProcesso(item.id)}
+                />
+              </div>
             ))}
           </div>
         ) : (

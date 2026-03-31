@@ -74,15 +74,17 @@ export default function Obras() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refresh, setRefresh] = useState(false);
   const [carregando, setCarregando] = useState(true);
+  const [showElements, setShowElements] = useState(false);
 
   const [refNav, isNavVisible] = useScrollFadeIn();
-  const [refMain, isMainVisible] = useScrollFadeIn();
+  const [refMain] = useScrollFadeIn(); // Removido o isMainVisible daqui
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function fetchData() {
       setCarregando(true);
+      setShowElements(false);
       try {
         const dados = await api.getObras({ signal: controller.signal });
         setObras(dados || []);
@@ -99,9 +101,17 @@ export default function Obras() {
     return () => controller.abort();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!carregando) {
+      const timer = setTimeout(() => setShowElements(true), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setShowElements(false);
+    }
+  }, [carregando]);
+
   const reloadObras = () => setRefresh((prev) => !prev);
 
-  // --- CÁLCULO DE MÉTRICAS (GARANTINDO QUE OS STATUS BATEM COM O BD) ---
   const metricas = useMemo(() => {
     const ativas = obras.filter((o) => o.active !== false);
     const emAndamento = ativas.filter(
@@ -189,8 +199,6 @@ export default function Obras() {
     }
   };
 
-  const showContent = isMainVisible && !carregando;
-
   return (
     <div className="flex flex-col items-center w-full min-h-screen bg-[#EEEDF0]">
       <div
@@ -209,9 +217,14 @@ export default function Obras() {
       </div>
 
       <main ref={refMain} className="w-[90%] mt-10 pb-10">
-        {/* CARDS DE MÉTRICAS */}
         {!carregando && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 w-full">
+          <div
+            className={`grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 w-full transition-all duration-700 ease-out transform ${
+              showElements
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
+            }`}
+          >
             <div className="bg-white p-6 rounded-xl border border-[#DBDADE] shadow-sm flex flex-col items-center justify-center text-center">
               <span className="text-[12px] font-bold text-[#71717A] uppercase tracking-wider">
                 Total de Obras
@@ -258,7 +271,7 @@ export default function Obras() {
               <div
                 key={obra.id}
                 className={`transition-all duration-700 ease-out transform w-full flex justify-center ${
-                  showContent
+                  showElements
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-8"
                 }`}
