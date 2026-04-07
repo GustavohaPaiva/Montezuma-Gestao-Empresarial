@@ -30,6 +30,12 @@ export const api = {
     const isParcelado = dadosBase.formaPagamento === "Parcelado";
     const grupoId = isParcelado ? `grp_${Date.now()}` : null;
     const isMontezuma = dadosBase.escritorio_id === "Montezuma";
+    const isTabelaSaida = tabela === "saida";
+    const normalizarId = (valor) => {
+      if (valor === undefined || valor === null || valor === "") return null;
+      const id = Number(valor);
+      return Number.isNaN(id) ? null : id;
+    };
 
     const prepararDado = (valor, dataParcela, index, total) => ({
       descricao: dadosBase.descricao,
@@ -42,6 +48,12 @@ export const api = {
       escritorio_id: isMontezuma ? null : dadosBase.escritorio_id,
       grupo_id: grupoId,
       validacao: 0,
+      ...(isTabelaSaida
+        ? {
+            prestador_id: normalizarId(dadosBase.prestador_id),
+            classe_id: normalizarId(dadosBase.classe_id),
+          }
+        : {}),
     });
 
     if (isParcelado) {
@@ -605,6 +617,8 @@ export const api = {
           obra_id: dados.obra_id,
           tipo: dados.tipo,
           profissional: dados.profissional,
+          prestador_id: dados.prestador_id ?? null,
+          classe_id: dados.classe_id ?? null,
           data_solicitacao: dados.data_solicitacao,
           valor_cobrado: dados.valor_cobrado,
           valor_orcado: dados.valor_orcado,
@@ -628,6 +642,21 @@ export const api = {
         valor_pago: dadosFinanceiros.valor_pago,
         saldo: novoSaldo,
       })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateMaoDeObraPrestador: async (id, dadosPrestador) => {
+    const payload = {
+      profissional: dadosPrestador.profissional,
+      prestador_id: dadosPrestador.prestador_id ?? null,
+      classe_id: dadosPrestador.classe_id ?? null,
+    };
+    const { data, error } = await supabase
+      .from("relatorio_mao_de_obra")
+      .update(payload)
       .eq("id", id)
       .select();
     if (error) throw error;
@@ -726,6 +755,341 @@ export const api = {
       .select();
     if (error) throw error;
     return data[0];
+  },
+
+  // --- MÓDULO PRESTADORES ---
+
+  getClassesPrestadores: async () => {
+    const { data, error } = await supabase
+      .from("classes_prestadores")
+      .select("*")
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  getClassePrestadorById: async (id) => {
+    const { data, error } = await supabase
+      .from("classes_prestadores")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  createClassePrestador: async (novaClasse) => {
+    const { data, error } = await supabase
+      .from("classes_prestadores")
+      .insert([{ nome: novaClasse.nome }])
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateClassePrestador: async (id, dadosAtualizados) => {
+    const { data, error } = await supabase
+      .from("classes_prestadores")
+      .update(dadosAtualizados)
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  deleteClassePrestador: async (id) => {
+    const { error: linkError } = await supabase
+      .from("prestadores_classes")
+      .delete()
+      .eq("classe_id", id);
+    if (linkError) throw linkError;
+
+    const { error } = await supabase
+      .from("classes_prestadores")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  getPrestadoresSimples: async () => {
+    const { data, error } = await supabase
+      .from("prestadores")
+      .select("id, nome")
+      .eq("ativo", true)
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  getPrestadoresByClasse: async (classeId) => {
+    if (!classeId) return [];
+    const { data, error } = await supabase
+      .from("prestadores")
+      .select("id, nome, cnpj_cpf, ativo, prestadores_classes!inner(classe_id)")
+      .eq("ativo", true)
+      .eq("prestadores_classes.classe_id", classeId)
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  getPrestadores: async () => {
+    const { data, error } = await supabase
+      .from("prestadores")
+      .select(
+        `
+        *,
+        prestadores_classes(
+          classe_id,
+          classes_prestadores(id, nome)
+        )
+      `,
+      )
+      .order("nome", { ascending: true });
+    if (error) throw error;
+
+    let lancamentosMdo = [];
+    try {
+      const { data: dataMdo, error: errMdo } = await supabase
+        .from("relatorio_mao_de_obra")
+        .select(
+          "prestador_id, valor_orcado, valor_cobrado, valor_pago, validacao",
+        )
+        .not("prestador_id", "is", null);
+      if (errMdo) throw errMdo;
+      lancamentosMdo = dataMdo || [];
+    } catch (errorMdo) {
+      if (
+        errorMdo?.code !== "42703" &&
+        !String(errorMdo?.message || "").includes("prestador_id")
+      ) {
+        throw errorMdo;
+      }
+    }
+
+    const mapaResumo = new Map();
+    lancamentosMdo.forEach((item) => {
+      const chave = Number(item.prestador_id);
+      if (!mapaResumo.has(chave)) {
+        mapaResumo.set(chave, {
+          contratado: 0,
+          pago: 0,
+          pendente: 0,
+          quantidade: 0,
+        });
+      }
+      const atual = mapaResumo.get(chave);
+      const valorOrcado = parseFloat(item.valor_orcado) || 0;
+      const valorPago = parseFloat(item.valor_pago) || 0;
+      atual.contratado += valorOrcado;
+      atual.pago += valorPago;
+      atual.pendente += valorOrcado - valorPago;
+      atual.quantidade += 1;
+    });
+
+    return (data || []).map((prestador) => ({
+      ...prestador,
+      resumo_mdo: mapaResumo.get(Number(prestador.id)) || {
+        contratado: 0,
+        pago: 0,
+        pendente: 0,
+        quantidade: 0,
+      },
+    }));
+  },
+
+  getPrestadorById: async (id) => {
+    const { data, error } = await supabase
+      .from("prestadores")
+      .select(
+        `
+        *,
+        prestadores_classes(
+          classe_id,
+          classes_prestadores(id, nome)
+        )
+      `,
+      )
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  createPrestador: async (novoPrestador) => {
+    const { id: _ignoreId, classe_ids = [], ...dadosPrestador } = novoPrestador;
+    const { data, error } = await supabase
+      .from("prestadores")
+      .insert([dadosPrestador])
+      .select();
+    if (error) throw error;
+
+    const prestadorCriado = data[0];
+    if (classe_ids.length > 0) {
+      await api.setClassesDoPrestador(prestadorCriado.id, classe_ids);
+    }
+
+    return api.getPrestadorById(prestadorCriado.id);
+  },
+
+  updatePrestador: async (id, dadosAtualizados) => {
+    const { classe_ids, ...dadosPrestador } = dadosAtualizados;
+
+    if (Object.keys(dadosPrestador).length > 0) {
+      const { error } = await supabase
+        .from("prestadores")
+        .update(dadosPrestador)
+        .eq("id", id);
+      if (error) throw error;
+    }
+
+    if (Array.isArray(classe_ids)) {
+      await api.setClassesDoPrestador(id, classe_ids);
+    }
+
+    return api.getPrestadorById(id);
+  },
+
+  deletePrestador: async (id) => {
+    const { error } = await supabase
+      .from("prestadores")
+      .update({ ativo: false })
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  setClassesDoPrestador: async (prestadorId, classeIds) => {
+    const idsUnicos = [
+      ...new Set((classeIds || []).map((id) => Number(id))),
+    ].filter((id) => !Number.isNaN(id));
+
+    const { error: deleteError } = await supabase
+      .from("prestadores_classes")
+      .delete()
+      .eq("prestador_id", prestadorId);
+    if (deleteError) throw deleteError;
+
+    if (idsUnicos.length === 0) return [];
+
+    const payload = idsUnicos.map((classeId) => ({
+      prestador_id: Number(prestadorId),
+      classe_id: classeId,
+    }));
+
+    const { data, error } = await supabase
+      .from("prestadores_classes")
+      .insert(payload)
+      .select();
+    if (error) throw error;
+    return data;
+  },
+
+  addClasseAoPrestador: async (prestadorId, classeId) => {
+    const payload = {
+      prestador_id: Number(prestadorId),
+      classe_id: Number(classeId),
+    };
+    const { data, error } = await supabase
+      .from("prestadores_classes")
+      .upsert([payload], { onConflict: "prestador_id,classe_id" })
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  removeClasseDoPrestador: async (prestadorId, classeId) => {
+    const { error } = await supabase
+      .from("prestadores_classes")
+      .delete()
+      .eq("prestador_id", prestadorId)
+      .eq("classe_id", classeId);
+    if (error) throw error;
+  },
+
+  uploadFotoPrestador: async (prestadorId, file) => {
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `prestador_${prestadorId}_${Math.random()}.${fileExt}`;
+      const filePath = `prestadores/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("fotos_clientes")
+        .upload(filePath, file);
+      if (uploadError) throw new Error("Falha ao subir imagem para o Storage");
+
+      const { data: publicUrlData } = supabase.storage
+        .from("fotos_clientes")
+        .getPublicUrl(filePath);
+      const fotoUrl = publicUrlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from("prestadores")
+        .update({ foto: fotoUrl })
+        .eq("id", prestadorId);
+      if (updateError) throw updateError;
+
+      return { fotoUrl };
+    } catch (error) {
+      console.error("Erro completo no uploadFotoPrestador:", error);
+      throw error;
+    }
+  },
+
+  getLancamentosFinanceirosPrestador: async (prestadorId) => {
+    const { data, error } = await supabase
+      .from("relatorio_mao_de_obra")
+      .select(
+        `
+        id,
+        tipo,
+        profissional,
+        valor_orcado,
+        valor_pago,
+        saldo,
+        data_solicitacao,
+        validacao,
+        classe_id
+      `,
+      )
+      .eq("prestador_id", prestadorId)
+      .order("data_solicitacao", { ascending: false });
+    if (error) {
+      if (
+        error.code === "42703" ||
+        String(error.message).includes("prestador_id")
+      ) {
+        return [];
+      }
+      throw error;
+    }
+
+    const classeIds = [
+      ...new Set((data || []).map((i) => i.classe_id).filter(Boolean)),
+    ];
+    if (classeIds.length === 0) return data || [];
+
+    const { data: classesData, error: classeError } = await supabase
+      .from("classes_prestadores")
+      .select("id, nome")
+      .in("id", classeIds);
+    if (classeError) throw classeError;
+
+    const mapaClasses = new Map((classesData || []).map((c) => [c.id, c.nome]));
+    return (data || []).map((item) => {
+      const valorOrcado =
+        parseFloat(item.valor_orcado) || parseFloat(item.valor_cobrado) || 0;
+      const valorPago = parseFloat(item.valor_pago) || 0;
+      const valorExibicao = valorOrcado > 0 ? valorOrcado : valorPago;
+      return {
+        ...item,
+        descricao: `${item.tipo || "Serviço"} - ${item.profissional || "Prestador"}`,
+        valor: valorExibicao,
+        data: item.data_solicitacao,
+        classe_nome: item.classe_id
+          ? mapaClasses.get(item.classe_id) || "Sem classe"
+          : "Sem classe",
+      };
+    });
   },
 
   uploadFotoFornecedor: async (fornecedorId, file) => {

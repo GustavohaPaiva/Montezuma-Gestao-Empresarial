@@ -16,6 +16,8 @@ import ProcessosDetalhes from "./pages/processos/ProcessosDetalhes";
 import DocumentosProcesso from "./pages/processos/DocumentosProcesso";
 import Fornecedores from "./pages/fornecedores/Fornecedores";
 import FornecedorDetalhes from "./pages/fornecedores/FornecedorDetalhes";
+import Prestadores from "./pages/prestadores/prestadores";
+import PrestadorDetalhes from "./pages/prestadores/PrestadorDetalhes";
 
 import "./index.css";
 
@@ -83,6 +85,22 @@ export default function App() {
               element={
                 <PageTransition>
                   <Fornecedores />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/prestadores/:id"
+              element={
+                <PageTransition>
+                  <PrestadorDetalhes />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/prestadores"
+              element={
+                <PageTransition>
+                  <Prestadores />
                 </PageTransition>
               }
             />

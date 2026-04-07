@@ -60,6 +60,14 @@ export default function Home() {
       path: "/fornecedores",
       roles: ["adm"],
     },
+
+    {
+      id: 6,
+      titulo: "Prestadores",
+      imagem: "https://img.icons8.com/ios/125/worker-male.png",
+      path: "/prestadores",
+      roles: ["adm"],
+    },
   ];
 
   const modulosPermitidos = modulos.filter((modulo) =>

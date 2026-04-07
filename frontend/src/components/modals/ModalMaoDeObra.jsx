@@ -1,35 +1,84 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import { api } from "../../services/api";
 
 export default function ModalMaoDeObra({
   isOpen,
   onClose,
   onSave,
   nomeObra,
-  opcoesPrestador,
 }) {
   const [formData, setFormData] = useState({
     tipo: "",
-    profissional: "",
+    classe_id: "",
+    prestador_id: "",
     valor: "",
   });
+  const [classes, setClasses] = useState([]);
+  const [prestadores, setPrestadores] = useState([]);
+  const [loadingClasses, setLoadingClasses] = useState(false);
+  const [loadingPrestadores, setLoadingPrestadores] = useState(false);
 
-  const [customProfissional, setCustomProfissional] = useState("");
+  useEffect(() => {
+    if (!isOpen) return;
+    const carregarClasses = async () => {
+      try {
+        setLoadingClasses(true);
+        const dados = await api.getClassesPrestadores();
+        setClasses(dados || []);
+      } catch (error) {
+        console.error("Erro ao carregar classes:", error);
+      } finally {
+        setLoadingClasses(false);
+      }
+    };
+    carregarClasses();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const carregarPrestadores = async () => {
+      if (!formData.classe_id) {
+        setPrestadores([]);
+        return;
+      }
+
+      try {
+        setLoadingPrestadores(true);
+        const dados = await api.getPrestadoresByClasse(formData.classe_id);
+        setPrestadores(dados || []);
+      } catch (error) {
+        console.error("Erro ao carregar prestadores por classe:", error);
+        setPrestadores([]);
+      } finally {
+        setLoadingPrestadores(false);
+      }
+    };
+    carregarPrestadores();
+  }, [formData.classe_id]);
+
+  const prestadorSelecionado = useMemo(
+    () => prestadores.find((p) => String(p.id) === String(formData.prestador_id)),
+    [prestadores, formData.prestador_id],
+  );
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    // Se "Outros" foi selecionado, manda o valor customizado. Senão, manda o valor do Select.
-    const profissionalFinal =
-      formData.profissional === "Outros"
-        ? customProfissional
-        : formData.profissional;
+    if (!formData.tipo || !formData.classe_id || !formData.prestador_id) {
+      alert("Preencha serviço, classe e prestador.");
+      return;
+    }
 
-    onSave({ ...formData, profissional: profissionalFinal });
+    onSave({
+      ...formData,
+      profissional: prestadorSelecionado?.nome || "",
+      classe_id: Number(formData.classe_id),
+      prestador_id: Number(formData.prestador_id),
+    });
 
     // Limpa os campos para nova entrada e NÃO fecha o modal
-    setFormData({ tipo: "", profissional: "", valor: "" });
-    setCustomProfissional("");
+    setFormData({ tipo: "", classe_id: "", prestador_id: "", valor: "" });
+    setPrestadores([]);
   };
 
   return (
@@ -76,32 +125,55 @@ export default function ModalMaoDeObra({
 
           <div className="flex flex-col gap-[5px]">
             <label className="text-[12px] font-bold text-[#71717A] uppercase">
-              Profissional (Prestador)
+              Classe do Serviço
             </label>
             <select
-              value={formData.profissional}
+              value={formData.classe_id}
               onChange={(e) =>
-                setFormData({ ...formData, profissional: e.target.value })
+                setFormData({
+                  ...formData,
+                  classe_id: e.target.value,
+                  prestador_id: "",
+                })
               }
               className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
             >
-              <option value="">Selecione um prestador...</option>
-              {opcoesPrestador?.map((opcao) => (
-                <option key={opcao} value={opcao}>
-                  {opcao}
+              <option value="">
+                {loadingClasses ? "Carregando classes..." : "Selecione uma classe..."}
+              </option>
+              {classes?.map((classe) => (
+                <option key={classe.id} value={classe.id}>
+                  {classe.nome}
                 </option>
               ))}
             </select>
+          </div>
 
-            {formData.profissional === "Outros" && (
-              <input
-                type="text"
-                placeholder="Qual o nome/função do prestador?"
-                value={customProfissional}
-                className="w-full h-[45px] mt-[5px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
-                onChange={(e) => setCustomProfissional(e.target.value)}
-              />
-            )}
+          <div className="flex flex-col gap-[5px]">
+            <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              Prestador
+            </label>
+            <select
+              value={formData.prestador_id}
+              onChange={(e) =>
+                setFormData({ ...formData, prestador_id: e.target.value })
+              }
+              disabled={!formData.classe_id || loadingPrestadores}
+              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border disabled:opacity-60"
+            >
+              <option value="">
+                {!formData.classe_id
+                  ? "Selecione uma classe primeiro..."
+                  : loadingPrestadores
+                    ? "Carregando prestadores..."
+                    : "Selecione um prestador..."}
+              </option>
+              {prestadores?.map((opcao) => (
+                <option key={opcao.id} value={opcao.id}>
+                  {opcao.nome}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-col gap-[5px]">
