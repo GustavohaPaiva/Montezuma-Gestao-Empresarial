@@ -20,25 +20,6 @@ const ORDEM_STATUS = {
   Entregue: 5,
 };
 
-const OPCOES_PRESTADOR = [
-  "PINTOR",
-  "EMPRENTEIRO",
-  "CARPINTEIRO",
-  "PEDREIRO",
-  "ENCANADOR",
-  "ELETRICISTA",
-  "LIXEIRO",
-  "GESSEIRO",
-  "MARCENEIRO",
-  "SERRALHEIRO",
-  "SERVENTE",
-  "CALHEIRO",
-  "GERENTE DE OBRAS",
-  "ACABAMENTISTA",
-  "ENCARREGADO",
-  "OUTROS",
-];
-
 // --- Formatações e Funções Auxiliares ---
 const formatarDataBR = (dataString) => {
   if (!dataString) return "-";
@@ -210,36 +191,107 @@ const CellSelectFornecedor = ({ valorInicialId, onSave, onCancel }) => {
   );
 };
 
-const CellSelectPrestador = ({ valorInicial, onSave, onCancel }) => {
-  const isOutrosInicial =
-    valorInicial &&
-    !OPCOES_PRESTADOR.includes(valorInicial) &&
-    valorInicial !== "Outros";
-  const [val, setVal] = useState(
-    isOutrosInicial ? "Outros" : valorInicial || "",
+const CellSelectPrestador = ({
+  valorInicial,
+  valorInicialId,
+  valorInicialClasseId,
+  onSave,
+  onCancel,
+}) => {
+  const [classes, setClasses] = useState([]);
+  const [prestadores, setPrestadores] = useState([]);
+  const [classeId, setClasseId] = useState(
+    valorInicialClasseId ? String(valorInicialClasseId) : "",
   );
-  const [customVal, setCustomVal] = useState(
-    isOutrosInicial ? valorInicial : "",
+  const [prestadorId, setPrestadorId] = useState(
+    valorInicialId ? String(valorInicialId) : "",
   );
+  const [loadingClasses, setLoadingClasses] = useState(false);
+  const [loadingPrestadores, setLoadingPrestadores] = useState(false);
+
+  useEffect(() => {
+    const carregarClasses = async () => {
+      try {
+        setLoadingClasses(true);
+        const dados = await api.getClassesPrestadores();
+        setClasses(dados || []);
+      } catch (error) {
+        console.error("Erro ao carregar classes:", error);
+      } finally {
+        setLoadingClasses(false);
+      }
+    };
+    carregarClasses();
+  }, []);
+
+  useEffect(() => {
+    const carregarPrestadores = async () => {
+      if (!classeId) {
+        setPrestadores([]);
+        setPrestadorId("");
+        return;
+      }
+      try {
+        setLoadingPrestadores(true);
+        const dados = await api.getPrestadoresByClasse(classeId);
+        setPrestadores(dados || []);
+      } catch (error) {
+        console.error("Erro ao carregar prestadores:", error);
+        setPrestadores([]);
+      } finally {
+        setLoadingPrestadores(false);
+      }
+    };
+    carregarPrestadores();
+  }, [classeId]);
+
+  const nomePrestadorSelecionado =
+    prestadores.find((p) => String(p.id) === String(prestadorId))?.nome || "";
 
   return (
     <div className="flex flex-col gap-1 items-center">
       <div className="flex items-center gap-1">
         <select
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
+          value={classeId}
+          onChange={(e) => setClasseId(e.target.value)}
           className="w-[120px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-[13px] uppercase"
           autoFocus
         >
-          <option value="">Selecione...</option>
-          {OPCOES_PRESTADOR.map((op) => (
-            <option key={op} value={op}>
-              {op}
+          <option value="">{loadingClasses ? "Carregando..." : "Classe..."}</option>
+          {classes.map((op) => (
+            <option key={op.id} value={op.id}>
+              {op.nome}
+            </option>
+          ))}
+        </select>
+        <select
+          value={prestadorId}
+          onChange={(e) => setPrestadorId(e.target.value)}
+          disabled={!classeId || loadingPrestadores}
+          className="w-[140px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-[13px] uppercase disabled:opacity-50"
+        >
+          <option value="">
+            {!classeId
+              ? "Prestador..."
+              : loadingPrestadores
+                ? "Carregando..."
+                : "Selecione..."}
+          </option>
+          {prestadores.map((op) => (
+            <option key={op.id} value={op.id}>
+              {op.nome}
             </option>
           ))}
         </select>
         <button
-          onClick={() => onSave(val === "Outros" ? customVal : val)}
+          onClick={() =>
+            onSave({
+              profissional: nomePrestadorSelecionado,
+              prestador_id: prestadorId ? Number(prestadorId) : null,
+              classe_id: classeId ? Number(classeId) : null,
+            })
+          }
+          disabled={!prestadorId}
           className="cursor-pointer border-none bg-transparent flex-shrink-0"
         >
           <img
@@ -259,14 +311,8 @@ const CellSelectPrestador = ({ valorInicial, onSave, onCancel }) => {
           />
         </button>
       </div>
-      {val === "Outros" && (
-        <input
-          type="text"
-          value={customVal}
-          onChange={(e) => setCustomVal(e.target.value)}
-          placeholder="Digite o prestador"
-          className="w-[120px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-[12px] uppercase mt-[4px]"
-        />
+      {!prestadorId && valorInicial && (
+        <span className="text-[11px] text-[#71717A]">Atual: {valorInicial}</span>
       )}
     </div>
   );
@@ -601,6 +647,8 @@ export default function ObrasDetalhe() {
           obra_id: id,
           tipo: dados.tipo,
           profissional: dados.profissional,
+          prestador_id: dados.prestador_id,
+          classe_id: dados.classe_id,
           data_solicitacao: dataAtual,
           valor_cobrado: valorInput,
           valor_orcado: valorInput,
@@ -679,18 +727,23 @@ export default function ObrasDetalhe() {
   );
 
   const salvarEdicaoMaoDeObraProfissional = useCallback(
-    async (mdoId, novoProfissional) => {
+    async (mdoId, novoDadoPrestador) => {
       setObra((prev) => ({
         ...prev,
         maoDeObra: prev.maoDeObra.map((m) =>
-          m.id === mdoId ? { ...m, profissional: novoProfissional } : m,
+          m.id === mdoId
+            ? {
+                ...m,
+                profissional: novoDadoPrestador.profissional,
+                prestador_id: novoDadoPrestador.prestador_id,
+                classe_id: novoDadoPrestador.classe_id,
+              }
+            : m,
         ),
       }));
       setEditandoMaoDeObra({ id: null, campo: null });
       try {
-        if (api.updateMaoDeObraProfissional) {
-          await api.updateMaoDeObraProfissional(mdoId, novoProfissional);
-        }
+        await api.updateMaoDeObraPrestador(mdoId, novoDadoPrestador);
         await fetchDados();
       } catch (err) {
         console.error("Erro ao atualizar prestador:", err);
@@ -1069,6 +1122,8 @@ export default function ObrasDetalhe() {
           {isEditingProfissional ? (
             <CellSelectPrestador
               valorInicial={m.profissional || ""}
+              valorInicialId={m.prestador_id}
+              valorInicialClasseId={m.classe_id}
               onSave={(val) => salvarEdicaoMaoDeObraProfissional(m.id, val)}
               onCancel={() => setEditandoMaoDeObra({ id: null, campo: null })}
             />
@@ -1854,7 +1909,6 @@ export default function ObrasDetalhe() {
         onClose={() => setModalMaoDeObraOpen(false)}
         nomeObra={obra.local}
         onSave={handleSaveMaoDeObra}
-        opcoesPrestador={OPCOES_PRESTADOR}
       />
       <ModalRelatorioPrestador
         isOpen={modalRelatorioPrestadorOpen}
