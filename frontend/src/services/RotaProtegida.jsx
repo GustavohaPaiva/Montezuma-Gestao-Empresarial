@@ -1,6 +1,9 @@
 import { Navigate, Outlet, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
+/** Admin global: ignora totalmente a restrição de `allowedTypes` (qualquer trava por tipo). */
+const GESTOR_MASTER = "gestor_master";
+
 const RotaProtegida = ({ allowedTypes }) => {
   const { user, loading } = useAuth();
   const { id } = useParams();
@@ -15,7 +18,14 @@ const RotaProtegida = ({ allowedTypes }) => {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  if (allowedTypes && !allowedTypes.includes(user.tipo)) {
+
+  const podeIgnorarRestricao = user.tipo === GESTOR_MASTER;
+
+  if (
+    allowedTypes &&
+    !podeIgnorarRestricao &&
+    !allowedTypes.includes(user.tipo)
+  ) {
     return <Navigate to="/" replace />;
   }
 

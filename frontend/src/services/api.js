@@ -1,5 +1,12 @@
 import { supabase } from "./supabase";
 
+/** CNPJ/NIF: apenas dígitos, ou null. Evita '' na UNIQUE e alinha formatos diferentes. */
+function normalizeCnpjNif(val) {
+  if (val === undefined || val === null) return null;
+  const digits = String(val).replace(/\D/g, "");
+  return digits.length ? digits : null;
+}
+
 export const api = {
   // --- MÓDULO FINANCEIRO ---
 
@@ -37,6 +44,13 @@ export const api = {
       return Number.isNaN(id) ? null : id;
     };
 
+    const nomeEscritorio =
+      dadosBase.escritorio != null && dadosBase.escritorio !== ""
+        ? dadosBase.escritorio
+        : isMontezuma
+          ? "Montezuma"
+          : null;
+
     const prepararDado = (valor, dataParcela, index, total) => ({
       descricao: dadosBase.descricao,
       forma: isParcelado
@@ -46,6 +60,7 @@ export const api = {
       data: dataParcela,
       montezuma: isMontezuma ? true : false,
       escritorio_id: isMontezuma ? null : dadosBase.escritorio_id,
+      ...(nomeEscritorio != null ? { escritorio: nomeEscritorio } : {}),
       grupo_id: grupoId,
       validacao: 0,
       ...(isTabelaSaida
@@ -739,9 +754,32 @@ export const api = {
   },
 
   createFornecedor: async (novoFornecedor) => {
+    const dadosLimpos = Object.fromEntries(
+      Object.entries(novoFornecedor ?? {}).filter(([k]) => k !== "id"),
+    );
+    const cnpj = normalizeCnpjNif(dadosLimpos.cnpj);
+    if (cnpj) {
+      const { data: existentes, error: errLista } = await supabase
+        .from("fornecedores")
+        .select("cnpj");
+      if (errLista) throw errLista;
+      const duplicado = (existentes ?? []).some(
+        (row) => normalizeCnpjNif(row.cnpj) === cnpj,
+      );
+      if (duplicado) {
+        const e = new Error(
+          'duplicate key value violates unique constraint "fornecedores_cnpj_key"',
+        );
+        e.code = "23505";
+        throw e;
+      }
+    }
+    // UUID explícito: o cliente Supabase pode enviar id:null se a chave existir com
+    // undefined, o que impede o DEFAULT gen_random_uuid() na coluna.
+    const row = { id: globalThis.crypto.randomUUID(), ...dadosLimpos, cnpj };
     const { data, error } = await supabase
       .from("fornecedores")
-      .insert([novoFornecedor])
+      .insert([row])
       .select();
     if (error) throw error;
     return data[0];

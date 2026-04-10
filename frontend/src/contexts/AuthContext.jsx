@@ -97,7 +97,7 @@ export function AuthProvider({ children }) {
 
       const { data: usuarioData, error: usuarioError } = await supabase
         .from("usuarios")
-        .select("tipo")
+        .select("tipo, escritorio, nome")
         .eq("id", data.user.id)
         .single();
 
@@ -109,7 +109,9 @@ export function AuthProvider({ children }) {
       const userData = {
         id: data.user.id,
         email: data.user.email,
+        nome: usuarioData.nome ?? null,
         tipo: usuarioData.tipo,
+        escritorio: usuarioData.escritorio,
         foto: fotoDoAdmin,
       };
 
