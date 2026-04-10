@@ -31,19 +31,38 @@ const checkIsParcelado = (item) => {
   );
 };
 
+const TIPOS_COM_SELECAO_ESCRITORIO = [
+  "gestor_master",
+  "diretoria",
+  "suporte_ti",
+];
+
 export default function Financeiro() {
   const { user } = useAuth();
-  const isAdmin = user?.tipo === "adm";
+  const isAdmin = TIPOS_COM_SELECAO_ESCRITORIO.includes(user?.tipo);
+  const isSecretaria = user?.tipo === "secretaria";
 
   const [modalEntradaAberto, setModalEntradaAberto] = useState(false);
   const [modalSaidaAberto, setModalSaidaAberto] = useState(false);
 
   const [escritorioId, setEscritorioId] = useState(null);
 
-  // SE FOR ADM, INICIA NO ESCRITÓRIO. SE FOR SECRETARIA, CRAVA NO MONTEZUMA.
-  const [selectedProject, setSelectedProject] = useState(
-    isAdmin ? "Escritório" : "Montezuma",
-  );
+  /** Montezuma = pool central; proprio = lançamentos do auth user (VogelKop/Ybyoca etc.). Secretaria: sempre Montezuma. */
+  const [visaoEscritorio, setVisaoEscritorio] = useState("Montezuma");
+
+  useEffect(() => {
+    if (!user?.tipo) return;
+    if (user.tipo === "secretaria") {
+      setVisaoEscritorio("Montezuma");
+    } else if (TIPOS_COM_SELECAO_ESCRITORIO.includes(user.tipo)) {
+      setVisaoEscritorio("proprio");
+    }
+  }, [user?.tipo]);
+
+  const tituloEscritorioExtrato =
+    visaoEscritorio === "Montezuma"
+      ? "Montezuma"
+      : user?.escritorio || "Escritório";
 
   const [entradas, setEntradas] = useState([]);
   const [saidas, setSaidas] = useState([]);
@@ -101,17 +120,21 @@ export default function Financeiro() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (selectedProject === "Montezuma") {
+      if (user?.tipo === "secretaria") {
+        setEscritorioId("Montezuma");
+        return;
+      }
+      if (visaoEscritorio === "Montezuma") {
         setEscritorioId("Montezuma");
       } else {
         const {
-          data: { user },
+          data: { user: authUser },
         } = await supabase.auth.getUser();
-        if (user) setEscritorioId(user.id);
+        if (authUser) setEscritorioId(authUser.id);
       }
     };
     fetchUser();
-  }, [selectedProject]);
+  }, [visaoEscritorio, user?.tipo]);
 
   useEffect(() => {
     if (!escritorioId) return;
@@ -269,7 +292,8 @@ export default function Financeiro() {
       await api.createFinanceiro("entradas", {
         ...dadosFormulario,
         data: dataFinal,
-        escritorio_id: escritorioId,
+        escritorio_id: dadosFormulario.escritorio_id ?? escritorioId,
+        escritorio: dadosFormulario.escritorio,
       });
       setModalEntradaAberto(false);
       setRecarregar((prev) => prev + 1);
@@ -286,7 +310,8 @@ export default function Financeiro() {
       await api.createFinanceiro("saida", {
         ...dadosFormulario,
         data: dataFinal,
-        escritorio_id: escritorioId,
+        escritorio_id: dadosFormulario.escritorio_id ?? escritorioId,
+        escritorio: dadosFormulario.escritorio,
       });
       setModalSaidaAberto(false);
       setRecarregar((prev) => prev + 1);
@@ -711,11 +736,19 @@ export default function Financeiro() {
         isOpen={modalEntradaAberto}
         onClose={() => setModalEntradaAberto(false)}
         onSave={handleSalvarEntrada}
+        userTipo={user?.tipo}
+        escritorioProprioId={user?.id}
+        escritorioProprioNome={user?.escritorio}
+        visaoEscritorioAtual={visaoEscritorio}
       />
       <ModalFinanceiroSaida
         isOpen={modalSaidaAberto}
         onClose={() => setModalSaidaAberto(false)}
         onSave={handleSalvarSaida}
+        userTipo={user?.tipo}
+        escritorioProprioId={user?.id}
+        escritorioProprioNome={user?.escritorio}
+        visaoEscritorioAtual={visaoEscritorio}
       />
 
       <Navbar className="static" />
@@ -749,16 +782,18 @@ export default function Financeiro() {
         </select>
       </div>
 
-      {/* SÓ MOSTRA A SELEÇÃO DO ESCRITÓRIO/MONTEZUMA SE FOR ADM */}
-      {isAdmin && (
+      {/* Secretaria: só Montezuma (sem troca). Demais perfis com permissão: Montezuma ou escritório próprio. */}
+      {isAdmin && !isSecretaria && (
         <div className="md:absolute top-0 mt-4 w-full md:w-auto right-[150px] flex items-center z-[60] px-[5%] pointer-events-none">
           <select
-            value={selectedProject}
-            onChange={(e) => setSelectedProject(e.target.value)}
+            value={visaoEscritorio}
+            onChange={(e) => setVisaoEscritorio(e.target.value)}
             className="pointer-events-auto h-[40px] w-full md:w-auto text-[14px] font-bold px-3 border border-[#C4C4C9] rounded-[8px] bg-white shadow-sm"
           >
-            <option value="Escritório">Escritório</option>
             <option value="Montezuma">Montezuma</option>
+            <option value="proprio">
+              {user?.escritorio || "Meu escritório"}
+            </option>
           </select>
         </div>
       )}
@@ -768,7 +803,7 @@ export default function Financeiro() {
           <div className="text-black rounded-[12px] border border-[#DBDADE] p-6 shadow-md mt-6 flex flex-col md:flex-row justify-between items-center bg-white gap-4">
             <div className="text-center md:text-left">
               <h2 className="text-xl font-medium">
-                Extrato de {mesSelecionado}/{anoAtual} ({selectedProject})
+                Extrato de {mesSelecionado}/{anoAtual} ({tituloEscritorioExtrato})
               </h2>
               <p className="text-sm opacity-80">
                 Apenas itens validados entram no cálculo principal

@@ -1,116 +1,22 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import Navbar from "../../components/navbar/NavbarObras";
 import ObraCard from "../../components/cards/CardObra";
 import ModalNovaObra from "../../components/modals/ModalNovaObra";
 import { api } from "../../services/api";
 import { Hourglass } from "lucide-react";
-
-function useScrollFadeIn() {
-  const [element, setElement] = useState(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    if (!element) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0, rootMargin: "0px" },
-    );
-
-    observer.observe(element);
-
-    return () => {
-      if (element) observer.unobserve(element);
-    };
-  }, [element]);
-
-  return [setElement, isVisible];
-}
-
-const verificarStatusPagamento = (obra) => {
-  const extrato = obra.extrato || obra.relatorioExtrato || [];
-  const mdo = obra.maoDeObra || [];
-  const mat = obra.materiais || [];
-
-  if (extrato.length === 0 && mdo.length === 0 && mat.length === 0) {
-    return true;
-  }
-
-  for (let e of extrato) {
-    if ((e.status_financeiro || "").toLowerCase().trim() !== "pago") {
-      return false;
-    }
-  }
-
-  for (let m of mdo) {
-    const orcado = parseFloat(m.valor_orcado) || 0;
-    const pago = parseFloat(m.valor_pago) || 0;
-    if (
-      orcado - pago > 0.01 &&
-      !extrato.some((e) => e.mao_de_obra_id === m.id)
-    ) {
-      return false;
-    }
-  }
-
-  for (let m of mat) {
-    if (
-      (parseFloat(m.valor) || 0) > 0 &&
-      !extrato.some((e) => e.material_id === m.id)
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-};
+import { useScrollFadeIn } from "../../hooks/useScrollFadeIn";
+import { verificarStatusPagamento } from "./utils/obraPagamento";
+import { useObrasList } from "./hooks/useObrasList";
 
 export default function Obras() {
-  const [obras, setObras] = useState([]);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Tudo");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [refresh, setRefresh] = useState(false);
-  const [carregando, setCarregando] = useState(true);
-  const [showElements, setShowElements] = useState(false);
+  const { obras, setObras, carregando, showElements, reloadObras } =
+    useObrasList();
 
   const [refNav, isNavVisible] = useScrollFadeIn();
-  const [refMain] = useScrollFadeIn(); // Removido o isMainVisible daqui
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function fetchData() {
-      setCarregando(true);
-      setShowElements(false);
-      try {
-        const dados = await api.getObras({ signal: controller.signal });
-        setObras(dados || []);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error(err);
-        }
-      } finally {
-        setCarregando(false);
-      }
-    }
-
-    fetchData();
-    return () => controller.abort();
-  }, [refresh]);
-
-  useEffect(() => {
-    if (!carregando) {
-      const timer = setTimeout(() => setShowElements(true), 50);
-      return () => clearTimeout(timer);
-    } else {
-      setShowElements(false);
-    }
-  }, [carregando]);
-
-  const reloadObras = () => setRefresh((prev) => !prev);
+  const [refMain] = useScrollFadeIn();
 
   const metricas = useMemo(() => {
     const ativas = obras.filter((o) => o.active !== false);

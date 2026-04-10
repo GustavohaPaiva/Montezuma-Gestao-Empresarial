@@ -27,7 +27,7 @@ export default function Home() {
       titulo: "Projetos",
       imagem: "https://img.icons8.com/ios/125/project.png",
       path: "/projetos",
-      roles: ["adm"],
+      roles: ["gestor_master", "diretoria", "suporte_ti"],
     },
     {
       id: 2,
@@ -35,14 +35,14 @@ export default function Home() {
       imagem:
         "https://img.icons8.com/external-outline-design-circle/125/external-Process-Lists-artificial-intelligence-outline-design-circle.png",
       path: "/processos",
-      roles: ["adm", "secretaria"],
+      roles: ["gestor_master", "diretoria", "secretaria", "suporte_ti"],
     },
     {
       id: 3,
       titulo: "Obras",
       imagem: "https://img.icons8.com/ios/125/company--v1.png",
       path: "/obras",
-      roles: ["adm"],
+      roles: ["gestor_master", "diretoria", "suporte_ti"],
     },
     {
       id: 4,
@@ -50,7 +50,7 @@ export default function Home() {
       imagem:
         "https://img.icons8.com/external-outline-wichaiwi/125/external-financial-business-continuity-plan-outline-wichaiwi.png",
       path: "/financeiro",
-      roles: ["adm", "secretaria"],
+      roles: ["gestor_master", "diretoria", "secretaria", "suporte_ti"],
     },
 
     {
@@ -58,7 +58,7 @@ export default function Home() {
       titulo: "Fornecedores",
       imagem: "https://img.icons8.com/ios/125/supplier.png",
       path: "/fornecedores",
-      roles: ["adm"],
+      roles: ["gestor_master", "diretoria", "suporte_ti"],
     },
 
     {
@@ -66,7 +66,7 @@ export default function Home() {
       titulo: "Prestadores",
       imagem: "https://img.icons8.com/ios/125/worker-male.png",
       path: "/prestadores",
-      roles: ["adm"],
+      roles: ["gestor_master", "diretoria", "suporte_ti"],
     },
   ];
 
@@ -224,7 +224,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="mt-8 flex flex-wrap justify-center gap-8 relative z-10 px-4 md:px-10 mx-auto max-w-[1200px]">
+      <div className="flex flex-wrap justify-center gap-8 relative z-10 mx-auto max-w-[1200px]">
         {modulosPermitidos.map((item) => (
           <div
             key={item.id}

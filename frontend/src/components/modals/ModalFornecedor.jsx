@@ -21,13 +21,7 @@ export default function ModalFornecedor({
       return;
     }
 
-    onSave({
-      id: fornecedorEdit?.id,
-      nome,
-      cnpj,
-      telefone,
-      email,
-    });
+    onSave({ nome, cnpj, telefone, email });
   };
 
   return (

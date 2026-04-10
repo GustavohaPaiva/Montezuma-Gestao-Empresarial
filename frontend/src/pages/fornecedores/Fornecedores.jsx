@@ -60,7 +60,11 @@ export default function Fornecedores() {
       fetchFornecedores();
     } catch (error) {
       console.error("Erro ao guardar fornecedor:", error);
-      alert("Falha ao criar o fornecedor.");
+      if (String(error?.code ?? "") === "23505") {
+        alert("Já existe um fornecedor registado com este CNPJ / NIF.");
+      } else {
+        alert("Falha ao criar o fornecedor.");
+      }
     }
   };
   const toggleAtivo = async (id, statusAtual) => {

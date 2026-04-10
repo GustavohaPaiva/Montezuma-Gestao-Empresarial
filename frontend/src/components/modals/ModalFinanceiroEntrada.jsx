@@ -1,17 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
 
-export default function ModalFinanceiroEntrada({ isOpen, onClose, onSave }) {
-  // Estado ajustado para refletir os campos da Entrada
-  const [formData, setFormData] = useState({
-    descricao: "",
-    valor: "",
-    data: new Date().toISOString().split("T")[0],
-    formaPagamento: "Á vista",
-    parcelas: "1X",
-  });
+const initialForm = () => ({
+  descricao: "",
+  valor: "",
+  data: new Date().toISOString().split("T")[0],
+  formaPagamento: "Á vista",
+  parcelas: "1X",
+});
+
+export default function ModalFinanceiroEntrada({
+  isOpen,
+  onClose,
+  onSave,
+  userTipo,
+  escritorioProprioId,
+  escritorioProprioNome,
+  visaoEscritorioAtual,
+}) {
+  const [formData, setFormData] = useState(initialForm);
+  const [escritorioLan, setEscritorioLan] = useState("Montezuma");
+
+  const isSecretaria = userTipo === "secretaria";
+  const escritorioSelectDisabled = isSecretaria;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormData(initialForm());
+    setEscritorioLan(
+      isSecretaria ? "Montezuma" : visaoEscritorioAtual || "Montezuma",
+    );
+  }, [isOpen, isSecretaria, visaoEscritorioAtual]);
 
   if (!isOpen) return null;
+
+  const salvar = () => {
+    const escritorio_id = isSecretaria
+      ? "Montezuma"
+      : escritorioLan === "Montezuma"
+        ? "Montezuma"
+        : escritorioProprioId;
+    const escritorio =
+      escritorio_id === "Montezuma"
+        ? "Montezuma"
+        : escritorioProprioNome || null;
+    onSave({ ...formData, escritorio_id, escritorio });
+    onClose();
+  };
 
   return (
     <div className="fixed w-full z-50 flex items-center justify-center p-[10px]">
@@ -33,6 +68,25 @@ export default function ModalFinanceiroEntrada({ isOpen, onClose, onSave }) {
 
         {/* Corpo do Formulário */}
         <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
+          <div className="flex flex-col gap-[5px]">
+            <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              Escritório
+            </label>
+            <select
+              disabled={escritorioSelectDisabled}
+              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border disabled:opacity-70 disabled:cursor-not-allowed"
+              value={escritorioLan}
+              onChange={(e) => setEscritorioLan(e.target.value)}
+            >
+              <option value="Montezuma">Montezuma</option>
+              {!isSecretaria && (
+                <option value="proprio">
+                  {escritorioProprioNome || "Meu escritório"}
+                </option>
+              )}
+            </select>
+          </div>
+
           <div className="flex flex-col gap-[5px]">
             <label className="text-[12px] font-bold text-[#71717A] uppercase">
               Descrição
@@ -122,10 +176,7 @@ export default function ModalFinanceiroEntrada({ isOpen, onClose, onSave }) {
           )}
 
           <ButtonDefault
-            onClick={() => {
-              onSave(formData);
-              onClose();
-            }}
+            onClick={salvar}
             className="w-full bg-[#464C54] text-[#000000] h-[50px] text-[16px] font-bold mt-[10px]"
           >
             Salvar Entrada

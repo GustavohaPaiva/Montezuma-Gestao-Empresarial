@@ -18,6 +18,7 @@ import Fornecedores from "./pages/fornecedores/Fornecedores";
 import FornecedorDetalhes from "./pages/fornecedores/FornecedorDetalhes";
 import Prestadores from "./pages/prestadores/prestadores";
 import PrestadorDetalhes from "./pages/prestadores/PrestadorDetalhes";
+import TarefasGlobalDock from "./pages/tarefas/TarefasGlobalDock";
 
 import "./index.css";
 
@@ -47,7 +48,11 @@ export default function App() {
           />
 
           {/* --- ÁREA EXCLUSIVA DO ADM (Obras, Projetos, Fornecedores) --- */}
-          <Route element={<RotaProtegida allowedTypes={["adm"]} />}>
+          <Route
+            element={
+              <RotaProtegida allowedTypes={["diretoria", "suporte_ti"]} />
+            }
+          >
             <Route
               path="/projetos"
               element={
@@ -108,7 +113,16 @@ export default function App() {
 
           {/* --- ÁREA COMPARTILHADA (ADM + SECRETARIA) --- */}
           <Route
-            element={<RotaProtegida allowedTypes={["adm", "secretaria"]} />}
+            element={
+              <RotaProtegida
+                allowedTypes={[
+                  "gestor_master",
+                  "diretoria",
+                  "secretaria",
+                  "suporte_ti",
+                ]}
+              />
+            }
           >
             {/* A HOME AGORA ESTÁ AQUI, PARA A SECRETÁRIA ACESSAR O PAINEL DE CARDS */}
             <Route
@@ -154,7 +168,18 @@ export default function App() {
           </Route>
 
           {/* --- ÁREA COMUM (CLIENTE + ADM) --- */}
-          <Route element={<RotaProtegida allowedTypes={["cliente", "adm"]} />}>
+          <Route
+            element={
+              <RotaProtegida
+                allowedTypes={[
+                  "cliente",
+                  "diretoria",
+                  "secretaria",
+                  "suporte_ti",
+                ]}
+              />
+            }
+          >
             <Route
               path="/obra/:id"
               element={
@@ -165,6 +190,7 @@ export default function App() {
             />
           </Route>
         </Routes>
+        <TarefasGlobalDock />
       </Router>
     </AuthProvider>
   );
