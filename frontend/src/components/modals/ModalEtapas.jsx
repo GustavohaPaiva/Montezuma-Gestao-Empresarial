@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import ModalPortal from "../gerais/ModalPortal";
 
 const ETAPAS_OBRA = [
   "Infraestrutura",
@@ -82,7 +83,8 @@ export default function ModalEtapas({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-[10px]">
+    <ModalPortal>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-[10px]">
       <div className="bg-[#ffffff] w-full max-w-[600px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
         <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
           <div className="flex-1 min-w-0">
@@ -148,5 +150,6 @@ export default function ModalEtapas({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

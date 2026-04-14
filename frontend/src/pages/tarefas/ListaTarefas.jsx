@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../../components/navbar/Navbar";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
+import ModalPortal from "../../components/gerais/ModalPortal";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../services/supabase";
 import {
@@ -306,9 +307,7 @@ export default function ListaTarefas({
       );
     }
     if (filtroStatus !== "todos") {
-      list = list.filter(
-        (t) => normalizarStatus(t.status) === filtroStatus,
-      );
+      list = list.filter((t) => normalizarStatus(t.status) === filtroStatus);
     }
     return list;
   }, [tarefasVisiveis, busca, pillAtivo, uid, filtroStatus]);
@@ -421,12 +420,14 @@ export default function ListaTarefas({
       .eq("tarefa_id", tarefaId);
     if (errDel) throw errDel;
     if (ids.length > 0) {
-      const { error: errIns } = await supabase.from("tarefa_responsaveis").insert(
-        ids.map((x) => ({
-          tarefa_id: tarefaId,
-          usuario_id: x,
-        })),
-      );
+      const { error: errIns } = await supabase
+        .from("tarefa_responsaveis")
+        .insert(
+          ids.map((x) => ({
+            tarefa_id: tarefaId,
+            usuario_id: x,
+          })),
+        );
       if (errIns) throw errIns;
     }
   };
@@ -482,7 +483,9 @@ export default function ListaTarefas({
           status: STATUS.pendente,
           criador_id: user.id,
           ...(nomeCriador ? { criador_nome: nomeCriador } : {}),
-          ...(escritorioCriador ? { criador_escritorio: escritorioCriador } : {}),
+          ...(escritorioCriador
+            ? { criador_escritorio: escritorioCriador }
+            : {}),
         })
         .select("id")
         .single();
@@ -522,7 +525,10 @@ export default function ListaTarefas({
         .delete()
         .eq("tarefa_id", id);
       if (errD) throw errD;
-      const { error: errT } = await supabase.from("tarefas").delete().eq("id", id);
+      const { error: errT } = await supabase
+        .from("tarefas")
+        .delete()
+        .eq("id", id);
       if (errT) throw errT;
       setSelecionadaId(null);
       await carregar();
@@ -1072,8 +1078,8 @@ export default function ListaTarefas({
                       </div>
                       {atualizandoStatus && (
                         <p className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          A atualizar…
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />A
+                          atualizar…
                         </p>
                       )}
                     </section>
@@ -1086,6 +1092,7 @@ export default function ListaTarefas({
       </div>
 
       {modalAberto && (
+        <ModalPortal>
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <button
             type="button"
@@ -1224,6 +1231,7 @@ export default function ListaTarefas({
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

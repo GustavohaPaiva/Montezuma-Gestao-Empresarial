@@ -7,21 +7,41 @@ function normalizeCnpjNif(val) {
   return digits.length ? digits : null;
 }
 
+/** Remove chaves undefined (payload limpo para Supabase). */
+function omitUndefined(obj) {
+  if (!obj || typeof obj !== "object") return {};
+  const out = { ...obj };
+  Object.keys(out).forEach((k) => {
+    if (out[k] === undefined) delete out[k];
+  });
+  return out;
+}
+
+function sanitizeClientePayload(dados) {
+  if (!dados || typeof dados !== "object") return {};
+  const rest = { ...dados };
+  delete rest.classe_id;
+  delete rest.prestador_id;
+  delete rest.escritorio_id;
+  delete rest.id;
+  delete rest.created_at;
+  return omitUndefined(rest);
+}
+
 export const api = {
   // --- MÓDULO FINANCEIRO ---
 
   getFinanceiro: async (tabela, escritorioId, mes, ano) => {
-    const primeiroDia = `${ano}-${mes}-01`;
-    const ultimoDia = new Date(ano, parseInt(mes), 0).getDate();
-    const dataFim = `${ano}-${mes}-${ultimoDia}`;
+    if (!escritorioId) return [];
 
-    let query = supabase.from(tabela).select("*");
+    const primeiroDia = `${ano}-${String(mes).padStart(2, "0")}-01`;
+    const ultimoDia = new Date(ano, parseInt(String(mes), 10), 0).getDate();
+    const dataFim = `${ano}-${String(mes).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
 
-    if (escritorioId === "Montezuma") {
-      query = query.eq("montezuma", true);
-    } else {
-      query = query.eq("escritorio_id", escritorioId);
-    }
+    let query = supabase
+      .from(tabela)
+      .select("*")
+      .eq("escritorio_id", escritorioId);
 
     const { data, error } = await query
       .gte("data", primeiroDia)
@@ -33,43 +53,32 @@ export const api = {
   },
 
   createFinanceiro: async (tabela, dadosBase) => {
+    if (!dadosBase?.escritorio_id) {
+      throw new Error("escritorio_id obrigatório em createFinanceiro");
+    }
     let registros = [];
     const isParcelado = dadosBase.formaPagamento === "Parcelado";
     const grupoId = isParcelado ? `grp_${Date.now()}` : null;
-    const isMontezuma = dadosBase.escritorio_id === "Montezuma";
-    const isTabelaSaida = tabela === "saida";
-    const normalizarId = (valor) => {
-      if (valor === undefined || valor === null || valor === "") return null;
-      const id = Number(valor);
-      return Number.isNaN(id) ? null : id;
+
+    const prepararDado = (valor, dataParcela, index, total) => {
+      const payload = {
+        descricao: dadosBase.descricao,
+        forma: isParcelado
+          ? `Parcelado (${index}/${total})`
+          : dadosBase.formaPagamento,
+        valor: valor,
+        data: dataParcela,
+        escritorio_id: dadosBase.escritorio_id,
+        grupo_id: grupoId,
+        validacao: 0,
+      };
+
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === undefined) delete payload[key];
+      });
+
+      return payload;
     };
-
-    const nomeEscritorio =
-      dadosBase.escritorio != null && dadosBase.escritorio !== ""
-        ? dadosBase.escritorio
-        : isMontezuma
-          ? "Montezuma"
-          : null;
-
-    const prepararDado = (valor, dataParcela, index, total) => ({
-      descricao: dadosBase.descricao,
-      forma: isParcelado
-        ? `Parcelado (${index}/${total})`
-        : dadosBase.formaPagamento,
-      valor: valor,
-      data: dataParcela,
-      montezuma: isMontezuma ? true : false,
-      escritorio_id: isMontezuma ? null : dadosBase.escritorio_id,
-      ...(nomeEscritorio != null ? { escritorio: nomeEscritorio } : {}),
-      grupo_id: grupoId,
-      validacao: 0,
-      ...(isTabelaSaida
-        ? {
-            prestador_id: normalizarId(dadosBase.prestador_id),
-            classe_id: normalizarId(dadosBase.classe_id),
-          }
-        : {}),
-    });
 
     if (isParcelado) {
       const parcelas = parseInt(dadosBase.parcelas.replace("X", ""));
@@ -98,13 +107,30 @@ export const api = {
     return data;
   },
 
-  updateFinanceiro: async (tabela, id, dados) => {
+  updateFinanceiro: async (tabela, id, dados, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em updateFinanceiro");
+    }
+
     const {
       alterar_todas_parcelas,
       diferenca_proxima_parcela,
       ratear_diferenca_todas,
       ...dadosLimpos
     } = dados;
+
+    if (dadosLimpos.formaPagamento) {
+      dadosLimpos.forma = dadosLimpos.formaPagamento;
+      delete dadosLimpos.formaPagamento;
+    }
+    delete dadosLimpos.classe_id;
+    delete dadosLimpos.prestador_id;
+    delete dadosLimpos.parcelas;
+    delete dadosLimpos.escritorio_id;
+
+    Object.keys(dadosLimpos).forEach((k) => {
+      if (dadosLimpos[k] === undefined) delete dadosLimpos[k];
+    });
 
     if (
       alterar_todas_parcelas ||
@@ -115,6 +141,7 @@ export const api = {
         .from(tabela)
         .select("grupo_id, data")
         .eq("id", id)
+        .eq("escritorio_id", escritorioId)
         .single();
 
       if (itemAtual?.grupo_id) {
@@ -123,12 +150,14 @@ export const api = {
             .from(tabela)
             .update({ valor: dadosLimpos.valor })
             .eq("grupo_id", itemAtual.grupo_id)
+            .eq("escritorio_id", escritorioId)
             .gt("data", itemAtual.data);
         } else if (diferenca_proxima_parcela !== undefined) {
           const { data: proximaParcela } = await supabase
             .from(tabela)
             .select("id, valor")
             .eq("grupo_id", itemAtual.grupo_id)
+            .eq("escritorio_id", escritorioId)
             .gt("data", itemAtual.data)
             .order("data", { ascending: true })
             .limit(1)
@@ -141,13 +170,15 @@ export const api = {
             await supabase
               .from(tabela)
               .update({ valor: novoValorProxima })
-              .eq("id", proximaParcela.id);
+              .eq("id", proximaParcela.id)
+              .eq("escritorio_id", escritorioId);
           }
         } else if (ratear_diferenca_todas !== undefined) {
           const { data: parcelasRestantes } = await supabase
             .from(tabela)
             .select("id, valor")
             .eq("grupo_id", itemAtual.grupo_id)
+            .eq("escritorio_id", escritorioId)
             .gt("data", itemAtual.data);
 
           if (parcelasRestantes && parcelasRestantes.length > 0) {
@@ -159,7 +190,8 @@ export const api = {
               await supabase
                 .from(tabela)
                 .update({ valor: novoValorParcela })
-                .eq("id", parcela.id);
+                .eq("id", parcela.id)
+                .eq("escritorio_id", escritorioId);
             }
           }
         }
@@ -170,74 +202,101 @@ export const api = {
       .from(tabela)
       .update(dadosLimpos)
       .eq("id", id)
+      .eq("escritorio_id", escritorioId)
       .select();
     if (error) throw error;
     return data[0];
   },
 
-  deleteFinanceiro: async (tabela, id, excluirTodas = false) => {
+  deleteFinanceiro: async (tabela, id, excluirTodas = false, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em deleteFinanceiro");
+    }
     if (excluirTodas) {
       const { data: item } = await supabase
         .from(tabela)
         .select("grupo_id")
         .eq("id", id)
+        .eq("escritorio_id", escritorioId)
         .single();
       if (item?.grupo_id) {
         const { error } = await supabase
           .from(tabela)
           .delete()
-          .eq("grupo_id", item.grupo_id);
+          .eq("grupo_id", item.grupo_id)
+          .eq("escritorio_id", escritorioId);
         if (error) throw error;
         return;
       }
     }
 
-    const { error } = await supabase.from(tabela).delete().eq("id", id);
+    const { error } = await supabase
+      .from(tabela)
+      .delete()
+      .eq("id", id)
+      .eq("escritorio_id", escritorioId);
     if (error) throw error;
   },
 
   // --- MÓDULO ORÇAMENTOS ---
 
   getOrcamentos: async (escritorioId) => {
-    let query = supabase
+    if (!escritorioId) return [];
+    const { data, error } = await supabase
       .from("orcamentos")
       .select("*")
+      .eq("escritorio_id", escritorioId)
       .order("data", { ascending: false });
-    if (escritorioId) query = query.eq("escritorio_id", escritorioId);
-    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
 
   createOrcamento: async (novoOrcamento) => {
+    const row = omitUndefined({
+      nome: novoOrcamento.nome,
+      valor: novoOrcamento.valor,
+      data: novoOrcamento.data,
+      status: novoOrcamento.status || "Pendente",
+      escritorio_id: novoOrcamento.escritorio_id,
+    });
+    if (!row.escritorio_id) {
+      throw new Error("escritorio_id obrigatório em createOrcamento");
+    }
     const { data, error } = await supabase
       .from("orcamentos")
-      .insert([
-        {
-          nome: novoOrcamento.nome,
-          valor: novoOrcamento.valor,
-          data: novoOrcamento.data,
-          status: novoOrcamento.status || "Pendente",
-          escritorio_id: novoOrcamento.escritorio_id,
-        },
-      ])
+      .insert([row])
       .select();
     if (error) throw error;
     return data[0];
   },
 
-  updateOrcamento: async (id, dados) => {
+  updateOrcamento: async (id, dados, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em updateOrcamento");
+    }
+    const { escritorio_id: _e, ...rest } = dados;
+    const limpo = omitUndefined(rest);
+    delete limpo.classe_id;
+    delete limpo.prestador_id;
     const { data, error } = await supabase
       .from("orcamentos")
-      .update(dados)
+      .update(limpo)
       .eq("id", id)
+      .eq("escritorio_id", escritorioId)
       .select();
     if (error) throw error;
     return data[0];
   },
 
-  deleteOrcamento: async (id) => {
-    const { error } = await supabase.from("orcamentos").delete().eq("id", id);
+  deleteOrcamento: async (id, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em deleteOrcamento");
+    }
+    const { error } = await supabase
+      .from("orcamentos")
+      .delete()
+      .eq("id", id)
+      .eq("escritorio_id", escritorioId);
     if (error) throw error;
   },
 
@@ -256,23 +315,50 @@ export const api = {
   },
 
   getClientes: async (escritorioId) => {
-    let query = supabase
+    if (!escritorioId) return [];
+    const { data, error } = await supabase
       .from("clientes")
       .select("*")
+      .eq("escritorio_id", escritorioId)
       .order("data", { ascending: false });
-    if (escritorioId) query = query.eq("escritorio_id", escritorioId);
-    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
 
-  getClienteById: async (idOuNome) => {
+  /** Vários tenants (ex.: processos agregando VK + YB) — sempre com .in(escritorio_id). */
+  getClientesPorEscritorios: async (escritorioIds) => {
+    if (!escritorioIds?.length) return [];
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*")
+      .in("escritorio_id", escritorioIds)
+      .order("data", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  getClienteById: async (idOuNome, options) => {
+    const allowedEscritorioIds = options?.allowedEscritorioIds;
+
+    const aplicarFiltroTenant = (row) => {
+      if (!row) return null;
+      if (
+        allowedEscritorioIds?.length > 0 &&
+        !allowedEscritorioIds.includes(row.escritorio_id)
+      ) {
+        return null;
+      }
+      return row;
+    };
+
     if (!isNaN(idOuNome) && idOuNome !== null && idOuNome !== "") {
       const { data: rpcData, error: rpcError } = await supabase.rpc(
         "obter_cliente_por_id",
         { p_id: parseInt(idOuNome) },
       );
-      if (!rpcError && rpcData && rpcData.length > 0) return rpcData[0];
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        return aplicarFiltroTenant(rpcData[0]);
+      }
     }
     let query = supabase.from("clientes").select("*");
     if (!isNaN(idOuNome) && idOuNome !== null && idOuNome !== "")
@@ -281,43 +367,54 @@ export const api = {
 
     const { data, error } = await query.maybeSingle();
     if (error) throw error;
-    return data;
+    return aplicarFiltroTenant(data);
   },
 
   createCliente: async (novoCliente) => {
-    const { data, error } = await supabase
-      .from("clientes")
-      .insert([
-        {
-          nome: novoCliente.nome,
-          tipo: novoCliente.tipo,
-          status: novoCliente.status || "Produção",
-          pagamento: novoCliente.pagamento,
-          valor_pago: novoCliente.valor_pago,
-          escritorio_id: novoCliente.escritorio_id,
-        },
-      ])
-      .select();
+    const row = omitUndefined({
+      nome: novoCliente.nome,
+      tipo: novoCliente.tipo,
+      status: novoCliente.status || "Produção",
+      pagamento: novoCliente.pagamento,
+      valor_pago: novoCliente.valor_pago,
+      escritorio_id: novoCliente.escritorio_id,
+    });
+    if (!row.escritorio_id) {
+      throw new Error("escritorio_id obrigatório em createCliente");
+    }
+    const { data, error } = await supabase.from("clientes").insert([row]).select();
     if (error) throw error;
     return data[0];
   },
 
-  updateCliente: async (id, dados) => {
+  updateCliente: async (id, dados, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em updateCliente");
+    }
+    const limpo = sanitizeClientePayload(dados);
     const { data, error } = await supabase
       .from("clientes")
-      .update(dados)
+      .update(limpo)
       .eq("id", id)
+      .eq("escritorio_id", escritorioId)
       .select();
     if (error) throw error;
     return data[0];
   },
 
-  deleteCliente: async (id) => {
-    const { error } = await supabase.from("clientes").delete().eq("id", id);
+  deleteCliente: async (id, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em deleteCliente");
+    }
+    const { error } = await supabase
+      .from("clientes")
+      .delete()
+      .eq("id", id)
+      .eq("escritorio_id", escritorioId);
     if (error) throw error;
   },
 
-  uploadFotoCliente: async (clienteId, file) => {
+  uploadFotoCliente: async (clienteId, file, escritorioId) => {
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${clienteId}-${Date.now()}.${fileExt}`;
@@ -330,10 +427,14 @@ export const api = {
         .from("fotos_clientes")
         .getPublicUrl(fileName);
       const fotoUrl = data.publicUrl;
-      const { error: updateError } = await supabase
+      let updateQuery = supabase
         .from("clientes")
         .update({ foto: fotoUrl })
         .eq("id", clienteId);
+      if (escritorioId) {
+        updateQuery = updateQuery.eq("escritorio_id", escritorioId);
+      }
+      const { error: updateError } = await updateQuery;
       if (updateError) throw updateError;
       return { fotoUrl };
     } catch (error) {
@@ -438,7 +539,6 @@ export const api = {
 
     let etapas = data.etapas_selecionadas || [];
 
-    // AUTO-INJEÇÃO: Se o projeto é reforma e ainda não tem "Demolição", cria e salva no DB de forma transparente
     if (data.clientes?.tipo?.toLowerCase() === "reforma" && etapas.length > 0) {
       const temDemolicao = etapas.some((e) => e.nome === "Demolição");
       if (!temDemolicao) {
@@ -774,8 +874,6 @@ export const api = {
         throw e;
       }
     }
-    // UUID explícito: o cliente Supabase pode enviar id:null se a chave existir com
-    // undefined, o que impede o DEFAULT gen_random_uuid() na coluna.
     const row = { id: globalThis.crypto.randomUUID(), ...dadosLimpos, cnpj };
     const { data, error } = await supabase
       .from("fornecedores")

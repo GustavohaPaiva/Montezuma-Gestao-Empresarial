@@ -1,7 +1,10 @@
+import ModalPortal from "../gerais/ModalPortal";
+
 export default function Modal({ isOpen, onClose, title, children }) {
   if (!isOpen) return null;
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-[#FFFFFF] w-[90%] max-w-[500px] rounded-[12px] shadow-2xl overflow-hidden">
         {/* Header do Modal */}
@@ -21,5 +24,6 @@ export default function Modal({ isOpen, onClose, title, children }) {
         <div className="p-[20px]">{children}</div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

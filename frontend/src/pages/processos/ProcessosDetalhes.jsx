@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { api } from "../../services/api";
+import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 
 export default function ProcessosDetalhes() {
   const navigate = useNavigate();
@@ -14,7 +15,9 @@ export default function ProcessosDetalhes() {
   useEffect(() => {
     async function carregarDados() {
       try {
-        const data = await api.getClienteById(id);
+        const data = await api.getClienteById(id, {
+          allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
+        });
         setProcesso(data);
       } catch (error) {
         console.error("Erro ao carregar detalhes do processo:", error);
@@ -59,10 +62,17 @@ export default function ProcessosDetalhes() {
     setEditando(null);
 
     try {
-      await api.updateCliente(id, { [campo]: novoValor });
+      if (!processo?.escritorio_id) return;
+      await api.updateCliente(
+        id,
+        { [campo]: novoValor },
+        processo.escritorio_id,
+      );
     } catch (err) {
       console.error(`Erro ao atualizar ${campo}:`, err);
-      const data = await api.getClienteById(id);
+      const data = await api.getClienteById(id, {
+        allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
+      });
       setProcesso(data);
     }
   };
@@ -70,10 +80,17 @@ export default function ProcessosDetalhes() {
   const handleStatusChange = async (campo, novoStatus) => {
     setProcesso((prev) => ({ ...prev, [campo]: novoStatus }));
     try {
-      await api.updateCliente(id, { [campo]: novoStatus });
+      if (!processo?.escritorio_id) return;
+      await api.updateCliente(
+        id,
+        { [campo]: novoStatus },
+        processo.escritorio_id,
+      );
     } catch (err) {
       console.error(`Erro ao atualizar ${campo}:`, err);
-      const data = await api.getClienteById(id);
+      const data = await api.getClienteById(id, {
+        allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
+      });
       setProcesso(data);
     }
   };
@@ -92,7 +109,8 @@ export default function ProcessosDetalhes() {
       delete dadosParaSalvar.id;
       delete dadosParaSalvar.created_at;
 
-      await api.updateCliente(id, dadosParaSalvar);
+      if (!processo?.escritorio_id) return;
+      await api.updateCliente(id, dadosParaSalvar, processo.escritorio_id);
       alert("Informações atualizadas com sucesso!");
     } catch (err) {
       console.error("Erro ao salvar informações do formulário:", err);

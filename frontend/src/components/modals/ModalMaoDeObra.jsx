@@ -1,13 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import ModalPortal from "../gerais/ModalPortal";
 import { api } from "../../services/api";
 
-export default function ModalMaoDeObra({
-  isOpen,
-  onClose,
-  onSave,
-  nomeObra,
-}) {
+export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
   const [formData, setFormData] = useState({
     tipo: "",
     classe_id: "",
@@ -57,7 +53,8 @@ export default function ModalMaoDeObra({
   }, [formData.classe_id]);
 
   const prestadorSelecionado = useMemo(
-    () => prestadores.find((p) => String(p.id) === String(formData.prestador_id)),
+    () =>
+      prestadores.find((p) => String(p.id) === String(formData.prestador_id)),
     [prestadores, formData.prestador_id],
   );
 
@@ -82,7 +79,8 @@ export default function ModalMaoDeObra({
   };
 
   return (
-    <div className="fixed z-50 flex items-center justify-center w-[380px] sm:w-[500px] p-[10px]">
+    <ModalPortal>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-[10px]">
       <div className="bg-[#ffffff] w-[500px] max-w-[95%] rounded-[16px] shadow-2xl flex flex-col overflow-hidden border border-[#C4C4C9]">
         <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
           <div className="flex-1 min-w-0">
@@ -139,7 +137,9 @@ export default function ModalMaoDeObra({
               className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
             >
               <option value="">
-                {loadingClasses ? "Carregando classes..." : "Selecione uma classe..."}
+                {loadingClasses
+                  ? "Carregando classes..."
+                  : "Selecione uma classe..."}
               </option>
               {classes?.map((classe) => (
                 <option key={classe.id} value={classe.id}>
@@ -200,5 +200,6 @@ export default function ModalMaoDeObra({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

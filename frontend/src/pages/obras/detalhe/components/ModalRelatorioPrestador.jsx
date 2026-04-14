@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ButtonDefault from "../../../../components/gerais/ButtonDefault";
+import ModalPortal from "../../../../components/gerais/ModalPortal";
 
 export default function ModalRelatorioPrestador({
   isOpen,
@@ -11,7 +12,8 @@ export default function ModalRelatorioPrestador({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed z-50 flex w-full h-full items-center justify-center p-[10px] inset-0 bg-black/50">
+    <ModalPortal>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-[10px]">
       <div className="bg-[#ffffff] w-[400px] max-w-[95%] rounded-[16px] shadow-2xl flex flex-col overflow-hidden border border-[#C4C4C9]">
         <div className="p-[20px] border-b border-[#DBDADE] flex justify-between items-center">
           <h2 className="text-[18px] font-bold text-[#464C54] uppercase">
@@ -58,5 +60,6 @@ export default function ModalRelatorioPrestador({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

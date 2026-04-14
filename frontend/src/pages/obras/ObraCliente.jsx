@@ -1,8 +1,10 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../../services/api";
+import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import { useAuth } from "../../contexts/AuthContext";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
+import ModalPortal from "../../components/gerais/ModalPortal";
 import logo from "../../assets/logos/logo sem fundo.png";
 import Etapas from "../../components/gerais/ObraEtapas";
 import ListaEtapas from "../../components/obras/ListaEtapas";
@@ -152,7 +154,10 @@ export default function ObraCliente() {
               setCliente(dadosCliente);
             } else if (dadosObra.cliente) {
               try {
-                const todosClientes = await api.getClientes();
+                const todosClientes = await api.getClientesPorEscritorios([
+                  ID_VOGELKOP,
+                  ID_YBYOCA,
+                ]);
                 const donoDaObra = todosClientes.find(
                   (c) =>
                     c.nome?.toLowerCase() === dadosObra.cliente?.toLowerCase(),
@@ -219,7 +224,11 @@ export default function ObraCliente() {
 
     try {
       setUploadingFoto(true);
-      const response = await api.uploadFotoCliente(idParaSalvar, selectedFile);
+      const response = await api.uploadFotoCliente(
+        idParaSalvar,
+        selectedFile,
+        cliente?.escritorio_id,
+      );
       setCliente((prev) => ({
         ...prev,
         foto: response.fotoUrl,
@@ -527,6 +536,7 @@ export default function ObraCliente() {
       />
 
       {isModalOpen && (
+        <ModalPortal>
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col items-center shadow-xl relative transition-all duration-300 transform scale-100 opacity-100">
             <button
@@ -580,6 +590,7 @@ export default function ObraCliente() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {isSomenteProcessos && (

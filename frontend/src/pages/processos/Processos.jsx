@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Navbar from "../../components/navbar/NavbarProcessos";
-import ModalCliente from "../../components/modals/ModalClientes";
 import CardProcessos from "../../components/cards/CardProcessos";
 import { api } from "../../services/api";
+import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import { Hourglass } from "lucide-react";
 
 function useScrollFadeIn() {
@@ -30,7 +30,6 @@ function useScrollFadeIn() {
 }
 
 export default function Processos() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [processos, setProcessos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [showElements, setShowElements] = useState(false);
@@ -45,16 +44,12 @@ export default function Processos() {
     setCarregando(true);
     setShowElements(false);
     try {
-      const data = await api.getClientes();
+      const data = await api.getClientesPorEscritorios([
+        ID_VOGELKOP,
+        ID_YBYOCA,
+      ]);
 
-      const filtrados = data.filter((c) => {
-        const idEscritorio = c.escritorio_id
-          ? c.escritorio_id.toLowerCase()
-          : "";
-        return idEscritorio === "vk" || idEscritorio === "yb";
-      });
-
-      setProcessos(filtrados);
+      setProcessos(data);
     } catch (error) {
       console.error("Erro ao carregar processos:", error);
     } finally {
@@ -75,29 +70,18 @@ export default function Processos() {
     }
   }, [carregando]);
 
-  const handleCreateClient = async (formData) => {
-    try {
-      await api.createCliente({
-        nome: formData.cliente,
-        tipo: formData.tipo,
-        escritorio_id: formData.escritorio_id || "vk",
-        status: "Produção",
-      });
-      setIsModalOpen(false);
-      carregarProcessos();
-    } catch (err) {
-      console.error("Erro ao criar cliente:", err);
-      alert("Erro ao criar cliente.");
-    }
-  };
-
   const handleUpdateProcesso = async (id, dadosAtualizados) => {
     try {
-      await api.updateCliente(id, dadosAtualizados);
+      const clienteAtual = processos.find((p) => p.id === id);
+      if (!clienteAtual?.escritorio_id) return;
+
+      await api.updateCliente(
+        id,
+        dadosAtualizados,
+        clienteAtual.escritorio_id,
+      );
 
       if (dadosAtualizados.status === "Obra") {
-        const clienteAtual = processos.find((p) => p.id === id);
-
         if (clienteAtual) {
           await api.createObra({
             cliente: clienteAtual.nome,
@@ -121,7 +105,9 @@ export default function Processos() {
 
   const handleDeleteProcesso = async (id) => {
     try {
-      await api.deleteCliente(id);
+      const row = processos.find((p) => p.id === id);
+      if (!row?.escritorio_id) return;
+      await api.deleteCliente(id, row.escritorio_id);
       carregarProcessos();
     } catch (error) {
       console.error("Erro ao deletar processo:", error);
@@ -182,7 +168,6 @@ export default function Processos() {
           onSearchChange={setBusca}
           filterStatus={filtroStatus}
           onFilterChange={setFiltroStatus}
-          onOpenModal={() => setIsModalOpen(true)}
         />
       </div>
 
@@ -220,13 +205,6 @@ export default function Processos() {
           </div>
         )}
       </main>
-
-      <ModalCliente
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleCreateClient}
-        obra={null}
-      />
     </div>
   );
 }
