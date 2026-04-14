@@ -1,4 +1,5 @@
 import React from "react";
+import { ID_YBYOCA, ID_VOGELKOP } from "../constants/escritorios";
 import logo from "../assets/imgDocumentos/secretariaMunicipalAdministracao.jpg";
 import { Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
 
@@ -265,10 +266,10 @@ const RequerimentoGeralLayout = ({ cliente }) => {
   let contatoTelefone = cliente?.telefone || "";
   let contatoEmail = cliente?.email || "";
 
-  if (cliente?.escritorio_id === "YB") {
+  if (cliente?.escritorio_id === ID_YBYOCA) {
     contatoTelefone = "34 9 9855-3710";
     contatoEmail = "ybyoca.studio@gmail.com";
-  } else if (cliente?.escritorio_id === "VK") {
+  } else if (cliente?.escritorio_id === ID_VOGELKOP) {
     contatoTelefone = "34 9 8417-4206";
     contatoEmail = "arquiteturavogelkop@gmail.com";
   }

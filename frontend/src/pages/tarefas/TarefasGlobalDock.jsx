@@ -4,6 +4,7 @@ import { Bell } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../services/supabase";
 import ListaTarefas from "./ListaTarefas";
+import ModalPortal from "../../components/gerais/ModalPortal";
 import { contarTarefasPendentesBadge } from "./tarefasHelpers";
 
 const TIPOS_COM_ACESSO = [
@@ -16,7 +17,7 @@ const TIPOS_COM_ACESSO = [
 
 export default function TarefasGlobalDock() {
   const { user } = useAuth();
-  const location = useLocation();
+  const { pathname } = useLocation();
   const [aberto, setAberto] = useState(false);
   const [contagem, setContagem] = useState(0);
   const [tick, setTick] = useState(0);
@@ -48,7 +49,7 @@ export default function TarefasGlobalDock() {
 
   useEffect(() => {
     refreshContagem();
-  }, [refreshContagem, tick, location.pathname]);
+  }, [refreshContagem, tick, pathname]);
 
   useEffect(() => {
     if (!aberto) return;
@@ -57,6 +58,8 @@ export default function TarefasGlobalDock() {
   }, [aberto, refreshContagem]);
 
   if (!mostrarDock) return null;
+
+  if (pathname.includes("/escritorio")) return null;
 
   return (
     <>
@@ -75,6 +78,7 @@ export default function TarefasGlobalDock() {
       </button>
 
       {aberto && (
+        <ModalPortal>
         <div className="fixed inset-0 z-[100] flex justify-end">
           <button
             type="button"
@@ -86,7 +90,7 @@ export default function TarefasGlobalDock() {
             className="relative flex h-[100dvh] max-h-[100dvh] w-[90vw] max-w-5xl flex-col bg-white shadow-sm ring-1 ring-gray-200 lg:ml-auto"
             role="dialog"
             aria-modal="true"
-          > 
+          >
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <ListaTarefas
                 embedded
@@ -99,6 +103,7 @@ export default function TarefasGlobalDock() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </>
   );

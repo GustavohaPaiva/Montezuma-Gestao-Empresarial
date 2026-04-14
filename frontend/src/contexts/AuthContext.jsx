@@ -97,7 +97,7 @@ export function AuthProvider({ children }) {
 
       const { data: usuarioData, error: usuarioError } = await supabase
         .from("usuarios")
-        .select("tipo, escritorio, nome")
+        .select("tipo, escritorio, nome, escritorio_id")
         .eq("id", data.user.id)
         .single();
 
@@ -106,12 +106,14 @@ export function AuthProvider({ children }) {
 
       const fotoDoAdmin = data.user.user_metadata?.foto || null;
 
+      /** `escritorio_id`: FK para multi-tenant (financeiro híbrido, projetos, etc.). */
       const userData = {
         id: data.user.id,
         email: data.user.email,
         nome: usuarioData.nome ?? null,
         tipo: usuarioData.tipo,
         escritorio: usuarioData.escritorio,
+        escritorio_id: usuarioData.escritorio_id ?? null,
         foto: fotoDoAdmin,
       };
 

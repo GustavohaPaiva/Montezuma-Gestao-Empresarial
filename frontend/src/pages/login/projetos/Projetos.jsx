@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { api } from "../../services/api";
+import {
+  ID_VOGELKOP,
+  ID_YBYOCA,
+  ESCRITORIO_NOME_POR_ID,
+} from "../../constants/escritorios";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import Navbar from "../../components/navbar/Navbar";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
@@ -21,7 +26,7 @@ const formatarMoeda = (valor) => {
 };
 
 export default function Projetos() {
-  const [escritorioAtivo, setEscritorioAtivo] = useState("VK");
+  const [escritorioAtivo, setEscritorioAtivo] = useState(ID_VOGELKOP);
 
   const [orcamentos, setOrcamentos] = useState([]);
   const [filtroData, setFiltroData] = useState({ inicio: "", fim: "" });
@@ -125,14 +130,18 @@ export default function Projetos() {
       setEditando({ id: null, campo: null });
 
       try {
-        await api.updateOrcamento(item.id, { [campo]: novoValor });
+        await api.updateOrcamento(
+          item.id,
+          { [campo]: novoValor },
+          escritorioAtivo,
+        );
         setRecarregar((prev) => prev + 1);
       } catch (err) {
         console.error(`Erro ao atualizar ${campo}:`, err);
         setRecarregar((prev) => prev + 1);
       }
     },
-    [editando, valorEdicao],
+    [editando, valorEdicao, escritorioAtivo],
   );
 
   const handleStatusChange = useCallback(
@@ -144,7 +153,7 @@ export default function Projetos() {
       );
 
       try {
-        await api.updateOrcamento(id, { status: novoStatus });
+        await api.updateOrcamento(id, { status: novoStatus }, escritorioAtivo);
 
         if (novoStatus === "Fechado" && orcamentoAtual) {
           const valorCobrado = parseFloat(orcamentoAtual.valor) || 0;
@@ -174,13 +183,13 @@ export default function Projetos() {
   const handleExcluir = useCallback(async (id) => {
     if (window.confirm("Tem certeza que deseja excluir este orçamento?")) {
       try {
-        await api.deleteOrcamento(id);
+        await api.deleteOrcamento(id, escritorioAtivo);
         setRecarregar((prev) => prev + 1);
       } catch (error) {
         console.error("Erro ao excluir:", error);
       }
     }
-  }, []);
+  }, [escritorioAtivo]);
 
   const orcamentosProcessados = useMemo(() => {
     let lista = [...orcamentos];
@@ -484,14 +493,18 @@ export default function Projetos() {
       setEditandoCliente({ id: null, campo: null });
 
       try {
-        await api.updateCliente(item.id, { [campo]: novoValor });
+        await api.updateCliente(
+          item.id,
+          { [campo]: novoValor },
+          escritorioAtivo,
+        );
         setRecarregar((prev) => prev + 1);
       } catch (err) {
         console.error(`Erro ao atualizar cliente ${campo}:`, err);
         setRecarregar((prev) => prev + 1);
       }
     },
-    [editandoCliente, valorEdicaoCliente],
+    [editandoCliente, valorEdicaoCliente, escritorioAtivo],
   );
 
   const handleStatusClienteChange = useCallback(
@@ -503,7 +516,7 @@ export default function Projetos() {
       );
 
       try {
-        await api.updateCliente(id, { status: novoStatus });
+        await api.updateCliente(id, { status: novoStatus }, escritorioAtivo);
 
         if (novoStatus === "Obra" && clienteAtual) {
           await api.createObra({
@@ -523,19 +536,19 @@ export default function Projetos() {
         setRecarregar((prev) => prev + 1);
       }
     },
-    [clientes],
+    [clientes, escritorioAtivo],
   );
 
   const handleExcluirCliente = useCallback(async (id) => {
     if (window.confirm("Tem certeza que deseja excluir este cliente?")) {
       try {
-        await api.deleteCliente(id);
+        await api.deleteCliente(id, escritorioAtivo);
         setRecarregar((prev) => prev + 1);
       } catch (error) {
         console.error("Erro ao excluir cliente:", error);
       }
     }
-  }, []);
+  }, [escritorioAtivo]);
 
   const clientesProcessados = useMemo(() => {
     let lista = [...clientes];
@@ -642,7 +655,9 @@ export default function Projetos() {
               ),
             );
 
-            api.updateCliente(c.id, { tipo: novoValor }).catch((err) => {
+            api
+              .updateCliente(c.id, { tipo: novoValor }, escritorioAtivo)
+              .catch((err) => {
               console.error("Erro ao atualizar tipo:", err);
               setRecarregar((prev) => prev + 1);
             });
@@ -682,7 +697,9 @@ export default function Projetos() {
               ),
             );
 
-            api.updateCliente(c.id, { pagamento: novoValor }).catch((err) => {
+            api
+              .updateCliente(c.id, { pagamento: novoValor }, escritorioAtivo)
+              .catch((err) => {
               console.error("Erro ao atualizar pagamento:", err);
               setRecarregar((prev) => prev + 1);
             });
@@ -840,6 +857,7 @@ export default function Projetos() {
     salvarEdicaoCliente,
     handleStatusClienteChange,
     handleExcluirCliente,
+    escritorioAtivo,
   ]);
 
   const totalItensFechado = orcamentosProcessados.filter(
@@ -854,6 +872,8 @@ export default function Projetos() {
 
   return (
     <div className="min-h-screen bg-[#EEEDF0] text-center pb-20">
+      <Navbar />
+
       <ModalOrcamento
         isOpen={modalAberto}
         onClose={() => setModalAberto(false)}
@@ -866,8 +886,6 @@ export default function Projetos() {
         onSave={handleCriarCliente}
       />
 
-      <Navbar />
-
       <div className="w-full px-[5%] box-border">
         <div className="flex justify-end mb-2 gap-2 items-center">
           <span className="text-sm font-bold text-gray-500">
@@ -878,8 +896,8 @@ export default function Projetos() {
             onChange={(e) => setEscritorioAtivo(e.target.value)}
             className="p-2 border border-gray-300 rounded-md font-bold"
           >
-            <option value="VK">VK Arquitetura</option>
-            <option value="YB">YB Arquitetura</option>
+            <option value={ID_VOGELKOP}>VK Arquitetura</option>
+            <option value={ID_YBYOCA}>YB Arquitetura</option>
           </select>
         </div>
 
@@ -945,7 +963,8 @@ export default function Projetos() {
             </div>
           ) : (
             <div className="text-center py-10 text-gray-500">
-              Nenhum orçamento encontrado para {escritorioAtivo}.
+              Nenhum orçamento encontrado para{" "}
+              {ESCRITORIO_NOME_POR_ID[escritorioAtivo] ?? "o escritório"}.
             </div>
           )}
 
@@ -1058,7 +1077,8 @@ export default function Projetos() {
             </div>
           ) : (
             <div className="text-center py-10 text-gray-500">
-              Nenhum cliente encontrado para {escritorioAtivo}.
+              Nenhum cliente encontrado para{" "}
+              {ESCRITORIO_NOME_POR_ID[escritorioAtivo] ?? "o escritório"}.
             </div>
           )}
 

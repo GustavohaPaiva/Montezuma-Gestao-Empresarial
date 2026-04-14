@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import ModalPortal from "../gerais/ModalPortal";
 import { supabase } from "../../services/supabase";
 
 export default function ModalNovaObra({ isOpen, onClose, onSave }) {
@@ -50,6 +51,7 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
   };
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-50 flex items-start justify-center p-[10px]">
       <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-gray-200">
         {/* Cabeçalho */}
@@ -129,5 +131,6 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }

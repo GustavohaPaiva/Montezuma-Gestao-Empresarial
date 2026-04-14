@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../../services/api";
+import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 
 import { pdf, Document } from "@react-pdf/renderer";
 import RequerimentoGeralLayout from "../../documents/RequerimentoGeralLayout";
@@ -18,7 +19,10 @@ const DocumentosProcesso = () => {
   useEffect(() => {
     const carregarEGerarPDF = async () => {
       try {
-        const dadosCliente = await api.getClienteById(id);
+        const dadosCliente = await api.getClienteById(id, {
+          allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
+        });
+        if (!dadosCliente) throw new Error("Cliente não encontrado");
 
         const blob = await pdf(
           <Document>

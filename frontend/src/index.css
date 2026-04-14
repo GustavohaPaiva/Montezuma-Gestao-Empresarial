@@ -1,15 +1,51 @@
 @import "tailwindcss";
 
 @theme {
-  /* Cores de Status do Montezuma */
+  --color-esc-bg: var(--esc-bg);
+  --color-esc-card: var(--esc-card);
+  --color-esc-text: var(--esc-text);
+  --color-esc-muted: var(--esc-muted);
+  --color-esc-destaque: var(--esc-destaque);
+  --color-esc-border: var(--esc-border);
+
   --color-status-andamento-bg: #fff4e5;
   --color-status-andamento-text: #b95000;
-
   --color-status-aguardando-bg: #ffebee;
   --color-status-aguardando-text: #c62828;
-
   --color-status-concluida-bg: #e6f4ea;
   --color-status-concluida-text: #1e8e3e;
+}
+
+@layer base {
+  .theme-ybyoca {
+    --esc-bg: #0a0a0a;
+    --esc-card: #171717;
+    --esc-text: #f5f5f5;
+    --esc-muted: #a3a3a3;
+    --esc-destaque: #ff6000;
+    --esc-border: #262626;
+    --color-esc-bg: var(--esc-bg);
+    --color-esc-card: var(--esc-card);
+    --color-esc-text: var(--esc-text);
+    --color-esc-muted: var(--esc-muted);
+    --color-esc-destaque: var(--esc-destaque);
+    --color-esc-border: var(--esc-border);
+  }
+
+  .theme-vogelkop {
+    --esc-bg: #0a0a0a;
+    --esc-card: #171717;
+    --esc-text: #f5f5f5;
+    --esc-muted: #a3a3a3;
+    --esc-destaque: #22d3ee;
+    --esc-border: #262626;
+    --color-esc-bg: var(--esc-bg);
+    --color-esc-card: var(--esc-card);
+    --color-esc-text: var(--esc-text);
+    --color-esc-muted: var(--esc-muted);
+    --color-esc-destaque: var(--esc-destaque);
+    --color-esc-border: var(--esc-border);
+  }
 }
 
 @font-face {
@@ -34,11 +70,28 @@
   }
   100% {
     opacity: 1;
-    filter: blur(0);
-    transform: scale(1);
+    filter: none;
+    transform: none;
   }
 }
 
 .animate-page-transition {
   animation: premiumEnter 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes premiumScaleUp {
+  0% {
+    opacity: 0;
+    filter: blur(12px);
+    transform: scale(0.95) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-premium-reveal {
+  animation: premiumScaleUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

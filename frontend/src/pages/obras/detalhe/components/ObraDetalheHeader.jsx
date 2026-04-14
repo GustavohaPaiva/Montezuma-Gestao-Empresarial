@@ -10,7 +10,7 @@ export default function ObraDetalheHeader({
   onOpenMaoDeObra,
 }) {
   return (
-    <header className="h-[auto] min-h-[82px] border-b border-[#DBDADE] flex justify-center top-0 z-10 w-full bg-[#EEEDF0] py-4">
+    <header className="h-[65px] border-b border-[#DBDADE] flex justify-center sticky top-0 z-60 w-full shadow-sm bg-[#EEEDF0] py-4">
       <div className="w-[90%] flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-[16px] w-full md:w-auto">
           <button
@@ -32,8 +32,7 @@ export default function ObraDetalheHeader({
             {obra.clientes?.rua_obra || obra.clientes?.rua ? (
               <span className="text-[11px] md:text-[12px] text-[#71717A] uppercase font-medium mt-1">
                 {obra.clientes.rua_obra}
-                {obra.clientes.numero_obra &&
-                  `, ${obra.clientes.numero_obra}`}
+                {obra.clientes.numero_obra && `, ${obra.clientes.numero_obra}`}
               </span>
             ) : null}
           </div>

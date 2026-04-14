@@ -6,7 +6,6 @@ import PageTransition from "./components/gerais/PageTransition";
 import Obras from "./pages/obras/Obras";
 import ObrasDetalhe from "./pages/obras/ObrasDetalhe";
 import Home from "./pages/home/Home";
-import Projetos from "./pages/projetos/Projetos";
 import Processos from "./pages/processos/Processos";
 import LoginCliente from "./pages/login/LoginCliente";
 import LoginAdm from "./pages/login/LoginAdm";
@@ -19,6 +18,13 @@ import FornecedorDetalhes from "./pages/fornecedores/FornecedorDetalhes";
 import Prestadores from "./pages/prestadores/prestadores";
 import PrestadorDetalhes from "./pages/prestadores/PrestadorDetalhes";
 import TarefasGlobalDock from "./pages/tarefas/TarefasGlobalDock";
+import { ID_VOGELKOP, ID_YBYOCA } from "./constants/escritorios";
+import LayoutEscritorio from "./pages/escritorios/layouts/LayoutEscritorio";
+import HomeEscritorio from "./pages/escritorios/HomeEscritorio";
+import TarefasEscritorio from "./pages/escritorios/TarefasEscritorio";
+import ClientesEscritorio from "./pages/escritorios/ClientesEscritorio";
+import OrcamentoEscritorio from "./pages/escritorios/OrcamentoEscritorio";
+import FinanceiroEscritorio from "./pages/escritorios/FinanceiroEscritorio";
 
 import "./index.css";
 
@@ -47,20 +53,12 @@ export default function App() {
             }
           />
 
-          {/* --- ÁREA EXCLUSIVA DO ADM (Obras, Projetos, Fornecedores) --- */}
+          {/* --- ÁREA EXCLUSIVA DO ADM (Obras, Prestadores, Fornecedores) --- */}
           <Route
             element={
               <RotaProtegida allowedTypes={["diretoria", "suporte_ti"]} />
             }
           >
-            <Route
-              path="/projetos"
-              element={
-                <PageTransition>
-                  <Projetos />
-                </PageTransition>
-              }
-            />
             <Route
               path="/obras"
               element={
@@ -165,6 +163,110 @@ export default function App() {
                 </PageTransition>
               }
             />
+          </Route>
+
+          {/* --- Escritórios tenant (layout + dashboard) --- */}
+          <Route
+            element={
+              <RotaProtegida
+                allowedTypes={["diretoria", "gestor_master"]}
+                allowedEscritorios={[ID_VOGELKOP]}
+              />
+            }
+          >
+            <Route path="/escritorio/vogelkop" element={<LayoutEscritorio />}>
+              <Route
+                index
+                element={
+                  <PageTransition>
+                    <HomeEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="tarefas"
+                element={
+                  <PageTransition>
+                    <TarefasEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="clientes"
+                element={
+                  <PageTransition>
+                    <ClientesEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="orcamentos"
+                element={
+                  <PageTransition>
+                    <OrcamentoEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="financeiro"
+                element={
+                  <PageTransition>
+                    <FinanceiroEscritorio />
+                  </PageTransition>
+                }
+              />
+            </Route>
+          </Route>
+          <Route
+            element={
+              <RotaProtegida
+                allowedTypes={["diretoria", "gestor_master"]}
+                allowedEscritorios={[ID_YBYOCA]}
+              />
+            }
+          >
+            <Route path="/escritorio/ybyoca" element={<LayoutEscritorio />}>
+              <Route
+                index
+                element={
+                  <PageTransition>
+                    <HomeEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="tarefas"
+                element={
+                  <PageTransition>
+                    <TarefasEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="clientes"
+                element={
+                  <PageTransition>
+                    <ClientesEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="orcamentos"
+                element={
+                  <PageTransition>
+                    <OrcamentoEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="financeiro"
+                element={
+                  <PageTransition>
+                    <FinanceiroEscritorio />
+                  </PageTransition>
+                }
+              />
+            </Route>
           </Route>
 
           {/* --- ÁREA COMUM (CLIENTE + ADM) --- */}

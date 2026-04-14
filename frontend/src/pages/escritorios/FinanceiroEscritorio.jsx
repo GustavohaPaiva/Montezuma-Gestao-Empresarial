@@ -1,29 +1,37 @@
 import { useState, useEffect } from "react";
-import Navbar from "../../components/navbar/Navbar";
+import { Check, CalendarClock, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
-import ModalFinanceiroEntrada from "../../components/modals/ModalFinanceiroEntrada";
-import ModalFinanceiroSaida from "../../components/modals/ModalFinanceiroSaida";
-import ButtonDefault from "../../components/gerais/ButtonDefault";
+import ModalEntradaEscritorio from "../../components/modals/ModalEntradaEscritorio";
+import ModalSaidaEscritorio from "../../components/modals/ModalSaidaEscritorio";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
-import { ID_MONTEZUMA } from "../../constants/escritorios";
+// IMPORTANTE: Adicionado ID_VOGELKOP e ID_YBYOCA para resgatar o tema no Portal
+import {
+  ESCRITORIO_NOME_POR_ID,
+  ID_VOGELKOP,
+} from "../../constants/escritorios";
 import {
   TIPOS_FINANCEIRO_ADMIN,
   formatarDataBR,
   formatarMoeda,
   checkIsParcelado,
-} from "./financeiroUtils";
+} from "../financeiro/financeiroUtils";
+import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 
-export default function Financeiro() {
+export default function FinanceiroEscritorio() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = TIPOS_FINANCEIRO_ADMIN.includes(user?.tipo);
+  const escritorioId = useEscritorioIdFromPath();
+
+  // INJEÇÃO DO TEMA PARA OS MINI MODAIS (PORTAL)
+  const temaClasse =
+    escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
 
   const [modalEntradaAberto, setModalEntradaAberto] = useState(false);
   const [modalSaidaAberto, setModalSaidaAberto] = useState(false);
-
-  /** Visão matriz: apenas lançamentos do pool Montezuma. */
-  const escritorioId = ID_MONTEZUMA;
 
   const [entradas, setEntradas] = useState([]);
   const [saidas, setSaidas] = useState([]);
@@ -57,7 +65,8 @@ export default function Financeiro() {
       botoes: [
         {
           texto: "Entendido",
-          className: "bg-[#2E7D32] text-white hover:bg-[#1B5E20] shadow-sm",
+          className:
+            "rounded-xl border border-esc-destaque/40 bg-esc-destaque/15 text-esc-destaque hover:bg-esc-destaque/25 shadow-[0_0_15px_-3px_var(--color-esc-destaque)]",
           onClick: fecharDialogo,
         },
       ],
@@ -185,18 +194,18 @@ export default function Financeiro() {
           return [
             nomesMeses[index],
             <div key={`ent-${index}`} className="flex flex-col">
-              <span className="font-bold">
+              <span className="font-bold text-status-concluida-text">
                 R$ {formatarMoeda(r.totalEntVal)}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-status-concluida-text/70">
                 Total: R$ {formatarMoeda(r.totalEntPrev)}
               </span>
             </div>,
             <div key={`sai-${index}`} className="flex flex-col">
-              <span className="font-bold">
+              <span className="font-bold text-status-aguardando-text">
                 R$ {formatarMoeda(r.totalSaiVal)}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-status-aguardando-text/75">
                 Total: R$ {formatarMoeda(r.totalSaiPrev)}
               </span>
             </div>,
@@ -204,14 +213,14 @@ export default function Financeiro() {
               <span
                 className={
                   balVal >= 0
-                    ? "text-green-600 font-bold"
-                    : "text-red-600 font-bold"
+                    ? "font-bold text-status-concluida-text"
+                    : "font-bold text-status-aguardando-text"
                 }
               >
                 R$ {formatarMoeda(balVal)}
               </span>
               <span
-                className={`text-xs ${balPrev >= 0 ? "text-green-600/70" : "text-red-600/70"}`}
+                className={`text-xs ${balPrev >= 0 ? "text-status-concluida-text/75" : "text-status-aguardando-text/80"}`}
               >
                 Prev: R$ {formatarMoeda(balPrev)}
               </span>
@@ -235,7 +244,7 @@ export default function Financeiro() {
       await api.createFinanceiro("entradas", {
         ...dadosFormulario,
         data: dataFinal,
-        escritorio_id: dadosFormulario.escritorio_id ?? escritorioId,
+        escritorio_id: escritorioId,
       });
       setModalEntradaAberto(false);
       setRecarregar((prev) => prev + 1);
@@ -252,7 +261,7 @@ export default function Financeiro() {
       await api.createFinanceiro("saida", {
         ...dadosFormulario,
         data: dataFinal,
-        escritorio_id: dadosFormulario.escritorio_id ?? escritorioId,
+        escritorio_id: escritorioId,
       });
       setModalSaidaAberto(false);
       setRecarregar((prev) => prev + 1);
@@ -285,7 +294,7 @@ export default function Financeiro() {
           {
             texto: "Apenas Esta Parcela",
             className:
-              "bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100",
+              "rounded-xl border border-esc-border bg-black/40 text-esc-text hover:bg-white/5",
             onClick: () => {
               executarExclusao(tabela, item.id, false);
               fecharDialogo();
@@ -293,7 +302,8 @@ export default function Financeiro() {
           },
           {
             texto: "Excluir Todas as Parcelas",
-            className: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
+            className:
+              "rounded-xl border border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque hover:bg-esc-destaque/30 shadow-[0_0_15px_-3px_var(--color-esc-destaque)]",
             onClick: () => {
               executarExclusao(tabela, item.id, true);
               fecharDialogo();
@@ -301,7 +311,8 @@ export default function Financeiro() {
           },
           {
             texto: "Cancelar",
-            className: "bg-gray-100 text-[#464C54] hover:bg-gray-200",
+            className:
+              "rounded-xl border border-white/10 bg-transparent text-esc-muted hover:bg-white/5",
             onClick: fecharDialogo,
           },
         ],
@@ -315,12 +326,14 @@ export default function Financeiro() {
         botoes: [
           {
             texto: "Cancelar",
-            className: "bg-gray-100 text-[#464C54] hover:bg-gray-200",
+            className:
+              "rounded-xl border border-white/10 bg-transparent text-esc-text hover:bg-white/5",
             onClick: fecharDialogo,
           },
           {
             texto: "Excluir",
-            className: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
+            className:
+              "rounded-xl border border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque hover:bg-esc-destaque/30 shadow-[0_0_15px_-3px_var(--color-esc-destaque)]",
             onClick: () => {
               executarExclusao(tabela, item.id, false);
               fecharDialogo();
@@ -369,12 +382,14 @@ export default function Financeiro() {
       botoes: [
         {
           texto: "Cancelar",
-          className: "bg-gray-100 text-[#464C54] hover:bg-gray-200",
+          className:
+            "rounded-xl border border-white/10 bg-transparent text-esc-text hover:bg-white/5",
           onClick: fecharDialogo,
         },
         {
-          texto: "Adiar",
-          className: "bg-blue-500 text-white hover:bg-blue-600 shadow-sm",
+          texto: "Adiar Lançamento",
+          className:
+            "rounded-xl border border-esc-destaque/40 bg-esc-destaque/20 text-esc-destaque hover:bg-esc-destaque/30 shadow-[0_0_15px_-3px_var(--color-esc-destaque)]",
           onClick: () => {
             executarAdiar(tabela, item);
             fecharDialogo();
@@ -427,7 +442,7 @@ export default function Financeiro() {
               {
                 texto: "Aplicar valor fixo nas restantes",
                 className:
-                  "bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100",
+                  "rounded-xl border border-white/10 bg-black/40 text-esc-text hover:bg-white/5",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -439,7 +454,7 @@ export default function Financeiro() {
               {
                 texto: `${textoAcao} valor na próxima parcela`,
                 className:
-                  "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100",
+                  "rounded-xl border border-esc-destaque/30 bg-esc-destaque/10 text-esc-destaque hover:bg-esc-destaque/20 shadow-[0_0_15px_-3px_var(--color-esc-destaque)]",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -451,7 +466,7 @@ export default function Financeiro() {
               {
                 texto: `Ratear diferença nas restantes`,
                 className:
-                  "bg-green-50 border border-green-200 text-green-700 hover:bg-green-100",
+                  "rounded-xl border border-white/10 bg-transparent text-esc-text hover:bg-white/5",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -463,7 +478,7 @@ export default function Financeiro() {
               {
                 texto: "Alterar apenas esta parcela",
                 className:
-                  "bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100",
+                  "rounded-xl border border-white/10 bg-transparent text-esc-muted hover:bg-white/5",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -473,7 +488,8 @@ export default function Financeiro() {
               },
               {
                 texto: "Cancelar Alteração",
-                className: "bg-gray-100 text-[#464C54] hover:bg-gray-200 mt-2",
+                className:
+                  "rounded-xl border border-esc-border bg-black/60 text-esc-muted hover:bg-white/5",
                 onClick: () => {
                   cancelarEdicao();
                   fecharDialogo();
@@ -538,6 +554,11 @@ export default function Financeiro() {
     }
     lista.sort((a, b) => (a.validacao || 0) - (b.validacao || 0));
 
+    const classeValorMontante =
+      nomeTabela === "entradas"
+        ? "font-bold text-status-concluida-text"
+        : "font-bold text-status-aguardando-text";
+
     return lista.map((item) => {
       const isEditingValor =
         editandoItem.tabela === nomeTabela &&
@@ -551,13 +572,13 @@ export default function Financeiro() {
             type="checkbox"
             checked={isValidado}
             onChange={() => handleToggleValidacao(nomeTabela, item)}
-            className="h-[18px] w-[18px] accent-[#1c8701] cursor-pointer"
+            className="h-[18px] w-[18px] cursor-pointer accent-esc-destaque"
           />
         </div>,
-        <div key={`desc-${item.id}`} className="uppercase">
+        <div key={`desc-${item.id}`} className="uppercase text-esc-text">
           {item.descricao}
         </div>,
-        <div key={`forma-${item.id}`} className="uppercase">
+        <div key={`forma-${item.id}`} className="uppercase text-esc-muted">
           {item.forma}
         </div>,
         <div
@@ -570,67 +591,64 @@ export default function Financeiro() {
                 type="number"
                 value={valorEditado}
                 onChange={(e) => setValorEditado(e.target.value)}
-                className="w-[80px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-center"
+                className="w-24 rounded-lg border border-esc-border bg-black/40 px-2 py-1 text-center text-sm text-esc-text focus:outline-none focus:ring-1 focus:ring-esc-destaque"
                 autoFocus
               />
               <button
+                type="button"
                 onClick={() => salvarEdicao(nomeTabela, item, "valor")}
-                className="cursor-pointer border-none bg-transparent"
+                className="cursor-pointer rounded-lg border border-esc-destaque/30 bg-esc-destaque/10 p-1.5 text-esc-destaque transition hover:bg-esc-destaque/20"
+                aria-label="Salvar valor"
               >
-                <img
-                  width="15"
-                  src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
-                  alt="salvar"
-                />
+                <Check className="h-4 w-4" aria-hidden />
               </button>
             </div>
           ) : (
             <div
-              className="flex items-center gap-2 group cursor-pointer"
+              className="group flex cursor-pointer items-center gap-2"
               onClick={() => iniciarEdicao(nomeTabela, item, "valor")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") iniciarEdicao(nomeTabela, item, "valor");
+              }}
+              role="button"
+              tabIndex={0}
             >
-              <span className="font-bold">R$ {formatarMoeda(item.valor)}</span>
-              <img
-                width="15"
-                src="https://img.icons8.com/ios/50/edit--v1.png"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                alt="editar"
+              <span className={classeValorMontante}>
+                R$ {formatarMoeda(item.valor)}
+              </span>
+              <Pencil
+                className="h-4 w-4 text-esc-muted opacity-0 transition-opacity group-hover:opacity-100"
+                aria-hidden
               />
             </div>
           )}
         </div>,
         <div
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-2 text-esc-muted"
           key={`dat-${item.id}`}
         >
           <span>{formatarDataBR(item.data)}</span>
         </div>,
         <div
-          className="flex justify-center gap-2 group"
+          className="group flex justify-center gap-2"
           key={`actions-${item.id}`}
         >
           <button
+            type="button"
             title="Jogar para o próximo mês"
             onClick={() => handleAdiarMes(nomeTabela, item)}
-            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-blue-50 rounded-full border-none bg-transparent cursor-pointer"
+            className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted opacity-0 transition-all hover:border-esc-border hover:bg-white/5 group-hover:opacity-100"
           >
-            <img
-              width="18"
-              src="https://img.icons8.com/material-outlined/24/228BE6/forward.png"
-              alt="adiar"
-            />
+            <CalendarClock className="h-4 w-4" aria-hidden />
           </button>
           {isAdmin && (
             <button
+              type="button"
               title="Excluir"
               onClick={() => handleDelete(nomeTabela, item)}
-              className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 rounded-full border-none bg-transparent cursor-pointer"
+              className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted opacity-0 transition-all hover:border-esc-border hover:bg-white/5 hover:text-esc-destaque group-hover:opacity-100"
             >
-              <img
-                width="18"
-                src="https://img.icons8.com/material-outlined/24/FA5252/trash.png"
-                alt="excluir"
-              />
+              <Trash2 className="h-4 w-4" aria-hidden />
             </button>
           )}
         </div>,
@@ -638,15 +656,33 @@ export default function Financeiro() {
     });
   };
 
+  const tituloFonte = ESCRITORIO_NOME_POR_ID[escritorioId] ?? "Escritório";
+
   return (
-    <div className="relative">
+    <div className="relative w-full pb-12 text-esc-text">
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="mb-6 mt-4 flex cursor-pointer items-center gap-2 text-esc-muted transition-colors hover:text-esc-destaque"
+      >
+        <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+        Voltar
+      </button>
+
+      {/* MINI MODAL: DIÁLOGO PREMIUM GLASSMORPHISM */}
       {dialogo.aberto && (
         <ModalPortal>
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-opacity">
-            <div className="bg-white rounded-[16px] p-6 w-full max-w-md shadow-2xl flex flex-col gap-4 text-center transform transition-transform scale-100">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
+          <div
+            className={`${temaClasse} fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md transition-opacity`}
+          >
+            <div className="animate-premium-reveal relative flex w-full max-w-md flex-col gap-5 overflow-hidden rounded-2xl border border-white/20 bg-esc-card p-7 text-center shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
+              {/* Glow Físico do Diálogo */}
+              <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]"></div>
+              <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/10 blur-[70px]"></div>
+
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-esc-destaque/30 bg-esc-destaque/10 shadow-[0_0_15px_-3px_var(--color-esc-destaque)]">
                 <svg
-                  className="h-7 w-7 text-orange-600"
+                  className="h-8 w-8 text-esc-destaque"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth="1.5"
@@ -659,22 +695,25 @@ export default function Financeiro() {
                   />
                 </svg>
               </div>
+
               <div>
-                <h3 className="text-xl font-bold text-[#464C54] mb-2">
+                <h3 className="mb-2 text-xl font-bold text-esc-text">
                   {dialogo.titulo}
                 </h3>
-                <p className="text-[#71717A] text-sm leading-relaxed">
+                <p className="text-sm leading-relaxed text-esc-muted">
                   {dialogo.mensagem}
                 </p>
               </div>
+
               <div
-                className={`mt-2 flex ${dialogo.botoes.length > 2 ? "flex-col gap-2" : "flex-row justify-center gap-3 w-full"}`}
+                className={`mt-4 flex ${dialogo.botoes.length > 2 ? "flex-col gap-3" : "w-full flex-row justify-center gap-3"}`}
               >
                 {dialogo.botoes.map((btn, i) => (
                   <button
+                    type="button"
                     key={i}
                     onClick={btn.onClick}
-                    className={`px-4 py-2.5 rounded-[8px] font-semibold text-sm transition-all duration-200 ${btn.className} ${dialogo.botoes.length > 2 ? "w-full" : "flex-1"}`}
+                    className={`px-4 py-3 text-sm font-semibold transition-all duration-300 ${btn.className} ${dialogo.botoes.length > 2 ? "w-full" : "flex-1"}`}
                   >
                     {btn.texto}
                   </button>
@@ -685,115 +724,127 @@ export default function Financeiro() {
         </ModalPortal>
       )}
 
-      <ModalFinanceiroEntrada
+      <ModalEntradaEscritorio
         isOpen={modalEntradaAberto}
         onClose={() => setModalEntradaAberto(false)}
         onSave={handleSalvarEntrada}
-        userTipo={user?.tipo}
-        escritorioProprioId={user?.escritorio_id}
-        escritorioProprioNome={user?.escritorio}
-        visaoEscritorioAtual="Montezuma"
+        escritorioId={escritorioId}
       />
-      <ModalFinanceiroSaida
+      <ModalSaidaEscritorio
         isOpen={modalSaidaAberto}
         onClose={() => setModalSaidaAberto(false)}
         onSave={handleSalvarSaida}
-        userTipo={user?.tipo}
-        escritorioProprioId={user?.escritorio_id}
-        escritorioProprioNome={user?.escritorio}
-        visaoEscritorioAtual="Montezuma"
+        escritorioId={escritorioId}
       />
 
-      <Navbar className="static" />
-
-      <div className="md:absolute w-full mt-4 md:w-auto top-0 right-0 flex items-center z-[60] px-[5%] pointer-events-none">
-        <select
-          value={mesSelecionado}
-          onChange={(e) => setMesSelecionado(e.target.value)}
-          className="pointer-events-auto h-[40px] w-full md:w-auto text-[14px] font-bold px-3 border border-[#C4C4C9] rounded-[8px] bg-white shadow-sm"
-        >
-          {[
-            "01",
-            "02",
-            "03",
-            "04",
-            "05",
-            "06",
-            "07",
-            "08",
-            "09",
-            "10",
-            "11",
-            "12",
-          ].map((m) => (
-            <option key={m} value={m}>
-              {new Date(2000, parseInt(m) - 1).toLocaleString("pt-BR", {
-                month: "long",
-              })}
-            </option>
-          ))}
-        </select>
-      </div>
+      <header className="mb-6 mt-4 flex w-full flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-esc-text md:text-3xl">
+              Financeiro
+            </h1>
+            <p className="mt-1 text-sm text-esc-muted">
+              Lançamentos — {tituloFonte}
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <select
+              value={mesSelecionado}
+              onChange={(e) => setMesSelecionado(e.target.value)}
+              className="h-10 w-full rounded-lg border border-white/10 bg-black/40 px-3 text-sm font-semibold text-esc-text shadow-sm sm:w-auto focus:border-esc-destaque focus:ring-1 focus:ring-esc-destaque focus:outline-none"
+            >
+              {[
+                "01",
+                "02",
+                "03",
+                "04",
+                "05",
+                "06",
+                "07",
+                "08",
+                "09",
+                "10",
+                "11",
+                "12",
+              ].map((m) => (
+                <option key={m} value={m} className="bg-esc-bg text-esc-text">
+                  {new Date(2000, parseInt(m) - 1).toLocaleString("pt-BR", {
+                    month: "long",
+                  })}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </header>
 
       {isAdmin && (
-        <div className="px-[5%] mb-4">
-          <div className="text-black rounded-[12px] border border-[#DBDADE] p-6 shadow-md mt-6 flex flex-col md:flex-row justify-between items-center bg-white gap-4">
-            <div className="text-center md:text-left">
-              <h2 className="text-xl font-medium">
-                Extrato de {mesSelecionado}/{anoAtual} (Montezuma)
+        <div className="mb-6 w-full">
+          <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-esc-card/90 p-6 shadow-lg backdrop-blur-md md:flex-row md:items-center md:justify-between relative overflow-hidden">
+            {/* Glow no card de extrato principal */}
+            <div className="pointer-events-none absolute top-1/2 left-0 -z-10 h-32 w-32 -translate-y-1/2 rounded-full bg-esc-destaque/10 blur-[50px]"></div>
+
+            <div className="text-center md:text-left z-10">
+              <h2 className="text-lg font-bold text-esc-text md:text-xl">
+                Extrato de {mesSelecionado}/{anoAtual} ({tituloFonte})
               </h2>
-              <p className="text-sm opacity-80">
+              <p className="mt-1 text-sm text-esc-muted">
                 Apenas itens validados entram no cálculo principal
               </p>
             </div>
-            <h1
-              className={`text-2xl md:text-4xl font-bold ${saldoFinal >= 0 ? "text-green-500" : "text-red-500"}`}
+            <p
+              className={`text-center text-2xl font-bold tabular-nums md:text-4xl z-10 ${saldoFinal >= 0 ? "text-status-concluida-text" : "text-status-aguardando-text"}`}
             >
               R$ {formatarMoeda(saldoFinal)}
-            </h1>
+            </p>
           </div>
         </div>
       )}
 
-      <div className="px-[5%]">
+      <div className="w-full">
         {isAdmin && (
-          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[24px]">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-              <h1 className="text-[30px] font-bold text-[#464C54]">Entradas</h1>
-              <div className="flex w-full md:w-[375px] flex-col md:flex-row gap-4">
+          <div className="mb-6 rounded-2xl border border-white/10 bg-esc-card p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
+            <div className="pointer-events-none absolute top-0 right-0 -z-10 h-40 w-40 rounded-full bg-esc-destaque/5 blur-[60px]"></div>
+            <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <h2 className="text-2xl font-bold text-esc-destaque md:text-3xl">
+                Entradas
+              </h2>
+              <div className="flex w-full flex-col gap-3 md:flex-row md:justify-end">
                 <input
                   type="text"
                   placeholder="Pesquisar..."
                   value={buscaEntrada}
                   onChange={(e) => setBuscaEntrada(e.target.value)}
-                  className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+                  className="h-10 w-full md:max-w-120 rounded-lg border border-white/10 bg-black/40 px-3 text-sm text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
                 />
-                <ButtonDefault
+                <button
+                  type="button"
                   onClick={() => setModalEntradaAberto(true)}
-                  className="w-full"
+                  className="rounded-xl border w-full md:max-w-50 h-10 border-esc-destaque/50 bg-esc-destaque/20 px-3 text-sm font-bold text-esc-destaque shadow-[0_0_15px_-3px_var(--color-esc-destaque)] transition-all duration-300 hover:bg-esc-destaque/30 hover:shadow-[0_0_25px_-3px_var(--color-esc-destaque)]"
                 >
                   + Nova Entrada
-                </ButtonDefault>
+                </button>
               </div>
             </div>
             <TabelaSimples
+              variant="escritorio"
               colunas={["Pago", "Descrição", "Forma Pag.", "Valor", "Data", ""]}
               dados={gerarLinhasTabela(entradas, buscaEntrada, "entradas")}
             />
-            <div className="grid xl:grid-cols-2 gap-[10px] w-full mt-4">
-              <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2">
-                <span className="text-sm text-[#71717A] uppercase font-semibold">
+            <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-black/40 p-3 shadow-inner">
+                <span className="text-xs font-semibold uppercase text-esc-muted">
                   Total Lançado:
                 </span>
-                <span className="text-sm md:text-[18px] font-bold text-[#464C54]">
+                <span className="text-sm font-bold tabular-nums text-status-concluida-text md:text-lg">
                   R$ {formatarMoeda(somaTotalEntradas)}
                 </span>
               </div>
-              <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9] gap-2">
-                <span className="text-sm text-[#2E7D32] uppercase font-semibold">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-status-concluida-text/20 bg-black/40 p-3 shadow-inner">
+                <span className="text-xs font-semibold uppercase text-esc-muted">
                   Total Validado:
                 </span>
-                <span className="text-sm md:text-[18px] font-bold text-[#1B5E20]">
+                <span className="text-sm font-bold tabular-nums text-status-concluida-text md:text-lg">
                   R$ {formatarMoeda(totalEntradasValidadas)}
                 </span>
               </div>
@@ -801,44 +852,49 @@ export default function Financeiro() {
           </div>
         )}
 
-        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[24px] mt-6">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 className="text-[30px] font-bold text-[#464C54]">Saídas</h1>
-            <div className="flex flex-col md:flex-row w-full md:w-[375px] gap-4">
+        <div className="mb-6 mt-6 rounded-2xl border border-white/10 bg-esc-card p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
+          <div className="pointer-events-none absolute top-0 right-0 -z-10 h-40 w-40 rounded-full bg-esc-destaque/5 blur-[60px]"></div>
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <h2 className="text-2xl font-bold text-esc-destaque md:text-3xl">
+              Saídas
+            </h2>
+            <div className="flex w-full flex-col gap-3 md:flex-row md:justify-end">
               <input
                 type="text"
                 placeholder="Pesquisar..."
                 value={buscaSaida}
                 onChange={(e) => setBuscaSaida(e.target.value)}
-                className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+                className="h-10 w-full md:max-w-120 rounded-lg border border-white/10 bg-black/40 px-3 text-sm text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
               />
 
-              <ButtonDefault
-                className="w-full"
+              <button
+                type="button"
+                className="rounded-xl border w-full md:max-w-50 h-10 border-esc-destaque/50 bg-esc-destaque/20 px-3 text-sm font-bold text-esc-destaque shadow-[0_0_15px_-3px_var(--color-esc-destaque)] transition-all duration-300 hover:bg-esc-destaque/30 hover:shadow-[0_0_25px_-3px_var(--color-esc-destaque)]"
                 onClick={() => setModalSaidaAberto(true)}
               >
                 + Nova Saída
-              </ButtonDefault>
+              </button>
             </div>
           </div>
           <TabelaSimples
+            variant="escritorio"
             colunas={["Pago", "Descrição", "Forma Pag.", "Valor", "Data", ""]}
             dados={gerarLinhasTabela(saidas, buscaSaida, "saida")}
           />
-          <div className="grid xl:grid-cols-2 gap-[10px] w-full mt-4">
-            <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2">
-              <span className="text-sm text-[#71717A] uppercase font-semibold">
+          <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-black/40 p-3 shadow-inner">
+              <span className="text-xs font-semibold uppercase text-esc-muted">
                 Total Lançado:
               </span>
-              <span className="text-sm md:text-[18px] font-bold text-[#464C54]">
+              <span className="text-sm font-bold tabular-nums text-status-aguardando-text md:text-lg">
                 R$ {formatarMoeda(somaTotalSaidas)}
               </span>
             </div>
-            <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#FFEBEE] gap-2">
-              <span className="text-sm text-[#C62828] uppercase font-semibold">
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-status-aguardando-text/20 bg-black/40 p-3 shadow-inner">
+              <span className="text-xs font-semibold uppercase text-esc-muted">
                 Total Validado:
               </span>
-              <span className="text-sm md:text-[18px] font-bold text-[#B71C1C]">
+              <span className="text-sm font-bold tabular-nums text-status-aguardando-text md:text-lg">
                 R$ {formatarMoeda(totalSaidasValidadas)}
               </span>
             </div>
@@ -846,39 +902,40 @@ export default function Financeiro() {
         </div>
 
         {isAdmin && (
-          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[40px]">
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-              <h1 className="text-[30px] font-bold text-[#464C54]">
+          <div className="mb-10 rounded-2xl border border-white/10 bg-esc-card p-6 shadow-lg backdrop-blur-md">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-bold text-esc-destaque md:text-3xl">
                 Controle Anual
-              </h1>
+              </h2>
               <input
                 type="number"
                 value={anoFiltroAnual}
                 onChange={(e) => setAnoFiltroAnual(e.target.value)}
-                className="h-[40px] w-full sm:w-auto border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+                className="h-10 w-full rounded-lg border border-white/10 bg-black/40 px-3 text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque sm:w-auto"
               />
             </div>
             <TabelaSimples
+              variant="escritorio"
               colunas={["Mês", "Entrada", "Saida", "Balanço"]}
               dados={dadosAnuais}
             />
-            <div className="flex flex-col lg:flex-row justify-center items-center border border-[#DBDADE] rounded-[8px] p-4 bg-[#F8F9FA] gap-8 mt-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-[#71717A] uppercase font-semibold">
+            <div className="mt-4 flex flex-col gap-6 rounded-xl border border-white/5 bg-black/40 p-4 shadow-inner lg:flex-row lg:items-center lg:justify-center">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="text-xs font-semibold uppercase text-esc-muted">
                   Balanço Validado do Ano:
                 </span>
                 <span
-                  className={`text-[18px] font-bold ${totaisAnuais.validado >= 0 ? "text-green-600" : "text-red-600"}`}
+                  className={`text-lg font-bold tabular-nums ${totaisAnuais.validado >= 0 ? "text-status-concluida-text" : "text-status-aguardando-text"}`}
                 >
                   R$ {formatarMoeda(totaisAnuais.validado)}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-[#71717A] uppercase font-semibold">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="text-xs font-semibold uppercase text-esc-muted">
                   Balanço Previsto (Total Lançado):
                 </span>
                 <span
-                  className={`text-[18px] font-bold ${totaisAnuais.previsto >= 0 ? "text-green-600/70" : "text-red-600/70"}`}
+                  className={`text-lg font-bold tabular-nums ${totaisAnuais.previsto >= 0 ? "text-status-concluida-text" : "text-status-aguardando-text"}`}
                 >
                   R$ {formatarMoeda(totaisAnuais.previsto)}
                 </span>
