@@ -5,6 +5,7 @@ import {
   FileSpreadsheet,
   Users,
   Wallet,
+  ListTodo,
 } from "lucide-react";
 import { ESCRITORIO_NOME_POR_ID } from "../../constants/escritorios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -30,6 +31,13 @@ const ITENS = [
     descricao: "Entradas e saídas",
     path: "financeiro",
     Icon: Wallet,
+  },
+  {
+    id: "tarefas",
+    titulo: "Tarefas",
+    descricao: "Tarefas do escritório",
+    path: "tarefas",
+    Icon: ListTodo,
   },
 ];
 

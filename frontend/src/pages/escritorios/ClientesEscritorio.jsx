@@ -4,7 +4,10 @@ import { ArrowLeft, Pencil, Trash2, UserPlus } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { api } from "../../services/api";
 import ModalPortal from "../../components/gerais/ModalPortal";
-import { ESCRITORIO_NOME_POR_ID, ID_VOGELKOP } from "../../constants/escritorios";
+import {
+  ESCRITORIO_NOME_POR_ID,
+  ID_VOGELKOP,
+} from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalClienteEscritorio from "../../components/modals/ModalClienteEscritorio";
 
@@ -35,7 +38,6 @@ const formatarMoeda = (valor) => {
 const inputBarClass =
   "w-full rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 py-2.5 text-sm text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 placeholder:text-esc-muted/60 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
 
-/** Inputs de data mais compactos na barra de filtros */
 const inputDateBarClass =
   "w-full min-w-0 rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 py-2.5 text-sm text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
 

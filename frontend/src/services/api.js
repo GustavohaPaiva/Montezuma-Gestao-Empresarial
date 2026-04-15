@@ -28,6 +28,19 @@ function sanitizeClientePayload(dados) {
   return omitUndefined(rest);
 }
 
+const STATUS_TAREFA_VALIDOS = new Set([
+  "Pendente",
+  "Aguardando Validação",
+  "Concluída",
+]);
+
+function normalizarStatusTarefa(raw) {
+  const s = String(raw || "").trim();
+  if (s === "Em Andamento") return "Pendente";
+  if (STATUS_TAREFA_VALIDOS.has(s)) return s;
+  return "Pendente";
+}
+
 export const api = {
   // --- MÓDULO FINANCEIRO ---
 
@@ -441,6 +454,152 @@ export const api = {
       console.error("Erro completo na função de upload:", error);
       throw error;
     }
+  },
+
+  // --- MÓDULO TAREFAS ESCRITÓRIO (multi-tenant) ---
+  getTarefasEscritorio: async (escritorioId) => {
+    if (!escritorioId) return [];
+    const { data, error } = await supabase
+      .from("tarefas")
+      .select("*, responsaveis:tarefa_responsaveis(usuario_id)")
+      .eq("escritorio_id", escritorioId)
+      .order("data_conclusao", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getUsuariosTarefaEscritorio: async (escritorioId) => {
+    if (!escritorioId) return [];
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id, nome, tipo, escritorio_id")
+      .eq("escritorio_id", escritorioId)
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  createTarefaEscritorio: async (payload) => {
+    if (!payload?.escritorio_id) {
+      throw new Error("escritorio_id obrigatório em createTarefaEscritorio");
+    }
+    const responsaveis = Array.isArray(payload.responsaveis)
+      ? payload.responsaveis.map(String).filter(Boolean)
+      : [];
+    const row = omitUndefined({
+      titulo: payload.titulo,
+      descricao: payload.descricao ?? null,
+      observacoes_progresso: payload.observacoes_progresso ?? null,
+      data_conclusao: payload.data_conclusao,
+      prioridade: payload.prioridade || "Média",
+      status: normalizarStatusTarefa(payload.status),
+      criador_id: payload.criador_id,
+      gestor_id: payload.gestor_id ?? null,
+      escritorio_id: payload.escritorio_id,
+      subtarefas: payload.subtarefas,
+    });
+    if (!Array.isArray(row.subtarefas) || row.subtarefas.length === 0) {
+      delete row.subtarefas;
+    }
+
+    const { data, error } = await supabase
+      .from("tarefas")
+      .insert(row)
+      .select("id, escritorio_id")
+      .single();
+    if (error) throw error;
+    if (!data?.id) throw new Error("ID da tarefa não retornado.");
+
+    if (responsaveis.length > 0) {
+      const { error: errResp } = await supabase
+        .from("tarefa_responsaveis")
+        .insert(
+          responsaveis.map((uid) => ({
+            tarefa_id: data.id,
+            usuario_id: uid,
+          })),
+        );
+      if (errResp) throw errResp;
+    }
+
+    return data;
+  },
+
+  updateTarefaEscritorio: async (id, dados, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em updateTarefaEscritorio");
+    }
+    const responsaveis = Array.isArray(dados?.responsaveis)
+      ? dados.responsaveis.map(String).filter(Boolean)
+      : null;
+
+    const limpo = { ...dados };
+    delete limpo.id;
+    delete limpo.escritorio_id;
+    delete limpo.criador_id;
+    delete limpo.responsaveis;
+    if ("status" in limpo) {
+      limpo.status = normalizarStatusTarefa(limpo.status);
+    }
+    const cleaned = omitUndefined(limpo);
+
+    const { data, error } = await supabase
+      .from("tarefas")
+      .update(cleaned)
+      .eq("id", id)
+      .eq("escritorio_id", escritorioId)
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    if (responsaveis) {
+      const { error: errDel } = await supabase
+        .from("tarefa_responsaveis")
+        .delete()
+        .eq("tarefa_id", id);
+      if (errDel) throw errDel;
+
+      if (responsaveis.length > 0) {
+        const { error: errIns } = await supabase
+          .from("tarefa_responsaveis")
+          .insert(
+            responsaveis.map((uid) => ({
+              tarefa_id: id,
+              usuario_id: uid,
+            })),
+          );
+        if (errIns) throw errIns;
+      }
+    }
+
+    return data;
+  },
+
+  deleteTarefaEscritorio: async (id, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em deleteTarefaEscritorio");
+    }
+    const { data: row, error: errSel } = await supabase
+      .from("tarefas")
+      .select("id")
+      .eq("id", id)
+      .eq("escritorio_id", escritorioId)
+      .maybeSingle();
+    if (errSel) throw errSel;
+    if (!row) throw new Error("Tarefa não encontrada ou acesso negado.");
+
+    const { error: errResp } = await supabase
+      .from("tarefa_responsaveis")
+      .delete()
+      .eq("tarefa_id", id);
+    if (errResp) throw errResp;
+
+    const { error: errT } = await supabase
+      .from("tarefas")
+      .delete()
+      .eq("id", id)
+      .eq("escritorio_id", escritorioId);
+    if (errT) throw errT;
   },
 
   // --- MÓDULO OBRAS ---
