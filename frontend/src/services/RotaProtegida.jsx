@@ -17,6 +17,7 @@ const RotaProtegida = ({ allowedTypes, allowedEscritorios }) => {
     );
   }
 
+  /* Rotas internas exigem sessão: destino único /login (cliente). Nunca /loginadm. */
   if (!user) {
     return <Navigate to="/login" replace />;
   }

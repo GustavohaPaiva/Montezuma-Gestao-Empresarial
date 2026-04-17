@@ -7,6 +7,10 @@
   --color-esc-muted: var(--esc-muted);
   --color-esc-destaque: var(--esc-destaque);
   --color-esc-border: var(--esc-border);
+  --color-esc-tipo-reuniao: var(--esc-tipo-reuniao);
+  --color-esc-tipo-visita: var(--esc-tipo-visita);
+  --color-esc-tipo-comprar: var(--esc-tipo-comprar);
+  --color-esc-tipo-outro: var(--esc-tipo-outro);
 
   --color-status-andamento-bg: #fff4e5;
   --color-status-andamento-text: #b95000;
@@ -24,12 +28,21 @@
     --esc-muted: #a3a3a3;
     --esc-destaque: #ff6000;
     --esc-border: #262626;
+    --esc-tipo-reuniao: #ff6000;
+    --esc-tipo-visita: #facc15;
+    --esc-tipo-comprar: #fb923c;
+    --esc-tipo-outro: #a16207;
+
     --color-esc-bg: var(--esc-bg);
     --color-esc-card: var(--esc-card);
     --color-esc-text: var(--esc-text);
     --color-esc-muted: var(--esc-muted);
     --color-esc-destaque: var(--esc-destaque);
     --color-esc-border: var(--esc-border);
+    --color-esc-tipo-reuniao: var(--esc-tipo-reuniao);
+    --color-esc-tipo-visita: var(--esc-tipo-visita);
+    --color-esc-tipo-comprar: var(--esc-tipo-comprar);
+    --color-esc-tipo-outro: var(--esc-tipo-outro);
   }
 
   .theme-vogelkop {
@@ -39,12 +52,21 @@
     --esc-muted: #a3a3a3;
     --esc-destaque: #22d3ee;
     --esc-border: #262626;
+    --esc-tipo-reuniao: #22d3ee;
+    --esc-tipo-visita: #38bdf8;
+    --esc-tipo-comprar: #2dd4bf;
+    --esc-tipo-outro: #818cf8;
+
     --color-esc-bg: var(--esc-bg);
     --color-esc-card: var(--esc-card);
     --color-esc-text: var(--esc-text);
     --color-esc-muted: var(--esc-muted);
     --color-esc-destaque: var(--esc-destaque);
     --color-esc-border: var(--esc-border);
+    --color-esc-tipo-reuniao: var(--esc-tipo-reuniao);
+    --color-esc-tipo-visita: var(--esc-tipo-visita);
+    --color-esc-tipo-comprar: var(--esc-tipo-comprar);
+    --color-esc-tipo-outro: var(--esc-tipo-outro);
   }
 }
 
@@ -94,4 +116,19 @@
 
 .animate-premium-reveal {
   animation: premiumScaleUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.calendar-icon-esc::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.theme-vogelkop .calendar-icon-esc::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(79%) sepia(29%) saturate(1809%)
+    hue-rotate(152deg) brightness(98%) contrast(88%);
+}
+
+.theme-ybyoca .calendar-icon-esc::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(52%) sepia(93%) saturate(2860%)
+    hue-rotate(360deg) brightness(102%) contrast(102%);
 }

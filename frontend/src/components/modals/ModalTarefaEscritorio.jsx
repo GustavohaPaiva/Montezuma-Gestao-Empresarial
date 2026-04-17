@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Calendar, X } from "lucide-react";
+import { Calendar, Loader2, X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
 import { ID_VOGELKOP } from "../../constants/escritorios";
 import { api } from "../../services/api";
@@ -18,22 +18,42 @@ const STATUS_VALIDOS = new Set([
 
 const FIELD_CLASS =
   "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:bg-black/60 focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque";
+const DATE_FIELD_CLASS = `${FIELD_CLASS} calendar-icon-esc`;
 
 const TABS = [
   { id: "visao-geral", label: "Visão Geral" },
   { id: "editar-tarefa", label: "Editar Tarefa" },
 ];
 
+function iniciaisNome(nome) {
+  if (!nome || typeof nome !== "string") return "?";
+  const p = nome.trim().split(/\s+/).filter(Boolean);
+  if (p.length >= 2) return `${p[0][0]}${p[1][0]}`.toUpperCase();
+  return nome.trim().slice(0, 2).toUpperCase() || "?";
+}
+
+function formatarDataHoraProgresso(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function emptyForm() {
   return {
     titulo: "",
     descricao: "",
-    observacoes_progresso: "",
     data_conclusao: "",
     prioridade: "Média",
     status: TAREFA_STATUS.pendente,
     gestor_id: null,
-    responsaveisIds: [],
+    responsaveis: [],
   };
 }
 
@@ -43,20 +63,36 @@ function statusSeguro(status) {
   return STATUS_VALIDOS.has(normalizado) ? normalizado : TAREFA_STATUS.pendente;
 }
 
+function mapUsuariosParaEquipe(lista) {
+  if (!Array.isArray(lista)) return [];
+  return lista.map((u) => ({
+    id: u.id,
+    nome: u.nome ?? "",
+  }));
+}
+
 export default function ModalTarefaEscritorio({
   isOpen,
   onClose,
   onSaved,
   escritorioId,
   tarefaEdicao,
+  /** Lista já carregada em TarefasEscritorio (mesma query que a página). */
+  usuariosEscritorio,
+  /** Quando true, o modal usa só `usuariosEscritorio` (evita fetch duplicado / erro em colunas). */
+  usuariosEscritorioProntos,
 }) {
   const { user } = useAuth();
   const modoEdicao = Boolean(tarefaEdicao?.id);
   const modoCriacao = !modoEdicao;
   const [form, setForm] = useState(emptyForm);
-  const [usuarios, setUsuarios] = useState([]);
+  const [equipe, setEquipe] = useState([]);
   const [salvando, setSalvando] = useState(false);
   const [activeTab, setActiveTab] = useState("visao-geral");
+  const [progressoFeed, setProgressoFeed] = useState([]);
+  const [carregandoProgresso, setCarregandoProgresso] = useState(false);
+  const [textoNovoProgresso, setTextoNovoProgresso] = useState("");
+  const [enviandoProgresso, setEnviandoProgresso] = useState(false);
 
   const temaClasse =
     escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
@@ -82,21 +118,44 @@ export default function ModalTarefaEscritorio({
     (!tarefaEdicao?.gestor_id ||
       String(tarefaEdicao?.gestor_id) === String(user?.id || ""));
   const podeFinalizar = podeConcluir || donoSemBurocracia;
+  const souCriadorDaTarefa =
+    modoEdicao &&
+    String(tarefaEdicao?.criador_id || "") === String(user?.id || "");
+  /** Criação: pode designar livremente; edição: dono ou criador da tarefa. */
+  const podeEditarResponsaveis = modoCriacao || isDono || souCriadorDaTarefa;
 
-  const carregarUsuarios = useCallback(async () => {
-    if (!escritorioId) return;
+  const carregarEquipe = useCallback(async () => {
+    const eid = escritorioId ? String(escritorioId).trim() : "";
+    if (!eid) {
+      setEquipe([]);
+      return;
+    }
     try {
-      const list = await api.getUsuariosTarefaEscritorio(escritorioId);
-      setUsuarios(Array.isArray(list) ? list : []);
-    } catch {
-      setUsuarios([]);
+      const data = await api.getUsuariosTarefaEscritorio(eid);
+      setEquipe(mapUsuariosParaEquipe(data));
+    } catch (e) {
+      console.error("[ModalTarefaEscritorio] equipe:", e);
+      setEquipe([]);
     }
   }, [escritorioId]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    void carregarUsuarios();
-  }, [isOpen, carregarUsuarios]);
+    if (!isOpen || !escritorioId) return;
+    if (
+      usuariosEscritorioProntos === true &&
+      Array.isArray(usuariosEscritorio)
+    ) {
+      setEquipe(mapUsuariosParaEquipe(usuariosEscritorio));
+      return;
+    }
+    void carregarEquipe();
+  }, [
+    isOpen,
+    escritorioId,
+    usuariosEscritorio,
+    usuariosEscritorioProntos,
+    carregarEquipe,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -111,46 +170,72 @@ export default function ModalTarefaEscritorio({
         setForm({
           titulo: tarefaEdicao.titulo ?? "",
           descricao: tarefaEdicao.descricao ?? "",
-          observacoes_progresso: tarefaEdicao.observacoes_progresso ?? "",
           data_conclusao: tarefaEdicao.data_conclusao
             ? String(tarefaEdicao.data_conclusao).split("T")[0]
             : "",
           prioridade: tarefaEdicao.prioridade || "Média",
           status: statusSeguro(tarefaEdicao.status),
           gestor_id: tarefaEdicao.gestor_id ?? null,
-          responsaveisIds: ids,
+          responsaveis: ids,
         });
       } else {
         setForm(emptyForm());
       }
       setActiveTab("visao-geral");
+      setTextoNovoProgresso("");
     });
   }, [isOpen, modoEdicao, tarefaEdicao]);
+
+  useEffect(() => {
+    if (!isOpen || !modoEdicao || !tarefaEdicao?.id) {
+      setProgressoFeed([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setCarregandoProgresso(true);
+      try {
+        const rows = await api.getTarefaProgresso(tarefaEdicao.id);
+        if (!cancelled) setProgressoFeed(Array.isArray(rows) ? rows : []);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setProgressoFeed([]);
+      } finally {
+        if (!cancelled) setCarregandoProgresso(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, modoEdicao, tarefaEdicao?.id]);
 
   if (!isOpen || !escritorioId || !user?.id) return null;
 
   const toggleResponsavel = (uid) => {
     const sid = String(uid);
     setForm((prev) => {
-      const setIds = new Set(prev.responsaveisIds.map(String));
+      const setIds = new Set(prev.responsaveis.map(String));
       if (setIds.has(sid)) setIds.delete(sid);
       else setIds.add(sid);
-      return { ...prev, responsaveisIds: [...setIds] };
+      return { ...prev, responsaveis: [...setIds] };
     });
   };
 
-  const salvarProgresso = async () => {
-    if (!modoEdicao || !tarefaEdicao?.id) return;
+  const adicionarAtualizacaoProgresso = async () => {
+    const msg = textoNovoProgresso.trim();
+    if (!modoEdicao || !tarefaEdicao?.id || !msg) return;
+    setEnviandoProgresso(true);
     try {
-      await api.updateTarefaEscritorio(
-        tarefaEdicao.id,
-        { observacoes_progresso: form.observacoes_progresso?.trim() || null },
-        escritorioId,
-      );
+      await api.addTarefaProgresso(tarefaEdicao.id, user.id, msg);
+      setTextoNovoProgresso("");
+      const rows = await api.getTarefaProgresso(tarefaEdicao.id);
+      setProgressoFeed(Array.isArray(rows) ? rows : []);
       onSaved?.();
     } catch (e) {
       console.error(e);
-      alert(e?.message || "Não foi possível atualizar o progresso.");
+      alert(e?.message || "Não foi possível adicionar a atualização.");
+    } finally {
+      setEnviandoProgresso(false);
     }
   };
 
@@ -213,11 +298,14 @@ export default function ModalTarefaEscritorio({
 
     setSalvando(true);
     try {
-      const responsaveisUnicos = [...new Set(form.responsaveisIds.map(String))];
+      const responsaveisUnicos = [...new Set(form.responsaveis.map(String))];
+      if (responsaveisUnicos.length === 0) {
+        alert("Selecione ao menos um responsável para a tarefa.");
+        return;
+      }
       const payloadBase = {
         titulo: form.titulo.trim(),
         descricao: form.descricao.trim() || null,
-        observacoes_progresso: form.observacoes_progresso?.trim() || null,
         data_conclusao: form.data_conclusao,
         prioridade: form.prioridade,
         status: form.status,
@@ -319,7 +407,7 @@ export default function ModalTarefaEscritorio({
                   </label>
                   <input
                     type="date"
-                    className={`${FIELD_CLASS} mt-2`}
+                    className={`${DATE_FIELD_CLASS} mt-2`}
                     value={form.data_conclusao}
                     onChange={(e) =>
                       setForm({ ...form, data_conclusao: e.target.value })
@@ -353,28 +441,27 @@ export default function ModalTarefaEscritorio({
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Responsáveis
                 </label>
-                <div className="mt-2 max-h-48 space-y-2 overflow-y-auto rounded-xl border border-white/10 bg-black/30 p-3">
-                  {usuarios.map((u) => {
+                <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-white/10 bg-black/30 p-3">
+                  {equipe.map((u) => {
                     const uid = String(u.id);
-                    const checked = form.responsaveisIds
-                      .map(String)
-                      .includes(uid);
+                    const checked = form.responsaveis.map(String).includes(uid);
                     return (
-                      <label
+                      <button
                         key={uid}
-                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-esc-text hover:bg-white/5"
+                        type="button"
+                        disabled={!podeEditarResponsaveis}
+                        onClick={() => toggleResponsavel(uid)}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
+                          checked
+                            ? "border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque"
+                            : "border-white/10 bg-white/5 text-esc-muted hover:bg-white/10 hover:text-esc-text"
+                        } disabled:cursor-not-allowed disabled:opacity-60`}
                       >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleResponsavel(uid)}
-                          className="rounded border-esc-border text-esc-destaque focus:ring-esc-destaque"
-                        />
-                        <span className="truncate">{u.nome || "—"}</span>
-                      </label>
+                        {u.nome || "—"}
+                      </button>
                     );
                   })}
-                  {usuarios.length === 0 ? (
+                  {equipe.length === 0 ? (
                     <p className="text-xs text-esc-muted">
                       Nenhum usuário disponível.
                     </p>
@@ -439,43 +526,91 @@ export default function ModalTarefaEscritorio({
 
               {activeTab === "visao-geral" ? (
                 <>
-                  <h1 className="text-3xl font-bold tracking-tight text-esc-text md:text-4xl">
-                    {form.titulo || "Sem título"}
-                  </h1>
+                  <div className="space-y-3 border-b border-white/10 pb-8">
+                    <h1 className="text-3xl font-semibold tracking-tight text-esc-text md:text-4xl">
+                      {form.titulo || "Sem título"}
+                    </h1>
+                    <p className="text-xs text-esc-muted">
+                      Visão geral · acompanhe contexto e histórico de progresso
+                    </p>
+                  </div>
 
-                  <label className="mt-6 text-xs font-bold uppercase tracking-wider text-esc-muted">
-                    Descrição
-                  </label>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-esc-text">
-                    {form.descricao?.trim() || "Sem descrição"}
-                  </p>
+                  <div className="mt-8">
+                    <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
+                      Descrição
+                    </label>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-esc-text/90">
+                      {form.descricao?.trim() || "Sem descrição"}
+                    </p>
+                  </div>
 
-                  <div className="mt-8 rounded-2xl border border-esc-destaque/25 bg-black/40 p-4 shadow-inner">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-esc-destaque">
-                        Diário de Progresso
-                      </label>
+                  <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-sm">
+                    <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-esc-text">
+                      Diário de Progresso
+                    </h3>
+                    <div className="max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                      {carregandoProgresso ? (
+                        <p className="text-xs text-esc-muted">Carregando…</p>
+                      ) : progressoFeed.length === 0 ? (
+                        <p className="text-xs text-esc-muted">
+                          Nenhuma atualização ainda.
+                        </p>
+                      ) : (
+                        progressoFeed.map((item) => (
+                          <div
+                            key={item.id}
+                            className="mb-3 flex flex-col gap-2 rounded-xl border border-white/10 bg-white/5 p-3 last:mb-0"
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-esc-text ring-1 ring-white/10">
+                                {iniciaisNome(item.usuarios?.nome)}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-white">
+                                  {item.usuarios?.nome ?? "Usuário"}
+                                </p>
+                                <p className="text-xs text-esc-muted">
+                                  {formatarDataHoraProgresso(item.criado_em)}
+                                </p>
+                              </div>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap text-gray-300">
+                              {item.mensagem}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <div className="mt-5 border-t border-white/10 pt-5">
+                      <textarea
+                        className="min-h-[80px] w-full rounded-xl border border-white/10 bg-black/40 p-3 text-white focus:ring-1 focus:ring-esc-destaque focus:outline-none"
+                        placeholder="Escreva uma nova atualização…"
+                        value={textoNovoProgresso}
+                        onChange={(e) =>
+                          setTextoNovoProgresso(e.target.value)
+                        }
+                        rows={3}
+                      />
                       <button
                         type="button"
-                        onClick={salvarProgresso}
-                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-esc-muted transition-all hover:bg-white/10 hover:text-esc-text"
+                        disabled={
+                          enviandoProgresso ||
+                          !textoNovoProgresso.trim() ||
+                          !modoEdicao
+                        }
+                        onClick={adicionarAtualizacaoProgresso}
+                        className="mt-2 rounded-lg border border-esc-destaque/50 bg-esc-destaque/20 px-4 py-2 font-bold text-esc-destaque transition-all hover:bg-esc-destaque/30 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Atualizar Progresso
+                        {enviandoProgresso ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Enviando…
+                          </span>
+                        ) : (
+                          "Adicionar Atualização"
+                        )}
                       </button>
                     </div>
-                    <textarea
-                      className="w-full rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
-                      placeholder="Registre aqui o andamento da tarefa..."
-                      value={form.observacoes_progresso}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          observacoes_progresso: e.target.value,
-                        })
-                      }
-                      onBlur={salvarProgresso}
-                      rows={10}
-                    />
                   </div>
                 </>
               ) : (
@@ -515,7 +650,7 @@ export default function ModalTarefaEscritorio({
                       </label>
                       <input
                         type="date"
-                        className={`${FIELD_CLASS} mt-2`}
+                        className={`${DATE_FIELD_CLASS} mt-2`}
                         value={form.data_conclusao}
                         onChange={(e) =>
                           setForm({ ...form, data_conclusao: e.target.value })
@@ -552,6 +687,7 @@ export default function ModalTarefaEscritorio({
                     <select
                       className={`${FIELD_CLASS} mt-2`}
                       value={form.gestor_id || ""}
+                      disabled={!podeEditarResponsaveis}
                       onChange={(e) =>
                         setForm({
                           ...form,
@@ -562,7 +698,7 @@ export default function ModalTarefaEscritorio({
                       <option value="" className="bg-esc-bg text-esc-text">
                         Sem gestor
                       </option>
-                      {usuarios.map((u) => (
+                      {equipe.map((u) => (
                         <option
                           key={String(u.id)}
                           value={String(u.id)}
@@ -577,28 +713,40 @@ export default function ModalTarefaEscritorio({
                     <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                       Responsáveis
                     </label>
-                    <div className="mt-2 max-h-52 space-y-2 overflow-y-auto rounded-xl border border-white/10 bg-black/30 p-3">
-                      {usuarios.map((u) => {
+                    <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-white/10 bg-black/30 p-3">
+                      {equipe.map((u) => {
                         const uid = String(u.id);
-                        const checked = form.responsaveisIds
+                        const checked = form.responsaveis
                           .map(String)
                           .includes(uid);
                         return (
-                          <label
+                          <button
                             key={uid}
-                            className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-esc-text hover:bg-white/5"
+                            type="button"
+                            disabled={!podeEditarResponsaveis}
+                            onClick={() => toggleResponsavel(uid)}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
+                              checked
+                                ? "border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque"
+                                : "border-white/10 bg-white/5 text-esc-muted hover:bg-white/10 hover:text-esc-text"
+                            } disabled:cursor-not-allowed disabled:opacity-60`}
                           >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleResponsavel(uid)}
-                              className="rounded border-esc-border text-esc-destaque focus:ring-esc-destaque"
-                            />
-                            <span className="truncate">{u.nome || "—"}</span>
-                          </label>
+                            {u.nome || "—"}
+                          </button>
                         );
                       })}
+                      {equipe.length === 0 ? (
+                        <p className="text-xs text-esc-muted">
+                          Nenhum usuário disponível.
+                        </p>
+                      ) : null}
                     </div>
+                    {!podeEditarResponsaveis ? (
+                      <p className="mt-2 text-xs text-esc-muted">
+                        Apenas o dono ou a administração podem alterar
+                        responsáveis nesta tarefa.
+                      </p>
+                    ) : null}
                   </div>
                   <button
                     type="button"

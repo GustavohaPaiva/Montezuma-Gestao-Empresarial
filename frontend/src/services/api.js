@@ -1,13 +1,11 @@
 import { supabase } from "./supabase";
 
-/** CNPJ/NIF: apenas dígitos, ou null. Evita '' na UNIQUE e alinha formatos diferentes. */
 function normalizeCnpjNif(val) {
   if (val === undefined || val === null) return null;
   const digits = String(val).replace(/\D/g, "");
   return digits.length ? digits : null;
 }
 
-/** Remove chaves undefined (payload limpo para Supabase). */
 function omitUndefined(obj) {
   if (!obj || typeof obj !== "object") return {};
   const out = { ...obj };
@@ -338,7 +336,6 @@ export const api = {
     return data;
   },
 
-  /** Vários tenants (ex.: processos agregando VK + YB) — sempre com .in(escritorio_id). */
   getClientesPorEscritorios: async (escritorioIds) => {
     if (!escritorioIds?.length) return [];
     const { data, error } = await supabase
@@ -395,7 +392,10 @@ export const api = {
     if (!row.escritorio_id) {
       throw new Error("escritorio_id obrigatório em createCliente");
     }
-    const { data, error } = await supabase.from("clientes").insert([row]).select();
+    const { data, error } = await supabase
+      .from("clientes")
+      .insert([row])
+      .select();
     if (error) throw error;
     return data[0];
   },
@@ -456,6 +456,51 @@ export const api = {
     }
   },
 
+  /** Lista Montezuma: junção `tarefa_responsaveis` → `usuarios` para `extrairResponsaveis`. */
+  getTarefasGlobaisMontezuma: async () => {
+    const selectBase = `
+        *,
+        criador:usuarios!tarefas_criador_id_fkey(nome, escritorio),
+        tarefa_responsaveis(
+          usuario_id,
+          usuarios(id, nome, foto)
+        )
+      `;
+    const selectComFkHint = `
+        *,
+        criador:usuarios!tarefas_criador_id_fkey(nome, escritorio),
+        tarefa_responsaveis(
+          usuario_id,
+          usuarios!usuario_id(id, nome, foto)
+        )
+      `;
+    const selectSemFoto = `
+        *,
+        criador:usuarios!tarefas_criador_id_fkey(nome, escritorio),
+        tarefa_responsaveis(
+          usuario_id,
+          usuarios(id, nome)
+        )
+      `;
+    const selectSemFotoFk = `
+        *,
+        criador:usuarios!tarefas_criador_id_fkey(nome, escritorio),
+        tarefa_responsaveis(
+          usuario_id,
+          usuarios!usuario_id(id, nome)
+        )
+      `;
+    let { data, error } = await supabase.from("tarefas").select(selectBase);
+    if (error) {
+      let r = await supabase.from("tarefas").select(selectComFkHint);
+      if (r.error) r = await supabase.from("tarefas").select(selectSemFoto);
+      if (r.error) r = await supabase.from("tarefas").select(selectSemFotoFk);
+      if (r.error) throw r.error;
+      data = r.data;
+    }
+    return Array.isArray(data) ? data : [];
+  },
+
   // --- MÓDULO TAREFAS ESCRITÓRIO (multi-tenant) ---
   getTarefasEscritorio: async (escritorioId) => {
     if (!escritorioId) return [];
@@ -489,7 +534,6 @@ export const api = {
     const row = omitUndefined({
       titulo: payload.titulo,
       descricao: payload.descricao ?? null,
-      observacoes_progresso: payload.observacoes_progresso ?? null,
       data_conclusao: payload.data_conclusao,
       prioridade: payload.prioridade || "Média",
       status: normalizarStatusTarefa(payload.status),
@@ -600,6 +644,31 @@ export const api = {
       .eq("id", id)
       .eq("escritorio_id", escritorioId);
     if (errT) throw errT;
+  },
+
+  getTarefaProgresso: async (tarefaId) => {
+    if (!tarefaId) return [];
+    const { data, error } = await supabase
+      .from("tarefa_progresso")
+      .select("*, usuarios(nome)")
+      .eq("tarefa_id", tarefaId)
+      .order("criado_em", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  addTarefaProgresso: async (tarefaId, usuarioId, mensagem) => {
+    const texto = String(mensagem ?? "").trim();
+    if (!tarefaId || !usuarioId || !texto) {
+      throw new Error("mensagem e identificação obrigatórios para registrar progresso.");
+    }
+    const { data, error } = await supabase.from("tarefa_progresso").insert({
+      tarefa_id: tarefaId,
+      usuario_id: usuarioId,
+      mensagem: texto,
+    });
+    if (error) throw error;
+    return data;
   },
 
   // --- MÓDULO OBRAS ---
@@ -1414,5 +1483,94 @@ export const api = {
       console.error("Erro completo no uploadFotoFornecedor:", error);
       throw error;
     }
+  },
+
+  // --- MÓDULO AGENDA (multi-tenant) ---
+
+  /**
+   * Busca compromissos entre `inicioIso` e `fimIso` (timestamps ISO).
+   * Join opcional com clientes para exibir o nome do cliente.
+   */
+  getAgenda: async (escritorioId, inicioIso, fimIso) => {
+    if (!escritorioId) return [];
+    let query = supabase
+      .from("agenda")
+      .select("id, escritorio_id, titulo, tipo, data_hora, descricao, cliente_id, status, cliente:clientes(id, nome)")
+      .eq("escritorio_id", escritorioId)
+      .order("data_hora", { ascending: true });
+    if (inicioIso) query = query.gte("data_hora", inicioIso);
+    if (fimIso) query = query.lte("data_hora", fimIso);
+    const { data, error } = await query;
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  createCompromisso: async (payload) => {
+    if (!payload?.escritorio_id) {
+      throw new Error("escritorio_id obrigatório em createCompromisso");
+    }
+    if (!payload?.titulo || !payload?.data_hora) {
+      throw new Error("titulo e data_hora obrigatórios em createCompromisso");
+    }
+    const row = omitUndefined({
+      escritorio_id: payload.escritorio_id,
+      titulo: String(payload.titulo).trim(),
+      tipo: payload.tipo || "Outro",
+      data_hora: payload.data_hora,
+      descricao: payload.descricao?.trim() || null,
+      cliente_id: payload.cliente_id ?? null,
+      status: payload.status || "Agendado",
+    });
+    const { data, error } = await supabase
+      .from("agenda")
+      .insert(row)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  updateCompromisso: async (id, dados, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em updateCompromisso");
+    }
+    const limpo = { ...dados };
+    delete limpo.id;
+    delete limpo.escritorio_id;
+    delete limpo.cliente;
+    const cleaned = omitUndefined(limpo);
+    const { data, error } = await supabase
+      .from("agenda")
+      .update(cleaned)
+      .eq("id", id)
+      .eq("escritorio_id", escritorioId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  deleteCompromisso: async (id, escritorioId) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em deleteCompromisso");
+    }
+    const { error } = await supabase
+      .from("agenda")
+      .delete()
+      .eq("id", id)
+      .eq("escritorio_id", escritorioId);
+    if (error) throw error;
+  },
+
+  /** Lista simples (id, nome) para busca de cliente no modal de agenda. */
+  getClientesSimplesEscritorio: async (escritorioId) => {
+    if (!escritorioId) return [];
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("id, nome")
+      .eq("escritorio_id", escritorioId)
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
   },
 };
