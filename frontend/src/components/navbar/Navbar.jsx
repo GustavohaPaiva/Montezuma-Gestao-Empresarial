@@ -1,8 +1,12 @@
 import logo from "../../assets/logos/logo sem fundo.png";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function Navbar() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   //Verificação de tamanho da tela
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
@@ -11,11 +15,11 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const navigate = useNavigate();
-
   const handleNavigation = () => {
     navigate("/");
   };
+
+  if (!user) return null;
 
   return (
     <header

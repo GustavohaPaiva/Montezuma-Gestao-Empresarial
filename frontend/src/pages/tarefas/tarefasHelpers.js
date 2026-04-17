@@ -52,9 +52,10 @@ export function extrairResponsaveis(row) {
       if (!id) return null;
       return {
         id: String(id),
-        nome: u?.nome ?? "—",
+        nome: u?.nome?.trim() ? String(u.nome).trim() : "—",
         escritorio: u?.escritorio ?? null,
         tipo: u?.tipo ?? null,
+        foto: u?.foto ?? null,
       };
     })
     .filter(Boolean);
@@ -68,11 +69,23 @@ export function normalizarStatus(raw) {
 
 const CHEFIA_TOTAL_VISIBILIDADE = ["gestor_master", "diretoria"];
 
-/** Gestor/diretoria: todas; demais: só se constarem em `tarefa_responsaveis`. */
+/**
+ * Visibilidade de tarefas na lista global Montezuma:
+ * - Com `escritorio_id` (tarefa do tenant): modo privado — apenas criador ou
+ *   responsáveis em `tarefa_responsaveis` (sem bypass de chefia).
+ * - Sem `escritorio_id` (tarefa global): gestor_master/diretoria veem todas;
+ *   demais só se forem responsáveis.
+ */
 export function usuarioVeTarefa(user, t) {
   if (!user?.id || !t) return false;
-  if (CHEFIA_TOTAL_VISIBILIDADE.includes(user.tipo)) return true;
   const uid = String(user.id);
+
+  if (t.escritorio_id != null && String(t.escritorio_id).trim() !== "") {
+    if (String(t.criador_id ?? "") === uid) return true;
+    return extrairResponsaveis(t).some((r) => r.id === uid);
+  }
+
+  if (CHEFIA_TOTAL_VISIBILIDADE.includes(user.tipo)) return true;
   return extrairResponsaveis(t).some((r) => r.id === uid);
 }
 

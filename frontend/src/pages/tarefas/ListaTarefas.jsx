@@ -4,6 +4,7 @@ import ButtonDefault from "../../components/gerais/ButtonDefault";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../services/supabase";
+import { api } from "../../services/api";
 import {
   Search,
   CircleDot,
@@ -28,6 +29,12 @@ import {
   usuarioPodeSerResponsavelEmTarefa,
   normalizarStatus,
 } from "./tarefasHelpers";
+import {
+  ID_MONTEZUMA,
+  ID_VOGELKOP,
+  ID_YBYOCA,
+  ESCRITORIO_NOME_POR_ID,
+} from "../../constants/escritorios";
 
 const PRIORIDADES = ["Alta", "Média", "Baixa"];
 
@@ -56,6 +63,19 @@ function formatDataEntrega(dateStr) {
     day: "2-digit",
     month: "short",
     year: "numeric",
+  });
+}
+
+function formatarDataHoraProgresso(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -132,6 +152,30 @@ function secaoPrioridadeBarra(pri) {
   }
 }
 
+function rotuloEscritorioCard(tarefa) {
+  const eid = tarefa?.escritorio_id;
+  if (eid == null || String(eid).trim() === "") {
+    return ESCRITORIO_NOME_POR_ID[ID_MONTEZUMA] ?? "Montezuma";
+  }
+  const key = String(eid);
+  return ESCRITORIO_NOME_POR_ID[key] ?? "Escritório";
+}
+
+function badgeEscritorioClasses(tarefa) {
+  const eid = tarefa?.escritorio_id;
+  if (eid == null || String(eid).trim() === "") {
+    return "border-white/10 text-esc-muted bg-white/5 shadow-[0_0_12px_-10px_rgba(255,255,255,0.35)]";
+  }
+  const key = String(eid);
+  if (key === ID_VOGELKOP) {
+    return "border-blue-500/50 text-blue-400 bg-blue-500/10 shadow-[0_0_14px_-8px_rgba(59,130,246,0.55)]";
+  }
+  if (key === ID_YBYOCA) {
+    return "border-orange-500/50 text-orange-400 bg-orange-500/10 shadow-[0_0_14px_-8px_rgba(249,115,22,0.55)]";
+  }
+  return "border-white/10 text-esc-muted bg-white/5 shadow-[0_0_12px_-10px_rgba(255,255,255,0.35)]";
+}
+
 function useIsNarrowViewport() {
   const [narrow, setNarrow] = useState(
     () =>
@@ -191,6 +235,10 @@ export default function ListaTarefas({
     prioridade: "Média",
     responsaveisIds: [],
   });
+  const [feedProgresso, setFeedProgresso] = useState([]);
+  const [carregandoFeedProgresso, setCarregandoFeedProgresso] = useState(false);
+  const [textoNovoProgresso, setTextoNovoProgresso] = useState("");
+  const [enviandoProgresso, setEnviandoProgresso] = useState(false);
 
   const podeCriar = PODE_CRIAR.includes(user?.tipo);
   const uid = user?.id ? String(user.id) : null;
@@ -212,14 +260,7 @@ export default function ListaTarefas({
     setLoading(true);
     setErro(null);
     try {
-      const { data, error } = await supabase.from("tarefas").select(`
-          *,
-          criador:usuarios!tarefas_criador_id_fkey(nome, escritorio),
-          responsaveis:tarefa_responsaveis(
-            usuarios!usuario_id(nome, id, escritorio, tipo)
-          )
-        `);
-      if (error) throw error;
+      const data = await api.getTarefasGlobaisMontezuma();
       setTarefas(Array.isArray(data) ? data : []);
       onTasksUpdatedRef.current?.();
     } catch (e) {
@@ -340,6 +381,30 @@ export default function ListaTarefas({
   );
 
   useEffect(() => {
+    if (!selecionadaId) {
+      setFeedProgresso([]);
+      setTextoNovoProgresso("");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setCarregandoFeedProgresso(true);
+      try {
+        const rows = await api.getTarefaProgresso(selecionadaId);
+        if (!cancelled) setFeedProgresso(Array.isArray(rows) ? rows : []);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setFeedProgresso([]);
+      } finally {
+        if (!cancelled) setCarregandoFeedProgresso(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selecionadaId]);
+
+  useEffect(() => {
     if (selecionadaId && !idsListaPlana.includes(String(selecionadaId))) {
       setSelecionadaId(null);
     }
@@ -360,6 +425,24 @@ export default function ListaTarefas({
       alert(e?.message || "Não foi possível atualizar o status.");
     } finally {
       setAtualizandoStatus(false);
+    }
+  };
+
+  const adicionarAtualizacaoProgresso = async () => {
+    const msg = textoNovoProgresso.trim();
+    if (!selecionadaId || !user?.id || !msg) return;
+    setEnviandoProgresso(true);
+    try {
+      await api.addTarefaProgresso(selecionadaId, user.id, msg);
+      setTextoNovoProgresso("");
+      const rows = await api.getTarefaProgresso(selecionadaId);
+      setFeedProgresso(Array.isArray(rows) ? rows : []);
+      onTasksUpdatedRef.current?.();
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Não foi possível adicionar a atualização.");
+    } finally {
+      setEnviandoProgresso(false);
     }
   };
 
@@ -607,6 +690,13 @@ export default function ListaTarefas({
     const pri = normalizarPrioridade(t.prioridade);
     const stt = normalizarStatus(t.status);
     const ativo = String(selecionadaId) === String(t.id);
+    const responsaveisDaTarefa = extrairResponsaveis(t);
+    const nomeResponsavel =
+      responsaveisDaTarefa.length > 0
+        ? responsaveisDaTarefa[0].nome || "Se"
+        : "Sem responsáveis";
+    const restantes = Math.max(responsaveisDaTarefa.length - 1, 0);
+    const escritorioLabel = rotuloEscritorioCard(t);
     return (
       <button
         key={t.id}
@@ -634,6 +724,12 @@ export default function ListaTarefas({
               >
                 {stt}
               </span>
+              <span
+                className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm ${badgeEscritorioClasses(t)}`}
+                title={`Escritório: ${escritorioLabel}`}
+              >
+                {escritorioLabel}
+              </span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-gray-500">
               <Calendar className="h-3.5 w-3.5 shrink-0 text-gray-400" />
@@ -642,6 +738,19 @@ export default function ListaTarefas({
                 {formatDataAmigavel(t.data_conclusao)} ·{" "}
                 {formatDataEntrega(t.data_conclusao)}
               </span>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-3">
+              <span className="text-[10px] font-bold uppercase text-gray-500">
+                RESPONSÁVEL:
+              </span>
+              <span className="rounded-md bg-gray-900 px-2 py-1 text-xs font-black uppercase tracking-wider text-white shadow-sm">
+                {nomeResponsavel}
+              </span>
+              {restantes > 0 && (
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
+                  +{restantes}
+                </span>
+              )}
             </div>
           </div>
           <span
@@ -958,6 +1067,76 @@ export default function ListaTarefas({
                     </div>
                   </section>
 
+                  <section className="rounded-xl border border-gray-200 bg-gradient-to-b from-slate-50 to-white p-4 shadow-sm">
+                    <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                      Diário de Progresso
+                    </h3>
+                    <div className="max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                      {carregandoFeedProgresso ? (
+                        <p className="flex items-center gap-2 text-xs text-gray-500">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Carregando…
+                        </p>
+                      ) : feedProgresso.length === 0 ? (
+                        <p className="text-xs text-gray-500">
+                          Nenhuma atualização ainda.
+                        </p>
+                      ) : (
+                        feedProgresso.map((item) => (
+                          <div
+                            key={item.id}
+                            className="mb-3 flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-3 shadow-sm last:mb-0"
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-gray-800 ring-1 ring-gray-200/80">
+                                {iniciais(item.usuarios?.nome)}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-gray-900">
+                                  {item.usuarios?.nome ?? "Usuário"}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {formatarDataHoraProgresso(item.criado_em)}
+                                </p>
+                              </div>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap text-gray-700">
+                              {item.mensagem}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <div className="mt-4 border-t border-gray-200 pt-4">
+                      <textarea
+                        className="min-h-[80px] w-full rounded-xl border border-gray-700 p-3 text-sm text-gray-700 placeholder:text-gray-500 focus:border-gray-500 focus:ring-1 focus:ring-gray-400 focus:outline-none"
+                        placeholder="Nova atualização…"
+                        value={textoNovoProgresso}
+                        onChange={(e) => setTextoNovoProgresso(e.target.value)}
+                        rows={3}
+                      />
+                      <button
+                        type="button"
+                        disabled={
+                          enviandoProgresso ||
+                          !textoNovoProgresso.trim() ||
+                          !user?.id
+                        }
+                        onClick={adicionarAtualizacaoProgresso}
+                        className="mt-2 inline-flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-900 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {enviandoProgresso ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Enviando…
+                          </>
+                        ) : (
+                          "Adicionar Atualização"
+                        )}
+                      </button>
+                    </div>
+                  </section>
+
                   <section className="grid gap-5 sm:grid-cols-2 sm:gap-6">
                     <div>
                       <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
@@ -994,11 +1173,23 @@ export default function ListaTarefas({
                               key={r.id}
                               className="flex items-center gap-2.5 rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm"
                             >
-                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-gray-800 ring-1 ring-gray-200/80">
-                                {iniciais(r.nome)}
-                              </span>
-                              <span className="text-sm font-medium text-gray-800">
-                                {r.nome}
+                              {r.foto ? (
+                                <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-gray-200/80">
+                                  <img
+                                    src={r.foto}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                </span>
+                              ) : (
+                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-gray-800 ring-1 ring-gray-200/80">
+                                  {iniciais(r.nome)}
+                                </span>
+                              )}
+                              <span className="text-sm font-semibold text-gray-800">
+                                {r.nome && r.nome !== "—"
+                                  ? r.nome
+                                  : "Responsável"}
                               </span>
                             </li>
                           ))}
@@ -1093,144 +1284,146 @@ export default function ListaTarefas({
 
       {modalAberto && (
         <ModalPortal>
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
-            aria-hidden
-            onClick={fecharModal}
-          />
-          <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 shadow-sm">
-              <h2 className="text-lg font-bold text-gray-800">
-                {editandoId ? "Editar tarefa" : "Nova tarefa"}
-              </h2>
-              <button
-                type="button"
-                disabled={salvando}
-                onClick={fecharModal}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-              >
-                ×
-              </button>
-            </div>
-            <div className="space-y-4 overflow-y-auto p-6">
-              <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500">
-                  Título
-                </label>
-                <input
-                  className="h-12 w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-800 focus:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                  value={form.titulo}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, titulo: e.target.value }))
-                  }
-                  placeholder="Resumo da tarefa"
-                />
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+              aria-hidden
+              onClick={fecharModal}
+            />
+            <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+              <div className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 shadow-sm">
+                <h2 className="text-lg font-bold text-gray-800">
+                  {editandoId ? "Editar tarefa" : "Nova tarefa"}
+                </h2>
+                <button
+                  type="button"
+                  disabled={salvando}
+                  onClick={fecharModal}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+                >
+                  ×
+                </button>
               </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500">
-                  Descrição
-                </label>
-                <textarea
-                  rows={3}
-                  className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                  value={form.descricao}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, descricao: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-4 overflow-y-auto p-6">
                 <div>
                   <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500">
-                    Prazo
+                    Título
                   </label>
                   <input
-                    type="date"
-                    className="h-12 w-full rounded-xl border border-gray-200 px-3 text-sm"
-                    value={form.data_conclusao}
+                    className="h-12 w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-800 focus:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    value={form.titulo}
                     onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        data_conclusao: e.target.value,
-                      }))
+                      setForm((f) => ({ ...f, titulo: e.target.value }))
                     }
+                    placeholder="Resumo da tarefa"
                   />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500">
-                    Prioridade
+                    Descrição
                   </label>
-                  <select
-                    className="h-12 w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-800"
-                    value={form.prioridade}
+                  <textarea
+                    rows={3}
+                    className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    value={form.descricao}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, prioridade: e.target.value }))
+                      setForm((f) => ({ ...f, descricao: e.target.value }))
                     }
-                  >
-                    {PRIORIDADES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500">
+                      Prazo
+                    </label>
+                    <input
+                      type="date"
+                      className="h-12 w-full rounded-xl border border-gray-200 px-3 text-sm"
+                      value={form.data_conclusao}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          data_conclusao: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500">
+                      Prioridade
+                    </label>
+                    <select
+                      className="h-12 w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-800"
+                      value={form.prioridade}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, prioridade: e.target.value }))
+                      }
+                    >
+                      {PRIORIDADES.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase text-gray-500">
+                    Responsáveis
+                  </label>
+                  <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-2">
+                    {usuariosLista.length === 0 ? (
+                      <p className="p-2 text-sm text-gray-500">Carregando…</p>
+                    ) : (
+                      usuariosLista.map((u) => (
+                        <label
+                          key={u.id}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-white"
+                        >
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300"
+                            checked={form.responsaveisIds
+                              .map(String)
+                              .includes(String(u.id))}
+                            onChange={() => toggleResponsavel(u.id)}
+                          />
+                          <span className="flex-1 text-gray-800">{u.nome}</span>
+                          {u.escritorio ? (
+                            <span className="text-xs text-gray-500">
+                              {u.escritorio}
+                            </span>
+                          ) : null}
+                        </label>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="mb-2 block text-xs font-bold uppercase text-gray-500">
-                  Responsáveis
-                </label>
-                <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-2">
-                  {usuariosLista.length === 0 ? (
-                    <p className="p-2 text-sm text-gray-500">Carregando…</p>
-                  ) : (
-                    usuariosLista.map((u) => (
-                      <label
-                        key={u.id}
-                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-white"
-                      >
-                        <input
-                          type="checkbox"
-                          className="rounded border-gray-300"
-                          checked={form.responsaveisIds
-                            .map(String)
-                            .includes(String(u.id))}
-                          onChange={() => toggleResponsavel(u.id)}
-                        />
-                        <span className="flex-1 text-gray-800">{u.nome}</span>
-                        {u.escritorio ? (
-                          <span className="text-xs text-gray-500">
-                            {u.escritorio}
-                          </span>
-                        ) : null}
-                      </label>
-                    ))
-                  )}
-                </div>
+              <div className="flex justify-end gap-2 border-t border-gray-100 bg-white px-6 py-4 shadow-sm">
+                <button
+                  type="button"
+                  disabled={salvando}
+                  onClick={fecharModal}
+                  className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={salvando}
+                  onClick={salvarModal}
+                  className="inline-flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {salvando ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : null}
+                  {editandoId ? "Guardar alterações" : "Salvar"}
+                </button>
               </div>
-            </div>
-            <div className="flex justify-end gap-2 border-t border-gray-100 bg-white px-6 py-4 shadow-sm">
-              <button
-                type="button"
-                disabled={salvando}
-                onClick={fecharModal}
-                className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={salvando}
-                onClick={salvarModal}
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-gray-800 disabled:opacity-50"
-              >
-                {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {editandoId ? "Guardar alterações" : "Salvar"}
-              </button>
             </div>
           </div>
-        </div>
         </ModalPortal>
       )}
     </div>

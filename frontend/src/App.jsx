@@ -25,6 +25,7 @@ import TarefasEscritorio from "./pages/escritorios/TarefasEscritorio";
 import ClientesEscritorio from "./pages/escritorios/ClientesEscritorio";
 import OrcamentoEscritorio from "./pages/escritorios/OrcamentoEscritorio";
 import FinanceiroEscritorio from "./pages/escritorios/FinanceiroEscritorio";
+import AgendaEscritorio from "./pages/escritorios/AgendaEscritorio";
 
 import "./index.css";
 
@@ -215,6 +216,14 @@ export default function App() {
                   </PageTransition>
                 }
               />
+              <Route
+                path="agenda"
+                element={
+                  <PageTransition>
+                    <AgendaEscritorio />
+                  </PageTransition>
+                }
+              />
             </Route>
           </Route>
           <Route
@@ -263,6 +272,14 @@ export default function App() {
                 element={
                   <PageTransition>
                     <FinanceiroEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="agenda"
+                element={
+                  <PageTransition>
+                    <AgendaEscritorio />
                   </PageTransition>
                 }
               />

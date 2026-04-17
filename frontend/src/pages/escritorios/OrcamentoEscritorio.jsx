@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileSpreadsheet, Loader2, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  FileSpreadsheet,
+  Loader2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { api } from "../../services/api";
 import ModalPortal from "../../components/gerais/ModalPortal";
-import { ESCRITORIO_NOME_POR_ID, ID_VOGELKOP } from "../../constants/escritorios";
+import {
+  ESCRITORIO_NOME_POR_ID,
+  ID_VOGELKOP,
+} from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalOrcamentoEscritorio from "../../components/modals/ModalOrcamentoEscritorio";
 
@@ -21,6 +30,12 @@ const formatarMoeda = (valor) => {
     maximumFractionDigits: 2,
   }).format(n);
 };
+
+const formatarBRL = (valor) =>
+  (Number(valor) || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 
 const inputBarClass =
   "w-full rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 py-2.5 text-sm text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 placeholder:text-esc-muted/60 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
@@ -183,6 +198,43 @@ export default function OrcamentoEscritorio() {
     return lista;
   }, [rows, busca, filtroStatusEfetivo, filtroDataInicio, filtroDataFim]);
 
+  /** Métricas reativas ao array já filtrado (não chama Supabase). */
+  const metricas = useMemo(() => {
+    let totalFechado = 0;
+    let totalNaoFechado = 0;
+    let totalPendente = 0;
+    let qtdFechado = 0;
+    let qtdNaoFechado = 0;
+    let qtdPendente = 0;
+    for (const o of linhas) {
+      const v = parseFloat(o.valor) || 0;
+      if (orcamentoEstaFechado(o.status)) {
+        totalFechado += v;
+        qtdFechado += 1;
+      } else if (orcamentoNaoFechado(o.status)) {
+        totalNaoFechado += v;
+        qtdNaoFechado += 1;
+      } else {
+        /* Em andamento ou status desconhecido contam como pendente. */
+        totalPendente += v;
+        qtdPendente += 1;
+      }
+    }
+    const total = linhas.length;
+    const taxaConversao =
+      total > 0 ? Math.round((qtdFechado / total) * 100) : 0;
+    return {
+      totalFechado,
+      totalNaoFechado,
+      totalPendente,
+      qtdFechado,
+      qtdNaoFechado,
+      qtdPendente,
+      taxaConversao,
+      total,
+    };
+  }, [linhas]);
+
   async function handleSalvarOrcamento(payload) {
     try {
       if (payload.id) {
@@ -308,7 +360,7 @@ export default function OrcamentoEscritorio() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="mb-6 mt-4 flex cursor-pointer items-center gap-2 text-esc-muted transition-colors hover:text-esc-destaque"
+        className="mb-2 mt-4 flex cursor-pointer items-center gap-2 text-esc-muted transition-colors hover:text-esc-destaque"
       >
         <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
         Voltar
@@ -391,6 +443,82 @@ export default function OrcamentoEscritorio() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Barra de métricas — altura fixa para evitar jump na lista abaixo */}
+      <section
+        aria-label="Resumo dos orçamentos filtrados"
+        className="mb-6 grid auto-rows-[110px] grid-cols-2 gap-3 lg:grid-cols-4"
+      >
+        <article className="flex flex-col justify-between overflow-hidden rounded-lg border border-emerald-400/25 bg-esc-card/80 px-4 py-3 shadow-sm backdrop-blur-md">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
+            Total Fechado
+          </p>
+          <p className="truncate text-xl font-bold tabular-nums text-emerald-300">
+            {formatarBRL(metricas.totalFechado)}
+          </p>
+          <p className="text-[10px] text-esc-muted">
+            {metricas.qtdFechado}{" "}
+            {metricas.qtdFechado === 1 ? "aprovado" : "aprovados"}
+          </p>
+        </article>
+
+        <article className="flex flex-col justify-between overflow-hidden rounded-lg border border-red-400/25 bg-esc-card/80 px-4 py-3 shadow-sm backdrop-blur-md">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
+            Total Não Fechado
+          </p>
+          <p className="truncate text-xl font-bold tabular-nums text-red-300">
+            {formatarBRL(metricas.totalNaoFechado)}
+          </p>
+          <p className="text-[10px] text-esc-muted">
+            {metricas.qtdNaoFechado}{" "}
+            {metricas.qtdNaoFechado === 1 ? "recusado" : "recusados"}
+          </p>
+        </article>
+
+        <article className="flex flex-col justify-between overflow-hidden rounded-lg border border-orange-400/25 bg-esc-card/80 px-4 py-3 shadow-sm backdrop-blur-md">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
+            Em Análise
+          </p>
+          <p className="truncate text-xl font-bold tabular-nums text-orange-300">
+            {formatarBRL(metricas.totalPendente)}
+          </p>
+          <p className="text-[10px] text-esc-muted">
+            {metricas.qtdPendente}{" "}
+            {metricas.qtdPendente === 1 ? "pendente" : "pendentes"}
+          </p>
+        </article>
+
+        <article
+          className={`flex flex-col justify-between overflow-hidden rounded-lg border bg-esc-card/80 px-4 py-3 shadow-sm backdrop-blur-md ${
+            metricas.taxaConversao > 50
+              ? "border-emerald-400/40 shadow-[0_0_20px_-12px_rgba(52,211,153,0.6)]"
+              : "border-esc-border/70"
+          }`}
+        >
+          <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
+            Taxa de Conversão
+          </p>
+          <p
+            className={`text-xl font-bold tabular-nums ${
+              metricas.taxaConversao > 50 ? "text-emerald-300" : "text-esc-text"
+            }`}
+          >
+            {metricas.taxaConversao}
+            <span
+              className={`ml-1 text-base font-semibold ${
+                metricas.taxaConversao > 50
+                  ? "text-emerald-300/70"
+                  : "text-esc-muted"
+              }`}
+            >
+              %
+            </span>
+          </p>
+          <p className="text-[10px] text-esc-muted">
+            {metricas.qtdFechado}/{metricas.total} aprovados
+          </p>
+        </article>
       </section>
 
       <div className="w-full overflow-hidden rounded-xl border border-white/5 bg-esc-card backdrop-blur-md">

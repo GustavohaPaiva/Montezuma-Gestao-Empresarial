@@ -337,6 +337,8 @@ export default function TarefasEscritorio() {
         onSaved={() => void load()}
         escritorioId={escritorioId}
         tarefaEdicao={tarefaEdicao}
+        usuariosEscritorio={usuarios}
+        usuariosEscritorioProntos={!loading}
       />
     </div>
   );

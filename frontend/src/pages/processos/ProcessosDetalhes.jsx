@@ -1,9 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { FileText, Loader2 } from "lucide-react";
+import { pdf } from "@react-pdf/renderer";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { api } from "../../services/api";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
+import FichaClientePDF from "../../documents/FichaClientePDF";
+
+function nomeArquivoSeguro(raw) {
+  const limpo = String(raw || "Cliente")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return limpo || "Cliente";
+}
 
 export default function ProcessosDetalhes() {
   const navigate = useNavigate();
@@ -11,6 +23,7 @@ export default function ProcessosDetalhes() {
   const [processo, setProcesso] = useState(null);
   const [editando, setEditando] = useState(null);
   const [valorEdicao, setValorEdicao] = useState("");
+  const [gerandoPDF, setGerandoPDF] = useState(false);
 
   useEffect(() => {
     async function carregarDados() {
@@ -101,6 +114,33 @@ export default function ProcessosDetalhes() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleGerarFichaPDF = async () => {
+    if (!processo?.id || !processo?.escritorio_id) return;
+    setGerandoPDF(true);
+    try {
+      const dados = await api.getClienteById(processo.id, {
+        allowedEscritorioIds: [processo.escritorio_id],
+      });
+      if (!dados) {
+        throw new Error("Cliente não encontrado ou fora do escritório atual.");
+      }
+      const blob = await pdf(<FichaClientePDF cliente={dados} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Ficha_Cliente_${nomeArquivoSeguro(dados.nome)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("[ProcessosDetalhes] gerar PDF:", e);
+      alert(e?.message || "Não foi possível gerar a ficha.");
+    } finally {
+      setGerandoPDF(false);
+    }
   };
 
   const handleSalvarInformacoes = async () => {
@@ -309,14 +349,29 @@ export default function ProcessosDetalhes() {
             </h1>
           </div>
 
-          {/* O BOTÃO COM O CAMINHO CORRIGIDO */}
-          <ButtonDefault
-            onClick={() => navigate(`/documentos/${id}`)}
-            className="px-4 py-2 text-sm h-[60px] md:h-[40px]"
-          >
-            {" "}
-            Ver Documentos
-          </ButtonDefault>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <ButtonDefault
+              type="button"
+              onClick={handleGerarFichaPDF}
+              disabled={gerandoPDF}
+              aria-label="Gerar ficha do cliente em PDF"
+              className="gap-2 px-4 py-2 text-sm h-[60px] md:h-[40px]"
+            >
+              {gerandoPDF ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <FileText className="h-4 w-4" aria-hidden />
+              )}
+              {gerandoPDF ? "Gerando…" : "Gerar Ficha"}
+            </ButtonDefault>
+
+            <ButtonDefault
+              onClick={() => navigate(`/documentos/${id}`)}
+              className="px-4 py-2 text-sm h-[60px] md:h-[40px]"
+            >
+              Ver Documentos
+            </ButtonDefault>
+          </div>
         </div>
       </header>
 

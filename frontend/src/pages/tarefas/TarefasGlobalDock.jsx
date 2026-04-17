@@ -17,7 +17,8 @@ const TIPOS_COM_ACESSO = [
 
 export default function TarefasGlobalDock() {
   const { user } = useAuth();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const [aberto, setAberto] = useState(false);
   const [contagem, setContagem] = useState(0);
   const [tick, setTick] = useState(0);
@@ -35,6 +36,7 @@ export default function TarefasGlobalDock() {
           id,
           status,
           criador_id,
+          escritorio_id,
           responsaveis:tarefa_responsaveis(
             usuarios!usuario_id(id)
           )
@@ -57,53 +59,63 @@ export default function TarefasGlobalDock() {
     return () => clearInterval(id);
   }, [aberto, refreshContagem]);
 
+  const isLoginRoute = location.pathname.toLowerCase().includes("/login");
+
+  useEffect(() => {
+    if (isLoginRoute) setAberto(false);
+  }, [isLoginRoute]);
+
   if (!mostrarDock) return null;
 
   if (pathname.includes("/escritorio")) return null;
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setAberto(true)}
-        className="fixed bottom-6 right-6 z-[80] flex h-14 w-14 items-center justify-center rounded-full bg-white text-gray-800 shadow-md ring-1 ring-gray-200 transition hover:shadow-lg hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
-        aria-label="Abrir tarefas"
-      >
-        <Bell className="h-6 w-6" strokeWidth={1.75} />
-        {contagem > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow-sm">
-            {contagem > 99 ? "99+" : contagem}
-          </span>
-        )}
-      </button>
-
-      {aberto && (
-        <ModalPortal>
-        <div className="fixed inset-0 z-[100] flex justify-end">
+      {!isLoginRoute && (
+        <>
           <button
             type="button"
-            className="absolute inset-0 bg-black/25 backdrop-blur-[2px]"
-            aria-label="Fechar painel de tarefas"
-            onClick={() => setAberto(false)}
-          />
-          <div
-            className="relative flex h-[100dvh] max-h-[100dvh] w-[90vw] max-w-5xl flex-col bg-white shadow-sm ring-1 ring-gray-200 lg:ml-auto"
-            role="dialog"
-            aria-modal="true"
+            onClick={() => setAberto(true)}
+            className="fixed bottom-6 right-6 z-[80] flex h-14 w-14 items-center justify-center rounded-full bg-white text-gray-800 shadow-md ring-1 ring-gray-200 transition hover:shadow-lg hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+            aria-label="Abrir tarefas"
           >
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <ListaTarefas
-                embedded
-                onClose={() => setAberto(false)}
-                onTasksUpdated={() => {
-                  setTick((n) => n + 1);
-                  refreshContagem();
-                }}
-              />
-            </div>
-          </div>
-        </div>
-        </ModalPortal>
+            <Bell className="h-6 w-6" strokeWidth={1.75} />
+            {contagem > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow-sm">
+                {contagem > 99 ? "99+" : contagem}
+              </span>
+            )}
+          </button>
+
+          {aberto && (
+            <ModalPortal>
+              <div className="fixed inset-0 z-[100] flex justify-end">
+                <button
+                  type="button"
+                  className="absolute inset-0 bg-black/25 backdrop-blur-[2px]"
+                  aria-label="Fechar painel de tarefas"
+                  onClick={() => setAberto(false)}
+                />
+                <div
+                  className="relative flex h-[100dvh] max-h-[100dvh] w-[90vw] max-w-5xl flex-col bg-white shadow-sm ring-1 ring-gray-200 lg:ml-auto"
+                  role="dialog"
+                  aria-modal="true"
+                >
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <ListaTarefas
+                      embedded
+                      onClose={() => setAberto(false)}
+                      onTasksUpdated={() => {
+                        setTick((n) => n + 1);
+                        refreshContagem();
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </ModalPortal>
+          )}
+        </>
       )}
     </>
   );
