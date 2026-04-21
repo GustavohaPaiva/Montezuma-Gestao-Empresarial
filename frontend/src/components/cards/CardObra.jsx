@@ -85,7 +85,7 @@ export default function ObraCard({
   return (
     <div
       onClick={handleCardClick}
-      className={`relative flex flex-col justify-between w-full h-[220px] p-4 rounded-lg shadow-sm border border-gray-100 bg-[#FFFFFF] transition-all duration-200 md:max-w-[350px] ${
+      className={`relative flex flex-col justify-between w-full h-[220px] p-4 rounded-lg shadow-sm border border-gray-100 bg-surface transition-all duration-200 md:max-w-[350px] ${
         !isEditing
           ? "hover:scale-[1.02] hover:shadow-md cursor-pointer"
           : "cursor-default"
@@ -94,7 +94,7 @@ export default function ObraCard({
       <div className="flex items-center justify-between w-full z-10">
         <div
           className={`w-3 h-3 rounded-full shadow-sm transition-colors duration-300 ${
-            tudoPago ? "bg-[#2E7D32]" : "bg-[#F57C00]"
+            tudoPago ? "bg-success-primary" : "bg-warning-primary"
           }`}
           title={tudoPago ? "Tudo pago" : "Pagamento pendente"}
         />

@@ -1,4 +1,3 @@
-/** Tipos que enxergam entradas + resumo anual no módulo financeiro. */
 export const TIPOS_FINANCEIRO_ADMIN = [
   "gestor_master",
   "diretoria",
@@ -23,7 +22,7 @@ export const checkIsParcelado = (item) => {
   if (!item) return false;
   return Boolean(
     item.grupo_id ||
-      (item.forma && String(item.forma).toLowerCase().includes("parcelado")) ||
-      (item.descricao && /\(\d+\/\d+\)/.test(item.descricao)),
+    (item.forma && String(item.forma).toLowerCase().includes("parcelado")) ||
+    (item.descricao && /\(\d+\/\d+\)/.test(item.descricao)),
   );
 };

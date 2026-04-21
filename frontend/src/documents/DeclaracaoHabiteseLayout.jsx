@@ -30,7 +30,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 15,
   },
-  // Linha padrão para os campos de baixo (que são curtos)
   formRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -132,9 +131,7 @@ const DeclaracaoHabiteseLayout = ({ cliente }) => {
 
       <Text style={styles.headerTitle}>DECLARAÇÃO DE HABITE-SE</Text>
 
-      {/* SEÇÃO DO ENDEREÇO: ESTRUTURA BLINDADA */}
       <View style={{ marginBottom: 15 }}>
-        {/* Usamos um único bloco de texto para o rótulo e a rua. Isso garante a quebra correta para a esquerda. */}
         <Text style={{ fontSize: 14, lineHeight: 1.5, textAlign: "justify" }}>
           <Text>
             Declaramos, para fins de HABITE-SE da construção situada na Rua/Av.:
@@ -170,7 +167,6 @@ const DeclaracaoHabiteseLayout = ({ cliente }) => {
             </View>
           </View>
 
-          {/* Linha do Número: Separada para evitar que o wrap da rua a empurre */}
           <View
             style={{
               flexDirection: "row",
@@ -205,7 +201,6 @@ const DeclaracaoHabiteseLayout = ({ cliente }) => {
         </Text>
       </View>
 
-      {/* CAMPOS TÉCNICOS */}
       <View style={styles.formRow}>
         <Text style={styles.textLabel}>Tipo de Edificação:</Text>
         <View style={[styles.dottedLine, { maxWidth: 250 }]}>
@@ -254,7 +249,6 @@ const DeclaracaoHabiteseLayout = ({ cliente }) => {
 
       <Text style={styles.dateSection}>{dataExtenso}</Text>
 
-      {/* ASSINATURAS */}
       <View style={styles.signatureSection}>
         <SignatureBlock
           title={`${respNome} – ${respCrea}`}

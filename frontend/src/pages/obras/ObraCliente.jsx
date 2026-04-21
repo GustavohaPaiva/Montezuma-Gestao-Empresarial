@@ -537,59 +537,59 @@ export default function ObraCliente() {
 
       {isModalOpen && (
         <ModalPortal>
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col items-center shadow-xl relative transition-all duration-300 transform scale-100 opacity-100">
-            <button
-              onClick={handleFecharModal}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors"
-              disabled={uploadingFoto}
-            >
-              <X size={24} />
-            </button>
-            <h2 className="text-xl font-bold text-[#464C54] mb-6">
-              Foto de Perfil
-            </h2>
-            <div className="relative w-[150px] h-[150px] rounded-full border-[3px] border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] overflow-hidden mb-6 shadow-sm">
-              {previewUrl ? (
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <UserRound className="w-[80px] h-[80px] text-[#DC3B0B]" />
-              )}
-            </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingFoto}
-              className="w-full py-3 px-4 bg-[#EEEDF0] text-[#464C54] font-bold rounded-lg border border-[#DBDADE] hover:bg-gray-200 transition-colors mb-6 flex items-center justify-center gap-2"
-            >
-              <Camera className="w-5 h-5" />
-              {selectedFile ? "Trocar Imagem" : "Escolher Imagem"}
-            </button>
-            <div className="w-full flex gap-3">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col items-center shadow-xl relative transition-all duration-300 transform scale-100 opacity-100">
               <button
                 onClick={handleFecharModal}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors"
                 disabled={uploadingFoto}
-                className="flex-1 py-3 rounded-lg font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
               >
-                Cancelar
+                <X size={24} />
               </button>
-              <button
-                onClick={handleConfirmarUpload}
-                disabled={!selectedFile || uploadingFoto}
-                className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors flex items-center justify-center gap-2 ${!selectedFile || uploadingFoto ? "bg-gray-300 cursor-not-allowed" : "bg-[#DC3B0B] hover:bg-[#b02f08]"}`}
-              >
-                {uploadingFoto ? (
-                  <Hourglass className="w-5 h-5 animate-spin" />
+              <h2 className="text-xl font-bold text-[#464C54] mb-6">
+                Foto de Perfil
+              </h2>
+              <div className="relative w-[150px] h-[150px] rounded-full border-[3px] border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] overflow-hidden mb-6 shadow-sm">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  "Salvar Foto"
+                  <UserRound className="w-[80px] h-[80px] text-[#DC3B0B]" />
                 )}
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFoto}
+                className="w-full py-3 px-4 bg-[#EEEDF0] text-[#464C54] font-bold rounded-lg border border-[#DBDADE] hover:bg-gray-200 transition-colors mb-6 flex items-center justify-center gap-2"
+              >
+                <Camera className="w-5 h-5" />
+                {selectedFile ? "Trocar Imagem" : "Escolher Imagem"}
               </button>
+              <div className="w-full flex gap-3">
+                <button
+                  onClick={handleFecharModal}
+                  disabled={uploadingFoto}
+                  className="flex-1 py-3 rounded-lg font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmarUpload}
+                  disabled={!selectedFile || uploadingFoto}
+                  className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors flex items-center justify-center gap-2 ${!selectedFile || uploadingFoto ? "bg-gray-300 cursor-not-allowed" : "bg-[#DC3B0B] hover:bg-[#b02f08]"}`}
+                >
+                  {uploadingFoto ? (
+                    <Hourglass className="w-5 h-5 animate-spin" />
+                  ) : (
+                    "Salvar Foto"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
         </ModalPortal>
       )}
 

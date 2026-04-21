@@ -63,16 +63,16 @@ function ClienteStatusBadge({ status }) {
     tone =
       "border-status-concluida-text/45 bg-black/50 text-status-concluida-text";
   } else if (s === "produção" || s === "producao") {
-    tone = "border-[#7B1FA2] bg-black/50 text-[#7B1FA2]";
+    tone = "border-purple-700 bg-black/50 text-purple-700";
   } else if (s === "prefeitura") {
     tone =
       "border-status-andamento-text/45 bg-black/50 text-status-andamento-text";
   } else if (s === "caixa") {
-    tone = "border-[#00695C] bg-black/50 text-[#00695C]";
+    tone = "border-teal-700 bg-black/50 text-teal-700";
   } else if (s === "cartorio" || s === "cartório") {
-    tone = "border-[#de0226] bg-black/50 text-[#de0226]";
+    tone = "border-rose-600 bg-black/50 text-rose-600";
   } else if (s === "obra") {
-    tone = "border-[#1565C0] bg-black/50 text-[#1565C0]";
+    tone = "border-blue-700 bg-black/50 text-blue-700";
   }
   return <span className={`${base} ${tone}`}>{raw}</span>;
 }

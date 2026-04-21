@@ -118,6 +118,7 @@ export default function ProcessosDetalhes() {
 
   const handleGerarFichaPDF = async () => {
     if (!processo?.id || !processo?.escritorio_id) return;
+    const novaAba = window.open("", "_blank");
     setGerandoPDF(true);
     try {
       const dados = await api.getClienteById(processo.id, {
@@ -128,15 +129,20 @@ export default function ProcessosDetalhes() {
       }
       const blob = await pdf(<FichaClientePDF cliente={dados} />).toBlob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Ficha_Cliente_${nomeArquivoSeguro(dados.nome)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      if (novaAba && !novaAba.closed) {
+        novaAba.location.href = url;
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Ficha_Cliente_${nomeArquivoSeguro(dados.nome)}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
       console.error("[ProcessosDetalhes] gerar PDF:", e);
+      if (novaAba && !novaAba.closed) novaAba.close();
       alert(e?.message || "Não foi possível gerar a ficha.");
     } finally {
       setGerandoPDF(false);
@@ -376,7 +382,6 @@ export default function ProcessosDetalhes() {
       </header>
 
       <div className="px-[5%] w-full flex flex-col items-center">
-        {/* TABELAS SUPERIORES */}
         <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px] overflow-x-auto">
           <h1 className="text-[30px] font-bold text-[#464C54]">Prefeitura</h1>
           <TabelaSimples
@@ -407,7 +412,6 @@ export default function ProcessosDetalhes() {
           />
         </div>
 
-        {/* FORMULÁRIO DO CLIENTE */}
         <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] px-[30px] shadow-sm flex flex-col mt-[24px] pt-[24px] pb-[24px]">
           <div className="flex justify-center items-center mb-6">
             <h2 className="text-[24px] font-bold text-[#000000] text-center w-full">
@@ -416,7 +420,6 @@ export default function ProcessosDetalhes() {
           </div>
 
           <div className="flex flex-col gap-6">
-            {/* 1. Informações do cliente */}
             <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
               <div className="w-full text-center mb-4">
                 <h3 className="text-[25px]">Informações do cliente</h3>
@@ -490,7 +493,6 @@ export default function ProcessosDetalhes() {
               </div>
             </div>
 
-            {/* 2. Informações de Moradia do cliente */}
             <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
               <div className="w-full text-center mb-4">
                 <h3 className="text-[25px]">Informações de Moradia</h3>
@@ -580,7 +582,6 @@ export default function ProcessosDetalhes() {
               </div>
             </div>
 
-            {/* 3. Informações da Obra */}
             <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
               <div className="w-full text-center mb-4">
                 <h3 className="text-[25px]">Informações da Obra</h3>
@@ -699,7 +700,6 @@ export default function ProcessosDetalhes() {
                 </div>
               </div>
 
-              {/* SELECTS CUB */}
               <div className="flex flex-col md:flex-row justify-center mt-4 gap-4 w-full">
                 <div className="flex flex-col text-left gap-1 w-full">
                   <label className="text-[#71717A] text-sm">
@@ -809,7 +809,6 @@ export default function ProcessosDetalhes() {
               </div>
             </div>
 
-            {/* 4. Informações do Alvara */}
             <div className="border-t border-[#C4C4C9] pt-[15px] flex flex-col">
               <div className="w-full text-center mb-4">
                 <h3 className="text-[25px]">Informações do Alvara</h3>

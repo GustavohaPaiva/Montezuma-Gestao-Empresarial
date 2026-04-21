@@ -106,7 +106,6 @@ export function AuthProvider({ children }) {
 
       const fotoDoAdmin = data.user.user_metadata?.foto || null;
 
-      /** `escritorio_id`: FK para multi-tenant (financeiro híbrido, projetos, etc.). */
       const userData = {
         id: data.user.id,
         email: data.user.email,

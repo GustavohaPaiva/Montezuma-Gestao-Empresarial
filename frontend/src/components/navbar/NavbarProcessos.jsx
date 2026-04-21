@@ -23,7 +23,7 @@ export default function Navbar({
 
   return (
     <header
-      className={`w-full px-[5%] box-border border-b border-[#DBDADE] flex justify-center bg-[#EEEDF0] top-0 z-10 transition-all ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
+      className={`w-full px-[5%] box-border border-b border-border-primary flex justify-center bg-bg-primary top-0 z-10 transition-all ${isMobile ? "h-auto py-[15px]" : "h-[82px]"}`}
     >
       <div
         className={`w-full flex items-center justify-between gap-[20px] ${isMobile ? "flex-col" : "flex-row h-full"}`}
@@ -45,7 +45,7 @@ export default function Navbar({
             <select
               value={filterStatus}
               onChange={(e) => onFilterChange(e.target.value)}
-              className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] text-[16px] text-[#464C54] px-[12px] focus:outline-none w-full box-border cursor-pointer appearance-none ${isMobile ? "h-[45px]" : "h-[40px]"}`}
+              className={`bg-surface-muted border border-border-muted rounded-[6px] text-[16px] text-text-primary px-[12px] focus:outline-none w-full box-border cursor-pointer appearance-none ${isMobile ? "h-[45px]" : "h-[40px]"}`}
               style={{ backgroundImage: "none" }}
             >
               <option value="Tudo">Tudo</option>
@@ -77,7 +77,7 @@ export default function Navbar({
               placeholder="Buscar por cliente ou tipo..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className={`bg-[#F7F7F8] border border-[#C4C4C9] rounded-[6px] text-[16px] text-[#464C54] px-[12px] focus:outline-none w-full box-border ${isMobile ? "h-[45px]" : "h-[40px]"}`}
+              className={`bg-surface-muted border border-border-muted rounded-[6px] text-[16px] text-text-primary px-[12px] focus:outline-none w-full box-border ${isMobile ? "h-[45px]" : "h-[40px]"}`}
             />
           </div>
         </div>

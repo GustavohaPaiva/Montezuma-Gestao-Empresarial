@@ -42,6 +42,8 @@ const PODE_CRIAR = ["gestor_master", "diretoria"];
 
 const GESTOR_OU_DIRETORIA = ["gestor_master", "diretoria"];
 
+const VISAO_GLOBAL_TAREFAS = ["gestor_master", "diretoria", "secretaria"];
+
 const ENVIAR_APROVACAO_TIPOS = ["suporte_ti", "secretaria", "funcionario"];
 
 function iniciais(nome) {
@@ -243,7 +245,7 @@ export default function ListaTarefas({
   const podeCriar = PODE_CRIAR.includes(user?.tipo);
   const uid = user?.id ? String(user.id) : null;
 
-  const verFiltroTodas = GESTOR_OU_DIRETORIA.includes(user?.tipo);
+  const verFiltroTodas = VISAO_GLOBAL_TAREFAS.includes(user?.tipo);
 
   useEffect(() => {
     if (user && !verFiltroTodas && pillAtivo === "todas") {
@@ -260,7 +262,16 @@ export default function ListaTarefas({
     setLoading(true);
     setErro(null);
     try {
-      const data = await api.getTarefasGlobaisMontezuma();
+      let data;
+      if (pillAtivo === "minhas") {
+        if (!uid) {
+          data = [];
+        } else {
+          data = await api.getTarefasGlobaisMontezumaMinhasResponsavel(uid);
+        }
+      } else {
+        data = await api.getTarefasGlobaisMontezuma();
+      }
       setTarefas(Array.isArray(data) ? data : []);
       onTasksUpdatedRef.current?.();
     } catch (e) {
@@ -273,7 +284,7 @@ export default function ListaTarefas({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pillAtivo, uid]);
 
   const carregarUsuarios = useCallback(async () => {
     const aplicarLista = (list) => {
@@ -333,12 +344,7 @@ export default function ListaTarefas({
         return tit.includes(q) || desc.includes(q);
       });
     }
-    if (pillAtivo === "minhas" && uid) {
-      list = list.filter((t) => {
-        if (String(t.criador_id) === uid) return true;
-        return extrairResponsaveis(t).some((r) => r.id === uid);
-      });
-    } else if (pillAtivo === "aguardando") {
+    if (pillAtivo === "aguardando") {
       list = list.filter(
         (t) => normalizarStatus(t.status) === STATUS.aguardando,
       );
@@ -663,7 +669,7 @@ export default function ListaTarefas({
       { id: "aguardando", label: "Aguardando validação" },
       { id: "concluidas", label: "Concluídas" },
     ];
-    if (GESTOR_OU_DIRETORIA.includes(user?.tipo)) return base;
+    if (VISAO_GLOBAL_TAREFAS.includes(user?.tipo)) return base;
     return base.filter((p) => p.id !== "todas");
   }, [user?.tipo]);
 
@@ -1012,6 +1018,12 @@ export default function ListaTarefas({
                       className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold ${badgeStatusSolido(st)}`}
                     >
                       {st}
+                    </span>
+                    <span
+                      className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm ${badgeEscritorioClasses(tarefaSelecionada)}`}
+                      title={`Escritório: ${rotuloEscritorioCard(tarefaSelecionada)}`}
+                    >
+                      {rotuloEscritorioCard(tarefaSelecionada)}
                     </span>
                     <div className="flex items-center gap-1.5 text-xs text-gray-500">
                       <Calendar className="h-3.5 w-3.5 text-gray-400" />

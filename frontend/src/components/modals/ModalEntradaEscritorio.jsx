@@ -19,11 +19,9 @@ export default function ModalEntradaEscritorio({
 }) {
   const [formData, setFormData] = useState(emptyForm);
 
-  // Injeção do Tema para o Portal
   const temaClasse =
     escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
 
-  // Classes Premium padronizadas
   const fieldClass =
     "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:border-esc-destaque focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-esc-destaque";
 
@@ -65,11 +63,9 @@ export default function ModalEntradaEscritorio({
         aria-labelledby="modal-entrada-esc-titulo"
       >
         <div className={modalPanelClass}>
-          {/* Luzes de Estúdio (Glow Físico) */}
           <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]"></div>
           <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/10 blur-[70px]"></div>
 
-          {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-6 py-4">
             <h2
               id="modal-entrada-esc-titulo"
@@ -86,8 +82,6 @@ export default function ModalEntradaEscritorio({
               <X className="h-4 w-4" />
             </button>
           </div>
-
-          {/* Body */}
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-6 custom-scrollbar">
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
@@ -187,7 +181,6 @@ export default function ModalEntradaEscritorio({
             </div>
           </div>
 
-          {/* Footer */}
           <div className="flex flex-col gap-3 border-t border-white/10 bg-white/[0.02] px-6 py-5 sm:flex-row sm:justify-end">
             <button
               type="button"

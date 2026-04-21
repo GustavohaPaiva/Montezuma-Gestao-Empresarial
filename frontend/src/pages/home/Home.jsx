@@ -7,6 +7,7 @@ import CardHome from "../../components/cards/CardHome";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import logo from "../../assets/logos/logo sem fundo.png";
 import imagemHome from "../../assets/img/ImagemHome.png";
+import { homeDictionary } from "../../constants/dictionaries";
 
 export default function Home() {
   const { user, updateUserFoto } = useAuth();
@@ -26,14 +27,14 @@ export default function Home() {
   const modulos = [
     {
       id: 1,
-      titulo: "Meu Escritório",
+      titulo: homeDictionary.modulos.meuEscritorio,
       imagem: "https://img.icons8.com/ios/125/building.png",
       path: null,
       meuEscritorio: true,
     },
     {
       id: 2,
-      titulo: "Processos",
+      titulo: homeDictionary.modulos.processos,
       imagem:
         "https://img.icons8.com/external-outline-design-circle/125/external-Process-Lists-artificial-intelligence-outline-design-circle.png",
       path: "/processos",
@@ -41,14 +42,14 @@ export default function Home() {
     },
     {
       id: 3,
-      titulo: "Obras",
+      titulo: homeDictionary.modulos.obras,
       imagem: "https://img.icons8.com/ios/125/company--v1.png",
       path: "/obras",
       roles: ["gestor_master", "diretoria", "suporte_ti"],
     },
     {
       id: 4,
-      titulo: "Financeiro",
+      titulo: homeDictionary.modulos.financeiro,
       imagem:
         "https://img.icons8.com/external-outline-wichaiwi/125/external-financial-business-continuity-plan-outline-wichaiwi.png",
       path: "/financeiro",
@@ -57,7 +58,7 @@ export default function Home() {
 
     {
       id: 5,
-      titulo: "Fornecedores",
+      titulo: homeDictionary.modulos.fornecedores,
       imagem: "https://img.icons8.com/ios/125/supplier.png",
       path: "/fornecedores",
       roles: ["gestor_master", "diretoria", "suporte_ti"],
@@ -65,7 +66,7 @@ export default function Home() {
 
     {
       id: 6,
-      titulo: "Prestadores",
+      titulo: homeDictionary.modulos.prestadores,
       imagem: "https://img.icons8.com/ios/125/worker-male.png",
       path: "/prestadores",
       roles: ["gestor_master", "diretoria", "suporte_ti"],
@@ -117,12 +118,12 @@ export default function Home() {
 
   const handleConfirmarUpload = async () => {
     if (!selectedFile) {
-      alert("Por favor, escolha uma imagem primeiro!");
+      alert(homeDictionary.modalFoto.pickImageError);
       return;
     }
 
     if (!user?.id) {
-      alert("Erro: ID do utilizador logado não encontrado.");
+      alert(homeDictionary.modalFoto.missingUserIdError);
       return;
     }
 
@@ -136,7 +137,7 @@ export default function Home() {
       setIsModalOpen(false);
     } catch (error) {
       console.error("Erro ao fazer upload da foto:", error);
-      alert("Falha ao salvar a foto. Verifique a consola.");
+      alert(homeDictionary.modalFoto.uploadError);
     } finally {
       setUploadingFoto(false);
       if (fileInputRef.current) fileInputRef.current.value = null;
@@ -168,11 +169,11 @@ export default function Home() {
                 <X size={24} />
               </button>
 
-              <h2 className="text-xl font-bold text-[#464C54] mb-6">
-                Foto de Perfil
+              <h2 className="text-xl font-bold text-text-primary mb-6">
+                {homeDictionary.modalFoto.title}
               </h2>
 
-              <div className="relative w-[150px] h-[150px] rounded-full border-[3px] border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] overflow-hidden mb-6 shadow-sm">
+              <div className="relative w-[150px] h-[150px] rounded-full border-[3px] border-accent-primary flex items-center justify-center bg-avatar-bg overflow-hidden mb-6 shadow-sm">
                 {previewUrl ? (
                   <img
                     src={previewUrl}
@@ -180,17 +181,19 @@ export default function Home() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <UserRound className="w-[80px] h-[80px] text-[#DC3B0B]" />
+                  <UserRound className="w-[80px] h-[80px] text-accent-primary" />
                 )}
               </div>
 
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingFoto}
-                className="w-full py-3 px-4 bg-[#EEEDF0] text-[#464C54] font-bold rounded-lg border border-[#DBDADE] hover:bg-gray-200 transition-colors mb-6 flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-bg-primary text-text-primary font-bold rounded-lg border border-border-primary hover:bg-gray-200 transition-colors mb-6 flex items-center justify-center gap-2"
               >
                 <Camera className="w-5 h-5" />
-                {selectedFile ? "Trocar Imagem" : "Escolher Imagem"}
+                {selectedFile
+                  ? homeDictionary.modalFoto.changeImage
+                  : homeDictionary.modalFoto.chooseImage}
               </button>
 
               <div className="w-full flex gap-3">
@@ -199,17 +202,17 @@ export default function Home() {
                   disabled={uploadingFoto}
                   className="flex-1 py-3 rounded-lg font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
                 >
-                  Cancelar
+                  {homeDictionary.modalFoto.cancel}
                 </button>
                 <button
                   onClick={handleConfirmarUpload}
                   disabled={!selectedFile || uploadingFoto}
-                  className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors flex items-center justify-center gap-2 ${!selectedFile || uploadingFoto ? "bg-gray-300 cursor-not-allowed" : "bg-[#DC3B0B] hover:bg-[#b02f08]"}`}
+                  className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors flex items-center justify-center gap-2 ${!selectedFile || uploadingFoto ? "bg-gray-300 cursor-not-allowed" : "bg-accent-primary hover:bg-accent-primary-dark"}`}
                 >
                   {uploadingFoto ? (
                     <Hourglass className="w-5 h-5 animate-spin" />
                   ) : (
-                    "Salvar Foto"
+                    homeDictionary.modalFoto.savePhoto
                   )}
                 </button>
               </div>
@@ -228,11 +231,11 @@ export default function Home() {
             <img
               src={fotoLocal}
               alt="Foto Usuário"
-              className="w-[50px] h-[50px] rounded-[50%] border-2 border-[#DC3B0B] object-cover group-hover:opacity-70 transition-opacity bg-white"
+              className="w-[50px] h-[50px] rounded-[50%] border-2 border-accent-primary object-cover group-hover:opacity-70 transition-opacity bg-surface"
             />
           ) : (
-            <div className="w-[50px] h-[50px] rounded-[50%] border-2 border-[#DC3B0B] flex items-center justify-center bg-white group-hover:opacity-70 transition-opacity">
-              <UserRound className="w-[30px] h-[30px] text-[#DC3B0B]" />
+            <div className="w-[50px] h-[50px] rounded-[50%] border-2 border-accent-primary flex items-center justify-center bg-surface group-hover:opacity-70 transition-opacity">
+              <UserRound className="w-[30px] h-[30px] text-accent-primary" />
             </div>
           )}
         </div>
@@ -241,8 +244,10 @@ export default function Home() {
       <div className="w-full p-5 md:p-20 md:pt-7 flex md:flex-row flex-col justify-center items-center gap-8 md:gap-14 relative z-10">
         <img src={logo} className="w-30 md:w-60" alt="Logo Montezuma" />
         <div className="flex md:gap-5 items-center md:items-start flex-col">
-          <h2 className="text-3xl md:text-7xl font-bold">MONTEZUMA</h2>
-          <p className="text-xl md:text-3xl">Sistema de Gestão Empresarial</p>
+          <h2 className="text-3xl md:text-7xl font-bold">
+            {homeDictionary.hero.title}
+          </h2>
+          <p className="text-xl md:text-3xl">{homeDictionary.hero.subtitle}</p>
         </div>
       </div>
 

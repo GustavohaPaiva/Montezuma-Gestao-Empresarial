@@ -135,8 +135,6 @@ export default function HomeEscritorio() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const escritorioIdPath = useEscritorioIdFromPath();
-  /* URL tem prioridade (gestor_master alterna tenants); fallback user.escritorio_id.
-     Observação: `user.id` é o UUID do usuário — não serve para filtrar tenant. */
   const escritorioId = escritorioIdPath || user?.escritorio_id || null;
   const nomeEscritorio = ESCRITORIO_NOME_POR_ID[escritorioId] ?? "Escritório";
 

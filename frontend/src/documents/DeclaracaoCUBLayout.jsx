@@ -12,7 +12,6 @@ import {
   Path,
 } from "@react-pdf/renderer";
 
-// Fontes
 Font.register({
   family: "Times-Roman",
   fonts: [{ src: "https://fonts.cdnfonts.com/s/16014/Times New Roman.woff" }],
@@ -23,8 +22,6 @@ Font.register({
     { src: "https://fonts.cdnfonts.com/s/16014/Times New Roman Bold.woff" },
   ],
 });
-
-// Estilos preservados
 const styles = StyleSheet.create({
   page: {
     paddingTop: 25,
@@ -232,18 +229,15 @@ const Checkbox = ({ label, checked, noMargin }) => (
 );
 
 const DeclaracaoCUBLayout = ({ cliente }) => {
-  // 1. Validação do Checkbox Construção vs Reforma
   const isReformaObra = cliente?.tipo?.toLowerCase().includes("reforma");
   const isConstrucaoObra = !isReformaObra;
 
-  // 2. Extração limpa dos dados de CUB vindos do DB
-  const tipoProjeto = cliente?.cub_tipo_projeto || ""; // Residencial, Comercial, Industrial
-  const padraoProjeto = cliente?.cub_padrao || ""; // Baixo, Normal, Alto
+  const tipoProjeto = cliente?.cub_tipo_projeto || "";
+  const padraoProjeto = cliente?.cub_padrao || "";
   const nomProjeto = cliente?.cub_nomenclatura
     ? cliente.cub_nomenclatura.trim()
-    : ""; // R1, PP-4, R8, PIS, R16, CAL-8, CSL-8, CSL-16, GI, RP1Q
+    : "";
 
-  // Lógica de Contato (Telefone e Email) baseada no Escritório
   let contatoTelefone = "";
   let contatoEmail = "";
   if (cliente?.escritorio_id === ID_YBYOCA) {
@@ -254,10 +248,8 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
     contatoEmail = "arquiteturavogelkop@gmail.com";
   }
 
-  // Endereço Completo
   const enderecoCompleto = `${cliente?.rua_obra || ""} ${cliente?.numero_obra ? `, ${cliente.numero_obra}` : ""} ${cliente?.bairro_obra ? `- ${cliente.bairro_obra}` : ""}`;
 
-  // Data Dinâmica
   const hoje = new Date();
   const meses = [
     "janeiro",
@@ -392,7 +384,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
         </Text>
       </View>
 
-      {/* Tabelas CUB */}
       <View style={styles.tableSection}>
         <View style={styles.tableTitleBox}>
           <Text style={styles.tableTitleText}>
@@ -401,7 +392,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
         </View>
 
         <View style={styles.tablesWrapper}>
-          {/* TABELA 1: RESIDENCIAL */}
           <View style={styles.tableLeft}>
             <View style={styles.tr}>
               <View style={[styles.cellNoBorder, { alignItems: "flex-start" }]}>
@@ -422,7 +412,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
               </View>
             </View>
             <View style={styles.tr}>
-              {/* Linha R-1 */}
               <View style={styles.cell}>
                 <Checkbox
                   label="R-1"
@@ -455,7 +444,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
               </View>
             </View>
             <View style={styles.tr}>
-              {/* Linha PP-4 / R-8 */}
               <View style={styles.cell}>
                 <Checkbox
                   label="PP-4"
@@ -488,7 +476,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
               </View>
             </View>
             <View style={styles.tr}>
-              {/* Linha R-8 / R-16 */}
               <View style={styles.cell}>
                 <Checkbox
                   label="R-8"
@@ -521,7 +508,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
               </View>
             </View>
             <View style={[styles.tr, { borderBottomWidth: 0 }]}>
-              {/* Linha PIS / R-16 */}
               <View style={styles.cell}>
                 <Checkbox
                   label="PIS"
@@ -546,7 +532,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
             </View>
           </View>
 
-          {/* TABELA 2: COMERCIAL */}
           <View style={styles.tableRight}>
             <View style={styles.tr}>
               <View style={[styles.cellNoBorder, { alignItems: "flex-start" }]}>
@@ -633,7 +618,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
           </View>
         </View>
 
-        {/* TABELA 3: INDUSTRIAL / POPULAR */}
         <View
           style={{
             width: "100%",
@@ -674,7 +658,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
         </View>
       </View>
 
-      {/* 5. Data */}
       <View style={styles.dateRow}>
         <Text style={styles.textBase}>Uberaba - MG, </Text>
         <View
@@ -734,11 +717,9 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
         </View>
       </View>
 
-      {/* 6. Declarantes */}
       <View style={{ width: "100%" }}>
         <Text style={styles.declarantesTitle}>Declarantes:</Text>
 
-        {/* Titular */}
         <View style={styles.decRow}>
           <Text style={styles.decLabel}>
             Nome do titular/responsável pela obra:
@@ -781,7 +762,6 @@ const DeclaracaoCUBLayout = ({ cliente }) => {
           <View style={styles.decInput} />
         </View>
 
-        {/* Responsável Técnico */}
         <View style={[styles.decRow, { marginTop: 20 }]}>
           <Text style={styles.decLabel}>
             Nome do responsável técnico pela obra:

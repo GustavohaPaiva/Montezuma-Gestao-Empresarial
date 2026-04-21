@@ -1,9 +1,6 @@
 import { Navigate, Outlet, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-/**
- * Admin global: ignora `allowedTypes` e também `allowedEscritorios` (acesso a qualquer tenant).
- */
 const GESTOR_MASTER = "gestor_master";
 
 const RotaProtegida = ({ allowedTypes, allowedEscritorios }) => {
@@ -17,7 +14,6 @@ const RotaProtegida = ({ allowedTypes, allowedEscritorios }) => {
     );
   }
 
-  /* Rotas internas exigem sessão: destino único /login (cliente). Nunca /loginadm. */
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -36,8 +32,7 @@ const RotaProtegida = ({ allowedTypes, allowedEscritorios }) => {
     Array.isArray(allowedEscritorios) &&
     allowedEscritorios.length > 0 &&
     !podeIgnorarRestricao &&
-    (!user.escritorio_id ||
-      !allowedEscritorios.includes(user.escritorio_id))
+    (!user.escritorio_id || !allowedEscritorios.includes(user.escritorio_id))
   ) {
     return <Navigate to="/" replace />;
   }

@@ -35,7 +35,6 @@ const DocumentosProcesso = () => {
           </Document>,
         ).toBlob();
 
-        // Gera a URL limpa para o Iframe ler
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
       } catch (error) {
@@ -49,7 +48,6 @@ const DocumentosProcesso = () => {
     }
   }, [id]);
 
-  // TELA 1: Se der pau
   if (erro) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-gray-100 p-4 text-center">
@@ -64,7 +62,6 @@ const DocumentosProcesso = () => {
     );
   }
 
-  // TELA 2: Carregando (Pode demorar uns segundos por serem 6 páginas)
   if (!pdfUrl) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gray-100">
@@ -75,7 +72,6 @@ const DocumentosProcesso = () => {
     );
   }
 
-  // TELA 3: Sucesso! O Iframe gigante exibindo o PDF completo
   return (
     <div style={{ width: "100%", height: "100vh", backgroundColor: "#525659" }}>
       <iframe

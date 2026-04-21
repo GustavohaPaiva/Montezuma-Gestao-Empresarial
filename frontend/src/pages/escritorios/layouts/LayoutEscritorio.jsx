@@ -40,7 +40,6 @@ export default function LayoutEscritorio() {
     >
       <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[min(100vw,42rem)] w-[min(100vw,42rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-esc-destaque/10 opacity-50 blur-[100px]" />
 
-      {/* Cortina de entrada */}
       <div
         className={`fixed inset-0 z-[100] bg-black transition-opacity duration-1000 ease-out ${
           isEntering ? "opacity-100" : "pointer-events-none opacity-0"
