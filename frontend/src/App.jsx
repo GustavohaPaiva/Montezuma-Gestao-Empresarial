@@ -34,7 +34,6 @@ export default function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Login do Cliente */}
           <Route
             path="/login"
             element={
@@ -44,7 +43,6 @@ export default function App() {
             }
           />
 
-          {/* Login do Admin (RotaSecreta) */}
           <Route
             path="/loginadm"
             element={
@@ -54,7 +52,6 @@ export default function App() {
             }
           />
 
-          {/* --- ÁREA EXCLUSIVA DO ADM (Obras, Prestadores, Fornecedores) --- */}
           <Route
             element={
               <RotaProtegida allowedTypes={["diretoria", "suporte_ti"]} />
@@ -110,7 +107,6 @@ export default function App() {
             />
           </Route>
 
-          {/* --- ÁREA COMPARTILHADA (ADM + SECRETARIA) --- */}
           <Route
             element={
               <RotaProtegida
@@ -123,7 +119,6 @@ export default function App() {
               />
             }
           >
-            {/* A HOME AGORA ESTÁ AQUI, PARA A SECRETÁRIA ACESSAR O PAINEL DE CARDS */}
             <Route
               path="/"
               element={
@@ -166,7 +161,6 @@ export default function App() {
             />
           </Route>
 
-          {/* --- Escritórios tenant (layout + dashboard) --- */}
           <Route
             element={
               <RotaProtegida
@@ -286,7 +280,6 @@ export default function App() {
             </Route>
           </Route>
 
-          {/* --- ÁREA COMUM (CLIENTE + ADM) --- */}
           <Route
             element={
               <RotaProtegida

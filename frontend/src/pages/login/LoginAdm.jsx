@@ -47,7 +47,6 @@ export default function LoginAdm() {
           </h3>
         </div>
 
-        {/* Lado Direito - Admin */}
         <div className="flex w-full flex-col items-center text-center h-full bg-white justify-center">
           <p className="mb-[50px] mt-[50px] m-0 text-[25px] uppercase text-[#FD3A02]">
             Acesso Administrativo

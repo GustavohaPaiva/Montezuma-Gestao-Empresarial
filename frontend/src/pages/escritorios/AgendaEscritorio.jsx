@@ -18,6 +18,7 @@ import { api } from "../../services/api";
 import { ESCRITORIO_NOME_POR_ID } from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalCompromissoEscritorio from "../../components/modals/ModalCompromissoEscritorio";
+import ModalConfirmacaoRecorrencia from "../../components/modals/ModalConfirmacaoRecorrencia";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -135,7 +136,9 @@ export default function AgendaEscritorio() {
   const [erro, setErro] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [compromissoEdicao, setCompromissoEdicao] = useState(null);
+  const [escopoEdicao, setEscopoEdicao] = useState("evento");
   const [acaoId, setAcaoId] = useState(null);
+  const [acaoRecorrencia, setAcaoRecorrencia] = useState(null);
   const [miniCalAberto, setMiniCalAberto] = useState(false);
   const [miniCalAno, setMiniCalAno] = useState(() => new Date().getFullYear());
   const miniCalRef = useRef(null);
@@ -248,7 +251,12 @@ export default function AgendaEscritorio() {
   };
 
   const abrirEdicao = (item) => {
+    if (item?.grupo_recorrencia_id) {
+      setAcaoRecorrencia({ tipo: "editar", item });
+      return;
+    }
     setCompromissoEdicao(item);
+    setEscopoEdicao("evento");
     setModalAberto(true);
   };
 
@@ -263,6 +271,10 @@ export default function AgendaEscritorio() {
 
   const mudarStatus = async (item, novoStatus) => {
     if (!item?.id) return;
+    if (item?.grupo_recorrencia_id) {
+      setAcaoRecorrencia({ tipo: "status", item, novoStatus });
+      return;
+    }
     setAcaoId(`status:${item.id}`);
     try {
       await api.updateCompromisso(
@@ -278,9 +290,8 @@ export default function AgendaEscritorio() {
     }
   };
 
-  const excluir = async (item) => {
+  const excluirSomenteItem = async (item) => {
     if (!item?.id) return;
-    if (!window.confirm("Excluir este compromisso?")) return;
     setAcaoId(`del:${item.id}`);
     try {
       await api.deleteCompromisso(item.id, escritorioId);
@@ -288,6 +299,63 @@ export default function AgendaEscritorio() {
     } catch (e) {
       console.error(e);
     } finally {
+      setAcaoId(null);
+    }
+  };
+
+  const excluir = async (item) => {
+    if (!item?.id) return;
+    if (item?.grupo_recorrencia_id) {
+      setAcaoRecorrencia({ tipo: "excluir", item });
+      return;
+    }
+    await excluirSomenteItem(item);
+  };
+
+  const executarAcaoRecorrencia = async (escopo) => {
+    if (!acaoRecorrencia?.item?.id) return;
+    const item = acaoRecorrencia.item;
+
+    if (acaoRecorrencia.tipo === "editar") {
+      setEscopoEdicao(escopo);
+      setCompromissoEdicao(item);
+      setModalAberto(true);
+      setAcaoRecorrencia(null);
+      return;
+    }
+
+    const acaoPrefixo = acaoRecorrencia.tipo === "status" ? "status" : "del";
+    setAcaoId(`${acaoPrefixo}:${item.id}`);
+    try {
+      if (acaoRecorrencia.tipo === "status") {
+        if (escopo === "futuros") {
+          await api.updateCompromissosFuturos(
+            item.grupo_recorrencia_id,
+            item.data_hora,
+            { status: acaoRecorrencia.novoStatus },
+            escritorioId,
+          );
+        } else {
+          await api.updateCompromisso(
+            item.id,
+            { status: acaoRecorrencia.novoStatus },
+            escritorioId,
+          );
+        }
+      } else if (escopo === "futuros") {
+        await api.deleteCompromissosFuturos(
+          item.grupo_recorrencia_id,
+          item.data_hora,
+          escritorioId,
+        );
+      } else {
+        await api.deleteCompromisso(item.id, escritorioId);
+      }
+      void carregar();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAcaoRecorrencia(null);
       setAcaoId(null);
     }
   };
@@ -329,7 +397,6 @@ export default function AgendaEscritorio() {
         </div>
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Calendário */}
           <article className="rounded-xl border border-white/5 bg-esc-card/40 shadow-sm backdrop-blur-sm lg:col-span-2">
             <header className="relative flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-5 py-4">
               <div className="relative flex items-center gap-2">
@@ -608,7 +675,6 @@ export default function AgendaEscritorio() {
             </div>
           </article>
 
-          {/* Painel do dia */}
           <aside className="flex max-h-[675px] flex-col self-start rounded-xl border border-white/5 bg-esc-card/40 shadow-sm backdrop-blur-sm">
             <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4">
               <div>
@@ -759,6 +825,25 @@ export default function AgendaEscritorio() {
         escritorioId={escritorioId}
         compromissoEdicao={compromissoEdicao}
         dataInicial={isoDate(diaSelecionado)}
+        escopoRecorrencia={escopoEdicao}
+      />
+      <ModalConfirmacaoRecorrencia
+        isOpen={Boolean(acaoRecorrencia)}
+        escritorioId={escritorioId}
+        loading={Boolean(acaoId)}
+        titulo={
+          acaoRecorrencia?.tipo === "excluir"
+            ? "Excluir compromisso recorrente"
+            : "Aplicar alteração na recorrência"
+        }
+        descricao={
+          acaoRecorrencia?.tipo === "excluir"
+            ? "Deseja excluir apenas este evento ou todos os eventos futuros da série?"
+            : "Deseja aplicar esta alteração apenas a este evento ou a todos os eventos futuros da série?"
+        }
+        onClose={() => setAcaoRecorrencia(null)}
+        onConfirmEvento={() => void executarAcaoRecorrencia("evento")}
+        onConfirmFuturos={() => void executarAcaoRecorrencia("futuros")}
       />
     </div>
   );

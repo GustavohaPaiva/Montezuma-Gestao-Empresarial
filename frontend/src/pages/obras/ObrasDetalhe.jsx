@@ -19,6 +19,7 @@ import { formatarMoeda } from "./detalhe/utils/formatters";
 import {
   gerarPdfExtrato,
   gerarPdfRelatorioMaoDeObraGeral,
+  gerarPdfRelatorioMateriais,
   gerarPdfRelatorioPorPrestador,
 } from "./detalhe/utils/obraDetalhePdf";
 
@@ -330,10 +331,75 @@ export default function ObrasDetalhe() {
     [fetchDados, setObra],
   );
 
-  const handleGerarRelatorioPorPrestador = (prestador) => {
-    if (gerarPdfRelatorioPorPrestador(obra, prestador)) {
-      setModalRelatorioPrestadorOpen(false);
+  /**
+   * Abre o PDF direto no visualizador nativo do browser.
+   * `window.open` é chamada de forma síncrona para evitar popup blocker;
+   * atualizamos o src assim que o Blob fica pronto.
+   */
+  const abrirPdfEmNovaAba = async (gerador, fallbackNome) => {
+    const novaAba = window.open("", "_blank");
+    try {
+      const resultado = await gerador();
+      const blob = resultado?.blob ?? resultado;
+      if (!blob) throw new Error("PDF vazio.");
+      const url = URL.createObjectURL(blob);
+      if (novaAba && !novaAba.closed) {
+        novaAba.location.href = url;
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = resultado?.nomePadrao || fallbackNome || "documento.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      console.error("[ObrasDetalhe] gerar PDF:", e);
+      if (novaAba && !novaAba.closed) novaAba.close();
+      alert(e?.message || "Não foi possível gerar o PDF.");
     }
+  };
+
+  const handleGerarRelatorioPorPrestador = (prestador) => {
+    const lista = obra?.maoDeObra?.filter(
+      (m) => m.profissional?.toLowerCase() === prestador.toLowerCase(),
+    );
+    if (!lista || lista.length === 0) {
+      alert("Nenhum registro encontrado para este prestador.");
+      return;
+    }
+    setModalRelatorioPrestadorOpen(false);
+    abrirPdfEmNovaAba(
+      () =>
+        gerarPdfRelatorioPorPrestador(obra, prestador, { retornarBlob: true }),
+      `Relatorio_${prestador}.pdf`,
+    );
+  };
+
+  const handleGerarRelatorioMaoDeObraGeral = () => {
+    abrirPdfEmNovaAba(
+      () =>
+        gerarPdfRelatorioMaoDeObraGeral(obra, buscaMaoDeObra, {
+          retornarBlob: true,
+        }),
+      "Relatorio_Mao_De_Obra_Geral.pdf",
+    );
+  };
+
+  const handleGerarRelatorioMateriais = () => {
+    const lista = obra?.materiais || [];
+    if (lista.length === 0) {
+      alert("Nenhum material lançado nesta obra.");
+      return;
+    }
+    abrirPdfEmNovaAba(
+      () =>
+        gerarPdfRelatorioMateriais(obra, buscaMateriais, {
+          retornarBlob: true,
+        }),
+      "Relatorio_Materiais.pdf",
+    );
   };
 
   const handleStatusFinanceiroChange = useCallback(
@@ -418,7 +484,15 @@ export default function ObrasDetalhe() {
   );
 
   const handleGerarPDFExtrato = () => {
-    gerarPdfExtrato(obra);
+    const itens = obra?.relatorioExtrato?.filter((i) => i.validacao === 1) || [];
+    if (itens.length === 0) {
+      alert("Nenhum item selecionado para o extrato.");
+      return;
+    }
+    abrirPdfEmNovaAba(
+      () => gerarPdfExtrato(obra, { retornarBlob: true }),
+      "Extrato.pdf",
+    );
   };
 
   const {
@@ -553,7 +627,7 @@ export default function ObrasDetalhe() {
               className={`flex ${isMobile ? "flex-col h-auto gap-4" : "flex-row h-[42px]"} justify-between px-[5%] gap-[20px] text-center w-full box-border items-center`}
             >
               <ButtonDefault
-                onClick={() => {}}
+                onClick={handleGerarRelatorioMateriais}
                 className="w-[90%] max-w-[450px]"
               >
                 Relatório Materiais
@@ -606,9 +680,7 @@ export default function ObrasDetalhe() {
             >
               <div className="flex gap-2 w-full max-w-[450px] justify-center">
                 <ButtonDefault
-                  onClick={() =>
-                    gerarPdfRelatorioMaoDeObraGeral(obra, buscaMaoDeObra)
-                  }
+                  onClick={handleGerarRelatorioMaoDeObraGeral}
                   className="w-full"
                 >
                   Relatório Geral

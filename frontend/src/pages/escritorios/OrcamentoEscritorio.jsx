@@ -198,7 +198,6 @@ export default function OrcamentoEscritorio() {
     return lista;
   }, [rows, busca, filtroStatusEfetivo, filtroDataInicio, filtroDataFim]);
 
-  /** Métricas reativas ao array já filtrado (não chama Supabase). */
   const metricas = useMemo(() => {
     let totalFechado = 0;
     let totalNaoFechado = 0;
@@ -215,7 +214,6 @@ export default function OrcamentoEscritorio() {
         totalNaoFechado += v;
         qtdNaoFechado += 1;
       } else {
-        /* Em andamento ou status desconhecido contam como pendente. */
         totalPendente += v;
         qtdPendente += 1;
       }
@@ -445,7 +443,6 @@ export default function OrcamentoEscritorio() {
         </div>
       </section>
 
-      {/* Barra de métricas — altura fixa para evitar jump na lista abaixo */}
       <section
         aria-label="Resumo dos orçamentos filtrados"
         className="mb-6 grid auto-rows-[110px] grid-cols-2 gap-3 lg:grid-cols-4"

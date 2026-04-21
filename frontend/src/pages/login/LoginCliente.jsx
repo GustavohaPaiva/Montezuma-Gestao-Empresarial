@@ -15,7 +15,6 @@ export default function LoginCliente() {
   const handleLogin = async () => {
     setErro("");
 
-    // Tratamento anti-usuário: limpa espaços nas bordas e espaços duplos no meio
     const nomeTratado = nome.trim().replace(/\s+/g, " ");
     const bairroTratado = bairro.trim().replace(/\s+/g, " ");
 
@@ -26,7 +25,6 @@ export default function LoginCliente() {
 
     setCarregando(true);
     try {
-      // Passa os dados mastigados e limpos para o contexto
       const usuario = await loginCliente(nomeTratado, bairroTratado);
       navigate(`/obra/${usuario.id}`);
     } catch (error) {

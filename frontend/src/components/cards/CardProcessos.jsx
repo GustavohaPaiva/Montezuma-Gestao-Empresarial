@@ -17,33 +17,33 @@ export default function CardProcessos({
   let bgColor, textColor, iconFilter;
 
   if (status === "Produção") {
-    bgColor = "bg-[#F3E5F5]";
-    textColor = "text-[#7B1FA2]";
+    bgColor = "bg-purple-100";
+    textColor = "text-purple-700";
     iconFilter =
       "invert(24%) sepia(50%) saturate(3825%) hue-rotate(272deg) brightness(87%) contrast(98%)";
   } else if (status === "Prefeitura") {
-    bgColor = "bg-[#E3F2FD]";
-    textColor = "text-[#1565C0]";
+    bgColor = "bg-blue-100";
+    textColor = "text-blue-700";
     iconFilter =
       "invert(29%) sepia(74%) saturate(2400%) hue-rotate(195deg) brightness(90%) contrast(93%)";
   } else if (status === "Caixa") {
-    bgColor = "bg-[#E0F2F1]";
-    textColor = "text-[#00695C]";
+    bgColor = "bg-teal-100";
+    textColor = "text-teal-700";
     iconFilter =
       "invert(26%) sepia(97%) saturate(1478%) hue-rotate(164deg) brightness(95%) contrast(102%)";
   } else if (status === "Cartorio") {
-    bgColor = "bg-[#ffcfd7]";
-    textColor = "text-[#de0226]";
+    bgColor = "bg-rose-100";
+    textColor = "text-rose-700";
     iconFilter =
       "invert(13%) sepia(89%) saturate(6032%) hue-rotate(346deg) brightness(94%) contrast(110%)";
   } else if (status === "Obra") {
-    bgColor = "bg-[#FFF3E0]";
-    textColor = "text-[#E65100]";
+    bgColor = "bg-orange-100";
+    textColor = "text-orange-700";
     iconFilter =
       "invert(42%) sepia(98%) saturate(1831%) hue-rotate(1deg) brightness(97%) contrast(100%)";
   } else if (status === "Finalizado") {
-    bgColor = "bg-[#E8F5E9]";
-    textColor = "text-[#2E7D32]";
+    bgColor = "bg-success-soft";
+    textColor = "text-success-primary";
     iconFilter = "invert(36%) sepia(85%) saturate(450%) hue-rotate(95deg)";
   } else {
     bgColor = "bg-gray-100";
@@ -92,7 +92,7 @@ export default function CardProcessos({
   return (
     <div
       onClick={handleCardClick}
-      className={`relative no-underline text-inherit block bg-[#FAFAFA] rounded-[8px] w-full h-[220px] flex flex-col justify-between p-[15px] shadow-[0_5px_20px_rgba(0,0,0,0.15)] md:max-w-[350px] box-border transition-transform ${
+      className={`relative no-underline text-inherit block bg-surface-alt rounded-[8px] w-full h-[220px] flex flex-col justify-between p-[15px] shadow-[0_5px_20px_rgba(0,0,0,0.15)] md:max-w-[350px] box-border transition-transform ${
         !isEditing ? "hover:scale-[1.02] cursor-pointer" : "cursor-default"
       } text-black`}
     >
@@ -101,7 +101,7 @@ export default function CardProcessos({
           <>
             <button
               onClick={handleSave}
-              className="border border-[#2E7D32] rounded-[50%] bg-[#cce7c9] hover:bg-[#C8E6C9] transition-colors w-[28px] h-[28px] flex items-center justify-center mr-2"
+              className="border border-success-primary rounded-[50%] bg-green-100 hover:bg-green-200 transition-colors w-[28px] h-[28px] flex items-center justify-center mr-2"
             >
               <img
                 width="18"
@@ -112,7 +112,7 @@ export default function CardProcessos({
             </button>
             <button
               onClick={handleCancel}
-              className="border border-[#ff5252] rounded-[50%] bg-[#ffbaba] hover:bg-[#ff5252] transition-colors w-[28px] h-[28px] flex items-center justify-center mr-2"
+              className="border border-red-500 rounded-[50%] bg-red-200 hover:bg-red-500 transition-colors w-[28px] h-[28px] flex items-center justify-center mr-2"
             >
               <img
                 width="18"

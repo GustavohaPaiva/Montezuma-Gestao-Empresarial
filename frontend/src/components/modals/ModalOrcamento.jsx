@@ -12,14 +12,11 @@ export default function ModalOrcamento({ isOpen, onClose, onSave }) {
       alert("Preencha todos os campos!");
       return;
     }
-
-    // Envia os dados para o componente pai
     onSave({
       nome,
-      valor: parseFloat(valor), // Garante que seja número
+      valor: parseFloat(valor),
     });
 
-    // Limpa os campos
     setNome("");
     setValor("");
   };

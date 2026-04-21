@@ -7,7 +7,6 @@ import ModalSaidaEscritorio from "../../components/modals/ModalSaidaEscritorio";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
-// IMPORTANTE: Adicionado ID_VOGELKOP e ID_YBYOCA para resgatar o tema no Portal
 import {
   ESCRITORIO_NOME_POR_ID,
   ID_VOGELKOP,
@@ -26,7 +25,6 @@ export default function FinanceiroEscritorio() {
   const isAdmin = TIPOS_FINANCEIRO_ADMIN.includes(user?.tipo);
   const escritorioId = useEscritorioIdFromPath();
 
-  // INJEÇÃO DO TEMA PARA OS MINI MODAIS (PORTAL)
   const temaClasse =
     escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
 
@@ -669,14 +667,12 @@ export default function FinanceiroEscritorio() {
         Voltar
       </button>
 
-      {/* MINI MODAL: DIÁLOGO PREMIUM GLASSMORPHISM */}
       {dialogo.aberto && (
         <ModalPortal>
           <div
             className={`${temaClasse} fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md transition-opacity`}
           >
             <div className="animate-premium-reveal relative flex w-full max-w-md flex-col gap-5 overflow-hidden rounded-2xl border border-white/20 bg-esc-card p-7 text-center shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
-              {/* Glow Físico do Diálogo */}
               <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]"></div>
               <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/10 blur-[70px]"></div>
 
@@ -781,7 +777,6 @@ export default function FinanceiroEscritorio() {
       {isAdmin && (
         <div className="mb-6 w-full">
           <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-esc-card/90 p-6 shadow-lg backdrop-blur-md md:flex-row md:items-center md:justify-between relative overflow-hidden">
-            {/* Glow no card de extrato principal */}
             <div className="pointer-events-none absolute top-1/2 left-0 -z-10 h-32 w-32 -translate-y-1/2 rounded-full bg-esc-destaque/10 blur-[50px]"></div>
 
             <div className="text-center md:text-left z-10">

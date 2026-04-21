@@ -40,8 +40,6 @@ function normalizarStatusTarefa(raw) {
 }
 
 export const api = {
-  // --- MÓDULO FINANCEIRO ---
-
   getFinanceiro: async (tabela, escritorioId, mes, ano) => {
     if (!escritorioId) return [];
 
@@ -249,8 +247,6 @@ export const api = {
     if (error) throw error;
   },
 
-  // --- MÓDULO ORÇAMENTOS ---
-
   getOrcamentos: async (escritorioId) => {
     if (!escritorioId) return [];
     const { data, error } = await supabase
@@ -310,8 +306,6 @@ export const api = {
       .eq("escritorio_id", escritorioId);
     if (error) throw error;
   },
-
-  // --- MÓDULO CLIENTES E LOGIN CLIENTE ---
 
   loginClientePorNomeEBairro: async (nomeCliente, bairroObra) => {
     const { data, error } = await supabase.rpc("buscar_dados_cliente", {
@@ -456,7 +450,6 @@ export const api = {
     }
   },
 
-  /** Lista Montezuma: junção `tarefa_responsaveis` → `usuarios` para `extrairResponsaveis`. */
   getTarefasGlobaisMontezuma: async () => {
     const selectBase = `
         *,
@@ -501,7 +494,81 @@ export const api = {
     return Array.isArray(data) ? data : [];
   },
 
-  // --- MÓDULO TAREFAS ESCRITÓRIO (multi-tenant) ---
+  /**
+   * Apenas tarefas em que o utilizador é responsável (linha em tarefa_responsaveis).
+   * Usado no filtro "Minhas tarefas" — não inclui criador sem vínculo de responsável.
+   */
+  getTarefasGlobaisMontezumaMinhasResponsavel: async (usuarioId) => {
+    if (!usuarioId) return [];
+    const uid = String(usuarioId);
+
+    const selectInnerBase = `
+        *,
+        criador:usuarios!tarefas_criador_id_fkey(nome, escritorio),
+        tarefa_responsaveis!inner(
+          usuario_id,
+          usuarios(id, nome, foto)
+        )
+      `;
+    const selectInnerFkHint = `
+        *,
+        criador:usuarios!tarefas_criador_id_fkey(nome, escritorio),
+        tarefa_responsaveis!inner(
+          usuario_id,
+          usuarios!usuario_id(id, nome, foto)
+        )
+      `;
+    const selectInnerSemFoto = `
+        *,
+        criador:usuarios!tarefas_criador_id_fkey(nome, escritorio),
+        tarefa_responsaveis!inner(
+          usuario_id,
+          usuarios(id, nome)
+        )
+      `;
+    const selectInnerSemFotoFk = `
+        *,
+        criador:usuarios!tarefas_criador_id_fkey(nome, escritorio),
+        tarefa_responsaveis!inner(
+          usuario_id,
+          usuarios!usuario_id(id, nome)
+        )
+      `;
+
+    const filtroResp = (q) =>
+      q.eq("tarefa_responsaveis.usuario_id", uid);
+
+    let { data, error } = await filtroResp(
+      supabase.from("tarefas").select(selectInnerBase),
+    );
+    if (error) {
+      let r = await filtroResp(
+        supabase.from("tarefas").select(selectInnerFkHint),
+      );
+      if (r.error) {
+        r = await filtroResp(
+          supabase.from("tarefas").select(selectInnerSemFoto),
+        );
+      }
+      if (r.error) {
+        r = await filtroResp(
+          supabase.from("tarefas").select(selectInnerSemFotoFk),
+        );
+      }
+      if (r.error) throw r.error;
+      data = r.data;
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const porId = new Map();
+    for (const row of rows) {
+      if (row?.id != null && !porId.has(String(row.id))) {
+        porId.set(String(row.id), row);
+      }
+    }
+    return [...porId.values()];
+  },
+
   getTarefasEscritorio: async (escritorioId) => {
     if (!escritorioId) return [];
     const { data, error } = await supabase
@@ -660,7 +727,9 @@ export const api = {
   addTarefaProgresso: async (tarefaId, usuarioId, mensagem) => {
     const texto = String(mensagem ?? "").trim();
     if (!tarefaId || !usuarioId || !texto) {
-      throw new Error("mensagem e identificação obrigatórios para registrar progresso.");
+      throw new Error(
+        "mensagem e identificação obrigatórios para registrar progresso.",
+      );
     }
     const { data, error } = await supabase.from("tarefa_progresso").insert({
       tarefa_id: tarefaId,
@@ -670,8 +739,6 @@ export const api = {
     if (error) throw error;
     return data;
   },
-
-  // --- MÓDULO OBRAS ---
 
   getObras: async () => {
     let query = supabase
@@ -729,8 +796,6 @@ export const api = {
     if (error) throw error;
     return data;
   },
-
-  // --- MÓDULO RELATÓRIOS E MATERIAIS ---
 
   deleteMaterial: async (id) => {
     const { error } = await supabase
@@ -1121,8 +1186,6 @@ export const api = {
     return data[0];
   },
 
-  // --- MÓDULO PRESTADORES ---
-
   getClassesPrestadores: async () => {
     const { data, error } = await supabase
       .from("classes_prestadores")
@@ -1485,17 +1548,13 @@ export const api = {
     }
   },
 
-  // --- MÓDULO AGENDA (multi-tenant) ---
-
-  /**
-   * Busca compromissos entre `inicioIso` e `fimIso` (timestamps ISO).
-   * Join opcional com clientes para exibir o nome do cliente.
-   */
   getAgenda: async (escritorioId, inicioIso, fimIso) => {
     if (!escritorioId) return [];
     let query = supabase
       .from("agenda")
-      .select("id, escritorio_id, titulo, tipo, data_hora, descricao, cliente_id, status, cliente:clientes(id, nome)")
+      .select(
+        "id, escritorio_id, titulo, tipo, data_hora, descricao, cliente_id, status, grupo_recorrencia_id, cliente:clientes(id, nome)",
+      )
       .eq("escritorio_id", escritorioId)
       .order("data_hora", { ascending: true });
     if (inicioIso) query = query.gte("data_hora", inicioIso);
@@ -1520,6 +1579,7 @@ export const api = {
       descricao: payload.descricao?.trim() || null,
       cliente_id: payload.cliente_id ?? null,
       status: payload.status || "Agendado",
+      grupo_recorrencia_id: payload.grupo_recorrencia_id ?? null,
     });
     const { data, error } = await supabase
       .from("agenda")
@@ -1528,6 +1588,31 @@ export const api = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  createCompromissosLote: async (payloads) => {
+    const rows = Array.isArray(payloads)
+      ? payloads
+          .filter((p) => p?.escritorio_id && p?.titulo && p?.data_hora)
+          .map((p) =>
+            omitUndefined({
+              escritorio_id: p.escritorio_id,
+              titulo: String(p.titulo).trim(),
+              tipo: p.tipo || "Outro",
+              data_hora: p.data_hora,
+              descricao: p.descricao?.trim() || null,
+              cliente_id: p.cliente_id ?? null,
+              status: p.status || "Agendado",
+              grupo_recorrencia_id: p.grupo_recorrencia_id ?? null,
+            }),
+          )
+      : [];
+    if (!rows.length) {
+      throw new Error("Nenhum compromisso válido para inserção em lote.");
+    }
+    const { data, error } = await supabase.from("agenda").insert(rows).select();
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
   },
 
   updateCompromisso: async (id, dados, escritorioId) => {
@@ -1562,7 +1647,54 @@ export const api = {
     if (error) throw error;
   },
 
-  /** Lista simples (id, nome) para busca de cliente no modal de agenda. */
+  updateCompromissosFuturos: async (
+    grupoRecorrenciaId,
+    dataHoraOrigemIso,
+    dados,
+    escritorioId,
+  ) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em updateCompromissosFuturos");
+    }
+    if (!grupoRecorrenciaId || !dataHoraOrigemIso) {
+      throw new Error("grupo_recorrencia_id e data_hora são obrigatórios");
+    }
+    const limpo = { ...dados };
+    delete limpo.id;
+    delete limpo.escritorio_id;
+    delete limpo.cliente;
+    const cleaned = omitUndefined(limpo);
+    const { data, error } = await supabase
+      .from("agenda")
+      .update(cleaned)
+      .eq("escritorio_id", escritorioId)
+      .eq("grupo_recorrencia_id", grupoRecorrenciaId)
+      .gte("data_hora", dataHoraOrigemIso)
+      .select();
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  deleteCompromissosFuturos: async (
+    grupoRecorrenciaId,
+    dataHoraOrigemIso,
+    escritorioId,
+  ) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em deleteCompromissosFuturos");
+    }
+    if (!grupoRecorrenciaId || !dataHoraOrigemIso) {
+      throw new Error("grupo_recorrencia_id e data_hora são obrigatórios");
+    }
+    const { error } = await supabase
+      .from("agenda")
+      .delete()
+      .eq("escritorio_id", escritorioId)
+      .eq("grupo_recorrencia_id", grupoRecorrenciaId)
+      .gte("data_hora", dataHoraOrigemIso);
+    if (error) throw error;
+  },
+
   getClientesSimplesEscritorio: async (escritorioId) => {
     if (!escritorioId) return [];
     const { data, error } = await supabase

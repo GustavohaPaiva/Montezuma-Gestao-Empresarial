@@ -2,7 +2,6 @@ import React from "react";
 import logo from "../assets/imgDocumentos/prefeitura.png";
 import { Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
 
-// Registrando as fontes
 Font.register({
   family: "Helvetica",
   fonts: [
@@ -20,9 +19,6 @@ Font.register({
   ],
 });
 
-// ==================================================================
-// ESTILOS AJUSTADOS PARA EVITAR QUEBRA DE PÁGINA E RECEBER DADOS
-// ==================================================================
 const styles = StyleSheet.create({
   page: {
     paddingTop: 30,
@@ -70,7 +66,7 @@ const styles = StyleSheet.create({
     borderBottomStyle: "dotted",
     height: 12,
     marginLeft: 2,
-    position: "relative", // Necessário para o texto flutuar corretamente
+    position: "relative",
   },
   fillText: {
     position: "absolute",
@@ -130,7 +126,6 @@ const styles = StyleSheet.create({
 });
 
 const GerenciamentoResiduosLayout = ({ cliente }) => {
-  // 1. Tratamento de Data
   const hoje = new Date();
   const meses = [
     "janeiro",
@@ -148,7 +143,6 @@ const GerenciamentoResiduosLayout = ({ cliente }) => {
   ];
   const dataExtenso = `Uberaba, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
 
-  // 2. Junção de Endereço (Rua + Número)
   const enderecoObra = `${cliente?.rua_obra || ""} ${cliente?.numero_obra ? `, ${cliente.numero_obra}` : ""}`;
 
   return (
@@ -161,7 +155,6 @@ const GerenciamentoResiduosLayout = ({ cliente }) => {
         GERENCIAMENTO DE RESÍDUOS DA CONSTRUÇÃO CIVIL
       </Text>
 
-      {/* BLOCO DE PREENCHIMENTO */}
       <View style={styles.formContainer}>
         <View style={styles.formRow}>
           <Text style={styles.textLabel}>Endereço:</Text>
@@ -229,7 +222,6 @@ const GerenciamentoResiduosLayout = ({ cliente }) => {
         </View>
       </View>
 
-      {/* REGRAS */}
       <View style={styles.rulesContainer}>
         <Text style={styles.bodyParagraph}>
           O lixo produzido na obra é referente ao art. 3º parágrafo 1º alínea b
@@ -266,7 +258,6 @@ const GerenciamentoResiduosLayout = ({ cliente }) => {
         </Text>
       </View>
 
-      {/* DATA E ASSINATURAS */}
       <Text style={styles.dateSection}>{dataExtenso}</Text>
 
       <View style={styles.signatureSection}>
@@ -284,7 +275,6 @@ const GerenciamentoResiduosLayout = ({ cliente }) => {
         </View>
       </View>
 
-      {/* RODAPÉ */}
       <View style={styles.footer}>
         <View style={styles.footerAddressContainer}>
           <Text style={styles.footerAddress}>

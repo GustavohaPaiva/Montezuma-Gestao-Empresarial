@@ -2,12 +2,8 @@ import React from "react";
 import logo from "../assets/imgDocumentos/prefeitura.png";
 import { Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
 
-// Registrando fontes para garantir negrito e itálico corretos
 Font.register({});
 
-// ==================================================================
-// ESTILOS REFINADOS PARA CABER EM 1 PÁGINA E MANTER O DESIGN
-// ==================================================================
 const styles = StyleSheet.create({
   page: {
     paddingTop: 35,
@@ -144,11 +140,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// ==================================================================
-// O COMPONENTE DO DOCUMENTO
-// ==================================================================
 const TermoCienciaLayout = ({ cliente }) => {
-  // Lógica de Data atual formatada com mês por extenso
   const hoje = new Date();
   const dia = String(hoje.getDate()).padStart(2, "0");
   const meses = [
@@ -169,22 +161,18 @@ const TermoCienciaLayout = ({ cliente }) => {
   const ano = hoje.getFullYear();
   const dataFormatada = `Uberaba, ${dia} de ${mesExtenso} de ${ano}`;
 
-  // Endereço composto da obra
   const enderecoObra = `${cliente?.rua_obra || ""} ${
     cliente?.numero_obra ? `, ${cliente.numero_obra}` : ""
   }`;
 
   return (
     <Page size="A4" style={styles.page}>
-      {/* 1. Cabeçalho */}
       <View style={styles.headerContainer}>
         <Image style={styles.image} src={logo} />
       </View>
 
-      {/* 2. Título */}
       <Text style={styles.headerTitle}>TERMO DE CIÊNCIA E CONCORDÂNCIA</Text>
 
-      {/* 3. Primeira Caixa */}
       <View style={styles.boxContainer}>
         <View style={styles.row}>
           <Text style={styles.label}>PROPRIETÁRIO/REQUERENTE:</Text>
@@ -204,7 +192,6 @@ const TermoCienciaLayout = ({ cliente }) => {
         </View>
       </View>
 
-      {/* 4. Segunda Caixa */}
       <View style={styles.boxContainer}>
         <View style={styles.row}>
           <Text style={styles.label}>ENDEREÇO DO IMÓVEL:</Text>
@@ -234,7 +221,6 @@ const TermoCienciaLayout = ({ cliente }) => {
         </View>
       </View>
 
-      {/* 5. Corpo do Texto */}
       <View style={styles.bodyTextContainer}>
         <Text style={styles.bodyText}>
           {"              "}O Requerente declara, para os devidos fins de
@@ -254,10 +240,8 @@ const TermoCienciaLayout = ({ cliente }) => {
         </Text>
       </View>
 
-      {/* 6. Data Dinâmica */}
       <Text style={styles.dateSection}>{dataFormatada}</Text>
 
-      {/* 7. Assinaturas */}
       <View style={styles.signatureSection}>
         <View style={styles.signatureBlock}>
           <View style={styles.signatureLine} />
@@ -273,7 +257,6 @@ const TermoCienciaLayout = ({ cliente }) => {
         </View>
       </View>
 
-      {/* 8. Rodapé */}
       <View style={styles.footer}>
         <Text style={styles.footerObs}>
           Obs.: As diretrizes da aprovação do loteamento poderão ser solicitadas

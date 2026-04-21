@@ -7,6 +7,7 @@ import { Hourglass } from "lucide-react";
 import { useScrollFadeIn } from "../../hooks/useScrollFadeIn";
 import { verificarStatusPagamento } from "./utils/obraPagamento";
 import { useObrasList } from "./hooks/useObrasList";
+import { obrasDictionary } from "../../constants/dictionaries";
 
 export default function Obras() {
   const [busca, setBusca] = useState("");
@@ -73,7 +74,7 @@ export default function Obras() {
       setIsModalOpen(false);
     } catch (err) {
       console.error(err);
-      alert("Erro ao criar obra.");
+      alert(obrasDictionary.errors.create);
     }
   };
 
@@ -85,13 +86,13 @@ export default function Obras() {
       );
     } catch (err) {
       console.error(err);
-      alert("Erro ao atualizar a obra.");
+      alert(obrasDictionary.errors.update);
       reloadObras();
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Tem certeza que deseja remover esta obra?")) {
+    if (window.confirm(obrasDictionary.confirm.remove)) {
       try {
         await api.deleteObra(id);
         setObras((prev) =>
@@ -99,14 +100,14 @@ export default function Obras() {
         );
       } catch (err) {
         console.error(err);
-        alert("Erro ao remover obra.");
+        alert(obrasDictionary.errors.remove);
         reloadObras();
       }
     }
   };
 
   return (
-    <div className="flex flex-col items-center w-full min-h-screen bg-[#EEEDF0]">
+    <div className="flex flex-col items-center w-full min-h-screen bg-bg-primary">
       <div
         ref={refNav}
         className={`w-full transition-all duration-500 ease-out transform ${
@@ -131,18 +132,18 @@ export default function Obras() {
                 : "opacity-0 translate-y-8"
             }`}
           >
-            <div className="bg-white p-6 rounded-xl border border-[#DBDADE] shadow-sm flex flex-col items-center justify-center text-center">
-              <span className="text-[12px] font-bold text-[#71717A] uppercase tracking-wider">
-                Total de Obras
+            <div className="bg-surface p-6 rounded-xl border border-border-primary shadow-sm flex flex-col items-center justify-center text-center">
+              <span className="text-[12px] font-bold text-text-muted uppercase tracking-wider">
+                {obrasDictionary.metrics.total}
               </span>
-              <span className="text-4xl font-bold text-[#464C54] mt-2">
+              <span className="text-4xl font-bold text-text-primary mt-2">
                 {metricas.total}
               </span>
             </div>
 
             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center">
               <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">
-                Aguardando
+                {obrasDictionary.metrics.waiting}
               </span>
               <span className="text-4xl font-bold text-gray-700 mt-2">
                 {metricas.aguardando}
@@ -150,7 +151,7 @@ export default function Obras() {
             </div>
             <div className="bg-orange-50 p-6 rounded-xl border border-orange-200 shadow-sm flex flex-col items-center justify-center text-center">
               <span className="text-[12px] font-bold text-orange-800 uppercase tracking-wider">
-                Em Andamento
+                {obrasDictionary.metrics.progress}
               </span>
               <span className="text-4xl font-bold text-orange-600 mt-2">
                 {metricas.emAndamento}
@@ -158,7 +159,7 @@ export default function Obras() {
             </div>
             <div className="bg-green-50 p-6 rounded-xl border border-green-200 shadow-sm flex flex-col items-center justify-center text-center">
               <span className="text-[12px] font-bold text-green-800 uppercase tracking-wider">
-                Concluídas
+                {obrasDictionary.metrics.done}
               </span>
               <span className="text-4xl font-bold text-green-600 mt-2">
                 {metricas.concluidas}
@@ -169,7 +170,7 @@ export default function Obras() {
 
         {carregando ? (
           <div className="flex justify-center items-center py-20">
-            <Hourglass className="w-8 h-8 animate-spin text-[#DC3B0B]" />
+            <Hourglass className="w-8 h-8 animate-spin text-accent-primary" />
           </div>
         ) : (
           <div className="grid w-full gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 place-items-center">
@@ -197,7 +198,7 @@ export default function Obras() {
             ))}
             {obrasVisiveis.length === 0 && (
               <p className="w-full mt-10 text-center text-gray-500 col-span-full">
-                Nenhuma obra encontrada.
+                {obrasDictionary.empty}
               </p>
             )}
           </div>

@@ -77,7 +77,6 @@ export default function ModalOrcamentoEscritorio({
           <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]"></div>
           <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/10 blur-[70px]"></div>
 
-          {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-6 py-4">
             <h2 className="text-xl font-bold tracking-tight text-esc-text">
               {modoEdicao ? "Editar Orçamento" : "Novo Orçamento"}
@@ -91,8 +90,6 @@ export default function ModalOrcamentoEscritorio({
               <X className="h-4 w-4" />
             </button>
           </div>
-
-          {/* Body */}
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-6 custom-scrollbar">
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
@@ -139,7 +136,6 @@ export default function ModalOrcamentoEscritorio({
             </div>
           </div>
 
-          {/* Footer */}
           <div className="flex flex-col gap-3 border-t border-white/10 bg-white/[0.02] px-6 py-5 sm:flex-row sm:justify-between">
             <button
               type="button"

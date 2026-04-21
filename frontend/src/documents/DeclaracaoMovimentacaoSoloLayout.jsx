@@ -1,7 +1,6 @@
 import React from "react";
 import { Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 
-// Registrando as fontes padrão
 Font.register({
   family: "Helvetica",
   fonts: [
@@ -15,9 +14,6 @@ Font.register({
   ],
 });
 
-// ==================================================================
-// ESTILOS DA DECLARAÇÃO DE MOVIMENTAÇÃO DE SOLO
-// ==================================================================
 const styles = StyleSheet.create({
   page: {
     paddingTop: 60,
@@ -26,33 +22,28 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
     fontSize: 11,
   },
-  // --- Título ---
   title: {
     fontSize: 12,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 30, // Reduzido o espaço abaixo do título
-    lineHeight: 1.2, // Espaçamento de linha corrigido
+    marginBottom: 30,
+    lineHeight: 1.2,
   },
-  // --- Corpo do Texto ---
   paragraph: {
     textAlign: "justify",
-    marginBottom: 12, // Reduzido o espaço entre parágrafos
-    lineHeight: 1.2, // CORREÇÃO PRINCIPAL: Espaçamento entre linhas mais fechado
+    marginBottom: 12,
+    lineHeight: 1.2,
   },
   bold: {
     fontWeight: "bold",
   },
-  // Estilo para simular o preenchimento dentro dos colchetes
   underlineText: {
     textDecoration: "underline",
   },
-  // --- Data ---
   dateContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "flex-end",
-    marginTop: 40, // Levemente aproximado do texto acima
     marginBottom: 50,
   },
   dateText: {
@@ -66,7 +57,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     paddingHorizontal: 5,
   },
-  // --- Assinatura ---
   signatureContainer: {
     alignItems: "center",
     marginTop: 10,
@@ -85,18 +75,13 @@ const styles = StyleSheet.create({
   },
 });
 
-// ==================================================================
-// O COMPONENTE DO DOCUMENTO
-// ==================================================================
 const DeclaracaoMovimentacaoSoloLayout = ({ cliente }) => (
   <Page size="A4" style={styles.page}>
-    {/* 1. Título */}
     <Text style={styles.title}>
       DECLARAÇÃO TÉCNICA SOBRE MOVIMENTAÇÃO DE SOLO{"\n"}E FORMAÇÕES
       SEDIMENTARES
     </Text>
 
-    {/* 2. Parágrafo 1 - Dados Pessoais com lacunas */}
     <Text style={styles.paragraph}>
       Eu, <Text>LINCOLN SILVA DE OLIVEIRA</Text> , profissão{" "}
       <Text>ENGENHEIRO</Text> , inscrito(a) no <Text>CREA</Text> sob o nº
@@ -113,7 +98,6 @@ const DeclaracaoMovimentacaoSoloLayout = ({ cliente }) => (
       responsabilidade técnica, que:
     </Text>
 
-    {/* 3. Parágrafo 2 - Checkbox 1 */}
     <Text style={styles.paragraph}>
       ( x ) As intervenções previstas — incluindo movimentação de solo,
       escavações, aterros, cortes de terreno e/ou terraplanagem —{" "}
@@ -124,7 +108,6 @@ const DeclaracaoMovimentacaoSoloLayout = ({ cliente }) => (
       referida Portaria.
     </Text>
 
-    {/* 4. Parágrafo 3 - Checkbox 2 */}
     <Text style={styles.paragraph}>
       ( ) Há indicativos de impacto nas formações sedimentares mencionadas,
       motivo pelo qual será realizado o devido Monitoramento/ Acompanhamento/
@@ -136,13 +119,11 @@ const DeclaracaoMovimentacaoSoloLayout = ({ cliente }) => (
       alínea "b" do Art. 3º da referida Portaria.
     </Text>
 
-    {/* 5. Parágrafo Final */}
     <Text style={styles.paragraph}>
       Esta declaração é emitida sob minha inteira responsabilidade técnica e
       acompanha a devida ART nº <Text>{cliente?.art || ""}</Text>.
     </Text>
 
-    {/* 6. Estrutura da Data (Flexbox) */}
     <View style={styles.dateContainer}>
       <Text style={styles.dateText}>Uberaba,</Text>
       <View style={[styles.dateLine, { width: 35 }]}>
@@ -159,7 +140,6 @@ const DeclaracaoMovimentacaoSoloLayout = ({ cliente }) => (
       <Text style={styles.dateText}>.</Text>
     </View>
 
-    {/* 7. Bloco de Assinatura */}
     <View style={styles.signatureContainer}>
       <View style={styles.signatureLine}>
         <Text style={styles.signatureText}>[Nome do Profissional]</Text>

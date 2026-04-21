@@ -77,9 +77,7 @@ export default function ModalTarefaEscritorio({
   onSaved,
   escritorioId,
   tarefaEdicao,
-  /** Lista já carregada em TarefasEscritorio (mesma query que a página). */
   usuariosEscritorio,
-  /** Quando true, o modal usa só `usuariosEscritorio` (evita fetch duplicado / erro em colunas). */
   usuariosEscritorioProntos,
 }) {
   const { user } = useAuth();
@@ -121,7 +119,6 @@ export default function ModalTarefaEscritorio({
   const souCriadorDaTarefa =
     modoEdicao &&
     String(tarefaEdicao?.criador_id || "") === String(user?.id || "");
-  /** Criação: pode designar livremente; edição: dono ou criador da tarefa. */
   const podeEditarResponsaveis = modoCriacao || isDono || souCriadorDaTarefa;
 
   const carregarEquipe = useCallback(async () => {
@@ -586,9 +583,7 @@ export default function ModalTarefaEscritorio({
                         className="min-h-[80px] w-full rounded-xl border border-white/10 bg-black/40 p-3 text-white focus:ring-1 focus:ring-esc-destaque focus:outline-none"
                         placeholder="Escreva uma nova atualização…"
                         value={textoNovoProgresso}
-                        onChange={(e) =>
-                          setTextoNovoProgresso(e.target.value)
-                        }
+                        onChange={(e) => setTextoNovoProgresso(e.target.value)}
                         rows={3}
                       />
                       <button

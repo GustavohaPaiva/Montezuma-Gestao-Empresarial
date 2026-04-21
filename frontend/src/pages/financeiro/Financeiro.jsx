@@ -22,7 +22,6 @@ export default function Financeiro() {
   const [modalEntradaAberto, setModalEntradaAberto] = useState(false);
   const [modalSaidaAberto, setModalSaidaAberto] = useState(false);
 
-  /** Visão matriz: apenas lançamentos do pool Montezuma. */
   const escritorioId = ID_MONTEZUMA;
 
   const [entradas, setEntradas] = useState([]);
@@ -57,7 +56,8 @@ export default function Financeiro() {
       botoes: [
         {
           texto: "Entendido",
-          className: "bg-[#2E7D32] text-white hover:bg-[#1B5E20] shadow-sm",
+          className:
+            "bg-success-primary text-white hover:bg-success-primary-dark shadow-sm",
           onClick: fecharDialogo,
         },
       ],
@@ -301,7 +301,7 @@ export default function Financeiro() {
           },
           {
             texto: "Cancelar",
-            className: "bg-gray-100 text-[#464C54] hover:bg-gray-200",
+            className: "bg-gray-100 text-text-primary hover:bg-gray-200",
             onClick: fecharDialogo,
           },
         ],
@@ -315,7 +315,7 @@ export default function Financeiro() {
         botoes: [
           {
             texto: "Cancelar",
-            className: "bg-gray-100 text-[#464C54] hover:bg-gray-200",
+            className: "bg-gray-100 text-text-primary hover:bg-gray-200",
             onClick: fecharDialogo,
           },
           {
@@ -369,7 +369,7 @@ export default function Financeiro() {
       botoes: [
         {
           texto: "Cancelar",
-          className: "bg-gray-100 text-[#464C54] hover:bg-gray-200",
+          className: "bg-gray-100 text-text-primary hover:bg-gray-200",
           onClick: fecharDialogo,
         },
         {
@@ -473,7 +473,7 @@ export default function Financeiro() {
               },
               {
                 texto: "Cancelar Alteração",
-                className: "bg-gray-100 text-[#464C54] hover:bg-gray-200 mt-2",
+                className: "bg-gray-100 text-text-primary hover:bg-gray-200 mt-2",
                 onClick: () => {
                   cancelarEdicao();
                   fecharDialogo();
@@ -551,7 +551,7 @@ export default function Financeiro() {
             type="checkbox"
             checked={isValidado}
             onChange={() => handleToggleValidacao(nomeTabela, item)}
-            className="h-[18px] w-[18px] accent-[#1c8701] cursor-pointer"
+            className="h-[18px] w-[18px] accent-check-accent cursor-pointer"
           />
         </div>,
         <div key={`desc-${item.id}`} className="uppercase">
@@ -570,7 +570,7 @@ export default function Financeiro() {
                 type="number"
                 value={valorEditado}
                 onChange={(e) => setValorEditado(e.target.value)}
-                className="w-[80px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-center"
+                className="w-[80px] p-[4px] border border-border-primary rounded-[8px] focus:outline-none text-center"
                 autoFocus
               />
               <button
@@ -660,10 +660,10 @@ export default function Financeiro() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#464C54] mb-2">
+                <h3 className="text-xl font-bold text-text-primary mb-2">
                   {dialogo.titulo}
                 </h3>
-                <p className="text-[#71717A] text-sm leading-relaxed">
+                <p className="text-text-muted text-sm leading-relaxed">
                   {dialogo.mensagem}
                 </p>
               </div>
@@ -710,7 +710,7 @@ export default function Financeiro() {
         <select
           value={mesSelecionado}
           onChange={(e) => setMesSelecionado(e.target.value)}
-          className="pointer-events-auto h-[40px] w-full md:w-auto text-[14px] font-bold px-3 border border-[#C4C4C9] rounded-[8px] bg-white shadow-sm"
+          className="pointer-events-auto h-[40px] w-full md:w-auto text-[14px] font-bold px-3 border border-border-muted rounded-[8px] bg-surface shadow-sm"
         >
           {[
             "01",
@@ -737,7 +737,7 @@ export default function Financeiro() {
 
       {isAdmin && (
         <div className="px-[5%] mb-4">
-          <div className="text-black rounded-[12px] border border-[#DBDADE] p-6 shadow-md mt-6 flex flex-col md:flex-row justify-between items-center bg-white gap-4">
+          <div className="text-black rounded-[12px] border border-border-primary p-6 shadow-md mt-6 flex flex-col md:flex-row justify-between items-center bg-surface gap-4">
             <div className="text-center md:text-left">
               <h2 className="text-xl font-medium">
                 Extrato de {mesSelecionado}/{anoAtual} (Montezuma)
@@ -757,16 +757,16 @@ export default function Financeiro() {
 
       <div className="px-[5%]">
         {isAdmin && (
-          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[24px]">
+          <div className="bg-surface border border-border-primary rounded-[12px] p-[24px] shadow-sm mb-[24px]">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-              <h1 className="text-[30px] font-bold text-[#464C54]">Entradas</h1>
+              <h1 className="text-[30px] font-bold text-text-primary">Entradas</h1>
               <div className="flex w-full md:w-[375px] flex-col md:flex-row gap-4">
                 <input
                   type="text"
                   placeholder="Pesquisar..."
                   value={buscaEntrada}
                   onChange={(e) => setBuscaEntrada(e.target.value)}
-                  className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+                  className="h-[40px] w-full border border-border-primary rounded-[8px] px-3 focus:outline-none"
                 />
                 <ButtonDefault
                   onClick={() => setModalEntradaAberto(true)}
@@ -781,19 +781,19 @@ export default function Financeiro() {
               dados={gerarLinhasTabela(entradas, buscaEntrada, "entradas")}
             />
             <div className="grid xl:grid-cols-2 gap-[10px] w-full mt-4">
-              <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2">
-                <span className="text-sm text-[#71717A] uppercase font-semibold">
+              <div className="flex justify-center items-center border border-border-primary rounded-[8px] p-2 bg-surface-alt gap-2">
+                <span className="text-sm text-text-muted uppercase font-semibold">
                   Total Lançado:
                 </span>
-                <span className="text-sm md:text-[18px] font-bold text-[#464C54]">
+                <span className="text-sm md:text-[18px] font-bold text-text-primary">
                   R$ {formatarMoeda(somaTotalEntradas)}
                 </span>
               </div>
-              <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#E8F5E9] gap-2">
-                <span className="text-sm text-[#2E7D32] uppercase font-semibold">
+              <div className="flex justify-center items-center border border-border-primary rounded-[8px] p-2 bg-success-soft gap-2">
+                <span className="text-sm text-success-primary uppercase font-semibold">
                   Total Validado:
                 </span>
-                <span className="text-sm md:text-[18px] font-bold text-[#1B5E20]">
+                <span className="text-sm md:text-[18px] font-bold text-success-primary-dark">
                   R$ {formatarMoeda(totalEntradasValidadas)}
                 </span>
               </div>
@@ -801,16 +801,16 @@ export default function Financeiro() {
           </div>
         )}
 
-        <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[24px] mt-6">
+        <div className="bg-surface border border-border-primary rounded-[12px] p-[24px] shadow-sm mb-[24px] mt-6">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 className="text-[30px] font-bold text-[#464C54]">Saídas</h1>
+            <h1 className="text-[30px] font-bold text-text-primary">Saídas</h1>
             <div className="flex flex-col md:flex-row w-full md:w-[375px] gap-4">
               <input
                 type="text"
                 placeholder="Pesquisar..."
                 value={buscaSaida}
                 onChange={(e) => setBuscaSaida(e.target.value)}
-                className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+                className="h-[40px] w-full border border-border-primary rounded-[8px] px-3 focus:outline-none"
               />
 
               <ButtonDefault
@@ -826,19 +826,19 @@ export default function Financeiro() {
             dados={gerarLinhasTabela(saidas, buscaSaida, "saida")}
           />
           <div className="grid xl:grid-cols-2 gap-[10px] w-full mt-4">
-            <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#F8F9FA] gap-2">
-              <span className="text-sm text-[#71717A] uppercase font-semibold">
+            <div className="flex justify-center items-center border border-border-primary rounded-[8px] p-2 bg-surface-alt gap-2">
+              <span className="text-sm text-text-muted uppercase font-semibold">
                 Total Lançado:
               </span>
-              <span className="text-sm md:text-[18px] font-bold text-[#464C54]">
+              <span className="text-sm md:text-[18px] font-bold text-text-primary">
                 R$ {formatarMoeda(somaTotalSaidas)}
               </span>
             </div>
-            <div className="flex justify-center items-center border border-[#DBDADE] rounded-[8px] p-2 bg-[#FFEBEE] gap-2">
-              <span className="text-sm text-[#C62828] uppercase font-semibold">
+            <div className="flex justify-center items-center border border-border-primary rounded-[8px] p-2 bg-danger-soft gap-2">
+              <span className="text-sm text-danger-primary uppercase font-semibold">
                 Total Validado:
               </span>
-              <span className="text-sm md:text-[18px] font-bold text-[#B71C1C]">
+              <span className="text-sm md:text-[18px] font-bold text-danger-primary-dark">
                 R$ {formatarMoeda(totalSaidasValidadas)}
               </span>
             </div>
@@ -846,25 +846,25 @@ export default function Financeiro() {
         </div>
 
         {isAdmin && (
-          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm mb-[40px]">
+          <div className="bg-surface border border-border-primary rounded-[12px] p-[24px] shadow-sm mb-[40px]">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-              <h1 className="text-[30px] font-bold text-[#464C54]">
+              <h1 className="text-[30px] font-bold text-text-primary">
                 Controle Anual
               </h1>
               <input
                 type="number"
                 value={anoFiltroAnual}
                 onChange={(e) => setAnoFiltroAnual(e.target.value)}
-                className="h-[40px] w-full sm:w-auto border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none"
+                className="h-[40px] w-full sm:w-auto border border-border-primary rounded-[8px] px-3 focus:outline-none"
               />
             </div>
             <TabelaSimples
               colunas={["Mês", "Entrada", "Saida", "Balanço"]}
               dados={dadosAnuais}
             />
-            <div className="flex flex-col lg:flex-row justify-center items-center border border-[#DBDADE] rounded-[8px] p-4 bg-[#F8F9FA] gap-8 mt-4">
+            <div className="flex flex-col lg:flex-row justify-center items-center border border-border-primary rounded-[8px] p-4 bg-surface-alt gap-8 mt-4">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-[#71717A] uppercase font-semibold">
+                <span className="text-sm text-text-muted uppercase font-semibold">
                   Balanço Validado do Ano:
                 </span>
                 <span
@@ -874,7 +874,7 @@ export default function Financeiro() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-[#71717A] uppercase font-semibold">
+                <span className="text-sm text-text-muted uppercase font-semibold">
                   Balanço Previsto (Total Lançado):
                 </span>
                 <span

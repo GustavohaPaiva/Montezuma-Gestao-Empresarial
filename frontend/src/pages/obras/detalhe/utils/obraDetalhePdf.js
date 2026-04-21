@@ -1,7 +1,11 @@
 import { gerarPDF } from "../../../../services/pdfService";
 import { formatarDataBR, formatarMoeda } from "./formatters";
 
-export function gerarPdfRelatorioMaoDeObraGeral(obra, buscaMaoDeObra) {
+/**
+ * Quando `opts.retornarBlob === true` as funções devolvem
+ * `{ blob, nomePadrao }` e NÃO disparam o download.
+ */
+export function gerarPdfRelatorioMaoDeObraGeral(obra, buscaMaoDeObra, opts = {}) {
   let listaParaPDF = [...obra.maoDeObra];
 
   if (buscaMaoDeObra) {
@@ -45,16 +49,17 @@ export function gerarPdfRelatorioMaoDeObraGeral(obra, buscaMaoDeObra) {
   );
   const infoRodape = `Total Cobrado: R$ ${formatarMoeda(totalCobrado)} | Total Pago: R$ ${formatarMoeda(totalPago)} | Saldo: R$ ${formatarMoeda(totalSaldo)}`;
 
-  gerarPDF(
+  return gerarPDF(
     "Relatório Mão de Obra Geral",
     ["Serviço", "Profissional", "V. Cobrado", "V. Orçado", "V. Pago", "Saldo"],
     dadosPDF,
     obra.local,
     infoRodape,
+    opts,
   );
 }
 
-export function gerarPdfRelatorioPorPrestador(obra, prestador) {
+export function gerarPdfRelatorioPorPrestador(obra, prestador, opts = {}) {
   if (!obra || !obra.maoDeObra) return false;
   const filtrados = obra.maoDeObra.filter(
     (m) => m.profissional?.toLowerCase() === prestador.toLowerCase(),
@@ -91,17 +96,69 @@ export function gerarPdfRelatorioPorPrestador(obra, prestador) {
 
   const infoRodape = `Total Cobrado: R$ ${formatarMoeda(totalCobrado)} | Total Pago: R$ ${formatarMoeda(totalPago)} | Saldo Geral: R$ ${formatarMoeda(totalSaldo)}`;
 
-  gerarPDF(
+  const result = gerarPDF(
     `Relatório - ${prestador.toUpperCase()}`,
     ["Serviço", "Prestador", "V. Cobrado", "V. Pago", "Saldo", "Data"],
     dadosPDF,
     obra.local,
     infoRodape,
+    opts,
   );
-  return true;
+  return opts?.retornarBlob ? result : true;
 }
 
-export function gerarPdfExtrato(obra) {
+export function gerarPdfRelatorioMateriais(obra, buscaMateriais, opts = {}) {
+  if (!obra || !Array.isArray(obra.materiais)) return;
+
+  let lista = [...obra.materiais];
+  if (buscaMateriais) {
+    const termo = String(buscaMateriais).toLowerCase();
+    lista = lista.filter(
+      (m) =>
+        m.material?.toLowerCase().includes(termo) ||
+        m.fornecedores?.nome?.toLowerCase().includes(termo) ||
+        m.fornecedor?.toLowerCase().includes(termo),
+    );
+  }
+
+  if (lista.length === 0) {
+    alert("Nenhum material encontrado para o relatório.");
+    return;
+  }
+
+  const dadosPDF = lista.map((m) => {
+    const qtd = parseFloat(m.quantidade) || 0;
+    const valorTotal = parseFloat(m.valor) || 0;
+    const valorUnit = qtd > 0 ? valorTotal / qtd : 0;
+    const fornecedor = m.fornecedores?.nome || m.fornecedor || "-";
+    return [
+      m.material?.toUpperCase() || "-",
+      String(m.quantidade ?? "-"),
+      `R$ ${formatarMoeda(valorUnit)}`,
+      `R$ ${formatarMoeda(valorTotal)}`,
+      fornecedor,
+      m.status || "-",
+      formatarDataBR(m.data_solicitacao),
+    ];
+  });
+
+  const totalGeral = lista.reduce(
+    (acc, m) => acc + (parseFloat(m.valor) || 0),
+    0,
+  );
+  const infoRodape = `Total Materiais: R$ ${formatarMoeda(totalGeral)}`;
+
+  return gerarPDF(
+    "Relatório de Materiais",
+    ["Material", "Qtd", "V. Unit.", "V. Total", "Fornecedor", "Status", "Data"],
+    dadosPDF,
+    obra.local,
+    infoRodape,
+    opts,
+  );
+}
+
+export function gerarPdfExtrato(obra, opts = {}) {
   if (!obra || !obra.relatorioExtrato) return;
   const itens = obra.relatorioExtrato.filter((i) => i.validacao === 1);
   if (itens.length === 0)
@@ -115,11 +172,12 @@ export function gerarPdfExtrato(obra) {
     formatarDataBR(i.data),
     `R$ ${formatarMoeda(i.valor)}`,
   ]);
-  gerarPDF(
+  return gerarPDF(
     "Extrato",
     ["Descrição", "Tipo", "Qtd", "Data", "Valor"],
     pdfData,
     obra.local,
     formatado,
+    opts,
   );
 }

@@ -3,7 +3,6 @@ import { ID_YBYOCA, ID_VOGELKOP } from "../constants/escritorios";
 import logo from "../assets/imgDocumentos/secretariaMunicipalAdministracao.jpg";
 import { Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
 
-// Registar fontes padrão
 Font.register({
   family: "Helvetica",
   fonts: [
@@ -20,10 +19,6 @@ Font.register({
     },
   ],
 });
-
-// ==================================================================
-// ESTILOS DO REQUERIMENTO GERAL - IDÊNTICO AO MODELO OFICIAL
-// ==================================================================
 const styles = StyleSheet.create({
   page: {
     paddingTop: 15,
@@ -31,7 +26,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     fontFamily: "Helvetica",
   },
-  // --- Cabeçalho Superior ---
   headerWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -50,7 +44,7 @@ const styles = StyleSheet.create({
   headerCenter: {
     flex: 1,
     alignItems: "center",
-    paddingRight: 80, // Compensar a largura do logo para centrar o texto perfeitamente
+    paddingRight: 80,
   },
   headerGovText: {
     fontFamily: "Helvetica-Bold",
@@ -62,7 +56,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 2,
   },
-  // --- Faixas Cinzentas (Títulos) ---
   grayTitleBox: {
     borderRadius: "3px",
     backgroundColor: "#E0E0E0",
@@ -83,7 +76,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textTransform: "uppercase",
   },
-  // --- Repartição (Caixas Superiores) ---
   repContainer: {
     marginBottom: 8,
     width: "100%",
@@ -134,7 +126,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginHorizontal: 3,
   },
-  // --- Aviso ---
   warningText: {
     fontSize: 12,
     fontFamily: "Helvetica-Oblique",
@@ -142,7 +133,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginBottom: 8,
   },
-  // --- Linhas dos Inputs (Inline) ---
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -165,7 +155,6 @@ const styles = StyleSheet.create({
     fontSize: 8,
     textTransform: "uppercase",
   },
-  // --- Textos Soltos e Pedido ---
   bodyText: {
     fontSize: 10,
     marginTop: 6,
@@ -179,7 +168,6 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     padding: 4,
   },
-  // --- Datas e Assinaturas ---
   deferimentoText: {
     fontSize: 9,
     marginTop: 4,
@@ -214,7 +202,6 @@ const styles = StyleSheet.create({
   signSub: {
     fontSize: 7,
   },
-  // --- Orientações Gerais ---
   orientacoesBox: {
     borderWidth: 1,
     borderColor: "#000",
@@ -231,7 +218,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     lineHeight: 1.2,
   },
-  // --- Rodapé ---
   footerText: {
     fontSize: 7,
     textAlign: "center",
@@ -239,9 +225,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// ==================================================================
-// COMPONENTE DE INPUT INLINE
-// ==================================================================
 const InlineInput = ({ label, value, flex = 1, marginRight = 5 }) => (
   <View
     style={{
@@ -258,11 +241,7 @@ const InlineInput = ({ label, value, flex = 1, marginRight = 5 }) => (
   </View>
 );
 
-// ==================================================================
-// O COMPONENTE DO DOCUMENTO
-// ==================================================================
 const RequerimentoGeralLayout = ({ cliente }) => {
-  // Lógica de Contato (Telefone e Email)
   let contatoTelefone = cliente?.telefone || "";
   let contatoEmail = cliente?.email || "";
 
@@ -274,7 +253,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
     contatoEmail = "arquiteturavogelkop@gmail.com";
   }
 
-  // Tratamento de Data
   const hoje = new Date();
   const dia = String(hoje.getDate()).padStart(2, "0");
   const mes = String(hoje.getMonth() + 1).padStart(2, "0");
@@ -282,7 +260,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
 
   return (
     <Page size="A4" style={styles.page}>
-      {/* 1. Cabeçalho */}
       <View style={styles.headerWrapper}>
         <View style={styles.logoBox}>
           <Image style={styles.logo} src={logo} />
@@ -301,7 +278,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
         <Text style={styles.grayTitleText}>REQUERIMENTO GERAL</Text>
       </View>
 
-      {/* 2. Para Uso da Repartição (Layout Horizontal Fiel) */}
       <View style={styles.repContainer}>
         <Text style={styles.repAlignRight}>PARA USO DA REPARTIÇÃO</Text>
         <View style={styles.repRow}>
@@ -338,7 +314,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
         </View>
       </View>
 
-      {/* 3. Aviso e Títulos Principais */}
       <Text style={styles.warningText}>
         Caso não consiga inserir informações, favor ler o "Aviso de Segurança"
         acima do texto, clicar em "opções" e marcar a opção "Habilitar este
@@ -355,7 +330,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
         <Text style={styles.grayTitleText}>IDENTIFICAÇÃO DO REQUERENTE</Text>
       </View>
 
-      {/* 4. Formulário do Requerente */}
       <View style={styles.inputRow}>
         <InlineInput label="Nome:" value={cliente?.nome} marginRight={0} />
       </View>
@@ -416,7 +390,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
         />
       </View>
 
-      {/* 5. Pedido */}
       <Text style={styles.bodyText}>
         Vem mui respeitosamente requerer de V. Exª, que seja submetido a exame e
         decisão dos órgãos competentes o que se segue:
@@ -430,7 +403,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
         <Text style={styles.inputText}>{cliente?.observacao_pmu || ""}</Text>
       </View>
 
-      {/* 6. Assinatura do Pedido */}
       <Text style={styles.deferimentoText}>
         Nestes termos pede deferimento:
       </Text>
@@ -474,7 +446,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
         </View>
       </View>
 
-      {/* 7. Representante Legal */}
       <View style={[styles.grayTitle, { marginTop: 20 }]}>
         <Text style={styles.grayTitleText}>
           IDENTIFICAÇÃO DO REPRESENTANTE LEGAL (SE FOR O CASO)
@@ -500,7 +471,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
         <InlineInput label="Documento:" value="" flex={3.5} marginRight={0} />
       </View>
 
-      {/* 8. Orientações Gerais */}
       <View style={styles.orientacoesBox}>
         <Text style={styles.orientacoesTitle}>ORIENTAÇÕES GERAIS:</Text>
         <Text style={styles.orientacoesText}>
@@ -518,7 +488,6 @@ const RequerimentoGeralLayout = ({ cliente }) => {
         </Text>
       </View>
 
-      {/* 9. Rodapé */}
       <Text style={styles.footerText}>
         Av. Dom Luis Maria de Santana nº 141, Bairro Santa Marta{"\n"}
         CEP: 38.061-080 TELEFONE: (34) 3318-2000.
