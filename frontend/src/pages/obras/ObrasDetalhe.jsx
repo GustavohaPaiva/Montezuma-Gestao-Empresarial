@@ -8,7 +8,8 @@ import ModalMaoDeObra from "../../components/modals/ModalMaoDeObra";
 import ModalEtapas from "../../components/modals/ModalEtapas";
 import Etapas from "../../components/gerais/ObraEtapas";
 import ListaEtapas from "../../components/obras/ListaEtapas";
-import { useIsMobile } from "./detalhe/hooks/useIsMobile";
+import DiarioObras from "../../components/obras/DiarioObras";
+import CronogramaObra from "../../components/obras/CronogramaObra";
 import { useObraById } from "./detalhe/hooks/useObraById";
 import { useObraFinancialSummary } from "./detalhe/hooks/useObraFinancialSummary";
 import { useObrasDetalheTableData } from "./detalhe/hooks/useObrasDetalheTableData";
@@ -22,19 +23,30 @@ import {
   gerarPdfRelatorioMateriais,
   gerarPdfRelatorioPorPrestador,
 } from "./detalhe/utils/obraDetalhePdf";
+import FeedbackModal from "../../components/gerais/FeedbackModal";
 
 export default function ObrasDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { obra, setObra, fetchDados } = useObraById(id);
-  const isMobile = useIsMobile();
   const [categoriaAtiva, setCategoriaAtiva] = useState(null);
+  const [secaoObra, setSecaoObra] = useState("resumo");
+  const [subRelatorio, setSubRelatorio] = useState("materiais");
 
   const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
   const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
   const [modalRelatorioPrestadorOpen, setModalRelatorioPrestadorOpen] =
     useState(false);
+
+  const [feedback, setFeedback] = useState({
+    open: false,
+    message: "",
+    variant: "error",
+  });
+  const showFeedback = useCallback((message, variant = "error") => {
+    setFeedback({ open: true, message, variant });
+  }, []);
 
   const [filtroExtrato, setFiltroExtrato] = useState("Tudo");
 
@@ -87,11 +99,11 @@ export default function ObrasDetalhe() {
           await fetchDados();
         } catch (err) {
           console.error("Erro ao excluir material:", err);
-          alert("Erro ao excluir.");
+          showFeedback("Erro ao excluir.");
         }
       }
     },
-    [fetchDados],
+    [fetchDados, showFeedback],
   );
 
   const handleStatusChange = useCallback(
@@ -120,7 +132,7 @@ export default function ObrasDetalhe() {
       setModalEtapasisOpen(false);
     } catch (error) {
       console.error("Erro ao guardar etapas:", error);
-      alert("Erro ao guardar as etapas na base de dados.");
+      showFeedback("Erro ao guardar as etapas na base de dados.");
     }
   };
 
@@ -141,10 +153,10 @@ export default function ObrasDetalhe() {
         setModalMateriaisOpen(false);
       } catch (err) {
         console.error("Erro ao salvar material:", err);
-        alert("Erro ao salvar material.");
+        showFeedback("Erro ao salvar material.");
       }
     },
-    [id, fetchDados],
+    [id, fetchDados, showFeedback],
   );
 
   const salvarValorMaterial = useCallback(
@@ -209,11 +221,11 @@ export default function ObrasDetalhe() {
           await fetchDados();
         } catch (err) {
           console.error("Erro ao excluir mão de obra:", err);
-          alert("Erro ao excluir item.");
+          showFeedback("Erro ao excluir item.");
         }
       }
     },
-    [fetchDados],
+    [fetchDados, showFeedback],
   );
 
   const handleSaveMaoDeObra = useCallback(
@@ -236,10 +248,10 @@ export default function ObrasDetalhe() {
         setModalMaoDeObraOpen(false);
       } catch (err) {
         console.error("Erro ao salvar mão de obra:", err);
-        alert("Erro ao salvar mão de obra.");
+        showFeedback("Erro ao salvar mão de obra.");
       }
     },
-    [id, fetchDados],
+    [id, fetchDados, showFeedback],
   );
 
   const handleValidarMaoDeObra = useCallback(
@@ -357,7 +369,7 @@ export default function ObrasDetalhe() {
     } catch (e) {
       console.error("[ObrasDetalhe] gerar PDF:", e);
       if (novaAba && !novaAba.closed) novaAba.close();
-      alert(e?.message || "Não foi possível gerar o PDF.");
+      showFeedback(e?.message || "Não foi possível gerar o PDF.");
     }
   };
 
@@ -366,7 +378,7 @@ export default function ObrasDetalhe() {
       (m) => m.profissional?.toLowerCase() === prestador.toLowerCase(),
     );
     if (!lista || lista.length === 0) {
-      alert("Nenhum registro encontrado para este prestador.");
+      showFeedback("Nenhum registro encontrado para este prestador.", "info");
       return;
     }
     setModalRelatorioPrestadorOpen(false);
@@ -390,7 +402,7 @@ export default function ObrasDetalhe() {
   const handleGerarRelatorioMateriais = () => {
     const lista = obra?.materiais || [];
     if (lista.length === 0) {
-      alert("Nenhum material lançado nesta obra.");
+      showFeedback("Nenhum material lançado nesta obra.", "info");
       return;
     }
     abrirPdfEmNovaAba(
@@ -484,9 +496,10 @@ export default function ObrasDetalhe() {
   );
 
   const handleGerarPDFExtrato = () => {
-    const itens = obra?.relatorioExtrato?.filter((i) => i.validacao === 1) || [];
+    const itens =
+      obra?.relatorioExtrato?.filter((i) => i.validacao === 1) || [];
     if (itens.length === 0) {
-      alert("Nenhum item selecionado para o extrato.");
+      showFeedback("Nenhum item selecionado para o extrato.", "info");
       return;
     }
     abrirPdfEmNovaAba(
@@ -539,229 +552,342 @@ export default function ObrasDetalhe() {
     );
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
-      <ObraDetalheHeader
-        navigate={navigate}
-        obra={obra}
-        isReforma={isReforma}
-        isMobile={isMobile}
-        onOpenEtapas={() => setModalEtapasisOpen(true)}
-        onOpenMateriais={() => setModalMateriaisOpen(true)}
-        onOpenMaoDeObra={() => setModalMaoDeObraOpen(true)}
-      />
-      <main className="w-[90%] mt-[24px]">
-        {isMobile && (
-          <div className="flex flex-col gap-[12px] mb-[24px]">
-            <ButtonDefault onClick={() => setModalEtapasisOpen(true)}>
-              + Etapas
-            </ButtonDefault>
-            <ButtonDefault onClick={() => setModalMateriaisOpen(true)}>
-              + Materiais
-            </ButtonDefault>
-            <ButtonDefault onClick={() => setModalMaoDeObraOpen(true)}>
-              + Mão de Obra
-            </ButtonDefault>
+    <div className="flex flex-col items-center min-h-screen bg-bg-primary pb-8">
+      <ObraDetalheHeader navigate={navigate} obra={obra} isReforma={isReforma} />
+      <main className="w-[90%] mt-2 sm:mt-3">
+        <nav
+          className="mb-2 w-full tracking-tight"
+          aria-label="Secções da obra"
+        >
+          <div className="inline-flex max-w-full flex-wrap gap-0.5 rounded-2xl bg-surface-alt p-1 ring-1 ring-border-primary/30">
+            {[
+              { id: "resumo", label: "Resumo" },
+              { id: "cronograma", label: "Cronograma" },
+              { id: "relatorios", label: "Relatórios" },
+              { id: "etapas", label: "Etapas" },
+            ].map((aba) => {
+              const ativa = secaoObra === aba.id;
+              return (
+                <button
+                  key={aba.id}
+                  type="button"
+                  onClick={() => {
+                    setSecaoObra(aba.id);
+                    if (aba.id === "relatorios") setSubRelatorio("materiais");
+                  }}
+                  className={[
+                    "min-h-[2.25rem] rounded-xl px-3 py-1.5 text-xs font-medium transition sm:min-h-0 sm:px-4 sm:py-2 sm:text-sm",
+                    ativa
+                      ? "bg-surface text-text-primary shadow-sm"
+                      : "text-text-muted hover:text-text-primary",
+                  ].join(" ")}
+                >
+                  {aba.label}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {secaoObra === "resumo" && (
+          <div className="mb-6 w-full">
+            <DiarioObras obraId={id} />
+            <div className="mt-6 w-full">
+              <ObraDetalheResumoFinanceiro
+                totais={totais}
+                dataGrafico={dataGrafico}
+                categoriaAtiva={categoriaAtiva}
+                setCategoriaAtiva={setCategoriaAtiva}
+                toggleCategoria={toggleCategoria}
+              />
+            </div>
+            <div className="mt-6 w-full">
+              <Etapas
+                etapas={obra?.etapas_selecionadas || []}
+                isReforma={isReforma}
+              />
+            </div>
           </div>
         )}
-        <div>
-          <ObraDetalheResumoFinanceiro
-            totais={totais}
-            dataGrafico={dataGrafico}
-            categoriaAtiva={categoriaAtiva}
-            setCategoriaAtiva={setCategoriaAtiva}
-            toggleCategoria={toggleCategoria}
-          />
 
-          <div>
-            <Etapas
+        {secaoObra === "cronograma" && (
+          <div className="mb-4 w-full">
+            <CronogramaObra
               etapas={obra?.etapas_selecionadas || []}
+              obraId={id}
+              showLancarButton
+            />
+          </div>
+        )}
+
+        {secaoObra === "relatorios" && (
+          <div className="mb-4 w-full">
+            <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+              {(
+                [
+                  {
+                    id: "materiais",
+                    label: "Materiais",
+                    sub: "Compras e fornecedores",
+                  },
+                  {
+                    id: "mao",
+                    label: "Mão de Obra",
+                    sub: "Serviços e prestadores",
+                  },
+                  {
+                    id: "extrato",
+                    label: "Extrato financeiro",
+                    sub: "Movimentação consolidada",
+                  },
+                ]
+              ).map((opt) => {
+                const on = subRelatorio === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setSubRelatorio(opt.id)}
+                    className={[
+                      "flex flex-col items-start gap-0.5 rounded-2xl border p-3 text-left shadow-sm transition sm:p-4",
+                      on
+                        ? "border-accent-primary/40 bg-surface ring-1 ring-accent-primary/20"
+                        : "border-border-primary/80 bg-surface hover:bg-surface-alt",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "text-sm font-semibold tracking-tight",
+                        on ? "text-accent-primary" : "text-text-primary",
+                      ].join(" ")}
+                    >
+                      {opt.label}
+                    </span>
+                    <span className="text-xs tracking-tight text-text-muted">
+                      {opt.sub}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {subRelatorio === "materiais" && (
+            <div>
+            <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-0 pt-5 pb-5 sm:pt-6 sm:pb-6">
+              <div className="flex w-full flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
+                <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
+                  Relatório de Materiais
+                </h1>
+                <div className="flex w-full max-w-full flex-wrap items-center gap-2 md:max-w-2xl md:justify-end">
+                  <input
+                    type="text"
+                    placeholder="Buscar por material ou fornecedor..."
+                    value={buscaMateriais}
+                    onChange={(e) => setBuscaMateriais(e.target.value)}
+                    className="h-10 w-full min-w-0 flex-1 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[300px] md:flex-none"
+                  />
+                  <ButtonDefault
+                    type="button"
+                    onClick={() => setModalMateriaisOpen(true)}
+                    className="!h-10 !shrink-0 !whitespace-nowrap !px-4 !text-sm"
+                  >
+                    Novo material
+                  </ButtonDefault>
+                </div>
+              </div>
+              <TabelaSimples
+                colunas={[
+                  "Material",
+                  "Quantidade",
+                  "Valor Un.",
+                  "Valor",
+                  <span
+                    key="col-status"
+                    className="cursor-pointer hover:text-blue-600 select-none"
+                    onClick={() => handleSortMateriais("status")}
+                  >
+                    Status ↕
+                  </span>,
+                  <span
+                    key="col-forn"
+                    className="cursor-pointer hover:text-blue-600 select-none"
+                    onClick={() => handleSortMateriais("fornecedor")}
+                  >
+                    Fornecedor ↕
+                  </span>,
+                  <span
+                    key="col-data"
+                    className="cursor-pointer hover:text-blue-600 select-none"
+                    onClick={() => handleSortMateriais("data")}
+                  >
+                    Data ↕
+                  </span>,
+                  "",
+                ]}
+                dados={dadosMateriais}
+              />
+              <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:h-[42px] md:flex-row">
+                <ButtonDefault
+                  onClick={handleGerarRelatorioMateriais}
+                  className="w-[90%] max-w-[450px]"
+                >
+                  Relatório Materiais
+                </ButtonDefault>
+                <div className="flex h-[40px] w-[90%] max-w-[450px] items-center justify-center gap-[4px] border border-border-muted rounded-[6px] p-2 text-[18px] text-text-primary">
+                  Total Lançado:{" "}
+                  <span> R$ {formatarMoeda(totais.materiais)}</span>
+                </div>
+              </div>
+            </div>
+            </div>
+            )}
+
+            {subRelatorio === "mao" && (
+            <div>
+            <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-3 pt-5 pb-5 sm:pt-6 sm:pb-6 sm:mt-4">
+              <div className="flex w-full flex-col flex-wrap gap-4 md:flex-row md:items-center md:justify-between md:gap-3">
+                <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
+                  Relatório de Mão de Obra
+                </h1>
+                <div className="flex w-full max-w-full flex-wrap items-center gap-2 md:max-w-[560px] md:justify-end">
+                  <input
+                    type="text"
+                    placeholder="Buscar serviço ou prestador..."
+                    value={buscaMaoDeObra}
+                    onChange={(e) => setBuscaMaoDeObra(e.target.value)}
+                    className="h-[40px] w-full min-w-0 flex-1 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[250px] md:flex-none"
+                  />
+                  <ButtonDefault
+                    type="button"
+                    onClick={() => setModalMaoDeObraOpen(true)}
+                    className="!h-10 !whitespace-nowrap !px-4 !text-sm !shadow-sm"
+                  >
+                    Nova mão de obra
+                  </ButtonDefault>
+                </div>
+              </div>
+              <TabelaSimples
+                colunas={[
+                  "Validação",
+                  "Serviço",
+                  <span
+                    key="col-prest"
+                    className="cursor-pointer hover:text-blue-600 select-none"
+                    onClick={() => handleSortMdo("profissional")}
+                  >
+                    Prestador ↕
+                  </span>,
+                  "Valor Cobrado",
+                  "Valor Orçado",
+                  "Valor Pago",
+                  "Saldo",
+                  "Data",
+                  "",
+                ]}
+                dados={dadosMaoDeObra}
+              />
+
+              <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:flex-row md:flex-wrap">
+                <div className="flex w-full max-w-[450px] justify-center gap-2">
+                  <ButtonDefault
+                    onClick={handleGerarRelatorioMaoDeObraGeral}
+                    className="w-full"
+                  >
+                    Relatório Geral
+                  </ButtonDefault>
+                  <ButtonDefault
+                    onClick={() => setModalRelatorioPrestadorOpen(true)}
+                    className="w-full"
+                  >
+                    Por Prestador
+                  </ButtonDefault>
+                </div>
+                <div className="w-full h-[40px] max-w-[450px] border border-border-muted rounded-[6px] text-[18px] text-text-primary items-center flex justify-center gap-[4px] p-2">
+                  Total Lançado:{" "}
+                  <span> R$ {formatarMoeda(totais.maoDeObra)}</span>
+                </div>
+              </div>
+            </div>
+            </div>
+            )}
+
+            {subRelatorio === "extrato" && (
+            <div>
+            <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-3 pt-5 pb-5 sm:mt-4 sm:pt-6 sm:pb-6">
+              <div className="flex w-full flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
+                  Extrato
+                </h1>
+                <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
+                  <input
+                    type="text"
+                    placeholder="Buscar no extrato..."
+                    value={buscaExtrato}
+                    onChange={(e) => setBuscaExtrato(e.target.value)}
+                    className="h-[40px] w-full min-w-0 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[250px]"
+                  />
+                  <select
+                    value={filtroExtrato}
+                    onChange={(e) => setFiltroExtrato(e.target.value)}
+                    className="h-[40px] w-full cursor-pointer border border-border-primary rounded-[8px] bg-surface p-[6px] text-[14px] text-text-primary focus:outline-none md:w-auto"
+                  >
+                    <option value="Tudo">Tudo</option>
+                    <option value="Materiais">Materiais</option>
+                    <option value="Mão de Obra">Mão de Obra</option>
+                  </select>
+                </div>
+              </div>
+              <TabelaSimples
+                colunas={headerExtrato}
+                dados={dadosRelatorioExtrato}
+              />
+              <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:h-[42px] md:flex-row">
+                <ButtonDefault
+                  onClick={handleGerarPDFExtrato}
+                  className="w-full max-w-[450px]"
+                >
+                  Gerar pedido
+                </ButtonDefault>
+                <div className="flex h-[40px] w-full max-w-[450px] items-center justify-center gap-[4px] border border-border-muted rounded-[6px] p-2 text-[18px] text-text-primary">
+                  Total no Extrato:{" "}
+                  <span> R$ {formatarMoeda(totais.totalExtrato)}</span>
+                </div>
+              </div>
+            </div>
+            </div>
+            )}
+          </div>
+        )}
+
+        {secaoObra === "etapas" && (
+          <div className="w-full">
+            <ListaEtapas
+              etapas={obra.etapas_selecionadas}
               isReforma={isReforma}
-            />
-          </div>
-
-          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
-            <div
-              className={`w-full flex ${isMobile ? "flex-col gap-4" : "flex-row justify-between items-center"}`}
-            >
-              <h1 className="text-[35px] font-bold">Relatório de Materiais</h1>
-              <input
-                type="text"
-                placeholder="Buscar por material ou fornecedor..."
-                value={buscaMateriais}
-                onChange={(e) => setBuscaMateriais(e.target.value)}
-                className={`h-[40px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px] ${isMobile ? "w-full" : "w-[300px]"}`}
-              />
-            </div>
-            <TabelaSimples
-              colunas={[
-                "Material",
-                "Quantidade",
-                "Valor Un.",
-                "Valor",
-                <span
-                  key="col-status"
-                  className="cursor-pointer hover:text-blue-600 select-none"
-                  onClick={() => handleSortMateriais("status")}
-                >
-                  Status ↕
-                </span>,
-                <span
-                  key="col-forn"
-                  className="cursor-pointer hover:text-blue-600 select-none"
-                  onClick={() => handleSortMateriais("fornecedor")}
-                >
-                  Fornecedor ↕
-                </span>,
-                <span
-                  key="col-data"
-                  className="cursor-pointer hover:text-blue-600 select-none"
-                  onClick={() => handleSortMateriais("data")}
-                >
-                  Data ↕
-                </span>,
-                "",
-              ]}
-              dados={dadosMateriais}
-            />
-            <div
-              className={`flex ${isMobile ? "flex-col h-auto gap-4" : "flex-row h-[42px]"} justify-between px-[5%] gap-[20px] text-center w-full box-border items-center`}
-            >
-              <ButtonDefault
-                onClick={handleGerarRelatorioMateriais}
-                className="w-[90%] max-w-[450px]"
-              >
-                Relatório Materiais
-              </ButtonDefault>
-              <div className="w-[90%] h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
-                Total Lançado:{" "}
-                <span> R$ {formatarMoeda(totais.materiais)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
-            <div
-              className={`w-full flex ${isMobile ? "flex-col gap-4" : "flex-row justify-between items-center"}`}
-            >
-              <h1 className="text-[35px] font-bold">
-                Relatório de Mão de Obra
-              </h1>
-              <input
-                type="text"
-                placeholder="Buscar serviço ou prestador..."
-                value={buscaMaoDeObra}
-                onChange={(e) => setBuscaMaoDeObra(e.target.value)}
-                className={`h-[40px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px] ${isMobile ? "w-full" : "w-[250px]"}`}
-              />
-            </div>
-            <TabelaSimples
-              colunas={[
-                "Validação",
-                "Serviço",
-                <span
-                  key="col-prest"
-                  className="cursor-pointer hover:text-blue-600 select-none"
-                  onClick={() => handleSortMdo("profissional")}
-                >
-                  Prestador ↕
-                </span>,
-                "Valor Cobrado",
-                "Valor Orçado",
-                "Valor Pago",
-                "Saldo",
-                "Data",
-                "",
-              ]}
-              dados={dadosMaoDeObra}
-            />
-
-            <div
-              className={`flex ${isMobile ? "flex-col h-auto gap-4" : "flex-row h-auto flex-wrap"} justify-between px-[5%] gap-[20px] text-center w-full box-border items-center`}
-            >
-              <div className="flex gap-2 w-full max-w-[450px] justify-center">
+              headerAction={
                 <ButtonDefault
-                  onClick={handleGerarRelatorioMaoDeObraGeral}
-                  className="w-full"
+                  type="button"
+                  onClick={() => setModalEtapasisOpen(true)}
+                  className="!h-10 !shrink-0 !whitespace-nowrap !px-4 !text-sm"
                 >
-                  Relatório Geral
+                  Nova etapa
                 </ButtonDefault>
-                <ButtonDefault
-                  onClick={() => setModalRelatorioPrestadorOpen(true)}
-                  className="w-full"
-                >
-                  Por Prestador
-                </ButtonDefault>
-              </div>
-              <div className="w-full h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
-                Total Lançado:{" "}
-                <span> R$ {formatarMoeda(totais.maoDeObra)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#ffffff] border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] pt-[24px] pb-[24px]">
-            <div
-              className={`w-full flex ${isMobile ? "flex-col gap-4" : "flex-row justify-between items-center"}`}
-            >
-              <h1 className="text-[35px] font-bold">Extrato</h1>
-              <div
-                className={`flex ${isMobile ? "flex-col gap-[8px] w-full" : "flex-row gap-[8px] items-center"}`}
-              >
-                <input
-                  type="text"
-                  placeholder="Buscar no extrato..."
-                  value={buscaExtrato}
-                  onChange={(e) => setBuscaExtrato(e.target.value)}
-                  className={`h-[40px] box-border border border-[#DBDADE] rounded-[8px] p-2 focus:outline-none text-[#464C54] px-[8px] ${isMobile ? "w-full" : "w-[250px]"}`}
-                />
-                <select
-                  value={filtroExtrato}
-                  onChange={(e) => setFiltroExtrato(e.target.value)}
-                  className={`p-[6px] border border-[#DBDADE] rounded-[8px] h-[40px] text-[#464C54] focus:outline-none text-[14px] cursor-pointer bg-white ${isMobile ? "w-full" : ""}`}
-                >
-                  <option value="Tudo">Tudo</option>
-                  <option value="Materiais">Materiais</option>
-                  <option value="Mão de Obra">Mão de Obra</option>
-                </select>
-              </div>
-            </div>
-            <TabelaSimples
-              colunas={headerExtrato}
-              dados={dadosRelatorioExtrato}
-            />
-            <div
-              className={`flex ${isMobile ? "flex-col h-auto gap-4" : "flex-row h-[42px]"} justify-between px-[5%] gap-[20px] text-center w-full box-border items-center`}
-            >
-              <ButtonDefault
-                onClick={handleGerarPDFExtrato}
-                className="w-full max-w-[450px]"
-              >
-                Gerar pedido
-              </ButtonDefault>
-              <div className="w-full h-[40px] max-w-[450px] border border-[#C4C4C9] rounded-[6px] text-[18px] items-center flex justify-center gap-[4px] p-2">
-                Total no Extrato:{" "}
-                <span> R$ {formatarMoeda(totais.totalExtrato)}</span>
-              </div>
-            </div>
-          </div>
-
-          <ListaEtapas
-            etapas={obra.etapas_selecionadas}
-            isReforma={isReforma}
-            onUpdateEtapas={async (novasEtapas) => {
-              try {
-                await api.updateEtapasObra(obra.id, novasEtapas);
-                setObra((prev) => ({
-                  ...prev,
-                  etapas_selecionadas: novasEtapas,
-                }));
-              } catch (error) {
-                console.error(error);
-                alert("Erro ao atualizar a etapa");
               }
-            }}
-          />
-        </div>
+              onUpdateEtapas={async (novasEtapas) => {
+                try {
+                  await api.updateEtapasObra(obra.id, novasEtapas);
+                  setObra((prev) => ({
+                    ...prev,
+                    etapas_selecionadas: novasEtapas,
+                  }));
+                } catch (error) {
+                  console.error(error);
+                  showFeedback("Erro ao atualizar a etapa");
+                }
+              }}
+            />
+          </div>
+        )}
       </main>
 
       <ModalEtapas
@@ -788,6 +914,14 @@ export default function ObrasDetalhe() {
         onClose={() => setModalRelatorioPrestadorOpen(false)}
         onGenerate={handleGerarRelatorioPorPrestador}
         prestadoresDisponiveis={prestadoresUnicos}
+      />
+      <FeedbackModal
+        isOpen={feedback.open}
+        onClose={() =>
+          setFeedback((f) => ({ ...f, open: false, message: "" }))
+        }
+        message={feedback.message}
+        variant={feedback.variant}
       />
     </div>
   );

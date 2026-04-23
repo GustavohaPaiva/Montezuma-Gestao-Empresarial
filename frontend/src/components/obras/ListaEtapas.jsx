@@ -176,6 +176,8 @@ export default function ListaEtapas({
   etapas = [],
   onUpdateEtapas,
   isCliente = false,
+  isReforma: _isReforma = false,
+  headerAction = null,
 }) {
   const handleChange = useCallback(
     (nomeEtapa, campo, valor) => {
@@ -265,10 +267,13 @@ export default function ListaEtapas({
   );
 
   return (
-    <div className="p-4 bg-white rounded-[12px] shadow-sm mt-6 mb-6">
-      <h2 className="text-[24px] font-bold text-[#464C54] mb-[20px]">
-        Lista de Etapas
-      </h2>
+    <div className="p-4 bg-surface border border-border-primary rounded-[12px] shadow-sm mt-2 mb-4">
+      <div className="mb-5 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <h2 className="text-[24px] font-bold text-text-primary">
+          Lista de Etapas
+        </h2>
+        {headerAction}
+      </div>
       <div className="flex flex-col gap-4">
         {etapas.map((etapa, index) => (
           <EtapaCard

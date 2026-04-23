@@ -249,7 +249,7 @@ export default function FornecedorDetalhes() {
         </div>
       </header>
 
-      <main className="w-[90%] mt-[24px] flex flex-col gap-[24px]">
+      <main className="w-[90%] mt-3 flex flex-col gap-[24px] sm:mt-4">
         <div className="bg-white rounded-[16px] border border-[#DBDADE] shadow-sm p-6 lg:p-8 flex flex-col lg:flex-row gap-8 items-start relative">
           <div className="absolute top-6 right-6 flex gap-2 z-10">
             {isEditing ? (
