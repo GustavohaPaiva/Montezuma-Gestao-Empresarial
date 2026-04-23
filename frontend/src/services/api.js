@@ -1705,4 +1705,85 @@ export const api = {
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   },
+
+  getDiarioObras: async (obraId, limite, offset = 0) => {
+    if (!obraId) return { rows: [], hasMore: false };
+    const n = Math.max(1, Math.min(Number(limite) || 6, 100));
+    const { data, error } = await supabase
+      .from("diario_obras")
+      .select("*")
+      .eq("obra_id", obraId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + n);
+    if (error) throw error;
+    const raw = Array.isArray(data) ? data : [];
+    if (raw.length > n) {
+      return { rows: raw.slice(0, n), hasMore: true };
+    }
+    return { rows: raw, hasMore: false };
+  },
+
+  addDiarioObra: async (dados) => {
+    const { data, error } = await supabase
+      .from("diario_obras")
+      .insert(dados)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  updateDiarioObra: async (id, mensagem) => {
+    const { data, error } = await supabase
+      .from("diario_obras")
+      .update({ mensagem })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  deleteDiarioObra: async (id) => {
+    const { error } = await supabase.from("diario_obras").delete().eq("id", id);
+    if (error) throw error;
+  },
+
+  getCronogramaEventos: async (obraId, de, ate) => {
+    if (!obraId) return [];
+    const s = String(obraId).trim();
+    const oid = /^\d+$/.test(s) ? Number(s) : s;
+    let q = supabase.from("cronograma_eventos").select("*").eq("obra_id", oid);
+    if (de && ate) {
+      // Sobrepõe [de, ate]: evento de um dia em [de,ate] OU intervalo [início,fim] a cruzar a janela
+      q = q.or(
+        `and(data_fim.is.null,data_evento.gte.${de},data_evento.lte.${ate}),and(data_fim.not.is.null,data_evento.lte.${ate},data_fim.gte.${de})`,
+      );
+    } else {
+      if (de) q = q.gte("data_evento", de);
+      if (ate) q = q.lte("data_evento", ate);
+    }
+    q = q.order("data_evento", { ascending: true });
+    const { data, error } = await q;
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  addCronogramaEvento: async (dados) => {
+    const { data, error } = await supabase
+      .from("cronograma_eventos")
+      .insert(dados)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  deleteCronogramaEvento: async (id) => {
+    const { error } = await supabase
+      .from("cronograma_eventos")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
 };

@@ -171,7 +171,7 @@ export default function Processos() {
         />
       </div>
 
-      <main ref={refMain} className="w-[90%] mt-[40px] flex flex-col gap-6">
+      <main ref={refMain} className="w-[90%] mt-4 flex flex-col gap-6 sm:mt-6">
         {carregando ? (
           <div className="flex justify-center items-center py-20">
             <Hourglass className="w-8 h-8 animate-spin text-[#DC3B0B]" />

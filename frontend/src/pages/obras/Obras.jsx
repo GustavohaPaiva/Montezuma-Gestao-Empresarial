@@ -123,7 +123,7 @@ export default function Obras() {
         />
       </div>
 
-      <main ref={refMain} className="w-[90%] mt-10 pb-10">
+      <main ref={refMain} className="w-[90%] mt-4 pb-10 sm:mt-6">
         {!carregando && (
           <div
             className={`grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 w-full transition-all duration-700 ease-out transform ${

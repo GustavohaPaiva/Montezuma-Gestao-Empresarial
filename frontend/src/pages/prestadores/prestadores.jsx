@@ -203,7 +203,7 @@ export default function Prestadores() {
         </div>
       </header>
 
-      <main className="w-[90%] mt-[24px]">
+      <main className="w-[90%] mt-3 sm:mt-4">
         {isMobile && (
           <div className="flex flex-col gap-[12px] mb-[24px]">
             <ButtonDefault onClick={() => setModalOpen(true)}>
