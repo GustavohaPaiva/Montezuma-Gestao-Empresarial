@@ -658,57 +658,77 @@ export default function ObraCliente() {
       {!isSomenteProcessos && (
         <div
           id="#home"
-          className="w-full flex flex-col gap-[24px] md:mb-6 mt-6 md:mt-0 justify-center items-center"
+          className="mt-6 flex w-full flex-col items-center justify-center gap-[24px] pb-24 md:mb-6 md:mt-0 md:pb-0"
         >
           <header
-            className={`hidden md:flex h-[65px] sticky z-50 border-[#DBDADE] justify-center top-0 w-full shadow-md bg-[#EEEDF0] transition-all duration-500 ease-out transform ${isMounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full"}`}
+            className={`sticky top-0 z-50 hidden w-full border-b-2 border-[#DC3B0B]/20 bg-white shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] transition-all duration-500 ease-out md:flex ${isMounted ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}
           >
-            <div className="w-full flex items-center justify-center">
-              <ul className="w-full flex justify-around items-center gap-6 list-none m-0 p-0">
-                <a href="#home" onClick={(e) => handleScroll(e, "#home")}>
-                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline cursor-pointer">
-                    Inicio
-                  </li>
+            <div className="flex h-[72px] w-full items-center justify-center gap-3 px-4 px-[5%]">
+              <div className="hidden lg:block">
+                <img
+                  src={logo}
+                  alt="Logo Montezuma"
+                  href="#home"
+                  onClick={(e) => handleScroll(e, "#home")}
+                  className="w-[70px] h-[55px] cursor-pointer"
+                />
+              </div>
+              <ul className="m-0 flex w-full list-none items-center justify-between gap-1 p-0 lg:justify-center lg:gap-15">
+                <a
+                  href="#home"
+                  onClick={(e) => handleScroll(e, "#home")}
+                  className="group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-all hover:bg-[#DC3B0B]/10 hover:text-[#DC3B0B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#DC3B0B] sm:px-4 sm:text-base"
+                >
+                  <House className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#DC3B0B] sm:h-5 sm:w-5" />
+                  <span className="hidden sm:inline">Início</span>
                 </a>
                 <a
                   href="#financeiro"
                   onClick={(e) => handleScroll(e, "#financeiro")}
+                  className="group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-all hover:bg-[#DC3B0B]/10 hover:text-[#DC3B0B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#DC3B0B] sm:px-4 sm:text-base"
                 >
-                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline cursor-pointer">
-                    Financeiro
-                  </li>
+                  <CircleDollarSign className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#DC3B0B] sm:h-5 sm:w-5" />
+                  <span className="hidden sm:inline">Financeiro</span>
                 </a>
-                <a href="#etapas" onClick={(e) => handleScroll(e, "#etapas")}>
-                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline cursor-pointer">
-                    Etapas
-                  </li>
+                <a
+                  href="#etapas"
+                  onClick={(e) => handleScroll(e, "#etapas")}
+                  className="group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-all hover:bg-[#DC3B0B]/10 hover:text-[#DC3B0B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#DC3B0B] sm:px-4 sm:text-base"
+                >
+                  <Icon
+                    iconNode={stairs}
+                    className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#DC3B0B] sm:h-5 sm:w-5"
+                  />
+                  <span className="hidden sm:inline">Etapas</span>
                 </a>
                 <a
                   href="#relatorios"
                   onClick={(e) => handleScroll(e, "#relatorios")}
+                  className="group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-all hover:bg-[#DC3B0B]/10 hover:text-[#DC3B0B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#DC3B0B] sm:px-4 sm:text-base"
                 >
-                  <li className="text-2xl hover:text-[#DC3B0B] hover:underline cursor-pointer">
-                    Relatorios
-                  </li>
+                  <ClipboardPlus className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#DC3B0B] sm:h-5 sm:w-5" />
+                  <span className="hidden sm:inline">Relatórios</span>
                 </a>
-                <li
-                  className="relative cursor-pointer group"
-                  onClick={handleAbrirModal}
-                  title="Alterar foto de perfil"
-                >
+              </ul>
+              <li
+                className="group flex justify-end relative flex cursor-pointer items-center pl-2 sm:pl-3"
+                onClick={handleAbrirModal}
+                title="Alterar foto de perfil"
+              >
+                <div className="rounded-full p-0.5 ring-2 ring-slate-200/80 transition group-hover:ring-[#DC3B0B]/50">
                   {cliente?.foto ? (
                     <img
                       src={cliente.foto}
                       alt="Foto"
-                      className="w-[50px] h-[50px] rounded-[50%] border-2 border-[#DC3B0B] object-cover group-hover:opacity-70"
+                      className="h-10 w-10 rounded-full object-cover transition group-hover:opacity-90 sm:h-12 sm:w-12"
                     />
                   ) : (
-                    <div className="w-[50px] h-[50px] rounded-[50%] border-2 border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] group-hover:opacity-70">
-                      <UserRound className="w-[30px] h-[30px] text-[#DC3B0B]" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-slate-200 sm:h-12 sm:w-12">
+                      <UserRound className="h-6 w-6 text-[#DC3B0B] sm:h-7 sm:w-7" />
                     </div>
                   )}
-                </li>
-              </ul>
+                </div>
+              </li>
             </div>
           </header>
 
@@ -1127,51 +1147,66 @@ export default function ObraCliente() {
             </div>
           </div>
 
-          <header className="h-[70px] items-center md:hidden shadow-[0_-4px_8px_rgba(0,0,0,0.3)] fixed z-50 border-[#DBDADE] flex justify-center bottom-0 w-full bg-[#EEEDF0] transition-all duration-500 ease-out transform opacity-100 translate-y-0 opacity-0 translate-y-full">
-            <div className="w-full flex items-center justify-center">
-              <ul className="w-full flex justify-around items-center gap-6 list-none m-0 p-0">
-                <a href="#home" onClick={(e) => handleScroll(e, "#home")}>
-                  <li className="text-2xl hover:text-[#DC3B0B] cursor-pointer">
-                    <House />
-                  </li>
+          <header className="sticky bottom-0 z-50 flex w-full items-center justify-center border-t-2 border-[#DC3B0B]/25 bg-gradient-to-t from-slate-100/95 to-white/90 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(0,0,0,0.08)] backdrop-blur-md md:hidden">
+            <div className="w-full px-2 pt-1">
+              <ul className="m-0 flex list-none items-end justify-between w-full max-w-[800px] p-0">
+                <a
+                  href="#home"
+                  onClick={(e) => handleScroll(e, "#home")}
+                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500 transition active:scale-95 active:bg-slate-200/50"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200/60 text-slate-700 ring-1 ring-slate-300/50 transition hover:bg-[#DC3B0B]/15 hover:text-[#DC3B0B] hover:ring-[#DC3B0B]/30">
+                    <House className="h-[22px] w-[22px]" />
+                  </span>
+                  <span className="truncate">Início</span>
                 </a>
                 <a
                   href="#financeiro"
                   onClick={(e) => handleScroll(e, "#financeiro")}
+                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500 transition active:scale-95 active:bg-slate-200/50"
                 >
-                  <li className="text-2xl hover:text-[#DC3B0B] cursor-pointer">
-                    <CircleDollarSign />
-                  </li>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200/60 text-slate-700 ring-1 ring-slate-300/50 transition hover:bg-[#DC3B0B]/15 hover:text-[#DC3B0B] hover:ring-[#DC3B0B]/30">
+                    <CircleDollarSign className="h-[22px] w-[22px]" />
+                  </span>
+                  <span className="truncate">Financ.</span>
                 </a>
-                <a href="#etapas" onClick={(e) => handleScroll(e, "#etapas")}>
-                  <li className="text-2xl hover:text-[#DC3B0B] cursor-pointer">
-                    <Icon iconNode={stairs} />
-                  </li>
+                <a
+                  href="#etapas"
+                  onClick={(e) => handleScroll(e, "#etapas")}
+                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500 transition active:scale-95 active:bg-slate-200/50"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200/60 text-slate-700 ring-1 ring-slate-300/50 transition hover:bg-[#DC3B0B]/15 hover:text-[#DC3B0B] hover:ring-[#DC3B0B]/30">
+                    <Icon iconNode={stairs} className="h-[22px] w-[22px]" />
+                  </span>
+                  <span className="truncate">Etapas</span>
                 </a>
                 <a
                   href="#relatorios"
                   onClick={(e) => handleScroll(e, "#relatorios")}
+                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500 transition active:scale-95 active:bg-slate-200/50"
                 >
-                  <li className="text-2xl hover:text-[#DC3B0B] cursor-pointer">
-                    <ClipboardPlus />
-                  </li>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200/60 text-slate-700 ring-1 ring-slate-300/50 transition hover:bg-[#DC3B0B]/15 hover:text-[#DC3B0B] hover:ring-[#DC3B0B]/30">
+                    <ClipboardPlus className="h-[22px] w-[22px]" />
+                  </span>
+                  <span className="truncate">Relat.</span>
                 </a>
                 <li
-                  className="relative cursor-pointer group"
+                  className="group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500"
                   onClick={handleAbrirModal}
                   title="Alterar foto de perfil"
                 >
-                  {cliente?.foto ? (
-                    <img
-                      src={cliente.foto}
-                      alt="Foto"
-                      className="w-[32px] h-[32px] rounded-[50%] border-2 border-[#DC3B0B] object-cover group-hover:opacity-70"
-                    />
-                  ) : (
-                    <div className="w-[32px] h-[32px] rounded-[50%] border-2 border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] group-hover:opacity-70">
-                      <UserRound className="w-[20px] h-[20px] text-[#DC3B0B]" />
-                    </div>
-                  )}
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200/60 p-0.5 ring-2 ring-slate-300/50 transition group-active:scale-95 group-hover:ring-[#DC3B0B]/40">
+                    {cliente?.foto ? (
+                      <img
+                        src={cliente.foto}
+                        alt="Foto"
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <UserRound className="h-5 w-5 text-[#DC3B0B]" />
+                    )}
+                  </div>
+                  <span className="truncate">Perfil</span>
                 </li>
               </ul>
             </div>
