@@ -2,41 +2,51 @@ import { useState, useEffect } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
 import ModalPortal from "../gerais/ModalPortal";
 import { supabase } from "../../services/supabase";
+import { api } from "../../services/api";
 
 export default function ModalNovaObra({ isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState({
     nomeObra: "",
     cliente_id: "",
+    responsavel_id: "",
   });
 
   const [clientes, setClientes] = useState([]);
+  const [diretoria, setDiretoria] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      const fetchClientes = async () => {
+      const fetchData = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("clientes")
-          .select("id, nome")
-          .order("nome", { ascending: true });
-
-        if (!error && data) {
-          setClientes(data);
-        } else {
-          console.error("Erro ao carregar clientes:", error);
+        try {
+          const [cliRes, dirRes] = await Promise.all([
+            supabase
+              .from("clientes")
+              .select("id, nome")
+              .order("nome", { ascending: true }),
+            api.listUsuariosDiretoria().catch((e) => {
+              console.error(e);
+              return [];
+            }),
+          ]);
+          if (!cliRes.error && cliRes.data) setClientes(cliRes.data);
+          else if (cliRes.error)
+            console.error("Erro ao carregar clientes:", cliRes.error);
+          setDiretoria(Array.isArray(dirRes) ? dirRes : []);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       };
 
-      fetchClientes();
+      fetchData();
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleCloseAndReset = () => {
-    setFormData({ nomeObra: "", cliente_id: "" });
+    setFormData({ nomeObra: "", cliente_id: "", responsavel_id: "" });
     onClose();
   };
 
@@ -46,7 +56,13 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
       alert("Selecione um cliente válido.");
       return;
     }
-    onSave(formData);
+    const cli = clientes.find((c) => c.id === formData.cliente_id);
+    onSave({
+      nomeObra: formData.nomeObra,
+      cliente_id: formData.cliente_id,
+      cliente: cli?.nome ?? "",
+      responsavel_id: formData.responsavel_id || null,
+    });
     handleCloseAndReset();
   };
 
@@ -121,6 +137,34 @@ export default function ModalNovaObra({ isOpen, onClose, onSave }) {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="responsavel_id"
+                className="text-xs font-bold text-gray-500 uppercase"
+              >
+                Responsável (diretoria)
+              </label>
+              <select
+                id="responsavel_id"
+                className="h-11 w-full cursor-pointer rounded-lg border border-gray-300 bg-gray-50 px-3 text-base transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                value={formData.responsavel_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, responsavel_id: e.target.value })
+                }
+                disabled={loading}
+              >
+                <option value="">Nenhum selecionado</option>
+                {diretoria.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nome}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-500">
+                Apenas utilizadores com perfil de diretoria.
+              </p>
             </div>
 
             <ButtonDefault type="submit" className="mt-2">

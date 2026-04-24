@@ -9,6 +9,7 @@ import {
   Hammer,
   CheckCircle2,
   AlertCircle,
+  User,
 } from "lucide-react";
 
 const STATUS_CONFIG = {
@@ -41,6 +42,9 @@ export default function ObraCard({
   data,
   status,
   tudoPago,
+  responsavel = null,
+  responsavelId = null,
+  diretoriaUsuarios = [],
   onUpdate,
   onDelete,
 }) {
@@ -48,6 +52,9 @@ export default function ObraCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(nome);
   const [editedDataInicial, setEditedDataInicial] = useState(data);
+  const [editedResponsavelId, setEditedResponsavelId] = useState(() =>
+    responsavelId != null ? String(responsavelId) : "",
+  );
 
   const statusAtual = STATUS_CONFIG[status] || STATUS_CONFIG["default"];
   const StatusIcon = statusAtual.icon;
@@ -58,6 +65,9 @@ export default function ObraCard({
 
   const toggleEdit = (e) => {
     e.stopPropagation();
+    setEditedName(nome);
+    setEditedDataInicial(data);
+    setEditedResponsavelId(responsavelId != null ? String(responsavelId) : "");
     setIsEditing(true);
   };
 
@@ -65,6 +75,7 @@ export default function ObraCard({
     e.stopPropagation();
     setEditedName(nome);
     setEditedDataInicial(data);
+    setEditedResponsavelId(responsavelId != null ? String(responsavelId) : "");
     setIsEditing(false);
   };
 
@@ -73,6 +84,7 @@ export default function ObraCard({
     await onUpdate(id, {
       local: editedName,
       data: editedDataInicial,
+      responsavel_id: editedResponsavelId ? editedResponsavelId : null,
     });
     setIsEditing(false);
   };
@@ -82,16 +94,21 @@ export default function ObraCard({
     await onUpdate(id, { status: e.target.value });
   };
 
+  const responsavelTexto =
+    responsavel != null && String(responsavel).trim() !== ""
+      ? String(responsavel).trim()
+      : null;
+
   return (
     <div
       onClick={handleCardClick}
-      className={`relative flex flex-col justify-between w-full h-[220px] p-4 rounded-lg shadow-sm border border-gray-100 bg-surface transition-all duration-200 md:max-w-[350px] ${
+      className={`relative flex w-full min-h-[232px] flex-col rounded-lg border border-gray-100 bg-surface p-4 shadow-sm transition-all duration-200 md:max-w-[350px] ${
         !isEditing
-          ? "hover:scale-[1.02] hover:shadow-md cursor-pointer"
+          ? "cursor-pointer hover:scale-[1.02] hover:shadow-md"
           : "cursor-default"
       }`}
     >
-      <div className="flex items-center justify-between w-full z-10">
+      <div className="z-10 flex w-full shrink-0 items-center justify-between">
         <div
           className={`w-3 h-3 rounded-full shadow-sm transition-colors duration-300 ${
             tudoPago ? "bg-success-primary" : "bg-warning-primary"
@@ -141,10 +158,10 @@ export default function ObraCard({
         </div>
       </div>
 
-      <div className="flex flex-col items-center w-full mt-4 px-2">
+      <div className="mt-3 flex min-h-0 w-full flex-1 flex-col items-center justify-center px-2">
         {isEditing ? (
           <div
-            className="flex flex-col gap-2 w-full"
+            className="flex w-full flex-col gap-2"
             onClick={(e) => e.stopPropagation()}
           >
             <input
@@ -172,6 +189,25 @@ export default function ObraCard({
               className="w-full h-8 px-2 text-base uppercase border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
               placeholder="data"
             />
+            {diretoriaUsuarios.length > 0 && (
+              <div className="mt-1 flex w-full flex-col gap-0.5">
+                <span className="text-[10px] font-bold uppercase text-slate-500">
+                  Responsável
+                </span>
+                <select
+                  value={editedResponsavelId}
+                  onChange={(e) => setEditedResponsavelId(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="">Nenhum</option>
+                  {diretoriaUsuarios.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -183,15 +219,30 @@ export default function ObraCard({
               <span className="max-w-[200px] uppercase truncate">{nome}</span>
             </p>
 
-            <p className="flex items-center justify-center w-full gap-1 text-base text-gray-600 mt-1">
+            <p className="mt-1 flex w-full items-center justify-center gap-1 text-base text-gray-600">
               <span className="font-semibold">Data de Início:</span>
               <span className="max-w-[200px] uppercase truncate">{data}</span>
             </p>
+            {responsavelTexto && (
+              <div
+                className="mt-3 flex w-full max-w-full items-center justify-center gap-1.5 text-xs text-slate-500"
+                title={`Responsável: ${responsavelTexto}`}
+              >
+                <User
+                  className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                  strokeWidth={2}
+                />
+                <span className="line-clamp-2 text-center">
+                  <span className="text-slate-400">Resp:</span>{" "}
+                  {responsavelTexto}
+                </span>
+              </div>
+            )}
           </>
         )}
       </div>
 
-      <div className="flex justify-center mt-auto pt-4 relative z-20">
+      <div className="relative z-20 mt-auto flex shrink-0 justify-center pt-3">
         <div
           className={`relative flex items-center justify-center w-3/4 py-1.5 rounded-lg font-bold text-sm ${statusAtual.bg} ${statusAtual.text} border border-transparent hover:border-current transition-colors`}
         >

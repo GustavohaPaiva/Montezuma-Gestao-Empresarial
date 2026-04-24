@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/navbar/NavbarObras";
 import ObraCard from "../../components/cards/CardObra";
 import ModalNovaObra from "../../components/modals/ModalNovaObra";
@@ -9,15 +9,57 @@ import { verificarStatusPagamento } from "./utils/obraPagamento";
 import { useObrasList } from "./hooks/useObrasList";
 import { obrasDictionary } from "../../constants/dictionaries";
 
+/** Nome a exibir: objeto `responsavel` (getObraById) ou resolução por `responsavel_id` na lista de diretoria. */
+function nomeResponsavelObra(obra, diretoriaUsuarios = []) {
+  if (!obra) return null;
+  const s = (v) =>
+    v != null && String(v).trim() !== "" ? String(v).trim() : null;
+  if (obra.responsavel_id && Array.isArray(diretoriaUsuarios)) {
+    const m = diretoriaUsuarios.find(
+      (u) => u?.id && String(u.id) === String(obra.responsavel_id),
+    );
+    if (m?.nome) return s(m.nome);
+  }
+  if (obra.responsavel && typeof obra.responsavel === "object") {
+    const n = s(obra.responsavel.nome);
+    if (n) return n;
+  }
+  return (
+    (typeof obra.responsavel === "string" ? s(obra.responsavel) : null) ||
+    s(obra.responsavel_nome) ||
+    s(obra?.usuario_responsavel?.nome) ||
+    s(obra?.responsaveis?.[0]?.nome) ||
+    s(obra?.usuarios_responsavel?.nome) ||
+    null
+  );
+}
+
 export default function Obras() {
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Tudo");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [diretoriaUsuarios, setDiretoriaUsuarios] = useState([]);
   const { obras, setObras, carregando, showElements, reloadObras } =
     useObrasList();
 
   const [refNav, isNavVisible] = useScrollFadeIn();
   const [refMain] = useScrollFadeIn();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await api.listUsuariosDiretoria();
+        if (!cancelled) setDiretoriaUsuarios(Array.isArray(list) ? list : []);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setDiretoriaUsuarios([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const metricas = useMemo(() => {
     const ativas = obras.filter((o) => o.active !== false);
@@ -69,6 +111,8 @@ export default function Obras() {
       await api.createObra({
         cliente: formData.cliente,
         local: formData.nomeObra,
+        cliente_id: formData.cliente_id,
+        responsavel_id: formData.responsavel_id || null,
       });
       reloadObras();
       setIsModalOpen(false);
@@ -82,7 +126,31 @@ export default function Obras() {
     try {
       await api.updateObra(id, dadosAtualizados);
       setObras((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, ...dadosAtualizados } : o)),
+        prev.map((o) => {
+          if (o.id !== id) return o;
+          const next = { ...o, ...dadosAtualizados };
+          if (Object.prototype.hasOwnProperty.call(dadosAtualizados, "responsavel_id")) {
+            const rid = dadosAtualizados.responsavel_id;
+            const u = diretoriaUsuarios.find(
+              (r) => r.id && String(r.id) === String(rid ?? ""),
+            );
+            if (rid && u) {
+              next.responsavel = {
+                id: u.id,
+                nome: u.nome,
+                tipo: u.tipo || "diretoria",
+              };
+            } else if (!rid) {
+              next.responsavel = null;
+            } else {
+              next.responsavel =
+                o.responsavel && String(o.responsavel.id) === String(rid)
+                  ? o.responsavel
+                  : { id: rid, nome: "—", tipo: "diretoria" };
+            }
+          }
+          return next;
+        }),
       );
     } catch (err) {
       console.error(err);
@@ -191,6 +259,9 @@ export default function Obras() {
                   data={obra.data}
                   status={obra.status || "Aguardando iniciação"}
                   tudoPago={obra.isTudoPago}
+                  responsavelId={obra.responsavel_id}
+                  responsavel={nomeResponsavelObra(obra, diretoriaUsuarios)}
+                  diretoriaUsuarios={diretoriaUsuarios}
                   onUpdate={handleUpdateInline}
                   onDelete={() => handleDelete(obra.id)}
                 />

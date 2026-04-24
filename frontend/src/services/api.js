@@ -535,8 +535,7 @@ export const api = {
         )
       `;
 
-    const filtroResp = (q) =>
-      q.eq("tarefa_responsaveis.usuario_id", uid);
+    const filtroResp = (q) => q.eq("tarefa_responsaveis.usuario_id", uid);
 
     let { data, error } = await filtroResp(
       supabase.from("tarefas").select(selectInnerBase),
@@ -741,6 +740,7 @@ export const api = {
   },
 
   getObras: async () => {
+    // Sem embed responsavel:usuarios (exige FK em obras.responsavel_id). O nome resolve-se no UI com listUsuariosDiretoria.
     let query = supabase
       .from("obras")
       .select(
@@ -753,18 +753,31 @@ export const api = {
     return data;
   },
 
+  /**
+   * Utilizadores com tipo "diretoria" (candidatos a responsável de obra).
+   */
+  listUsuariosDiretoria: async () => {
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id, nome, tipo")
+      .eq("tipo", "diretoria")
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
   createObra: async (novaObra) => {
+    const payload = omitUndefined({
+      cliente: novaObra.cliente,
+      local: novaObra.local,
+      status: "Aguardando iniciação",
+      active: true,
+      cliente_id: novaObra.cliente_id,
+      responsavel_id: novaObra.responsavel_id || null,
+    });
     const { data, error } = await supabase
       .from("obras")
-      .insert([
-        {
-          cliente: novaObra.cliente,
-          local: novaObra.local,
-          status: "Aguardando iniciação",
-          active: true,
-          cliente_id: novaObra.cliente_id,
-        },
-      ])
+      .insert([payload])
       .select();
     if (error) throw error;
     return data[0];
@@ -826,6 +839,17 @@ export const api = {
     if (error) throw error;
     if (!data)
       throw new Error("Obra não encontrada ou sem permissão de acesso.");
+
+    let responsavelRow = null;
+    if (data.responsavel_id) {
+      const { data: u, error: errU } = await supabase
+        .from("usuarios")
+        .select("id, nome, tipo")
+        .eq("id", data.responsavel_id)
+        .maybeSingle();
+      if (!errU && u) responsavelRow = u;
+    }
+
     const relatorioOrdenado = (data.relatorioExtrato || []).sort(
       (a, b) => new Date(b.data) - new Date(a.data),
     );
@@ -849,6 +873,7 @@ export const api = {
 
     return {
       ...data,
+      ...(responsavelRow ? { responsavel: responsavelRow } : {}),
       etapas_selecionadas: etapas,
       materiais: data.materiais || [],
       maoDeObra: data.maoDeObra || [],
@@ -1041,13 +1066,16 @@ export const api = {
   },
 
   updateMaoDeObraFinanceiro: async (id, dadosFinanceiros) => {
-    const novoSaldo =
-      (dadosFinanceiros.valor_orcado || 0) - (dadosFinanceiros.valor_pago || 0);
+    const orc = parseFloat(dadosFinanceiros.valor_orcado) || 0;
+    const pago = parseFloat(dadosFinanceiros.valor_pago) || 0;
+    const cobrado = parseFloat(dadosFinanceiros.valor_cobrado) || 0;
+    const novoSaldo = orc - pago;
     const { data, error } = await supabase
       .from("relatorio_mao_de_obra")
       .update({
-        valor_orcado: dadosFinanceiros.valor_orcado,
-        valor_pago: dadosFinanceiros.valor_pago,
+        valor_orcado: orc,
+        valor_pago: pago,
+        valor_cobrado: cobrado,
         saldo: novoSaldo,
       })
       .eq("id", id)

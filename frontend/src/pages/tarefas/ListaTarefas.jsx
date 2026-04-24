@@ -355,9 +355,17 @@ export default function ListaTarefas({
     }
     if (filtroStatus !== "todos") {
       list = list.filter((t) => normalizarStatus(t.status) === filtroStatus);
+    } else {
+      // "Todos" no seletor: visão padrão = só tarefas ativas (Pendente / Em andamento)
+      if (pillAtivo !== "aguardando" && pillAtivo !== "concluidas") {
+        list = list.filter((t) => {
+          const s = normalizarStatus(t.status);
+          return s === STATUS.pendente || s === STATUS.emAndamento;
+        });
+      }
     }
     return list;
-  }, [tarefasVisiveis, busca, pillAtivo, uid, filtroStatus]);
+  }, [tarefasVisiveis, busca, pillAtivo, filtroStatus]);
 
   const porPrioridade = useMemo(() => {
     const buckets = { Alta: [], Média: [], Baixa: [] };
@@ -708,63 +716,65 @@ export default function ListaTarefas({
         key={t.id}
         type="button"
         onClick={() => setSelecionadaId(t.id)}
-        className={`w-full rounded-xl border p-3 text-left shadow-sm transition hover:shadow ${
+        className={`flex min-h-[152px] w-full flex-col rounded-xl border p-3 text-left shadow-sm transition hover:shadow ${
           ativo
             ? "border-gray-300 bg-white ring-1 ring-gray-200"
             : "border-gray-200 bg-white hover:border-gray-300"
         }`}
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="line-clamp-2 text-sm font-semibold leading-snug text-gray-800">
-              {t.titulo}
-            </p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span
-                className={`inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badgePrioridadeClasses(pri)}`}
-              >
-                {pri}
-              </span>
-              <span
-                className={`inline-flex rounded px-2 py-0.5 text-[10px] font-semibold ${badgeStatusSolido(stt)}`}
-              >
-                {stt}
-              </span>
-              <span
-                className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm ${badgeEscritorioClasses(t)}`}
-                title={`Escritório: ${escritorioLabel}`}
-              >
-                {escritorioLabel}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <Calendar className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-              <span>
-                <span className="font-medium text-gray-600">Entrega:</span>{" "}
-                {formatDataAmigavel(t.data_conclusao)} ·{" "}
-                {formatDataEntrega(t.data_conclusao)}
-              </span>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-3">
-              <span className="text-[10px] font-bold uppercase text-gray-500">
-                RESPONSÁVEL:
-              </span>
-              <span className="rounded-md bg-gray-900 px-2 py-1 text-xs font-black uppercase tracking-wider text-white shadow-sm">
-                {nomeResponsavel}
-              </span>
-              {restantes > 0 && (
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
-                  +{restantes}
+        <div className="flex min-h-0 flex-1 flex-col justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <p className="line-clamp-2 text-sm font-semibold leading-snug text-gray-800">
+                {t.titulo}
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span
+                  className={`inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badgePrioridadeClasses(pri)}`}
+                >
+                  {pri}
                 </span>
-              )}
+                <span
+                  className={`inline-flex rounded px-2 py-0.5 text-[10px] font-semibold ${badgeStatusSolido(stt)}`}
+                >
+                  {stt}
+                </span>
+                <span
+                  className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm ${badgeEscritorioClasses(t)}`}
+                  title={`Escritório: ${escritorioLabel}`}
+                >
+                  {escritorioLabel}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <Calendar className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                <span>
+                  <span className="font-medium text-slate-600">Entrega:</span>{" "}
+                  {formatDataAmigavel(t.data_conclusao)} ·{" "}
+                  {formatDataEntrega(t.data_conclusao)}
+                </span>
+              </div>
             </div>
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-gray-700 shadow-sm ring-1 ring-gray-200/80"
+              title={nomeDesignadorTarefa(t) || "Quem designou"}
+            >
+              {iniciais(nomeDesignadorTarefa(t))}
+            </span>
           </div>
-          <span
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-gray-700 shadow-sm ring-1 ring-gray-200/80"
-            title={nomeDesignadorTarefa(t) || "Quem designou"}
-          >
-            {iniciais(nomeDesignadorTarefa(t))}
-          </span>
+          <div className="mt-auto flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-2.5">
+            <span className="text-[10px] font-bold uppercase text-slate-500">
+              Responsável:
+            </span>
+            <span className="rounded-md bg-gray-900 px-2 py-1 text-xs font-black uppercase tracking-wider text-white shadow-sm">
+              {nomeResponsavel}
+            </span>
+            {restantes > 0 && (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                +{restantes}
+              </span>
+            )}
+          </div>
         </div>
       </button>
     );
