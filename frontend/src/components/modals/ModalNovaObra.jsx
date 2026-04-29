@@ -1,178 +1,235 @@
-import { useState, useEffect } from "react";
-import ButtonDefault from "../gerais/ButtonDefault";
-import ModalPortal from "../gerais/ModalPortal";
+import { useEffect, useState } from "react";
+import BaseModal from "../gerais/BaseModal";
+import BaseButton from "../gerais/BaseButton";
+import BaseInput from "../gerais/BaseInput";
+import BaseSelect from "../gerais/BaseSelect";
 import { supabase } from "../../services/supabase";
 import { api } from "../../services/api";
 
-export default function ModalNovaObra({ isOpen, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    nomeObra: "",
-    cliente_id: "",
-    responsavel_id: "",
-  });
+const EMPTY_FORM = {
+  nomeObra: "",
+  cliente_id: "",
+  responsavel_id: "",
+  status: "Aguardando iniciação",
+};
 
+export default function ModalNovaObra({
+  isOpen,
+  onClose,
+  onSaved,
+  obraParaEditar = null,
+}) {
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [clientes, setClientes] = useState([]);
   const [diretoria, setDiretoria] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      const fetchData = async () => {
-        setLoading(true);
-        try {
-          const [cliRes, dirRes] = await Promise.all([
-            supabase
-              .from("clientes")
-              .select("id, nome")
-              .order("nome", { ascending: true }),
-            api.listUsuariosDiretoria().catch((e) => {
-              console.error(e);
-              return [];
-            }),
-          ]);
-          if (!cliRes.error && cliRes.data) setClientes(cliRes.data);
-          else if (cliRes.error)
-            console.error("Erro ao carregar clientes:", cliRes.error);
-          setDiretoria(Array.isArray(dirRes) ? dirRes : []);
-        } finally {
-          setLoading(false);
-        }
-      };
+    if (!isOpen) return;
 
-      fetchData();
-    }
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [cliRes, dirRes] = await Promise.all([
+          supabase
+            .from("clientes")
+            .select("id, nome")
+            .order("nome", { ascending: true }),
+          api.listUsuariosDiretoria().catch((e) => {
+            console.error(e);
+            return [];
+          }),
+        ]);
+        if (!cliRes.error && cliRes.data) setClientes(cliRes.data);
+        else if (cliRes.error)
+          console.error("Erro ao carregar clientes:", cliRes.error);
+        setDiretoria(Array.isArray(dirRes) ? dirRes : []);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!obraParaEditar) {
+      setFormData(EMPTY_FORM);
+      return;
+    }
+
+    setFormData({
+      nomeObra: obraParaEditar.local || "",
+      cliente_id: obraParaEditar.cliente_id
+        ? String(obraParaEditar.cliente_id)
+        : "",
+      responsavel_id:
+        obraParaEditar.responsavel_id != null
+          ? String(obraParaEditar.responsavel_id)
+          : "",
+      status: obraParaEditar.status || "Aguardando iniciação",
+    });
+  }, [isOpen, obraParaEditar]);
 
   const handleCloseAndReset = () => {
-    setFormData({ nomeObra: "", cliente_id: "", responsavel_id: "" });
+    setFormData(EMPTY_FORM);
     onClose();
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.cliente_id) {
-      alert("Selecione um cliente válido.");
-      return;
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!formData.cliente_id) return;
+
+    setSaving(true);
+    try {
+      if (obraParaEditar?.id) {
+        await api.updateObra(obraParaEditar.id, {
+          local: formData.nomeObra,
+          cliente_id: formData.cliente_id,
+          responsavel_id: formData.responsavel_id || null,
+          status: formData.status,
+        });
+      } else {
+        const clienteSelecionado = clientes.find(
+          (cliente) => String(cliente.id) === String(formData.cliente_id),
+        );
+        await api.createObra({
+          cliente: clienteSelecionado?.nome ?? "",
+          local: formData.nomeObra,
+          cliente_id: formData.cliente_id,
+          responsavel_id: formData.responsavel_id || null,
+          status: formData.status,
+        });
+      }
+      if (typeof onSaved === "function") await onSaved();
+      handleCloseAndReset();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSaving(false);
     }
-    const cli = clientes.find((c) => c.id === formData.cliente_id);
-    onSave({
-      nomeObra: formData.nomeObra,
-      cliente_id: formData.cliente_id,
-      cliente: cli?.nome ?? "",
-      responsavel_id: formData.responsavel_id || null,
-    });
-    handleCloseAndReset();
   };
 
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-50 flex items-start justify-center p-[10px]">
-        <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-gray-200">
-          <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">
-            <h2 className="text-lg font-bold text-gray-800 uppercase truncate">
-              Cadastrar Nova Obra
-            </h2>
-            <button
-              onClick={handleCloseAndReset}
-              title="Fechar"
-              className="flex items-center justify-center w-8 h-8 text-2xl text-gray-500 bg-transparent border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-gray-800 transition-colors"
-            >
-              &times;
-            </button>
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col gap-4 p-5 overflow-y-auto"
+    <BaseModal
+      isOpen={isOpen}
+      onClose={handleCloseAndReset}
+      title={obraParaEditar ? "Editar Obra" : "Nova Obra"}
+      size="md"
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="space-y-1.5">
+          <label
+            htmlFor="nomeObra"
+            className="text-xs font-semibold uppercase text-text-muted"
           >
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="nomeObra"
-                className="text-xs font-bold text-gray-500 uppercase"
-              >
-                Local da Obra (Bairro ou Apelido)
-              </label>
-              <input
-                id="nomeObra"
-                type="text"
-                required
-                placeholder="Ex: Edifício Aurora"
-                className="w-full h-11 px-3 text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:bg-white focus:outline-none transition-all"
-                value={formData.nomeObra}
-                onChange={(e) =>
-                  setFormData({ ...formData, nomeObra: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="cliente_id"
-                className="text-xs font-bold text-gray-500 uppercase"
-              >
-                Cliente Responsável
-              </label>
-              <div className="flex gap-2">
-                <select
-                  id="cliente_id"
-                  required
-                  className="flex-1 h-11 px-3 text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-400 focus:bg-white focus:outline-none transition-all cursor-pointer"
-                  value={formData.cliente_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, cliente_id: e.target.value })
-                  }
-                  disabled={loading}
-                >
-                  <option value="" disabled>
-                    {loading
-                      ? "Carregando clientes..."
-                      : "Selecione um cliente..."}
-                  </option>
-                  {clientes.map((cli) => (
-                    <option key={cli.id} value={cli.id}>
-                      {cli.nome}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="responsavel_id"
-                className="text-xs font-bold text-gray-500 uppercase"
-              >
-                Responsável (diretoria)
-              </label>
-              <select
-                id="responsavel_id"
-                className="h-11 w-full cursor-pointer rounded-lg border border-gray-300 bg-gray-50 px-3 text-base transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={formData.responsavel_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, responsavel_id: e.target.value })
-                }
-                disabled={loading}
-              >
-                <option value="">Nenhum selecionado</option>
-                {diretoria.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.nome}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[11px] text-slate-500">
-                Apenas utilizadores com perfil de diretoria.
-              </p>
-            </div>
-
-            <ButtonDefault type="submit" className="mt-2">
-              Salvar Obra
-            </ButtonDefault>
-          </form>
+            Local da obra
+          </label>
+          <BaseInput
+            id="nomeObra"
+            required
+            placeholder="Ex: Edificio Aurora"
+            value={formData.nomeObra}
+            onChange={(event) =>
+              setFormData((prev) => ({ ...prev, nomeObra: event.target.value }))
+            }
+          />
         </div>
-      </div>
-    </ModalPortal>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="cliente_id"
+            className="text-xs font-semibold uppercase text-text-muted"
+          >
+            Cliente responsável
+          </label>
+          <BaseSelect
+            id="cliente_id"
+            required
+            value={formData.cliente_id}
+            onChange={(event) =>
+              setFormData((prev) => ({
+                ...prev,
+                cliente_id: event.target.value,
+              }))
+            }
+            disabled={loading || saving}
+            options={[
+              {
+                value: "",
+                label: loading
+                  ? "Carregando clientes..."
+                  : "Selecione um cliente...",
+              },
+              ...clientes.map((cli) => ({
+                value: String(cli.id),
+                label: cli.nome,
+              })),
+            ]}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="responsavel_id"
+            className="text-xs font-semibold uppercase text-text-muted"
+          >
+            Responsável
+          </label>
+          <BaseSelect
+            id="responsavel_id"
+            value={formData.responsavel_id}
+            onChange={(event) =>
+              setFormData((prev) => ({
+                ...prev,
+                responsavel_id: event.target.value,
+              }))
+            }
+            disabled={loading || saving}
+            options={[
+              { value: "", label: "Nenhum responsável" },
+              ...diretoria.map((u) => ({ value: String(u.id), label: u.nome })),
+            ]}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="status"
+            className="text-xs font-semibold uppercase text-text-muted"
+          >
+            Status da obra
+          </label>
+          <BaseSelect
+            id="status"
+            value={formData.status}
+            onChange={(event) =>
+              setFormData((prev) => ({ ...prev, status: event.target.value }))
+            }
+            disabled={saving}
+            options={[
+              { value: "Aguardando iniciação", label: "Aguardando iniciação" },
+              { value: "Em andamento", label: "Em andamento" },
+              { value: "Concluída", label: "Concluída" },
+            ]}
+          />
+        </div>
+
+        <div className="mt-2 flex justify-end gap-2">
+          <BaseButton
+            type="button"
+            variant="ghost"
+            onClick={handleCloseAndReset}
+          >
+            Cancelar
+          </BaseButton>
+          <BaseButton type="submit" isLoading={saving} disabled={loading}>
+            {obraParaEditar ? "Salvar Alterações" : "Criar Obra"}
+          </BaseButton>
+        </div>
+      </form>
+    </BaseModal>
   );
 }

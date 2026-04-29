@@ -1,0 +1,68 @@
+# =========================
+# Security / secrets
+# =========================
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.secrets
+secrets.*
+
+# =========================
+# Dependencies
+# =========================
+node_modules/
+**/node_modules/
+
+# =========================
+# Build / cache artifacts
+# =========================
+dist/
+build/
+coverage/
+.next/
+.nuxt/
+.svelte-kit/
+.turbo/
+.cache/
+tmp/
+temp/
+**/dist/
+**/build/
+**/coverage/
+**/.next/
+**/.nuxt/
+**/.svelte-kit/
+**/.turbo/
+**/.cache/
+
+# =========================
+# Logs / runtime dumps
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.stackdump
+
+# =========================
+# OS / editor / local tooling
+# =========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cursor/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

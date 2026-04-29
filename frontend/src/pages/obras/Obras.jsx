@@ -1,61 +1,93 @@
 import { useEffect, useMemo, useState } from "react";
-import Navbar from "../../components/navbar/NavbarObras";
-import ObraCard from "../../components/cards/CardObra";
+import { useNavigate } from "react-router-dom";
+import {
+  CalendarDays,
+  CircleDollarSign,
+  Edit,
+  Hammer,
+  Hourglass,
+  LayoutGrid,
+  Trash2,
+  User,
+} from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+import Navbar from "../../components/navbar/Navbar";
+import BaseCard from "../../components/cards/BaseCard";
+import BaseButton from "../../components/gerais/BaseButton";
+import BaseInput from "../../components/gerais/BaseInput";
+import BaseSelect from "../../components/gerais/BaseSelect";
+import BaseModal from "../../components/gerais/BaseModal";
 import ModalNovaObra from "../../components/modals/ModalNovaObra";
 import { api } from "../../services/api";
-import { Hourglass } from "lucide-react";
 import { useScrollFadeIn } from "../../hooks/useScrollFadeIn";
 import { verificarStatusPagamento } from "./utils/obraPagamento";
 import { useObrasList } from "./hooks/useObrasList";
 import { obrasDictionary } from "../../constants/dictionaries";
 
-/** Nome a exibir: objeto `responsavel` (getObraById) ou resolução por `responsavel_id` na lista de diretoria. */
 function nomeResponsavelObra(obra, diretoriaUsuarios = []) {
-  if (!obra) return null;
-  const s = (v) =>
-    v != null && String(v).trim() !== "" ? String(v).trim() : null;
-  if (obra.responsavel_id && Array.isArray(diretoriaUsuarios)) {
-    const m = diretoriaUsuarios.find(
-      (u) => u?.id && String(u.id) === String(obra.responsavel_id),
+  if (obra?.responsavel_id && Array.isArray(diretoriaUsuarios)) {
+    const encontrado = diretoriaUsuarios.find(
+      (usuario) => String(usuario?.id) === String(obra.responsavel_id),
     );
-    if (m?.nome) return s(m.nome);
+    if (encontrado?.nome) return String(encontrado.nome).trim();
   }
-  if (obra.responsavel && typeof obra.responsavel === "object") {
-    const n = s(obra.responsavel.nome);
-    if (n) return n;
-  }
-  return (
-    (typeof obra.responsavel === "string" ? s(obra.responsavel) : null) ||
-    s(obra.responsavel_nome) ||
-    s(obra?.usuario_responsavel?.nome) ||
-    s(obra?.responsaveis?.[0]?.nome) ||
-    s(obra?.usuarios_responsavel?.nome) ||
-    null
+
+  const nomesPossiveis = [
+    obra?.responsavel?.nome,
+    obra?.usuarios?.nome,
+    obra?.responsavel_nome,
+    obra?.usuario_responsavel?.nome,
+    obra?.usuarios_responsavel?.nome,
+    obra?.responsaveis?.[0]?.nome,
+  ];
+  const nome = nomesPossiveis.find(
+    (value) => value != null && String(value).trim() !== "",
   );
+  return nome ? String(nome).trim() : "Nao definido";
+}
+
+function formatarDataInicio(dataValue) {
+  if (!dataValue) return "Nao informado";
+  const data = new Date(dataValue);
+  if (Number.isNaN(data.getTime())) return String(dataValue);
+  return data.toISOString().slice(0, 10);
+}
+
+function getFinanceiroInfo(obra) {
+  if (obra?.isTudoPago) return { status: "Pago", isPago: true };
+  return { status: "Pendente", isPago: false };
 }
 
 export default function Obras() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("Tudo");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [obraParaEditar, setObraParaEditar] = useState(null);
+  const [obraParaExcluir, setObraParaExcluir] = useState(null);
   const [diretoriaUsuarios, setDiretoriaUsuarios] = useState([]);
-  const { obras, setObras, carregando, showElements, reloadObras } =
-    useObrasList();
+  const { obras, carregando, showElements, reloadObras } = useObrasList();
 
   const [refNav, isNavVisible] = useScrollFadeIn();
   const [refMain] = useScrollFadeIn();
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    const carregarDiretoria = async () => {
       try {
-        const list = await api.listUsuariosDiretoria();
-        if (!cancelled) setDiretoriaUsuarios(Array.isArray(list) ? list : []);
-      } catch (e) {
-        console.error(e);
+        const lista = await api.listUsuariosDiretoria();
+        if (!cancelled) {
+          setDiretoriaUsuarios(Array.isArray(lista) ? lista : []);
+        }
+      } catch (error) {
+        console.error(error);
         if (!cancelled) setDiretoriaUsuarios([]);
       }
-    })();
+    };
+
+    carregarDiretoria();
     return () => {
       cancelled = true;
     };
@@ -99,99 +131,97 @@ export default function Obras() {
     };
 
     return filtradas
-      .sort((a, b) => (pesos[a.status] || 99) - (pesos[b.status] || 99))
       .map((obra) => ({
         ...obra,
         isTudoPago: verificarStatusPagamento(obra),
-      }));
+      }))
+      .sort((a, b) => {
+        const porStatus = (pesos[a.status] || 99) - (pesos[b.status] || 99);
+        if (porStatus !== 0) return porStatus;
+
+        const pesoFinanceiroA = getFinanceiroInfo(a).isPago ? 1 : 0;
+        const pesoFinanceiroB = getFinanceiroInfo(b).isPago ? 1 : 0;
+        return pesoFinanceiroA - pesoFinanceiroB;
+      });
   }, [obras, busca, filtroStatus]);
 
-  const handleCreateObra = async (formData) => {
+  const handleDelete = async () => {
+    if (!obraParaExcluir?.id) return;
     try {
-      await api.createObra({
-        cliente: formData.cliente,
-        local: formData.nomeObra,
-        cliente_id: formData.cliente_id,
-        responsavel_id: formData.responsavel_id || null,
-      });
-      reloadObras();
-      setIsModalOpen(false);
+      await api.deleteObra(obraParaExcluir.id);
+      setObraParaExcluir(null);
+      await reloadObras();
     } catch (err) {
       console.error(err);
-      alert(obrasDictionary.errors.create);
+      await reloadObras();
     }
   };
 
-  const handleUpdateInline = async (id, dadosAtualizados) => {
-    try {
-      await api.updateObra(id, dadosAtualizados);
-      setObras((prev) =>
-        prev.map((o) => {
-          if (o.id !== id) return o;
-          const next = { ...o, ...dadosAtualizados };
-          if (Object.prototype.hasOwnProperty.call(dadosAtualizados, "responsavel_id")) {
-            const rid = dadosAtualizados.responsavel_id;
-            const u = diretoriaUsuarios.find(
-              (r) => r.id && String(r.id) === String(rid ?? ""),
-            );
-            if (rid && u) {
-              next.responsavel = {
-                id: u.id,
-                nome: u.nome,
-                tipo: u.tipo || "diretoria",
-              };
-            } else if (!rid) {
-              next.responsavel = null;
-            } else {
-              next.responsavel =
-                o.responsavel && String(o.responsavel.id) === String(rid)
-                  ? o.responsavel
-                  : { id: rid, nome: "—", tipo: "diretoria" };
-            }
-          }
-          return next;
-        }),
-      );
-    } catch (err) {
-      console.error(err);
-      alert(obrasDictionary.errors.update);
-      reloadObras();
-    }
+  const handleOpenCreateModal = () => {
+    setObraParaEditar(null);
+    setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm(obrasDictionary.confirm.remove)) {
-      try {
-        await api.deleteObra(id);
-        setObras((prev) =>
-          prev.map((o) => (o.id === id ? { ...o, active: false } : o)),
-        );
-      } catch (err) {
-        console.error(err);
-        alert(obrasDictionary.errors.remove);
-        reloadObras();
-      }
-    }
+  const handleOpenEditModal = (obra) => {
+    setObraParaEditar(obra);
+    setIsModalOpen(true);
+  };
+
+  const statusTheme = (status) => {
+    if (status === "Concluída") return "emerald";
+    if (status === "Em andamento") return "amber";
+    if (status === "Aguardando iniciação") return "purple";
+    return "blue";
   };
 
   return (
     <div className="flex flex-col items-center w-full min-h-screen bg-bg-primary">
       <div
         ref={refNav}
-        className={`w-full transition-all duration-500 ease-out transform ${
+        className={`h-[92px] sm:h-[104px] w-full transition-all duration-500 ease-out transform ${
           isNavVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         }`}
       >
         <Navbar
-          searchTerm={busca}
-          onSearchChange={setBusca}
-          filterStatus={filtroStatus}
-          onFilterChange={setFiltroStatus}
-          onOpenModal={() => setIsModalOpen(true)}
+          title="Obras"
+          subtitle="Gestao centralizada do portifolio de obras"
+          user={user}
+          onLogoClick={() => navigate("/")}
+          filters={[
+            <BaseInput
+              key="filtro-busca"
+              value={busca}
+              onChange={(event) => setBusca(event.target.value)}
+              placeholder="Buscar obra ou cliente..."
+            />,
+            <BaseSelect
+              key="filtro-status"
+              value={filtroStatus}
+              onChange={(event) => setFiltroStatus(event.target.value)}
+              options={[
+                { value: "Tudo", label: "Todas as Obras" },
+                { value: "Em andamento", label: "Em andamento" },
+                {
+                  value: "Aguardando iniciação",
+                  label: "Aguardando iniciação",
+                },
+                { value: "Concluída", label: "Concluídas" },
+              ]}
+            />,
+          ]}
+          actions={[
+            {
+              key: "nova-obra",
+              label: "Nova Obra",
+              onClick: handleOpenCreateModal,
+              className:
+                "bg-accent-primary text-white hover:opacity-90 shadow-sm disabled:cursor-not-allowed disabled:opacity-60 h-10 px-4",
+            },
+          ]}
         />
       </div>
 
-      <main ref={refMain} className="w-[90%] mt-4 pb-10 sm:mt-6">
+      <main ref={refMain} className="w-[90%] pb-10">
         {!carregando && (
           <div
             className={`grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 w-full transition-all duration-700 ease-out transform ${
@@ -200,39 +230,34 @@ export default function Obras() {
                 : "opacity-0 translate-y-8"
             }`}
           >
-            <div className="bg-surface p-6 rounded-xl border border-border-primary shadow-sm flex flex-col items-center justify-center text-center">
-              <span className="text-[12px] font-bold text-text-muted uppercase tracking-wider">
-                {obrasDictionary.metrics.total}
-              </span>
-              <span className="text-4xl font-bold text-text-primary mt-2">
-                {metricas.total}
-              </span>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center">
-              <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">
-                {obrasDictionary.metrics.waiting}
-              </span>
-              <span className="text-4xl font-bold text-gray-700 mt-2">
-                {metricas.aguardando}
-              </span>
-            </div>
-            <div className="bg-orange-50 p-6 rounded-xl border border-orange-200 shadow-sm flex flex-col items-center justify-center text-center">
-              <span className="text-[12px] font-bold text-orange-800 uppercase tracking-wider">
-                {obrasDictionary.metrics.progress}
-              </span>
-              <span className="text-4xl font-bold text-orange-600 mt-2">
-                {metricas.emAndamento}
-              </span>
-            </div>
-            <div className="bg-green-50 p-6 rounded-xl border border-green-200 shadow-sm flex flex-col items-center justify-center text-center">
-              <span className="text-[12px] font-bold text-green-800 uppercase tracking-wider">
-                {obrasDictionary.metrics.done}
-              </span>
-              <span className="text-4xl font-bold text-green-600 mt-2">
-                {metricas.concluidas}
-              </span>
-            </div>
+            <BaseCard
+              variant="metric"
+              title={obrasDictionary.metrics.total}
+              value={metricas.total}
+              colorTheme="blue"
+              icon={<LayoutGrid className="h-5 w-5" />}
+            />
+            <BaseCard
+              variant="metric"
+              title={obrasDictionary.metrics.waiting}
+              value={metricas.aguardando}
+              colorTheme="purple"
+              icon={<Hourglass className="h-5 w-5" />}
+            />
+            <BaseCard
+              variant="metric"
+              title={obrasDictionary.metrics.progress}
+              value={metricas.emAndamento}
+              colorTheme="amber"
+              icon={<Hammer className="h-5 w-5" />}
+            />
+            <BaseCard
+              variant="metric"
+              title={obrasDictionary.metrics.done}
+              value={metricas.concluidas}
+              colorTheme="emerald"
+              icon={<LayoutGrid className="h-5 w-5" />}
+            />
           </div>
         )}
 
@@ -252,19 +277,73 @@ export default function Obras() {
                 }`}
                 style={{ transitionDelay: `${index * 50}ms` }}
               >
-                <ObraCard
-                  id={obra.id}
-                  nome={obra.local}
-                  client={obra.clientes?.nome || obra.cliente}
-                  data={obra.data}
+                <BaseCard
+                  variant="entity"
+                  title={obra.local}
+                  value={obra.clientes?.nome || obra.cliente}
                   status={obra.status || "Aguardando iniciação"}
-                  tudoPago={obra.isTudoPago}
-                  responsavelId={obra.responsavel_id}
-                  responsavel={nomeResponsavelObra(obra, diretoriaUsuarios)}
-                  diretoriaUsuarios={diretoriaUsuarios}
-                  onUpdate={handleUpdateInline}
-                  onDelete={() => handleDelete(obra.id)}
-                />
+                  metadata={[
+                    {
+                      icon: (
+                        <CircleDollarSign
+                          className={`h-4 w-4 ${
+                            getFinanceiroInfo(obra).isPago
+                              ? "text-emerald-600"
+                              : "text-amber-600"
+                          }`}
+                        />
+                      ),
+                      label: (
+                        <span
+                          className={
+                            getFinanceiroInfo(obra).isPago
+                              ? "text-emerald-600"
+                              : "text-amber-600"
+                          }
+                        >
+                          {getFinanceiroInfo(obra).status}
+                        </span>
+                      ),
+                    },
+                    {
+                      icon: <CalendarDays className="h-4 w-4 text-slate-500" />,
+                      label: `Inicio: ${formatarDataInicio(obra.data)}`,
+                    },
+                    {
+                      icon: <User className="h-4 w-4 text-slate-500" />,
+                      label: `Resp: ${nomeResponsavelObra(
+                        obra,
+                        diretoriaUsuarios,
+                      )}`,
+                    },
+                  ]}
+                  colorTheme={statusTheme(obra.status)}
+                  onClick={() => navigate(`/obrasD/${obra.id}`)}
+                >
+                  <div
+                    className="mt-auto pt-4 border-t border-slate-100 flex w-full gap-2"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <BaseButton
+                      variant="ghost"
+                      size="sm"
+                      icon={<Edit className="h-4 w-4" />}
+                      onClick={() => handleOpenEditModal(obra)}
+                      className="flex-1"
+                    >
+                      Editar
+                    </BaseButton>
+                    <BaseButton
+                      variant="ghost"
+                      size="sm"
+                      icon={<Trash2 className="h-4 w-4" />}
+                      onClick={() => setObraParaExcluir(obra)}
+                      className="flex-1"
+                    >
+                      Excluir
+                    </BaseButton>
+                  </div>
+                </BaseCard>
               </div>
             ))}
             {obrasVisiveis.length === 0 && (
@@ -279,9 +358,32 @@ export default function Obras() {
       <ModalNovaObra
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleCreateObra}
-        obra={null}
+        onSaved={reloadObras}
+        obraParaEditar={obraParaEditar}
       />
+
+      <BaseModal
+        isOpen={Boolean(obraParaExcluir)}
+        onClose={() => setObraParaExcluir(null)}
+        title="Confirmar Exclusão"
+        size="sm"
+      >
+        <p className="text-sm text-text-muted">
+          Tem certeza que deseja excluir a obra{" "}
+          <span className="font-semibold text-text-primary">
+            {obraParaExcluir?.local}
+          </span>
+          ?
+        </p>
+        <div className="mt-6 flex justify-end gap-2">
+          <BaseButton variant="ghost" onClick={() => setObraParaExcluir(null)}>
+            Cancelar
+          </BaseButton>
+          <BaseButton variant="danger" onClick={handleDelete}>
+            Confirmar Exclusão
+          </BaseButton>
+        </div>
+      </BaseModal>
     </div>
   );
 }
