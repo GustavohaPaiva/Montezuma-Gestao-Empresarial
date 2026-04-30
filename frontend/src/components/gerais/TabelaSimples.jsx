@@ -23,8 +23,8 @@ export default function TabelaSimples({ colunas, dados, variant = "light" }) {
                   key={i}
                   className={
                     esc
-                      ? "bg-esc-bg/95 p-3 text-esc-muted"
-                      : "bg-[#eeedf0] p-[12px]"
+                      ? "bg-esc-bg/95 p-3 text-center text-esc-muted"
+                      : "bg-[#eeedf0] p-[12px] text-center"
                   }
                 >
                   {col}

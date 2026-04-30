@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  AlertTriangle,
   CalendarDays,
+  CheckCircle2,
   CircleDollarSign,
   Edit,
   Hammer,
@@ -56,6 +58,38 @@ function formatarDataInicio(dataValue) {
 function getFinanceiroInfo(obra) {
   if (obra?.isTudoPago) return { status: "Pago", isPago: true };
   return { status: "Pendente", isPago: false };
+}
+
+function getAlertaMateriaisProximosVencimento(obra, diasLimite = 7) {
+  const materiais = Array.isArray(obra?.materiais) ? obra.materiais : [];
+  if (!materiais.length) return null;
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const limite = new Date(hoje);
+  limite.setDate(limite.getDate() + diasLimite);
+
+  const proximos = materiais.filter((material) => {
+    if (!material?.data_vencimento) return false;
+    const dataVencimento = new Date(material.data_vencimento);
+    if (Number.isNaN(dataVencimento.getTime())) return false;
+    dataVencimento.setHours(0, 0, 0, 0);
+    return dataVencimento >= hoje && dataVencimento <= limite;
+  });
+
+  if (!proximos.length) return null;
+
+  const menorData = proximos
+    .map((material) => new Date(material.data_vencimento))
+    .sort((a, b) => a.getTime() - b.getTime())[0];
+
+  const diasRestantes = Math.max(
+    0,
+    Math.ceil((menorData.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)),
+  );
+
+  return { total: proximos.length, diasRestantes };
 }
 
 export default function Obras() {
@@ -134,6 +168,7 @@ export default function Obras() {
       .map((obra) => ({
         ...obra,
         isTudoPago: verificarStatusPagamento(obra),
+        alertaVencimentoMateriais: getAlertaMateriaisProximosVencimento(obra),
       }))
       .sort((a, b) => {
         const porStatus = (pesos[a.status] || 99) - (pesos[b.status] || 99);
@@ -316,6 +351,25 @@ export default function Obras() {
                         diretoriaUsuarios,
                       )}`,
                     },
+                    ...(obra.alertaVencimentoMateriais
+                      ? [
+                          {
+                            icon: (
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            ),
+                            label: `${obra.alertaVencimentoMateriais.total} venc. em ${obra.alertaVencimentoMateriais.diasRestantes}d`,
+                            textClass: "text-amber-700",
+                          },
+                        ]
+                      : [
+                          {
+                            icon: (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                            ),
+                            label: "Sem item pendente",
+                            textClass: "text-emerald-700",
+                          },
+                        ]),
                   ]}
                   colorTheme={statusTheme(obra.status)}
                   onClick={() => navigate(`/obrasD/${obra.id}`)}

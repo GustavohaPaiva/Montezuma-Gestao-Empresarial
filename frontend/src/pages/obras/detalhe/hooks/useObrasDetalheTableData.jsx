@@ -7,6 +7,7 @@ import {
   getCorStatusMaterial,
 } from "../utils/formatters";
 import CellInputNumber from "../components/CellInputNumber";
+import CellInputDate from "../components/CellInputDate";
 import CellSelectFornecedor from "../components/CellSelectFornecedor";
 import CellSelectPrestador from "../components/CellSelectPrestador";
 
@@ -19,6 +20,7 @@ export function useObrasDetalheTableData({
   handleStatusChange,
   salvarValorMaterial,
   salvarFornecedorMaterial,
+  salvarDataVencimentoMaterial,
   handleDeleteMaterial,
   buscaMaoDeObra,
   sortConfigMdo,
@@ -86,6 +88,8 @@ export function useObrasDetalheTableData({
         editandoMaterial.id === m.id && editandoMaterial.campo === "valor";
       const isEditingFornecedor =
         editandoMaterial.id === m.id && editandoMaterial.campo === "fornecedor";
+      const isEditingVencimento =
+        editandoMaterial.id === m.id && editandoMaterial.campo === "vencimento";
       const qtdNumerica = parseFloat(m.quantidade) || 0;
       const valorUnitario = qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
 
@@ -165,6 +169,33 @@ export function useObrasDetalheTableData({
           )}
         </div>,
         formatarDataBR(m.data_solicitacao),
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`venc-${m.id}`}
+        >
+          {isEditingVencimento ? (
+            <CellInputDate
+              valorInicial={m.data_vencimento}
+              onSave={(val) => salvarDataVencimentoMaterial(m.id, val)}
+              onCancel={() => setEditandoMaterial({ id: null, campo: null })}
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer justify-center"
+              onClick={() =>
+                setEditandoMaterial({ id: m.id, campo: "vencimento" })
+              }
+            >
+              <div>{formatarDataBR(m.data_vencimento)}</div>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[4px]"
+              />
+            </div>
+          )}
+        </div>,
         <div className="flex justify-center group" key={`del-mat-${m.id}`}>
           <button
             onClick={() => handleDeleteMaterial(m.id)}
@@ -186,6 +217,7 @@ export function useObrasDetalheTableData({
     handleStatusChange,
     salvarValorMaterial,
     salvarFornecedorMaterial,
+    salvarDataVencimentoMaterial,
     handleDeleteMaterial,
     buscaMateriais,
     sortConfig,

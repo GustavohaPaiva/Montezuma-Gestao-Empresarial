@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../../services/api";
 import ModalMateriais from "../../components/modals/ModalMateriais";
 import ModalMaoDeObra from "../../components/modals/ModalMaoDeObra";
@@ -24,10 +24,13 @@ import {
   gerarPdfRelatorioPorPrestador,
 } from "./detalhe/utils/obraDetalhePdf";
 import FeedbackModal from "../../components/gerais/FeedbackModal";
+import { useAuth } from "../../contexts/AuthContext";
+import { MessageSquareText, Send } from "lucide-react";
 
 export default function ObrasDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { obra, setObra, fetchDados } = useObraById(id);
   const [categoriaAtiva, setCategoriaAtiva] = useState(null);
   const [secaoObra, setSecaoObra] = useState("resumo");
@@ -49,6 +52,11 @@ export default function ObrasDetalhe() {
   }, []);
 
   const [filtroExtrato, setFiltroExtrato] = useState("Tudo");
+  const [historicoObra, setHistoricoObra] = useState([]);
+  const [loadingHistoricoObra, setLoadingHistoricoObra] = useState(false);
+  const [showNovoHistorico, setShowNovoHistorico] = useState(false);
+  const [novaMensagemHistorico, setNovaMensagemHistorico] = useState("");
+  const [savingHistoricoObra, setSavingHistoricoObra] = useState(false);
 
   const [buscaMateriais, setBuscaMateriais] = useState("");
   const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
@@ -147,6 +155,7 @@ export default function ObrasDetalhe() {
           valor: 0,
           quantidade: `${dados.quantidade} ${dados.unidade || "Un."}`,
           data_solicitacao: dataAtual,
+          data_vencimento: dados.data_vencimento || null,
           status_financeiro: "Aguardando pagamento",
         });
         await fetchDados();
@@ -192,6 +201,26 @@ export default function ObrasDetalhe() {
       }
     },
     [fetchDados],
+  );
+
+  const salvarDataVencimentoMaterial = useCallback(
+    async (materialId, novaDataVencimento) => {
+      setObra((prev) => ({
+        ...prev,
+        materiais: prev.materiais.map((m) =>
+          m.id === materialId ? { ...m, data_vencimento: novaDataVencimento } : m,
+        ),
+      }));
+      setEditandoMaterial({ id: null, campo: null });
+      try {
+        await api.updateMaterialDataVencimento(materialId, novaDataVencimento);
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar data de vencimento:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados, setObra],
   );
 
   const handleSortMdo = (campo) => {
@@ -508,6 +537,62 @@ export default function ObrasDetalhe() {
     );
   };
 
+  const formatarDataHoraBR = (dataString) => {
+    if (!dataString) return "-";
+    const data = new Date(dataString);
+    if (Number.isNaN(data.getTime())) return "-";
+    return data.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const carregarHistoricoObra = useCallback(async () => {
+    if (!obra?.cliente_id) return;
+    setLoadingHistoricoObra(true);
+    try {
+      const rows = await api.getClienteHistorico(obra.cliente_id, {
+        isClienteView: false,
+      });
+      setHistoricoObra(rows || []);
+    } catch (error) {
+      console.error(error);
+      setHistoricoObra([]);
+    } finally {
+      setLoadingHistoricoObra(false);
+    }
+  }, [obra?.cliente_id]);
+
+  useEffect(() => {
+    if (!obra?.cliente_id) return;
+    void carregarHistoricoObra();
+  }, [obra?.cliente_id, carregarHistoricoObra]);
+
+  const handleAdicionarHistorico = async () => {
+    const mensagem = novaMensagemHistorico.trim();
+    if (!mensagem || !obra?.cliente_id || !user?.id) return;
+    setSavingHistoricoObra(true);
+    try {
+      await api.addClienteHistorico({
+        cliente_id: obra.cliente_id,
+        author_id: user.id,
+        author_nome: user.nome || "Equipe Montezuma",
+        mensagem,
+      });
+      setNovaMensagemHistorico("");
+      setShowNovoHistorico(false);
+      await carregarHistoricoObra();
+    } catch (error) {
+      console.error(error);
+      showFeedback("Erro ao adicionar histórico.");
+    } finally {
+      setSavingHistoricoObra(false);
+    }
+  };
+
   const {
     dadosMateriais,
     dadosMaoDeObra,
@@ -522,6 +607,7 @@ export default function ObrasDetalhe() {
     handleStatusChange,
     salvarValorMaterial,
     salvarFornecedorMaterial,
+    salvarDataVencimentoMaterial,
     handleDeleteMaterial,
     buscaMaoDeObra,
     sortConfigMdo,
@@ -592,6 +678,77 @@ export default function ObrasDetalhe() {
         {secaoObra === "resumo" && (
           <div className="mb-6 w-full">
             <DiarioObras obraId={id} />
+            <div className="mt-6 rounded-2xl border border-border-primary/80 bg-surface p-4 shadow-sm">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h3 className="text-base font-semibold text-text-primary">
+                  Histórico da obra
+                </h3>
+                <ButtonDefault
+                  type="button"
+                  onClick={() => setShowNovoHistorico((prev) => !prev)}
+                  className="!h-9 !px-3 !text-xs !font-semibold"
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <MessageSquareText className="h-4 w-4" />
+                    {showNovoHistorico ? "Fechar" : "Novo lançamento"}
+                  </span>
+                </ButtonDefault>
+              </div>
+
+              {showNovoHistorico ? (
+                <div className="mb-4 rounded-xl border border-border-primary/70 bg-surface-alt p-3">
+                  <textarea
+                    value={novaMensagemHistorico}
+                    onChange={(e) => setNovaMensagemHistorico(e.target.value)}
+                    rows={3}
+                    placeholder="Adicionar atualização para o cliente..."
+                    className="w-full resize-none rounded-xl border border-border-primary/70 px-3 py-2 text-sm text-text-primary focus:outline-none"
+                  />
+                  <div className="mt-2 flex justify-end">
+                    <ButtonDefault
+                      type="button"
+                      onClick={handleAdicionarHistorico}
+                      disabled={savingHistoricoObra || !novaMensagemHistorico.trim()}
+                      className="!h-9 !px-3 !text-xs !font-semibold"
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <Send className="h-4 w-4" />
+                        Publicar
+                      </span>
+                    </ButtonDefault>
+                  </div>
+                </div>
+              ) : null}
+
+              {loadingHistoricoObra ? (
+                <p className="text-sm text-text-muted">Carregando histórico...</p>
+              ) : historicoObra.length === 0 ? (
+                <p className="text-sm text-text-muted">
+                  Nenhum lançamento de histórico.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {historicoObra.map((item) => (
+                    <article
+                      key={item.id}
+                      className="rounded-xl border border-border-primary/70 bg-surface-alt p-3"
+                    >
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                          {item.author_nome || "Equipe Montezuma"}
+                        </p>
+                        <p className="text-xs text-text-muted">
+                          {formatarDataHoraBR(item.created_at)}
+                        </p>
+                      </div>
+                      <p className="text-sm leading-relaxed text-text-primary">
+                        {item.mensagem}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="mt-6 w-full">
               <ObraDetalheResumoFinanceiro
                 totais={totais}
@@ -722,6 +879,7 @@ export default function ObrasDetalhe() {
                   >
                     Data ↕
                   </span>,
+                  "Vencimento",
                   "",
                 ]}
                 dados={dadosMateriais}

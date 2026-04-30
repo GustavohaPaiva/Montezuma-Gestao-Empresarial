@@ -161,7 +161,9 @@ export default function BaseCard({
                           {item.icon}
                         </span>
                       ) : null}
-                      <span>{item?.label}</span>
+                      <span className="min-w-0 truncate" title={String(item?.label || "")}>
+                        {item?.label}
+                      </span>
                     </div>
                   ))}
                 </div>

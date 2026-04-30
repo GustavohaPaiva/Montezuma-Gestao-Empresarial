@@ -8,6 +8,7 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
   const [fornecedorId, setFornecedorId] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [unidade, setUnidade] = useState("Un.");
+  const [dataVencimento, setDataVencimento] = useState("");
 
   const [listaFornecedores, setListaFornecedores] = useState([]);
   const [carregandoFornecedores, setCarregandoFornecedores] = useState(false);
@@ -53,12 +54,19 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
       return;
     }
 
-    onSave({ material, fornecedor_id: fornecedorId, quantidade, unidade });
+    onSave({
+      material,
+      fornecedor_id: fornecedorId,
+      quantidade,
+      unidade,
+      data_vencimento: dataVencimento || null,
+    });
 
     setMaterial("");
     setFornecedorId("");
     setQuantidade("");
     setUnidade("Un.");
+    setDataVencimento("");
   };
 
   return (
@@ -153,6 +161,18 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-[5px]">
+            <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              Data de vencimento (opcional)
+            </label>
+            <input
+              type="date"
+              value={dataVencimento}
+              onChange={(e) => setDataVencimento(e.target.value)}
+              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border"
+            />
           </div>
 
           <ButtonDefault

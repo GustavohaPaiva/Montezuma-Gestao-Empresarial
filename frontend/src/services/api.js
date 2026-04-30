@@ -1033,9 +1033,20 @@ export const api = {
           valor: dados.valor,
           fornecedor_id: dados.fornecedor_id,
           data_solicitacao: dados.data_solicitacao,
+          data_vencimento: dados.data_vencimento ?? null,
           status_financeiro: "Aguardando pagamento",
         },
       ])
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateMaterialDataVencimento: async (id, dataVencimento) => {
+    const { data, error } = await supabase
+      .from("relatorio_materiais")
+      .update({ data_vencimento: dataVencimento ?? null })
+      .eq("id", id)
       .select();
     if (error) throw error;
     return data[0];
@@ -1749,6 +1760,66 @@ export const api = {
       return { rows: raw.slice(0, n), hasMore: true };
     }
     return { rows: raw, hasMore: false };
+  },
+
+  getClienteHistorico: async (clienteId, { isClienteView = false } = {}) => {
+    if (!clienteId) return [];
+
+    if (isClienteView) {
+      const { data, error } = await supabase.rpc("get_cliente_historico_for_cliente", {
+        p_cliente_id: Number(clienteId),
+      });
+      if (error) throw error;
+      return Array.isArray(data) ? data : [];
+    }
+
+    const { data, error } = await supabase
+      .from("cliente_historico")
+      .select("id, cliente_id, author_id, author_nome, mensagem, created_at, updated_at")
+      .eq("cliente_id", Number(clienteId))
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  addClienteHistorico: async ({ cliente_id, author_id, author_nome, mensagem }) => {
+    const texto = String(mensagem || "").trim();
+    if (!cliente_id || !author_id || !author_nome || !texto) {
+      throw new Error("Dados obrigatórios para adicionar histórico do cliente.");
+    }
+    const { data, error } = await supabase
+      .from("cliente_historico")
+      .insert({
+        cliente_id: Number(cliente_id),
+        author_id,
+        author_nome: String(author_nome).trim(),
+        mensagem: texto,
+      })
+      .select("id, cliente_id, author_id, author_nome, mensagem, created_at, updated_at")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  updateClienteHistorico: async (id, mensagem) => {
+    const texto = String(mensagem || "").trim();
+    if (!id || !texto) {
+      throw new Error("id e mensagem são obrigatórios para editar histórico.");
+    }
+    const { data, error } = await supabase
+      .from("cliente_historico")
+      .update({ mensagem: texto })
+      .eq("id", id)
+      .select("id, cliente_id, author_id, author_nome, mensagem, created_at, updated_at")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  deleteClienteHistorico: async (id) => {
+    if (!id) throw new Error("id obrigatório para excluir histórico.");
+    const { error } = await supabase.from("cliente_historico").delete().eq("id", id);
+    if (error) throw error;
   },
 
   addDiarioObra: async (dados) => {
