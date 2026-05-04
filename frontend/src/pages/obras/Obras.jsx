@@ -213,7 +213,7 @@ export default function Obras() {
     <div className="flex flex-col items-center w-full min-h-screen bg-bg-primary">
       <div
         ref={refNav}
-        className={`h-[92px] sm:h-[104px] w-full transition-all duration-500 ease-out transform ${
+        className={`w-full transition-all duration-500 ease-out transform ${
           isNavVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         }`}
       >
