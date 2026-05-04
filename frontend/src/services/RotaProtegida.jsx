@@ -2,6 +2,14 @@ import { Navigate, Outlet, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 const GESTOR_MASTER = "gestor_master";
+const ENCARREGADO = "encarregado";
+
+function getFallbackRoute(user) {
+  if (!user) return "/login";
+  if (user.tipo === "cliente") return `/obra/${user.id}`;
+  if (user.tipo === ENCARREGADO) return "/obras";
+  return "/";
+}
 
 const RotaProtegida = ({ allowedTypes, allowedEscritorios }) => {
   const { user, loading } = useAuth();
@@ -25,7 +33,7 @@ const RotaProtegida = ({ allowedTypes, allowedEscritorios }) => {
     !podeIgnorarRestricao &&
     !allowedTypes.includes(user.tipo)
   ) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={getFallbackRoute(user)} replace />;
   }
 
   if (
@@ -34,7 +42,7 @@ const RotaProtegida = ({ allowedTypes, allowedEscritorios }) => {
     !podeIgnorarRestricao &&
     (!user.escritorio_id || !allowedEscritorios.includes(user.escritorio_id))
   ) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={getFallbackRoute(user)} replace />;
   }
 
   if (user.tipo === "cliente" && id) {

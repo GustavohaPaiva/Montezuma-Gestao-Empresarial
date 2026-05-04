@@ -54,7 +54,9 @@ export default function App() {
 
           <Route
             element={
-              <RotaProtegida allowedTypes={["diretoria", "suporte_ti"]} />
+              <RotaProtegida
+                allowedTypes={["diretoria", "suporte_ti", "encarregado"]}
+              />
             }
           >
             <Route
@@ -73,6 +75,13 @@ export default function App() {
                 </PageTransition>
               }
             />
+          </Route>
+
+          <Route
+            element={
+              <RotaProtegida allowedTypes={["diretoria", "suporte_ti"]} />
+            }
+          >
             <Route
               path="/fornecedores/:id"
               element={

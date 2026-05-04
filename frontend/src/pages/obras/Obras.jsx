@@ -102,6 +102,7 @@ export default function Obras() {
   const [obraParaExcluir, setObraParaExcluir] = useState(null);
   const [diretoriaUsuarios, setDiretoriaUsuarios] = useState([]);
   const { obras, carregando, showElements, reloadObras } = useObrasList();
+  const isEncarregado = user?.tipo === "encarregado";
 
   const [refNav, isNavVisible] = useScrollFadeIn();
   const [refMain] = useScrollFadeIn();
@@ -174,11 +175,13 @@ export default function Obras() {
         const porStatus = (pesos[a.status] || 99) - (pesos[b.status] || 99);
         if (porStatus !== 0) return porStatus;
 
+        if (isEncarregado) return 0;
+
         const pesoFinanceiroA = getFinanceiroInfo(a).isPago ? 1 : 0;
         const pesoFinanceiroB = getFinanceiroInfo(b).isPago ? 1 : 0;
         return pesoFinanceiroA - pesoFinanceiroB;
       });
-  }, [obras, busca, filtroStatus]);
+  }, [obras, busca, filtroStatus, isEncarregado]);
 
   const handleDelete = async () => {
     if (!obraParaExcluir?.id) return;
@@ -244,20 +247,24 @@ export default function Obras() {
               ]}
             />,
           ]}
-          actions={[
-            {
-              key: "nova-obra",
-              label: "Nova Obra",
-              onClick: handleOpenCreateModal,
-              className:
-                "bg-accent-primary text-white hover:opacity-90 shadow-sm disabled:cursor-not-allowed disabled:opacity-60 h-10 px-4",
-            },
-          ]}
+          actions={
+            isEncarregado
+              ? []
+              : [
+                  {
+                    key: "nova-obra",
+                    label: "Nova Obra",
+                    onClick: handleOpenCreateModal,
+                    className:
+                      "bg-accent-primary text-white hover:opacity-90 shadow-sm disabled:cursor-not-allowed disabled:opacity-60 h-10 px-4",
+                  },
+                ]
+          }
         />
       </div>
 
       <main ref={refMain} className="w-[90%] pb-10">
-        {!carregando && (
+        {!carregando && !isEncarregado && (
           <div
             className={`grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 w-full transition-all duration-700 ease-out transform ${
               showElements
@@ -318,28 +325,32 @@ export default function Obras() {
                   value={obra.local}
                   status={obra.status || "Aguardando iniciação"}
                   metadata={[
-                    {
-                      icon: (
-                        <CircleDollarSign
-                          className={`h-4 w-4 ${
-                            getFinanceiroInfo(obra).isPago
-                              ? "text-emerald-600"
-                              : "text-amber-600"
-                          }`}
-                        />
-                      ),
-                      label: (
-                        <span
-                          className={
-                            getFinanceiroInfo(obra).isPago
-                              ? "text-emerald-600"
-                              : "text-amber-600"
-                          }
-                        >
-                          {getFinanceiroInfo(obra).status}
-                        </span>
-                      ),
-                    },
+                    ...(!isEncarregado
+                      ? [
+                          {
+                            icon: (
+                              <CircleDollarSign
+                                className={`h-4 w-4 ${
+                                  getFinanceiroInfo(obra).isPago
+                                    ? "text-emerald-600"
+                                    : "text-amber-600"
+                                }`}
+                              />
+                            ),
+                            label: (
+                              <span
+                                className={
+                                  getFinanceiroInfo(obra).isPago
+                                    ? "text-emerald-600"
+                                    : "text-amber-600"
+                                }
+                              >
+                                {getFinanceiroInfo(obra).status}
+                              </span>
+                            ),
+                          },
+                        ]
+                      : []),
                     {
                       icon: <CalendarDays className="h-4 w-4 text-slate-500" />,
                       label: `Inicio: ${formatarDataInicio(obra.data)}`,
@@ -374,29 +385,31 @@ export default function Obras() {
                   colorTheme={statusTheme(obra.status)}
                   onClick={() => navigate(`/obrasD/${obra.id}`)}
                 >
-                  <div
-                    className="mt-auto pt-4 border-t border-slate-100 flex w-full gap-2"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <BaseButton
-                      variant="ghost"
-                      size="sm"
-                      icon={<Edit className="h-4 w-4" />}
-                      onClick={() => handleOpenEditModal(obra)}
-                      className="flex-1"
+                  {!isEncarregado ? (
+                    <div
+                      className="mt-auto flex w-full gap-2 border-t border-slate-100 pt-4"
+                      onClick={(event) => event.stopPropagation()}
                     >
-                      Editar
-                    </BaseButton>
-                    <BaseButton
-                      variant="ghost"
-                      size="sm"
-                      icon={<Trash2 className="h-4 w-4" />}
-                      onClick={() => setObraParaExcluir(obra)}
-                      className="flex-1"
-                    >
-                      Excluir
-                    </BaseButton>
-                  </div>
+                      <BaseButton
+                        variant="ghost"
+                        size="sm"
+                        icon={<Edit className="h-4 w-4" />}
+                        onClick={() => handleOpenEditModal(obra)}
+                        className="flex-1"
+                      >
+                        Editar
+                      </BaseButton>
+                      <BaseButton
+                        variant="ghost"
+                        size="sm"
+                        icon={<Trash2 className="h-4 w-4" />}
+                        onClick={() => setObraParaExcluir(obra)}
+                        className="flex-1"
+                      >
+                        Excluir
+                      </BaseButton>
+                    </div>
+                  ) : null}
                 </BaseCard>
               </div>
             ))}
@@ -409,35 +422,42 @@ export default function Obras() {
         )}
       </main>
 
-      <ModalNovaObra
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSaved={reloadObras}
-        obraParaEditar={obraParaEditar}
-      />
+      {!isEncarregado ? (
+        <>
+          <ModalNovaObra
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSaved={reloadObras}
+            obraParaEditar={obraParaEditar}
+          />
 
-      <BaseModal
-        isOpen={Boolean(obraParaExcluir)}
-        onClose={() => setObraParaExcluir(null)}
-        title="Confirmar Exclusão"
-        size="sm"
-      >
-        <p className="text-sm text-text-muted">
-          Tem certeza que deseja excluir a obra{" "}
-          <span className="font-semibold text-text-primary">
-            {obraParaExcluir?.local}
-          </span>
-          ?
-        </p>
-        <div className="mt-6 flex justify-end gap-2">
-          <BaseButton variant="ghost" onClick={() => setObraParaExcluir(null)}>
-            Cancelar
-          </BaseButton>
-          <BaseButton variant="danger" onClick={handleDelete}>
-            Confirmar Exclusão
-          </BaseButton>
-        </div>
-      </BaseModal>
+          <BaseModal
+            isOpen={Boolean(obraParaExcluir)}
+            onClose={() => setObraParaExcluir(null)}
+            title="Confirmar Exclusão"
+            size="sm"
+          >
+            <p className="text-sm text-text-muted">
+              Tem certeza que deseja excluir a obra{" "}
+              <span className="font-semibold text-text-primary">
+                {obraParaExcluir?.local}
+              </span>
+              ?
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <BaseButton
+                variant="ghost"
+                onClick={() => setObraParaExcluir(null)}
+              >
+                Cancelar
+              </BaseButton>
+              <BaseButton variant="danger" onClick={handleDelete}>
+                Confirmar Exclusão
+              </BaseButton>
+            </div>
+          </BaseModal>
+        </>
+      ) : null}
     </div>
   );
 }

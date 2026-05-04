@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../services/api";
 import ModalMateriais from "../../components/modals/ModalMateriais";
 import ModalMaoDeObra from "../../components/modals/ModalMaoDeObra";
@@ -87,10 +87,40 @@ export default function ObrasDetalhe() {
     setCategoriaAtiva((prev) => (prev === nome ? null : nome));
   };
 
+  const isEncarregado = user?.tipo === "encarregado";
+  const secoesPermitidas = useMemo(
+    () =>
+      isEncarregado
+        ? [
+            { id: "diario", label: "Diário de Obra" },
+            { id: "cronograma", label: "Cronograma" },
+            { id: "relatorios", label: "Relatórios" },
+          ]
+        : [
+            { id: "resumo", label: "Resumo" },
+            { id: "cronograma", label: "Cronograma" },
+            { id: "relatorios", label: "Relatórios" },
+            { id: "etapas", label: "Etapas" },
+          ],
+    [isEncarregado],
+  );
+
   // Checagem se o projeto é de reforma (para injetar "Demolição")
   const isReforma =
     obra?.clientes?.tipo?.toLowerCase() === "reforma" ||
     obra?.cliente?.tipo?.toLowerCase() === "reforma";
+
+  useEffect(() => {
+    const secaoPadrao = isEncarregado ? "diario" : "resumo";
+    const permitida = secoesPermitidas.some((aba) => aba.id === secaoObra);
+    if (!permitida) setSecaoObra(secaoPadrao);
+  }, [isEncarregado, secaoObra, secoesPermitidas]);
+
+  useEffect(() => {
+    if (isEncarregado) {
+      setSubRelatorio("mao");
+    }
+  }, [isEncarregado]);
 
   const handleSortMateriais = (campo) => {
     setSortConfig((prev) => ({
@@ -208,7 +238,9 @@ export default function ObrasDetalhe() {
       setObra((prev) => ({
         ...prev,
         materiais: prev.materiais.map((m) =>
-          m.id === materialId ? { ...m, data_vencimento: novaDataVencimento } : m,
+          m.id === materialId
+            ? { ...m, data_vencimento: novaDataVencimento }
+            : m,
         ),
       }));
       setEditandoMaterial({ id: null, campo: null });
@@ -639,19 +671,18 @@ export default function ObrasDetalhe() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-bg-primary pb-8">
-      <ObraDetalheHeader navigate={navigate} obra={obra} isReforma={isReforma} />
+      <ObraDetalheHeader
+        navigate={navigate}
+        obra={obra}
+        isReforma={isReforma}
+      />
       <main className="w-[90%] mt-2 sm:mt-3">
         <nav
           className="mb-2 w-full tracking-tight"
           aria-label="Secções da obra"
         >
           <div className="inline-flex max-w-full flex-wrap gap-0.5 rounded-2xl bg-surface-alt p-1 ring-1 ring-border-primary/30">
-            {[
-              { id: "resumo", label: "Resumo" },
-              { id: "cronograma", label: "Cronograma" },
-              { id: "relatorios", label: "Relatórios" },
-              { id: "etapas", label: "Etapas" },
-            ].map((aba) => {
+            {secoesPermitidas.map((aba) => {
               const ativa = secaoObra === aba.id;
               return (
                 <button
@@ -659,7 +690,9 @@ export default function ObrasDetalhe() {
                   type="button"
                   onClick={() => {
                     setSecaoObra(aba.id);
-                    if (aba.id === "relatorios") setSubRelatorio("materiais");
+                    if (aba.id === "relatorios") {
+                      setSubRelatorio(isEncarregado ? "mao" : "materiais");
+                    }
                   }}
                   className={[
                     "min-h-[2.25rem] rounded-xl px-3 py-1.5 text-xs font-medium transition sm:min-h-0 sm:px-4 sm:py-2 sm:text-sm",
@@ -675,7 +708,13 @@ export default function ObrasDetalhe() {
           </div>
         </nav>
 
-        {secaoObra === "resumo" && (
+        {secaoObra === "diario" && isEncarregado && (
+          <div className="mb-6 w-full">
+            <DiarioObras obraId={id} />
+          </div>
+        )}
+
+        {secaoObra === "resumo" && !isEncarregado && (
           <div className="mb-6 w-full">
             <DiarioObras obraId={id} />
             <div className="mt-6 rounded-2xl border border-border-primary/80 bg-surface p-4 shadow-sm">
@@ -708,7 +747,9 @@ export default function ObrasDetalhe() {
                     <ButtonDefault
                       type="button"
                       onClick={handleAdicionarHistorico}
-                      disabled={savingHistoricoObra || !novaMensagemHistorico.trim()}
+                      disabled={
+                        savingHistoricoObra || !novaMensagemHistorico.trim()
+                      }
                       className="!h-9 !px-3 !text-xs !font-semibold"
                     >
                       <span className="inline-flex items-center gap-1">
@@ -721,7 +762,9 @@ export default function ObrasDetalhe() {
               ) : null}
 
               {loadingHistoricoObra ? (
-                <p className="text-sm text-text-muted">Carregando histórico...</p>
+                <p className="text-sm text-text-muted">
+                  Carregando histórico...
+                </p>
               ) : historicoObra.length === 0 ? (
                 <p className="text-sm text-text-muted">
                   Nenhum lançamento de histórico.
@@ -779,9 +822,9 @@ export default function ObrasDetalhe() {
 
         {secaoObra === "relatorios" && (
           <div className="mb-4 w-full">
-            <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
-              {(
-                [
+            {!isEncarregado && (
+              <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+                {[
                   {
                     id: "materiais",
                     label: "Materiais",
@@ -797,227 +840,229 @@ export default function ObrasDetalhe() {
                     label: "Extrato financeiro",
                     sub: "Movimentação consolidada",
                   },
-                ]
-              ).map((opt) => {
-                const on = subRelatorio === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setSubRelatorio(opt.id)}
-                    className={[
-                      "flex flex-col items-start gap-0.5 rounded-2xl border p-3 text-left shadow-sm transition sm:p-4",
-                      on
-                        ? "border-accent-primary/40 bg-surface ring-1 ring-accent-primary/20"
-                        : "border-border-primary/80 bg-surface hover:bg-surface-alt",
-                    ].join(" ")}
-                  >
-                    <span
+                ].map((opt) => {
+                  const on = subRelatorio === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setSubRelatorio(opt.id)}
                       className={[
-                        "text-sm font-semibold tracking-tight",
-                        on ? "text-accent-primary" : "text-text-primary",
+                        "flex flex-col items-start gap-0.5 rounded-2xl border p-3 text-left shadow-sm transition sm:p-4",
+                        on
+                          ? "border-accent-primary/40 bg-surface ring-1 ring-accent-primary/20"
+                          : "border-border-primary/80 bg-surface hover:bg-surface-alt",
                       ].join(" ")}
                     >
-                      {opt.label}
-                    </span>
-                    <span className="text-xs tracking-tight text-text-muted">
-                      {opt.sub}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                      <span
+                        className={[
+                          "text-sm font-semibold tracking-tight",
+                          on ? "text-accent-primary" : "text-text-primary",
+                        ].join(" ")}
+                      >
+                        {opt.label}
+                      </span>
+                      <span className="text-xs tracking-tight text-text-muted">
+                        {opt.sub}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-            {subRelatorio === "materiais" && (
-            <div>
-            <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-0 pt-5 pb-5 sm:pt-6 sm:pb-6">
-              <div className="flex w-full flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
-                <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
-                  Relatório de Materiais
-                </h1>
-                <div className="flex w-full max-w-full flex-wrap items-center gap-2 md:max-w-2xl md:justify-end">
-                  <input
-                    type="text"
-                    placeholder="Buscar por material ou fornecedor..."
-                    value={buscaMateriais}
-                    onChange={(e) => setBuscaMateriais(e.target.value)}
-                    className="h-10 w-full min-w-0 flex-1 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[300px] md:flex-none"
+            {subRelatorio === "materiais" && !isEncarregado && (
+              <div>
+                <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-0 pt-5 pb-5 sm:pt-6 sm:pb-6">
+                  <div className="flex w-full flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
+                    <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
+                      Relatório de Materiais
+                    </h1>
+                    <div className="flex w-full max-w-full flex-wrap items-center gap-2 md:max-w-2xl md:justify-end">
+                      <input
+                        type="text"
+                        placeholder="Buscar por material ou fornecedor..."
+                        value={buscaMateriais}
+                        onChange={(e) => setBuscaMateriais(e.target.value)}
+                        className="h-10 w-full min-w-0 flex-1 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[300px] md:flex-none"
+                      />
+                      <ButtonDefault
+                        type="button"
+                        onClick={() => setModalMateriaisOpen(true)}
+                        className="!h-10 !shrink-0 !whitespace-nowrap !px-4 !text-sm"
+                      >
+                        Novo material
+                      </ButtonDefault>
+                    </div>
+                  </div>
+                  <TabelaSimples
+                    colunas={[
+                      "Material",
+                      "Quantidade",
+                      "Valor Un.",
+                      "Valor",
+                      <span
+                        key="col-status"
+                        className="cursor-pointer hover:text-blue-600 select-none"
+                        onClick={() => handleSortMateriais("status")}
+                      >
+                        Status ↕
+                      </span>,
+                      <span
+                        key="col-forn"
+                        className="cursor-pointer hover:text-blue-600 select-none"
+                        onClick={() => handleSortMateriais("fornecedor")}
+                      >
+                        Fornecedor ↕
+                      </span>,
+                      <span
+                        key="col-data"
+                        className="cursor-pointer hover:text-blue-600 select-none"
+                        onClick={() => handleSortMateriais("data")}
+                      >
+                        Data ↕
+                      </span>,
+                      "Vencimento",
+                      "",
+                    ]}
+                    dados={dadosMateriais}
                   />
-                  <ButtonDefault
-                    type="button"
-                    onClick={() => setModalMateriaisOpen(true)}
-                    className="!h-10 !shrink-0 !whitespace-nowrap !px-4 !text-sm"
-                  >
-                    Novo material
-                  </ButtonDefault>
+                  <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:h-[42px] md:flex-row">
+                    <ButtonDefault
+                      onClick={handleGerarRelatorioMateriais}
+                      className="w-[90%] max-w-[450px]"
+                    >
+                      Relatório Materiais
+                    </ButtonDefault>
+                    <div className="flex h-[40px] w-[90%] max-w-[450px] items-center justify-center gap-[4px] border border-border-muted rounded-[6px] p-2 text-[18px] text-text-primary">
+                      Total Lançado:{" "}
+                      <span> R$ {formatarMoeda(totais.materiais)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <TabelaSimples
-                colunas={[
-                  "Material",
-                  "Quantidade",
-                  "Valor Un.",
-                  "Valor",
-                  <span
-                    key="col-status"
-                    className="cursor-pointer hover:text-blue-600 select-none"
-                    onClick={() => handleSortMateriais("status")}
-                  >
-                    Status ↕
-                  </span>,
-                  <span
-                    key="col-forn"
-                    className="cursor-pointer hover:text-blue-600 select-none"
-                    onClick={() => handleSortMateriais("fornecedor")}
-                  >
-                    Fornecedor ↕
-                  </span>,
-                  <span
-                    key="col-data"
-                    className="cursor-pointer hover:text-blue-600 select-none"
-                    onClick={() => handleSortMateriais("data")}
-                  >
-                    Data ↕
-                  </span>,
-                  "Vencimento",
-                  "",
-                ]}
-                dados={dadosMateriais}
-              />
-              <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:h-[42px] md:flex-row">
-                <ButtonDefault
-                  onClick={handleGerarRelatorioMateriais}
-                  className="w-[90%] max-w-[450px]"
-                >
-                  Relatório Materiais
-                </ButtonDefault>
-                <div className="flex h-[40px] w-[90%] max-w-[450px] items-center justify-center gap-[4px] border border-border-muted rounded-[6px] p-2 text-[18px] text-text-primary">
-                  Total Lançado:{" "}
-                  <span> R$ {formatarMoeda(totais.materiais)}</span>
-                </div>
-              </div>
-            </div>
-            </div>
             )}
 
             {subRelatorio === "mao" && (
-            <div>
-            <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-3 pt-5 pb-5 sm:pt-6 sm:pb-6 sm:mt-4">
-              <div className="flex w-full flex-col flex-wrap gap-4 md:flex-row md:items-center md:justify-between md:gap-3">
-                <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
-                  Relatório de Mão de Obra
-                </h1>
-                <div className="flex w-full max-w-full flex-wrap items-center gap-2 md:max-w-[560px] md:justify-end">
-                  <input
-                    type="text"
-                    placeholder="Buscar serviço ou prestador..."
-                    value={buscaMaoDeObra}
-                    onChange={(e) => setBuscaMaoDeObra(e.target.value)}
-                    className="h-[40px] w-full min-w-0 flex-1 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[250px] md:flex-none"
+              <div>
+                <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-3 pt-5 pb-5 sm:pt-6 sm:pb-6 sm:mt-4">
+                  <div className="flex w-full flex-col flex-wrap gap-4 md:flex-row md:items-center md:justify-between md:gap-3">
+                    <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
+                      Relatório de Mão de Obra
+                    </h1>
+                    <div className="flex w-full max-w-full flex-wrap items-center gap-2 md:max-w-[560px] md:justify-end">
+                      <input
+                        type="text"
+                        placeholder="Buscar serviço ou prestador..."
+                        value={buscaMaoDeObra}
+                        onChange={(e) => setBuscaMaoDeObra(e.target.value)}
+                        className="h-[40px] w-full min-w-0 flex-1 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[250px] md:flex-none"
+                      />
+                      <ButtonDefault
+                        type="button"
+                        onClick={() => setModalMaoDeObraOpen(true)}
+                        className="!h-10 !whitespace-nowrap !px-4 !text-sm !shadow-sm"
+                      >
+                        Nova mão de obra
+                      </ButtonDefault>
+                    </div>
+                  </div>
+                  <TabelaSimples
+                    colunas={[
+                      "Validação",
+                      "Serviço",
+                      <span
+                        key="col-prest"
+                        className="cursor-pointer hover:text-blue-600 select-none"
+                        onClick={() => handleSortMdo("profissional")}
+                      >
+                        Prestador ↕
+                      </span>,
+                      "Valor Cobrado",
+                      "Valor Orçado",
+                      "Valor Pago",
+                      "Saldo",
+                      "Data",
+                      "",
+                    ]}
+                    dados={dadosMaoDeObra}
                   />
-                  <ButtonDefault
-                    type="button"
-                    onClick={() => setModalMaoDeObraOpen(true)}
-                    className="!h-10 !whitespace-nowrap !px-4 !text-sm !shadow-sm"
-                  >
-                    Nova mão de obra
-                  </ButtonDefault>
-                </div>
-              </div>
-              <TabelaSimples
-                colunas={[
-                  "Validação",
-                  "Serviço",
-                  <span
-                    key="col-prest"
-                    className="cursor-pointer hover:text-blue-600 select-none"
-                    onClick={() => handleSortMdo("profissional")}
-                  >
-                    Prestador ↕
-                  </span>,
-                  "Valor Cobrado",
-                  "Valor Orçado",
-                  "Valor Pago",
-                  "Saldo",
-                  "Data",
-                  "",
-                ]}
-                dados={dadosMaoDeObra}
-              />
 
-              <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:flex-row md:flex-wrap">
-                <div className="flex w-full max-w-[450px] justify-center gap-2">
-                  <ButtonDefault
-                    onClick={handleGerarRelatorioMaoDeObraGeral}
-                    className="w-full"
-                  >
-                    Relatório Geral
-                  </ButtonDefault>
-                  <ButtonDefault
-                    onClick={() => setModalRelatorioPrestadorOpen(true)}
-                    className="w-full"
-                  >
-                    Por Prestador
-                  </ButtonDefault>
-                </div>
-                <div className="w-full h-[40px] max-w-[450px] border border-border-muted rounded-[6px] text-[18px] text-text-primary items-center flex justify-center gap-[4px] p-2">
-                  Total Lançado:{" "}
-                  <span> R$ {formatarMoeda(totais.maoDeObra)}</span>
+                  <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:flex-row md:flex-wrap">
+                    {!isEncarregado && (
+                      <div className="flex w-full max-w-[450px] justify-center gap-2">
+                        <ButtonDefault
+                          onClick={handleGerarRelatorioMaoDeObraGeral}
+                          className="w-full"
+                        >
+                          Relatório Geral
+                        </ButtonDefault>
+                        <ButtonDefault
+                          onClick={() => setModalRelatorioPrestadorOpen(true)}
+                          className="w-full"
+                        >
+                          Por Prestador
+                        </ButtonDefault>
+                      </div>
+                    )}
+                    <div className="w-full h-[40px] max-w-[450px] border border-border-muted rounded-[6px] text-[18px] text-text-primary items-center flex justify-center gap-[4px] p-2">
+                      Total Lançado:{" "}
+                      <span> R$ {formatarMoeda(totais.maoDeObra)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-            </div>
             )}
 
-            {subRelatorio === "extrato" && (
-            <div>
-            <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-3 pt-5 pb-5 sm:mt-4 sm:pt-6 sm:pb-6">
-              <div className="flex w-full flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
-                  Extrato
-                </h1>
-                <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
-                  <input
-                    type="text"
-                    placeholder="Buscar no extrato..."
-                    value={buscaExtrato}
-                    onChange={(e) => setBuscaExtrato(e.target.value)}
-                    className="h-[40px] w-full min-w-0 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[250px]"
+            {subRelatorio === "extrato" && !isEncarregado && (
+              <div>
+                <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-3 pt-5 pb-5 sm:mt-4 sm:pt-6 sm:pb-6">
+                  <div className="flex w-full flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
+                      Extrato
+                    </h1>
+                    <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
+                      <input
+                        type="text"
+                        placeholder="Buscar no extrato..."
+                        value={buscaExtrato}
+                        onChange={(e) => setBuscaExtrato(e.target.value)}
+                        className="h-[40px] w-full min-w-0 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[250px]"
+                      />
+                      <select
+                        value={filtroExtrato}
+                        onChange={(e) => setFiltroExtrato(e.target.value)}
+                        className="h-[40px] w-full cursor-pointer border border-border-primary rounded-[8px] bg-surface p-[6px] text-[14px] text-text-primary focus:outline-none md:w-auto"
+                      >
+                        <option value="Tudo">Tudo</option>
+                        <option value="Materiais">Materiais</option>
+                        <option value="Mão de Obra">Mão de Obra</option>
+                      </select>
+                    </div>
+                  </div>
+                  <TabelaSimples
+                    colunas={headerExtrato}
+                    dados={dadosRelatorioExtrato}
                   />
-                  <select
-                    value={filtroExtrato}
-                    onChange={(e) => setFiltroExtrato(e.target.value)}
-                    className="h-[40px] w-full cursor-pointer border border-border-primary rounded-[8px] bg-surface p-[6px] text-[14px] text-text-primary focus:outline-none md:w-auto"
-                  >
-                    <option value="Tudo">Tudo</option>
-                    <option value="Materiais">Materiais</option>
-                    <option value="Mão de Obra">Mão de Obra</option>
-                  </select>
+                  <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:h-[42px] md:flex-row">
+                    <ButtonDefault
+                      onClick={handleGerarPDFExtrato}
+                      className="w-full max-w-[450px]"
+                    >
+                      Gerar pedido
+                    </ButtonDefault>
+                    <div className="flex h-[40px] w-full max-w-[450px] items-center justify-center gap-[4px] border border-border-muted rounded-[6px] p-2 text-[18px] text-text-primary">
+                      Total no Extrato:{" "}
+                      <span> R$ {formatarMoeda(totais.totalExtrato)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <TabelaSimples
-                colunas={headerExtrato}
-                dados={dadosRelatorioExtrato}
-              />
-              <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:h-[42px] md:flex-row">
-                <ButtonDefault
-                  onClick={handleGerarPDFExtrato}
-                  className="w-full max-w-[450px]"
-                >
-                  Gerar pedido
-                </ButtonDefault>
-                <div className="flex h-[40px] w-full max-w-[450px] items-center justify-center gap-[4px] border border-border-muted rounded-[6px] p-2 text-[18px] text-text-primary">
-                  Total no Extrato:{" "}
-                  <span> R$ {formatarMoeda(totais.totalExtrato)}</span>
-                </div>
-              </div>
-            </div>
-            </div>
             )}
           </div>
         )}
 
-        {secaoObra === "etapas" && (
+        {secaoObra === "etapas" && !isEncarregado && (
           <div className="w-full">
             <ListaEtapas
               etapas={obra.etapas_selecionadas}
@@ -1075,9 +1120,7 @@ export default function ObrasDetalhe() {
       />
       <FeedbackModal
         isOpen={feedback.open}
-        onClose={() =>
-          setFeedback((f) => ({ ...f, open: false, message: "" }))
-        }
+        onClose={() => setFeedback((f) => ({ ...f, open: false, message: "" }))}
         message={feedback.message}
         variant={feedback.variant}
       />
