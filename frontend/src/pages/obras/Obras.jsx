@@ -314,8 +314,8 @@ export default function Obras() {
               >
                 <BaseCard
                   variant="entity"
-                  title={obra.local}
-                  value={obra.clientes?.nome || obra.cliente}
+                  title={obra.clientes?.nome || obra.cliente}
+                  value={obra.local}
                   status={obra.status || "Aguardando iniciação"}
                   metadata={[
                     {

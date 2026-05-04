@@ -551,10 +551,10 @@ export default function ObrasDetalhe() {
   };
 
   const carregarHistoricoObra = useCallback(async () => {
-    if (!obra?.cliente_id) return;
+    if (!obra?.id) return;
     setLoadingHistoricoObra(true);
     try {
-      const rows = await api.getClienteHistorico(obra.cliente_id, {
+      const rows = await api.getObraHistorico(obra.id, {
         isClienteView: false,
       });
       setHistoricoObra(rows || []);
@@ -564,20 +564,20 @@ export default function ObrasDetalhe() {
     } finally {
       setLoadingHistoricoObra(false);
     }
-  }, [obra?.cliente_id]);
+  }, [obra?.id]);
 
   useEffect(() => {
-    if (!obra?.cliente_id) return;
+    if (!obra?.id) return;
     void carregarHistoricoObra();
-  }, [obra?.cliente_id, carregarHistoricoObra]);
+  }, [obra?.id, carregarHistoricoObra]);
 
   const handleAdicionarHistorico = async () => {
     const mensagem = novaMensagemHistorico.trim();
-    if (!mensagem || !obra?.cliente_id || !user?.id) return;
+    if (!mensagem || !obra?.id || !user?.id) return;
     setSavingHistoricoObra(true);
     try {
-      await api.addClienteHistorico({
-        cliente_id: obra.cliente_id,
+      await api.addObraHistorico({
+        obra_id: obra.id,
         author_id: user.id,
         author_nome: user.nome || "Equipe Montezuma",
         mensagem,

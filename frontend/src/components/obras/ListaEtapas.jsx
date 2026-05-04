@@ -176,7 +176,6 @@ export default function ListaEtapas({
   etapas = [],
   onUpdateEtapas,
   isCliente = false,
-  isReforma: _isReforma = false,
   headerAction = null,
 }) {
   const handleChange = useCallback(
@@ -248,15 +247,23 @@ export default function ListaEtapas({
 
   if (!etapas || etapas.length === 0) {
     return (
-      <div className="w-full flex justify-center items-center min-h-[30vh]">
-        <div className="w-full bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
-          <HardHat className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-[#464C54] mb-2">
-            Nenhuma etapa definida
+      <div className="p-4 bg-surface border border-border-primary rounded-[12px] shadow-sm mt-2 mb-4">
+        <div className="mb-5 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <h2 className="text-[24px] font-bold text-text-primary">
+            Lista de Etapas
           </h2>
-          <p className="text-gray-500">
-            Acesse o menu de seleção de etapas para começar o cronograma.
-          </p>
+          {headerAction}
+        </div>
+        <div className="w-full flex justify-center items-center min-h-[24vh]">
+          <div className="w-full bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
+            <HardHat className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-[#464C54] mb-2">
+              Nenhuma etapa definida
+            </h2>
+            <p className="text-gray-500">
+              Acesse o menu de seleção de etapas para começar o cronograma.
+            </p>
+          </div>
         </div>
       </div>
     );

@@ -6,11 +6,21 @@ import BaseSelect from "../gerais/BaseSelect";
 import { supabase } from "../../services/supabase";
 import { api } from "../../services/api";
 
+function normalizarModalidade(raw) {
+  const s = String(raw || "empreitada")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  return s === "gestao" ? "gestao" : "empreitada";
+}
+
 const EMPTY_FORM = {
   nomeObra: "",
   cliente_id: "",
   responsavel_id: "",
   status: "Aguardando iniciação",
+  modalidade: "empreitada",
 };
 
 export default function ModalNovaObra({
@@ -70,6 +80,7 @@ export default function ModalNovaObra({
           ? String(obraParaEditar.responsavel_id)
           : "",
       status: obraParaEditar.status || "Aguardando iniciação",
+      modalidade: normalizarModalidade(obraParaEditar.modalidade),
     });
   }, [isOpen, obraParaEditar]);
 
@@ -90,6 +101,7 @@ export default function ModalNovaObra({
           cliente_id: formData.cliente_id,
           responsavel_id: formData.responsavel_id || null,
           status: formData.status,
+          modalidade: normalizarModalidade(formData.modalidade),
         });
       } else {
         const clienteSelecionado = clientes.find(
@@ -101,6 +113,7 @@ export default function ModalNovaObra({
           cliente_id: formData.cliente_id,
           responsavel_id: formData.responsavel_id || null,
           status: formData.status,
+          modalidade: normalizarModalidade(formData.modalidade),
         });
       }
       if (typeof onSaved === "function") await onSaved();
@@ -213,6 +226,30 @@ export default function ModalNovaObra({
               { value: "Aguardando iniciação", label: "Aguardando iniciação" },
               { value: "Em andamento", label: "Em andamento" },
               { value: "Concluída", label: "Concluída" },
+            ]}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="modalidade"
+            className="text-xs font-semibold uppercase text-text-muted"
+          >
+            Modalidade
+          </label>
+          <BaseSelect
+            id="modalidade"
+            value={formData.modalidade}
+            onChange={(event) =>
+              setFormData((prev) => ({
+                ...prev,
+                modalidade: normalizarModalidade(event.target.value),
+              }))
+            }
+            disabled={saving}
+            options={[
+              { value: "empreitada", label: "Empreitada" },
+              { value: "gestao", label: "Gestão" },
             ]}
           />
         </div>

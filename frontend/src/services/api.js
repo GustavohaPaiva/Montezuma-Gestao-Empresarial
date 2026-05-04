@@ -15,6 +15,15 @@ function omitUndefined(obj) {
   return out;
 }
 
+/** Id de obra em query: inteiro quando numérico, senão string (ex.: uuid). */
+function normalizeObraIdForHistorico(obraId) {
+  if (obraId == null || obraId === "") return null;
+  if (typeof obraId === "number" && Number.isFinite(obraId)) return obraId;
+  const s = String(obraId).trim();
+  if (/^\d+$/.test(s)) return parseInt(s, 10);
+  return s;
+}
+
 function sanitizeClientePayload(dados) {
   if (!dados || typeof dados !== "object") return {};
   const rest = { ...dados };
@@ -767,6 +776,8 @@ export const api = {
   },
 
   createObra: async (novaObra) => {
+    const modalidade =
+      novaObra.modalidade === "gestao" ? "gestao" : "empreitada";
     const payload = omitUndefined({
       cliente: novaObra.cliente,
       local: novaObra.local,
@@ -774,6 +785,7 @@ export const api = {
       active: true,
       cliente_id: novaObra.cliente_id,
       responsavel_id: novaObra.responsavel_id || null,
+      modalidade,
     });
     const { data, error } = await supabase
       .from("obras")
@@ -1762,40 +1774,46 @@ export const api = {
     return { rows: raw, hasMore: false };
   },
 
-  getClienteHistorico: async (clienteId, { isClienteView = false } = {}) => {
-    if (!clienteId) return [];
-
-    if (isClienteView) {
-      const { data, error } = await supabase.rpc("get_cliente_historico_for_cliente", {
-        p_cliente_id: Number(clienteId),
-      });
-      if (error) throw error;
-      return Array.isArray(data) ? data : [];
-    }
+  /**
+   * Histórico da obra. Login do cliente não usa Supabase Auth (sessão anon),
+   * então não usamos RPC com auth.uid(); leitura depende de RLS (incl. policy para anon).
+   * @param {boolean} [_isClienteView] — mantido por compatibilidade; ignorado.
+   */
+  getObraHistorico: async (
+    obraId,
+    { isClienteView: _isClienteView = false } = {},
+  ) => {
+    const oid = normalizeObraIdForHistorico(obraId);
+    if (oid == null) return [];
 
     const { data, error } = await supabase
       .from("cliente_historico")
-      .select("id, cliente_id, author_id, author_nome, mensagem, created_at, updated_at")
-      .eq("cliente_id", Number(clienteId))
+      .select(
+        "id, obra_id, author_id, author_nome, mensagem, created_at, updated_at",
+      )
+      .eq("obra_id", oid)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   },
 
-  addClienteHistorico: async ({ cliente_id, author_id, author_nome, mensagem }) => {
+  addObraHistorico: async ({ obra_id, author_id, author_nome, mensagem }) => {
     const texto = String(mensagem || "").trim();
-    if (!cliente_id || !author_id || !author_nome || !texto) {
-      throw new Error("Dados obrigatórios para adicionar histórico do cliente.");
+    const oid = normalizeObraIdForHistorico(obra_id);
+    if (oid == null || !author_id || !author_nome || !texto) {
+      throw new Error("Dados obrigatórios para adicionar histórico da obra.");
     }
     const { data, error } = await supabase
       .from("cliente_historico")
       .insert({
-        cliente_id: Number(cliente_id),
+        obra_id: oid,
         author_id,
         author_nome: String(author_nome).trim(),
         mensagem: texto,
       })
-      .select("id, cliente_id, author_id, author_nome, mensagem, created_at, updated_at")
+      .select(
+        "id, obra_id, author_id, author_nome, mensagem, created_at, updated_at",
+      )
       .single();
     if (error) throw error;
     return data;
@@ -1810,7 +1828,9 @@ export const api = {
       .from("cliente_historico")
       .update({ mensagem: texto })
       .eq("id", id)
-      .select("id, cliente_id, author_id, author_nome, mensagem, created_at, updated_at")
+      .select(
+        "id, obra_id, author_id, author_nome, mensagem, created_at, updated_at",
+      )
       .single();
     if (error) throw error;
     return data;
@@ -1818,7 +1838,10 @@ export const api = {
 
   deleteClienteHistorico: async (id) => {
     if (!id) throw new Error("id obrigatório para excluir histórico.");
-    const { error } = await supabase.from("cliente_historico").delete().eq("id", id);
+    const { error } = await supabase
+      .from("cliente_historico")
+      .delete()
+      .eq("id", id);
     if (error) throw error;
   },
 

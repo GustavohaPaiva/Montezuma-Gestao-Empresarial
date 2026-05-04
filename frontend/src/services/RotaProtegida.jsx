@@ -39,7 +39,7 @@ const RotaProtegida = ({ allowedTypes, allowedEscritorios }) => {
 
   if (user.tipo === "cliente" && id) {
     if (String(user.id) !== String(id)) {
-      return <Navigate to={`/obraCliente/${user.id}`} replace />;
+      return <Navigate to={`/obra/${user.id}`} replace />;
     }
   }
 

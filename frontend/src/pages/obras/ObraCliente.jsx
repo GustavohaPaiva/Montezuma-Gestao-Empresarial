@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../../services/api";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
@@ -7,20 +7,17 @@ import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import logo from "../../assets/logos/logo sem fundo.png";
 import Etapas from "../../components/gerais/ObraEtapas";
-import ListaEtapas from "../../components/obras/ListaEtapas";
-import { Icon } from "lucide-react";
-import { stairs } from "@lucide/lab";
+import CronogramaObra from "../../components/obras/CronogramaObra";
 import {
   Building,
   MapPin,
   ClipboardList,
-  House,
-  CircleDollarSign,
+  CalendarDays,
   Hourglass,
-  ClipboardPlus,
   UserRound,
   Camera,
   X,
+  Handshake,
 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -54,6 +51,19 @@ const formatarDataBR = (dataString) => {
   return `${dia}/${mes}/${ano}`;
 };
 
+const formatarDataHoraBR = (dataString) => {
+  if (!dataString) return "-";
+  const data = new Date(dataString);
+  if (Number.isNaN(data.getTime())) return "-";
+  return data.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 const formatarMoeda = (valor) => {
   const valorNumerico = parseFloat(valor) || 0;
   return new Intl.NumberFormat("pt-BR", {
@@ -61,6 +71,19 @@ const formatarMoeda = (valor) => {
     maximumFractionDigits: 2,
   }).format(valorNumerico);
 };
+
+function normalizarModalidade(raw) {
+  const s = String(raw || "empreitada")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  return s === "gestao" ? "gestao" : "empreitada";
+}
+
+function rotuloModalidade(raw) {
+  return normalizarModalidade(raw) === "gestao" ? "Gestão" : "Empreitada";
+}
 
 const getCorStatus = (status) => {
   switch (status) {
@@ -102,13 +125,11 @@ export default function ObraCliente() {
   const [processo, setProcesso] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [categoriaAtiva, setCategoriaAtiva] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const fileInputRef = useRef(null);
-  const [isMounted, setIsMounted] = useState(false);
 
   const animProcessos = useScrollFadeIn();
   const animProcPref = useScrollFadeIn();
@@ -116,21 +137,25 @@ export default function ObraCliente() {
   const animProcFin = useScrollFadeIn();
 
   const animInfo = useScrollFadeIn();
-  const animFin = useScrollFadeIn();
   const animEtapas = useScrollFadeIn();
 
   const animMat = useScrollFadeIn();
   const animMao = useScrollFadeIn();
   const animExt = useScrollFadeIn();
 
-  const animLista = useScrollFadeIn();
-
   const isSomenteProcessos = user?.isSomenteProcesso === true;
+  const modalidadeSlug = normalizarModalidade(obra?.modalidade);
+  const exibirRelatorios = modalidadeSlug === "gestao";
 
   const [buscaMateriais, setBuscaMateriais] = useState("");
   const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
   const [buscaExtrato, setBuscaExtrato] = useState("");
   const [filtroExtrato, setFiltroExtrato] = useState("Tudo");
+  const [secaoCliente, setSecaoCliente] = useState("resumo");
+  const [subRelatorioCliente, setSubRelatorioCliente] = useState("materiais");
+  const [historico, setHistorico] = useState([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
+  const [salvandoModalidade, setSalvandoModalidade] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -180,19 +205,37 @@ export default function ObraCliente() {
   }, [id, isSomenteProcessos, user]);
 
   useEffect(() => {
-    if (!carregando) {
-      const timer = setTimeout(() => setIsMounted(true), 50);
-      return () => clearTimeout(timer);
-    } else {
-      setIsMounted(false);
-    }
-  }, [carregando]);
-
-  useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!exibirRelatorios && secaoCliente === "relatorios") {
+      setSecaoCliente("resumo");
+    }
+  }, [exibirRelatorios, secaoCliente]);
+
+  const salvarModalidadeObra = async (valor) => {
+    if (!obra?.id) return;
+    if (
+      !user?.tipo ||
+      !["diretoria", "secretaria", "suporte_ti"].includes(user.tipo)
+    ) {
+      return;
+    }
+    const slug = valor === "gestao" ? "gestao" : "empreitada";
+    try {
+      setSalvandoModalidade(true);
+      await api.updateObra(obra.id, { modalidade: slug });
+      setObra((prev) => (prev ? { ...prev, modalidade: slug } : prev));
+    } catch (err) {
+      console.error(err);
+      alert("Não foi possível atualizar a modalidade.");
+    } finally {
+      setSalvandoModalidade(false);
+    }
+  };
 
   const handleAbrirModal = () => {
     setSelectedFile(null);
@@ -456,35 +499,26 @@ export default function ObraCliente() {
     };
   }, [obra]);
 
-  const dataGrafico = useMemo(() => {
-    const paletaCores = ["#860000", "#EE5B11", "#F67D15", "#FBA51B", "#FDC626"];
-    const totalGeral = totais.materiais + totais.maoDeObra;
-    const dados = [
-      {
-        name: "Materiais",
-        value: totais.materiais,
-        qtd: obra?.materiais?.length || 0,
-      },
-      {
-        name: "Mão de Obra",
-        value: totais.maoDeObra,
-        qtd: obra?.maoDeObra?.length || 0,
-      },
-    ];
-    dados.sort((a, b) => b.value - a.value);
-    return dados.map((d, index) => {
-      const percentual =
-        totalGeral > 0 ? ((d.value / totalGeral) * 100).toFixed(0) : 0;
-      return {
-        ...d,
-        percentual,
-        color: paletaCores[index] || paletaCores[paletaCores.length - 1],
-      };
-    });
-  }, [totais, obra]);
+  const carregarHistorico = useCallback(async () => {
+    if (!id) return;
+    setLoadingHistorico(true);
+    try {
+      const rows = await api.getObraHistorico(id, {
+        isClienteView: user?.tipo === "cliente",
+      });
+      setHistorico(rows);
+    } catch (error) {
+      console.error(error);
+      setHistorico([]);
+    } finally {
+      setLoadingHistorico(false);
+    }
+  }, [id, user?.tipo]);
 
-  const toggleCategoria = (nome) =>
-    setCategoriaAtiva((prev) => (prev === nome ? null : nome));
+  useEffect(() => {
+    if (isSomenteProcessos || !id) return;
+    void carregarHistorico();
+  }, [isSomenteProcessos, id, user?.tipo, carregarHistorico]);
 
   if (carregando) {
     return (
@@ -515,15 +549,19 @@ export default function ObraCliente() {
     );
   }
 
-  const handleScroll = (e, id) => {
-    e.preventDefault();
-    const element = document.getElementById(id);
-    if (element) element.scrollIntoView({ behavior: "smooth" });
-  };
-
   const isReforma =
     cliente?.tipo?.toLowerCase() === "reforma" ||
     obra?.clientes?.tipo?.toLowerCase() === "reforma";
+  const isConstrucao =
+    cliente?.tipo?.toLowerCase() === "construção" ||
+    cliente?.tipo?.toLowerCase() === "construcao" ||
+    obra?.clientes?.tipo?.toLowerCase() === "construção" ||
+    obra?.clientes?.tipo?.toLowerCase() === "construcao";
+
+  const podeEditarModalidade =
+    !!obra &&
+    !!user?.tipo &&
+    ["diretoria", "secretaria", "suporte_ti"].includes(user.tipo);
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0]">
@@ -658,559 +696,450 @@ export default function ObraCliente() {
       {!isSomenteProcessos && (
         <div
           id="#home"
-          className="mt-6 flex w-full flex-col items-center justify-center gap-[24px] pb-24 md:mb-6 md:mt-0 md:pb-0"
+          className="mt-6 flex w-full flex-col items-center justify-center gap-6 pb-24 md:mb-6 md:mt-0 md:pb-0"
         >
-          <header
-            className={`sticky top-0 z-50 hidden w-full border-b-2 border-[#DC3B0B]/20 bg-white shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] transition-all duration-500 ease-out md:flex ${isMounted ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}
-          >
-            <div className="flex h-[72px] w-full items-center justify-center gap-3 px-4 px-[5%]">
-              <div className="hidden lg:block">
+          <nav className="sticky top-0 z-40 mb-5 px-[5%] w-full rounded-b-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_14px_34px_-26px_rgba(15,23,42,0.55)] backdrop-blur">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="hidden items-center gap-2 lg:flex">
                 <img
                   src={logo}
                   alt="Logo Montezuma"
-                  href="#home"
-                  onClick={(e) => handleScroll(e, "#home")}
-                  className="w-[70px] h-[55px] cursor-pointer"
+                  className="h-10 w-auto rounded-lg border border-slate-200 bg-white p-1"
                 />
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {obra?.cliente || "Cliente"}
+                  </p>
+                </div>
               </div>
-              <ul className="m-0 flex w-full list-none items-center justify-between gap-1 p-0 lg:justify-center lg:gap-15">
-                <a
-                  href="#home"
-                  onClick={(e) => handleScroll(e, "#home")}
-                  className="group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-all hover:bg-[#DC3B0B]/10 hover:text-[#DC3B0B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#DC3B0B] sm:px-4 sm:text-base"
-                >
-                  <House className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#DC3B0B] sm:h-5 sm:w-5" />
-                  <span className="hidden sm:inline">Início</span>
-                </a>
-                <a
-                  href="#financeiro"
-                  onClick={(e) => handleScroll(e, "#financeiro")}
-                  className="group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-all hover:bg-[#DC3B0B]/10 hover:text-[#DC3B0B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#DC3B0B] sm:px-4 sm:text-base"
-                >
-                  <CircleDollarSign className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#DC3B0B] sm:h-5 sm:w-5" />
-                  <span className="hidden sm:inline">Financeiro</span>
-                </a>
-                <a
-                  href="#etapas"
-                  onClick={(e) => handleScroll(e, "#etapas")}
-                  className="group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-all hover:bg-[#DC3B0B]/10 hover:text-[#DC3B0B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#DC3B0B] sm:px-4 sm:text-base"
-                >
-                  <Icon
-                    iconNode={stairs}
-                    className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#DC3B0B] sm:h-5 sm:w-5"
-                  />
-                  <span className="hidden sm:inline">Etapas</span>
-                </a>
-                <a
-                  href="#relatorios"
-                  onClick={(e) => handleScroll(e, "#relatorios")}
-                  className="group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-all hover:bg-[#DC3B0B]/10 hover:text-[#DC3B0B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#DC3B0B] sm:px-4 sm:text-base"
-                >
-                  <ClipboardPlus className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#DC3B0B] sm:h-5 sm:w-5" />
-                  <span className="hidden sm:inline">Relatórios</span>
-                </a>
-              </ul>
-              <li
-                className="group flex justify-end relative flex cursor-pointer items-center pl-2 sm:pl-3"
+
+              <div className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-200/80 bg-slate-50/80 p-1.5">
+                {[
+                  { id: "resumo", label: "Resumo" },
+                  { id: "etapas", label: "Etapas" },
+                  { id: "cronograma", label: "Cronograma" },
+                  ...(exibirRelatorios
+                    ? [{ id: "relatorios", label: "Relatórios" }]
+                    : []),
+                ].map((aba) => {
+                  const ativa = secaoCliente === aba.id;
+                  return (
+                    <button
+                      key={aba.id}
+                      type="button"
+                      onClick={() => setSecaoCliente(aba.id)}
+                      className={[
+                        "min-h-[2.25rem] rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:min-h-0 sm:px-4 sm:py-2 sm:text-sm",
+                        ativa
+                          ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
+                          : "text-slate-500 hover:bg-white hover:text-slate-800",
+                      ].join(" ")}
+                    >
+                      {aba.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
                 onClick={handleAbrirModal}
                 title="Alterar foto de perfil"
+                className="group self-end rounded-full p-0.5 ring-2 ring-slate-200/80 transition hover:ring-[#DC3B0B]/50 lg:self-auto"
               >
-                <div className="rounded-full p-0.5 ring-2 ring-slate-200/80 transition group-hover:ring-[#DC3B0B]/50">
-                  {cliente?.foto ? (
-                    <img
-                      src={cliente.foto}
-                      alt="Foto"
-                      className="h-10 w-10 rounded-full object-cover transition group-hover:opacity-90 sm:h-12 sm:w-12"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-slate-200 sm:h-12 sm:w-12">
-                      <UserRound className="h-6 w-6 text-[#DC3B0B] sm:h-7 sm:w-7" />
-                    </div>
-                  )}
-                </div>
-              </li>
+                {cliente?.foto ? (
+                  <img
+                    src={cliente.foto}
+                    alt="Foto"
+                    className="h-10 w-10 rounded-full object-cover transition group-hover:opacity-90 sm:h-11 sm:w-11"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-slate-200 sm:h-11 sm:w-11">
+                    <UserRound className="h-5 w-5 text-[#DC3B0B]" />
+                  </div>
+                )}
+              </button>
             </div>
-          </header>
+          </nav>
 
           <div className="w-[90%]">
-            <div
-              ref={animInfo.ref}
-              className={`w-full rounded-[12px] gap-[50px] mb-[24px] items-center md:p-[24px] p-[10px] flex flex-col md:flex-row h-auto bg-white shadow-sm transition-all duration-500 ease-out transform ${animInfo.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-            >
-              <div>
-                <img
-                  src={logo}
-                  alt="Logo Montezuma"
-                  className="xl:w-[280px] xl:flex hidden mr-[20px]"
-                />
-              </div>
-              <div className="w-full xl:w-[35%] md:w-[50%] md:px-2 px-[8%]">
-                <div className="flex flex-col md:items-start items-center">
-                  <h2 className="text-5xl text-black mb-[10px] md:mb-0">
-                    Montezuma
-                  </h2>
-                  <div className="w-full">
-                    <div className="mt-[25px] flex gap-2">
-                      <div className="w-10 h-10 shadow-sm bg-[#f1f1f1] flex items-center justify-center rounded-[8px]">
-                        <Building className="w-8 h-8 text-[#DC3B0B]" />
-                      </div>
-                      <div className="flex flex-col">
-                        <p className="text-[#919191] text-[14px]">Nome:</p>
-                        <p className="text-[16px] uppercase font-medium">
-                          {obra?.cliente || "Nome não disponível"}
-                        </p>
+            {secaoCliente === "resumo" ? (
+              <>
+                <div
+                  ref={animInfo.ref}
+                  className={`w-full rounded-2xl mb-6 justify-center items-center md:p-7 p-4 flex flex-col md:flex-row h-auto bg-gradient-to-b from-white to-slate-50/40 border border-slate-200/70 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.45)] transition-all duration-500 ease-out transform ${isConstrucao ? "gap-6" : "gap-10"} ${animInfo.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                >
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-1 rounded-t-4xl bg-gradient-to-r from-[#DC3B0B]/75 via-[#EE5B11]/60 to-[#FBA51B]/55" />
+                  <div className="w-full xl:w-[62%] md:w-[58%]">
+                    <div className="mb-4 flex items-center gap-3">
+                      <img
+                        src={logo}
+                        alt="Logo Montezuma"
+                        className="hidden h-14 w-auto rounded-xl bg-white p-1 shadow-sm xl:block"
+                      />
+                      <div>
+                        <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">
+                          {obra?.cliente || "Cliente não informado"}
+                        </h2>
                       </div>
                     </div>
-                    <div className="mt-[25px] flex gap-2">
-                      <div className="w-10 h-10 shadow-sm bg-[#f1f1f1] flex items-center justify-center rounded-[8px]">
-                        <MapPin className="w-8 h-8 text-[#DC3B0B]" />
-                      </div>
-                      <div className="flex flex-col">
-                        <p className="text-[#919191] text-[14px]">Endereço:</p>
-                        <p className="text-[16px] uppercase">
-                          {obra?.local || "Endereço não disponível"}
-                        </p>
-                      </div>
+
+                    <div className="mb-5 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                        {cliente?.tipo || obra?.clientes?.tipo || "Sem tipo"}
+                      </span>
+                      <span className="rounded-full border border-[#DC3B0B]/20 bg-[#DC3B0B]/10 px-3 py-1 text-xs font-semibold text-[#B93809] shadow-sm">
+                        {cliente?.status ||
+                          obra?.status ||
+                          "Status não disponível"}
+                      </span>
                     </div>
-                    <div className="mt-[25px] flex gap-2">
-                      <div className="w-10 h-10 shadow-sm bg-[#f1f1f1] flex items-center justify-center rounded-[8px]">
-                        <ClipboardList className="w-8 h-8 text-[#DC3B0B]" />
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          <Building className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                          Nome do cliente
+                        </p>
+                        <p className="mt-1 text-sm font-semibold uppercase text-slate-800">
+                          {obra?.cliente || "Não informado"}
+                        </p>
                       </div>
-                      <div className="flex flex-col">
-                        <p className="text-[#919191] text-[14px]">
-                          Status do Projeto:
+                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          <MapPin className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                          Endereço da obra
                         </p>
-                        <p className="text-[16px] uppercase">
-                          {cliente?.status || "Status não disponível"}
+                        <p className="mt-1 text-sm font-semibold uppercase text-slate-800">
+                          {obra?.local || "Não informado"}
                         </p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          <CalendarDays className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                          Data de início
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800">
+                          {formatarDataBR(obra?.data)}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          <ClipboardList className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                          Total de etapas
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800">
+                          {(obra?.etapas_selecionadas || []).length} etapa(s)
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm md:col-span-2">
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          <Handshake className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                          Modalidade do projeto
+                        </p>
+                        {podeEditarModalidade ? (
+                          <div className="mt-2">
+                            <select
+                              aria-label="Modalidade do projeto"
+                              value={modalidadeSlug}
+                              disabled={salvandoModalidade}
+                              onChange={(e) =>
+                                salvarModalidadeObra(e.target.value)
+                              }
+                              className="w-full max-w-sm rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm focus:border-[#DC3B0B]/40 focus:outline-none focus:ring-2 focus:ring-[#DC3B0B]/20 disabled:opacity-60"
+                            >
+                              <option value="empreitada">Empreitada</option>
+                              <option value="gestao">Gestão</option>
+                            </select>
+                            <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
+                              Em Gestão, relatórios ficam disponíveis nesta tela.
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="mt-1 text-sm font-semibold text-slate-800">
+                            {rotuloModalidade(obra?.modalidade)}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
+                  <div className="h-[2px] w-[85%] md:h-[85%] md:w-[2px] bg-gradient-to-b from-[#DC3B0B]/20 via-[#DC3B0B]/60 to-[#DC3B0B]/20"></div>
+                  <div className="w-full md:w-[30%] flex flex-col items-center justify-center mb-[30px] md:mb-0">
+                    <div className="relative rounded-[50%]">
+                      {cliente?.foto ? (
+                        <img
+                          src={cliente.foto}
+                          alt="Cliente"
+                          className="w-[150px] h-[150px] rounded-[50%] border-[3px] border-[#DC3B0B] object-cover"
+                        />
+                      ) : (
+                        <div className="w-[150px] h-[150px] rounded-[50%] border-[3px] border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1]">
+                          <UserRound className="w-[80px] h-[80px] text-[#DC3B0B]" />
+                        </div>
+                      )}
+                    </div>
+                    <h2 className="text-2xl font-bold text-black mt-4 text-center">
+                      {obra?.cliente || "Cliente não informado"}{" "}
+                      {isReforma && "- Reforma"}
+                    </h2>
+                    <p className="text-sm text-[#919191] text-center">
+                      {obra?.local || "Local não informada"}
+                    </p>
+                    <div className="mt-3 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
+                      <ClipboardList className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                      Status:{" "}
+                      {cliente?.status || obra?.status || "Não definido"}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="h-[3px] w-[85%] md:h-[85%] md:w-[3px] bg-[#DC3B0B] "></div>
-              <div className="w-full md:w-[30%] flex flex-col items-center justify-center mb-[30px] md:mb-0">
-                <div className="relative rounded-[50%]">
-                  {cliente?.foto ? (
-                    <img
-                      src={cliente.foto}
-                      alt="Cliente"
-                      className="w-[150px] h-[150px] rounded-[50%] border-[3px] border-[#DC3B0B] object-cover"
-                    />
+
+                <div className="mb-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_16px_38px_-30px_rgba(15,23,42,0.45)]">
+                  <h3 className="mb-5 text-[24px] font-bold text-[#464C54]">
+                    Histórico da obra
+                  </h3>
+                  {loadingHistorico ? (
+                    <p className="text-sm text-slate-500">
+                      Carregando histórico...
+                    </p>
+                  ) : historico.length === 0 ? (
+                    <p className="text-sm text-slate-500">
+                      Nenhuma atualização registrada.
+                    </p>
                   ) : (
-                    <div className="w-[150px] h-[150px] rounded-[50%] border-[3px] border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1]">
-                      <UserRound className="w-[80px] h-[80px] text-[#DC3B0B]" />
+                    <div className="space-y-3">
+                      {historico.map((item) => (
+                        <article
+                          key={item.id}
+                          className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-gradient-to-r from-slate-50/90 to-white p-4 shadow-[0_10px_22px_-20px_rgba(15,23,42,0.55)]"
+                        >
+                          <span className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#DC3B0B]/70 to-[#EE5B11]/40" />
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                              {item.author_nome || "Equipe Montezuma"}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {formatarDataHoraBR(item.created_at)}
+                            </p>
+                          </div>
+                          <p className="text-sm leading-relaxed text-slate-700">
+                            {item.mensagem}
+                          </p>
+                        </article>
+                      ))}
                     </div>
                   )}
                 </div>
-                <h2 className="text-2xl font-bold text-black mt-4 text-center">
-                  {obra?.cliente || "Cliente não informado"}{" "}
-                  {isReforma && "- Reforma"}
-                </h2>
-                <p className="text-sm text-[#919191] text-center">
-                  {obra?.local || "Local não informada"}
-                </p>
-              </div>
-            </div>
+              </>
+            ) : null}
 
-            <div
-              id="#financeiro"
-              ref={animFin.ref}
-              className={`w-full bg-white h-auto rounded-[12px] mb-[24px] p-[24px] shadow-sm relative overflow-hidden transition-all duration-500 ease-out transform ${animFin.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-            >
-              <h2 className="text-[24px] font-bold text-[#464C54] mb-[20px]">
-                Resumo Financeiro
-              </h2>
+            {secaoCliente === "etapas" ? (
               <div
-                className={`flex flex-col md:flex-row gap-[20px] transition-all duration-500 ease-in-out ${categoriaAtiva ? "md:h-[320px]" : "md:h-[280px] items-center justify-center"}`}
+                id="#etapas"
+                ref={animEtapas.ref}
+                className={`rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.45)] transition-all duration-500 ease-out transform ${animEtapas.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
               >
-                <div
-                  className={`flex flex-col transition-all duration-500 ease-in-out h-full ${categoriaAtiva ? "w-full md:w-[60%] justify-between" : "w-full md:w-[50%] justify-center items-center"}`}
-                >
-                  <div
-                    className={`w-full transition-all duration-500 ease-in-out overflow-hidden ${categoriaAtiva ? "max-h-[250px] opacity-100 mb-4" : "max-h-0 opacity-0"}`}
-                  >
-                    {categoriaAtiva &&
-                      (() => {
-                        const ativo = dataGrafico.find(
-                          (d) => d.name === categoriaAtiva,
-                        );
-                        return (
-                          <div className="bg-[#f6f6f6] border border-[#f1f1f1] rounded-[8px] p-5 shadow-sm h-auto">
-                            <h3 className="text-xl font-bold text-[#464C54] mb-2 uppercase">
-                              Visão: {ativo.name}
-                            </h3>
-                            <div className="flex flex-col md:flex-row md:items-end gap-3 mb-3">
-                              <span
-                                className="text-4xl font-bold"
-                                style={{ color: ativo.color }}
-                              >
-                                R$ {formatarMoeda(ativo.value)}
-                              </span>
-                              <span className="text-sm font-medium text-[#919191] mb-1">
-                                ({ativo.percentual}% do custo)
-                              </span>
-                            </div>
-                            <p className="text-sm text-[#71717A] leading-relaxed">
-                              Este painel consolida todos os gastos referentes a{" "}
-                              <strong>{ativo.name.toLowerCase()}</strong>. Foram
-                              registrados{" "}
-                              <strong className="text-black">
-                                {ativo.qtd}
-                              </strong>{" "}
-                              lançamentos.
-                            </p>
-                          </div>
-                        );
-                      })()}
-                  </div>
-                  <div
-                    className={`transition-all duration-500 ease-in-out ${categoriaAtiva ? "w-[140px] h-[140px] self-start" : "w-full h-[250px] md:h-full flex justify-center"}`}
-                  >
-                    {totais.materiais > 0 || totais.maoDeObra > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={dataGrafico}
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={categoriaAtiva ? 65 : 120}
-                            dataKey="value"
-                            stroke="none"
-                            onClick={(e, index) =>
-                              toggleCategoria(dataGrafico[index].name)
-                            }
-                            className="cursor-pointer outline-none"
-                          >
-                            {dataGrafico.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={entry.color}
-                                style={{
-                                  filter: `drop-shadow(0px 0px ${categoriaAtiva ? "4px" : "8px"} ${entry.color}99)`,
-                                  opacity:
-                                    categoriaAtiva &&
-                                    categoriaAtiva !== entry.name
-                                      ? 0.3
-                                      : 1,
-                                  transition: "opacity 0.4s ease",
-                                }}
-                              />
-                            ))}
-                          </Pie>
-                          {!categoriaAtiva && (
-                            <Tooltip
-                              formatter={(value) =>
-                                `R$ ${formatarMoeda(value)}`
-                              }
-                            />
-                          )}
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-full w-full text-[#919191] italic">
-                        Sem dados para gráfico.
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div
-                  className={`flex flex-col justify-center transition-all duration-500 ease-in-out w-full md:w-[40%]`}
-                >
-                  <div className="flex flex-col w-full bg-[#fcfcfc] border border-[#f1f1f1] rounded-[8px] shadow-sm z-10 relative">
-                    {dataGrafico.map((item, index) => (
-                      <div
-                        key={index}
-                        onClick={() => toggleCategoria(item.name)}
-                        className={`flex justify-between items-center py-3 border-b border-[#f1f1f1] last:border-b-0 cursor-pointer transition-all duration-300 rounded-md px-2 ${categoriaAtiva === item.name ? "bg-[#EEEDF0] scale-[1.02] shadow-sm" : "hover:bg-gray-50"}`}
+                <Etapas
+                  etapas={obra?.etapas_selecionadas || []}
+                  isCliente={user?.tipo === "cliente"}
+                  isReforma={isReforma}
+                />
+              </div>
+            ) : null}
+
+            {secaoCliente === "cronograma" ? (
+              <div id="#cronograma" className="mb-[24px]">
+                <CronogramaObra
+                  etapas={obra?.etapas_selecionadas || []}
+                  obraId={id}
+                  showLancarButton={false}
+                />
+              </div>
+            ) : null}
+
+            {exibirRelatorios && secaoCliente === "relatorios" ? (
+              <div
+                id="#relatorios"
+                className="w-full flex flex-col mb-[24px] gap-4"
+              >
+                <div className="mb-1 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+                  {[
+                    {
+                      id: "materiais",
+                      label: "Materiais",
+                      sub: "Compras e fornecedores",
+                    },
+                    {
+                      id: "mao",
+                      label: "Mão de Obra",
+                      sub: "Serviços e prestadores",
+                    },
+                    {
+                      id: "extrato",
+                      label: "Extrato financeiro",
+                      sub: "Movimentação consolidada",
+                    },
+                  ].map((opt) => {
+                    const on = subRelatorioCliente === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSubRelatorioCliente(opt.id)}
+                        className={[
+                          "flex flex-col items-start gap-0.5 rounded-2xl border p-3 text-left shadow-sm transition sm:p-4",
+                          on
+                            ? "border-[#DC3B0B]/35 bg-gradient-to-b from-white to-slate-50 ring-1 ring-[#DC3B0B]/15"
+                            : "border-slate-200 bg-white hover:bg-slate-50",
+                        ].join(" ")}
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-3 h-3 rounded-full transition-all duration-300"
-                            style={{
-                              backgroundColor: item.color,
-                              boxShadow: `0 0 10px ${item.color}`,
-                              opacity:
-                                categoriaAtiva && categoriaAtiva !== item.name
-                                  ? 0.4
-                                  : 1,
-                            }}
-                          ></div>
-                          <span
-                            className={`font-medium text-sm transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-[#a1a1a1]" : "text-[#464C54]"}`}
-                          >
-                            {item.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`font-semibold text-sm transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-[#a1a1a1]" : "text-[#464C54]"}`}
-                          >
-                            R$ {formatarMoeda(item.value)}
-                          </span>
-                          <span
-                            className={`text-xs font-medium w-[35px] text-right transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-[#d1d1d1]" : "text-[#919191]"}`}
-                          >
-                            {item.percentual}%
+                        <span
+                          className={[
+                            "text-sm font-semibold tracking-tight",
+                            on ? "text-[#DC3B0B]" : "text-[#464C54]",
+                          ].join(" ")}
+                        >
+                          {opt.label}
+                        </span>
+                        <span className="text-xs tracking-tight text-[#71717A]">
+                          {opt.sub}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {subRelatorioCliente === "materiais" ? (
+                  <div
+                    ref={animMat.ref}
+                    className={`bg-white border border-slate-200/80 rounded-2xl p-6 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.45)] flex flex-col gap-5 transition-all duration-500 ease-out transform ${animMat.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                  >
+                    <div
+                      className={`flex ${isMobile ? "flex-col gap-3" : "justify-between items-center"}`}
+                    >
+                      <h2 className="text-[24px] font-bold text-[#464C54]">
+                        Materiais
+                      </h2>
+                      <div className="flex flex-col md:flex-row items-center gap-4">
+                        <input
+                          type="text"
+                          placeholder="Buscar material..."
+                          value={buscaMateriais}
+                          onChange={(e) => setBuscaMateriais(e.target.value)}
+                          className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
+                        />
+                        <div className="h-[40px] justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center w-full whitespace-nowrap bg-gray-50">
+                          Total Lançado:{" "}
+                          <span className="font-bold ml-1 text-green-700">
+                            R$ {formatarMoeda(totais.materiais)}
                           </span>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                    <TabelaSimples
+                      colunas={[
+                        "Material",
+                        "Qtd",
+                        "Valor Un.",
+                        "Total",
+                        "Status",
+                        "Fornecedor",
+                        "Data",
+                      ]}
+                      dados={dadosMateriais}
+                    />
                   </div>
+                ) : null}
+
+                {subRelatorioCliente === "mao" ? (
                   <div
-                    className="bg-[#EEEDF0] border border-[#DBDADE] rounded-[8px] p-[8px] flex justify-between items-center shadow-sm mt-4 w-full cursor-pointer hover:bg-[#e4e3e6] transition-colors"
-                    onClick={() => setCategoriaAtiva(null)}
+                    ref={animMao.ref}
+                    className={`bg-white border border-slate-200/80 rounded-2xl p-6 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.45)] flex flex-col gap-5 transition-all duration-500 ease-out transform ${animMao.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
                   >
-                    <span className="font-bold text-black uppercase text-sm">
-                      Custo Total Lançado
-                    </span>
-                    <span className="font-bold text-[#2E7D32] text-lg">
-                      R$ {formatarMoeda(totais.materiais + totais.maoDeObra)}
-                    </span>
+                    <div
+                      className={`flex ${isMobile ? "flex-col gap-3" : "justify-between items-center"}`}
+                    >
+                      <h2 className="text-[24px] font-bold text-[#464C54]">
+                        Mão de Obra
+                      </h2>
+                      <div className="flex flex-col md:flex-row items-center gap-4">
+                        <input
+                          type="text"
+                          placeholder="Buscar serviço..."
+                          value={buscaMaoDeObra}
+                          onChange={(e) => setBuscaMaoDeObra(e.target.value)}
+                          className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
+                        />
+                        <div className="h-[40px] w-full justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
+                          Total Lançado:{" "}
+                          <span className="font-bold ml-1 text-green-700">
+                            R$ {formatarMoeda(totais.maoDeObra)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <TabelaSimples
+                      colunas={[
+                        "Validação",
+                        "Tipo",
+                        "Profissional",
+                        "Valor",
+                        "Data",
+                      ]}
+                      dados={dadosMaoDeObra}
+                    />
                   </div>
+                ) : null}
+
+                {subRelatorioCliente === "extrato" ? (
                   <div
-                    className={`text-center mt-3 transition-all duration-500 ${categoriaAtiva ? "opacity-100 max-h-[30px]" : "opacity-0 max-h-0"}`}
+                    ref={animExt.ref}
+                    className={`bg-white border border-slate-200/80 rounded-2xl p-6 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.45)] flex flex-col gap-5 transition-all duration-500 ease-out transform ${animExt.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
                   >
-                    <button
-                      onClick={() => setCategoriaAtiva(null)}
-                      className="text-xs text-[#DC3B0B] underline font-medium cursor-pointer"
-                    >
-                      Restaurar gráfico completo
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div
-              id="#etapas"
-              ref={animEtapas.ref}
-              className={`transition-all duration-500 ease-out transform ${animEtapas.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-            >
-              <Etapas
-                etapas={obra?.etapas_selecionadas || []}
-                isCliente={user?.tipo === "cliente"}
-                isReforma={isReforma}
-              />
-            </div>
-
-            <div
-              id="#relatorios"
-              className="w-full flex flex-col mb-[24px] gap-[24px]"
-            >
-              <div
-                ref={animMat.ref}
-                className={`bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px] transition-all duration-500 ease-out transform ${animMat.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-              >
-                <div
-                  className={`flex ${isMobile ? "flex-col gap-3" : "justify-between items-center"}`}
-                >
-                  <h2 className="text-[24px] font-bold text-[#464C54]">
-                    Materiais
-                  </h2>
-                  <div className="flex flex-col md:flex-row items-center gap-4">
-                    <input
-                      type="text"
-                      placeholder="Buscar material..."
-                      value={buscaMateriais}
-                      onChange={(e) => setBuscaMateriais(e.target.value)}
-                      className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
-                    />
-                    <div className="h-[40px] justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center w-full whitespace-nowrap bg-gray-50">
-                      Total Lançado:{" "}
-                      <span className="font-bold ml-1 text-green-700">
-                        R$ {formatarMoeda(totais.materiais)}
-                      </span>
+                    <div className="flex flex-col lg:flex-row gap-3 lg:justify-between lg:items-center">
+                      <h2 className="text-[24px] font-bold text-[#464C54]">
+                        Extrato Geral
+                      </h2>
+                      <div className="flex flex-col lg:flex-row gap-3 items-center">
+                        <select
+                          value={filtroExtrato}
+                          onChange={(e) => setFiltroExtrato(e.target.value)}
+                          className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none bg-white cursor-pointer"
+                        >
+                          <option value="Tudo">Todos</option>
+                          <option value="Materiais">Materiais</option>
+                          <option value="Mão de Obra">Mão de Obra</option>
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Buscar no extrato..."
+                          value={buscaExtrato}
+                          onChange={(e) => setBuscaExtrato(e.target.value)}
+                          className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none lg:w-[250px]"
+                        />
+                        <div className="h-[40px] w-full px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
+                          Total Extrato:{" "}
+                          <span className="font-bold ml-1 text-green-700">
+                            R$ {formatarMoeda(totais.extrato)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <TabelaSimples
-                  colunas={[
-                    "Material",
-                    "Qtd",
-                    "Valor Un.",
-                    "Total",
-                    "Status",
-                    "Fornecedor",
-                    "Data",
-                  ]}
-                  dados={dadosMateriais}
-                />
-              </div>
-
-              <div
-                ref={animMao.ref}
-                className={`bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px] transition-all duration-500 ease-out transform ${animMao.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-              >
-                <div
-                  className={`flex ${isMobile ? "flex-col gap-3" : "justify-between items-center"}`}
-                >
-                  <h2 className="text-[24px] font-bold text-[#464C54]">
-                    Mão de Obra
-                  </h2>
-                  <div className="flex flex-col md:flex-row items-center gap-4">
-                    <input
-                      type="text"
-                      placeholder="Buscar serviço..."
-                      value={buscaMaoDeObra}
-                      onChange={(e) => setBuscaMaoDeObra(e.target.value)}
-                      className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
+                    <TabelaSimples
+                      colunas={[
+                        "Descrição",
+                        "Tipo",
+                        "Qtd",
+                        "Valor",
+                        "Status Fin.",
+                        "Data",
+                      ]}
+                      dados={dadosExtrato}
                     />
-                    <div className="h-[40px] w-full justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
-                      Total Lançado:{" "}
-                      <span className="font-bold ml-1 text-green-700">
-                        R$ {formatarMoeda(totais.maoDeObra)}
-                      </span>
-                    </div>
                   </div>
-                </div>
-                <TabelaSimples
-                  colunas={[
-                    "Validação",
-                    "Tipo",
-                    "Profissional",
-                    "Valor",
-                    "Data",
-                  ]}
-                  dados={dadosMaoDeObra}
-                />
+                ) : null}
               </div>
-
-              <div
-                ref={animExt.ref}
-                className={`bg-white border border-[#DBDADE] rounded-[12px] p-[24px] shadow-sm flex flex-col gap-[20px] transition-all duration-500 ease-out transform ${animExt.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-              >
-                <div className="flex flex-col lg:flex-row gap-3 lg:justify-between lg:items-center">
-                  <h2 className="text-[24px] font-bold text-[#464C54]">
-                    Extrato Geral
-                  </h2>
-                  <div className="flex flex-col lg:flex-row gap-3 items-center">
-                    <select
-                      value={filtroExtrato}
-                      onChange={(e) => setFiltroExtrato(e.target.value)}
-                      className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none bg-white cursor-pointer"
-                    >
-                      <option value="Tudo">Todos</option>
-                      <option value="Materiais">Materiais</option>
-                      <option value="Mão de Obra">Mão de Obra</option>
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Buscar no extrato..."
-                      value={buscaExtrato}
-                      onChange={(e) => setBuscaExtrato(e.target.value)}
-                      className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none lg:w-[250px]"
-                    />
-                    <div className="h-[40px] w-full px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
-                      Total Extrato:{" "}
-                      <span className="font-bold ml-1 text-green-700">
-                        R$ {formatarMoeda(totais.extrato)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <TabelaSimples
-                  colunas={[
-                    "Descrição",
-                    "Tipo",
-                    "Qtd",
-                    "Valor",
-                    "Status Fin.",
-                    "Data",
-                  ]}
-                  dados={dadosExtrato}
-                />
-              </div>
-            </div>
-
-            <div
-              ref={animLista.ref}
-              className={`transition-all duration-500 ease-out transform ${animLista.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-            >
-              <ListaEtapas
-                etapas={obra.etapas_selecionadas}
-                isCliente={user?.tipo === "cliente"}
-                isReforma={isReforma}
-                onUpdateEtapas={async (novasEtapas) => {
-                  try {
-                    await api.updateEtapasObra(obra.id, novasEtapas);
-                    setObra((prev) => ({
-                      ...prev,
-                      etapas_selecionadas: novasEtapas,
-                    }));
-                  } catch (error) {
-                    console.error(error);
-                    alert("Erro ao atualizar a etapa");
-                  }
-                }}
-              />
-            </div>
+            ) : null}
           </div>
-
-          <header className="sticky bottom-0 z-50 flex w-full items-center justify-center border-t-2 border-[#DC3B0B]/25 bg-gradient-to-t from-slate-100/95 to-white/90 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(0,0,0,0.08)] backdrop-blur-md md:hidden">
-            <div className="w-full px-2 pt-1">
-              <ul className="m-0 flex list-none items-end justify-between w-full max-w-[800px] p-0">
-                <a
-                  href="#home"
-                  onClick={(e) => handleScroll(e, "#home")}
-                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500 transition active:scale-95 active:bg-slate-200/50"
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200/60 text-slate-700 ring-1 ring-slate-300/50 transition hover:bg-[#DC3B0B]/15 hover:text-[#DC3B0B] hover:ring-[#DC3B0B]/30">
-                    <House className="h-[22px] w-[22px]" />
-                  </span>
-                  <span className="truncate">Início</span>
-                </a>
-                <a
-                  href="#financeiro"
-                  onClick={(e) => handleScroll(e, "#financeiro")}
-                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500 transition active:scale-95 active:bg-slate-200/50"
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200/60 text-slate-700 ring-1 ring-slate-300/50 transition hover:bg-[#DC3B0B]/15 hover:text-[#DC3B0B] hover:ring-[#DC3B0B]/30">
-                    <CircleDollarSign className="h-[22px] w-[22px]" />
-                  </span>
-                  <span className="truncate">Financ.</span>
-                </a>
-                <a
-                  href="#etapas"
-                  onClick={(e) => handleScroll(e, "#etapas")}
-                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500 transition active:scale-95 active:bg-slate-200/50"
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200/60 text-slate-700 ring-1 ring-slate-300/50 transition hover:bg-[#DC3B0B]/15 hover:text-[#DC3B0B] hover:ring-[#DC3B0B]/30">
-                    <Icon iconNode={stairs} className="h-[22px] w-[22px]" />
-                  </span>
-                  <span className="truncate">Etapas</span>
-                </a>
-                <a
-                  href="#relatorios"
-                  onClick={(e) => handleScroll(e, "#relatorios")}
-                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500 transition active:scale-95 active:bg-slate-200/50"
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200/60 text-slate-700 ring-1 ring-slate-300/50 transition hover:bg-[#DC3B0B]/15 hover:text-[#DC3B0B] hover:ring-[#DC3B0B]/30">
-                    <ClipboardPlus className="h-[22px] w-[22px]" />
-                  </span>
-                  <span className="truncate">Relat.</span>
-                </a>
-                <li
-                  className="group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-0.5 rounded-t-xl px-1 py-1.5 text-[10px] font-semibold text-slate-500"
-                  onClick={handleAbrirModal}
-                  title="Alterar foto de perfil"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200/60 p-0.5 ring-2 ring-slate-300/50 transition group-active:scale-95 group-hover:ring-[#DC3B0B]/40">
-                    {cliente?.foto ? (
-                      <img
-                        src={cliente.foto}
-                        alt="Foto"
-                        className="h-full w-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserRound className="h-5 w-5 text-[#DC3B0B]" />
-                    )}
-                  </div>
-                  <span className="truncate">Perfil</span>
-                </li>
-              </ul>
-            </div>
-          </header>
         </div>
       )}
     </div>
