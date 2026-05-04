@@ -696,10 +696,10 @@ export default function ObraCliente() {
       {!isSomenteProcessos && (
         <div
           id="#home"
-          className="mt-6 flex w-full flex-col items-center justify-center gap-6 pb-24 md:mb-6 md:mt-0 md:pb-0"
+          className=" flex w-full flex-col items-center justify-center gap-6 pb-24 md:mb-6 md:mt-0 md:pb-0"
         >
-          <nav className="sticky top-0 z-40 mb-5 px-[5%] w-full rounded-b-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_14px_34px_-26px_rgba(15,23,42,0.55)] backdrop-blur">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <nav className="sticky top-0 z-40 mb-5 flex flex-row px-[5%] w-full rounded-b-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_14px_34px_-26px_rgba(15,23,42,0.55)] backdrop-blur">
+            <div className="flex flex-col gap-3 w-full flex-row items-center justify-between">
               <div className="hidden items-center gap-2 lg:flex">
                 <img
                   src={logo}
@@ -852,7 +852,8 @@ export default function ObraCliente() {
                               <option value="gestao">Gestão</option>
                             </select>
                             <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
-                              Em Gestão, relatórios ficam disponíveis nesta tela.
+                              Em Gestão, relatórios ficam disponíveis nesta
+                              tela.
                             </p>
                           </div>
                         ) : (
