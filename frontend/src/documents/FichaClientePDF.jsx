@@ -221,6 +221,9 @@ export default function FichaClientePDF({ cliente = {} }) {
             <Field label="RG" value={cliente.rg} />
             <Field label="Profissão" value={cliente.profissao} />
           </View>
+          <View style={styles.row}>
+            <Field label="E-mail" value={cliente.email} />
+          </View>
         </View>
 
         <View style={styles.section}>
