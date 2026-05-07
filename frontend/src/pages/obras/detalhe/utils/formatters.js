@@ -13,19 +13,21 @@ export function formatarMoeda(valor) {
 }
 
 export function getCorStatusMaterial(status) {
+  const chip =
+    "shadow-sm ring-1 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
   switch (status) {
     case "Solicitado":
-      return "bg-[#FFF3E0] text-[#E65100]";
+      return `${chip} bg-amber-500/18 text-amber-950 ring-amber-400/35`;
     case "Em cotação":
-      return "bg-[#F3E5F5] text-[#7B1FA2]";
+      return `${chip} bg-violet-500/15 text-violet-900 ring-violet-400/30`;
     case "Aprovado":
-      return "bg-[#E0F2F1] text-[#00695C]";
+      return `${chip} bg-teal-500/15 text-teal-900 ring-teal-400/30`;
     case "Aguardando entrega":
-      return "bg-[#E3F2FD] text-[#1565C0]";
+      return `${chip} bg-sky-500/15 text-sky-950 ring-sky-400/30`;
     case "Entregue":
-      return "bg-[#E8F5E9] text-[#2E7D32]";
+      return `${chip} bg-emerald-500/18 text-emerald-900 ring-emerald-500/35`;
     default:
-      return "bg-[#E3F2FD] text-[#1565C0]";
+      return `${chip} bg-sky-500/15 text-sky-950 ring-sky-400/30`;
   }
 }
 

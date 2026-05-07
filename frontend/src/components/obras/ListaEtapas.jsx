@@ -1,5 +1,5 @@
 import React, { useState, useCallback, memo } from "react";
-import { HardHat } from "lucide-react";
+import { Check, HardHat, ListTree } from "lucide-react";
 
 const EtapaCard = memo(
   ({ etapa, index, isCliente, indicePrimeiraPendente, onChange }) => {
@@ -50,127 +50,188 @@ const EtapaCard = memo(
 
     const corPreenchimento = isConcluido ? "#16a34a" : "#DC3B0B";
 
+    const badgeStatus =
+      isConcluido
+        ? "bg-emerald-500/15 text-emerald-900 ring-emerald-500/30"
+        : statusExibicao === "em andamento"
+          ? "bg-amber-500/15 text-amber-950 ring-amber-400/35"
+          : "bg-slate-500/10 text-slate-700 ring-slate-400/25";
+
+    const inputDataClass =
+      "h-9 w-full rounded-lg border border-border-primary/50 bg-white px-2.5 text-xs text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 disabled:cursor-not-allowed disabled:opacity-60";
+
     return (
       <div
-        className={`p-4 rounded-xl border flex flex-col gap-4 shadow-sm transition-colors duration-200 ${
+        className={`relative overflow-hidden rounded-xl border shadow-[0_4px_14px_rgba(0,0,0,0.06)] transition-all duration-200 ${
           isConcluido
-            ? "bg-green-50 border-green-200"
-            : "bg-white border-[#C4C4C9]"
+            ? "border-emerald-500/35 bg-gradient-to-br from-emerald-50/90 to-white ring-1 ring-emerald-500/15"
+            : statusExibicao === "em andamento"
+              ? "border-accent-primary/25 bg-gradient-to-br from-accent-primary-50/80 to-white ring-1 ring-accent-primary/10"
+              : "border-border-primary/40 bg-white ring-1 ring-black/[0.03]"
         }`}
       >
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <h3
-              className={`font-bold text-[16px] ${isConcluido ? "text-green-800 line-through" : "text-[#464C54]"}`}
-            >
-              {etapa.nome}
-            </h3>
-            <div className="flex items-center gap-2 mt-1">
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+        {!isConcluido && statusExibicao === "em andamento" ? (
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-accent-primary to-accent-primary/50"
+            aria-hidden
+          />
+        ) : null}
+        {isConcluido ? (
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-emerald-400/70"
+            aria-hidden
+          />
+        ) : null}
+
+        <div className="flex flex-col gap-2.5 p-2.5 sm:gap-3 sm:p-3">
+          <div className="flex items-start justify-between gap-2.5">
+            <div className="min-w-0 flex-1">
+              <h3
+                className={`text-[13px] font-bold leading-snug tracking-tight sm:text-sm ${
                   isConcluido
-                    ? "bg-green-200 text-green-800"
-                    : statusExibicao === "em andamento"
-                      ? "bg-orange-100 text-orange-800"
-                      : "bg-gray-200 text-gray-700"
+                    ? "text-emerald-900 line-through decoration-emerald-600/50"
+                    : "text-text-primary"
                 }`}
               >
-                {statusExibicao}
-              </span>
+                {etapa.nome}
+              </h3>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ring-1 ${badgeStatus}`}
+                >
+                  {statusExibicao}
+                </span>
 
-              <div className="flex items-center">
-                {isCliente ? (
-                  <span className="text-[12px] font-semibold text-gray-500">
-                    {progressoLocal}%
-                  </span>
-                ) : (
-                  <>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={progressoLocal}
-                      onChange={(e) => setProgressoLocal(e.target.value)}
-                      onBlur={() => handleCommitProgresso(progressoLocal)}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" &&
-                        handleCommitProgresso(progressoLocal)
-                      }
-                      className="w-8 text-[12px] font-semibold text-gray-700 bg-transparent border-b border-gray-300 focus:outline-none focus:border-[#464C54] text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <span className="text-[12px] font-semibold text-gray-500 ml-0.5">
-                      %
+                <div className="flex items-center rounded-full bg-black/[0.04] px-1.5 py-0.5 ring-1 ring-black/[0.05]">
+                  {isCliente ? (
+                    <span className="text-xs font-semibold tabular-nums text-text-muted">
+                      {progressoLocal}%
                     </span>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={progressoLocal}
+                        onChange={(e) => setProgressoLocal(e.target.value)}
+                        onBlur={() => handleCommitProgresso(progressoLocal)}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" &&
+                          handleCommitProgresso(progressoLocal)
+                        }
+                        className="w-9 bg-transparent text-center text-xs font-semibold tabular-nums text-text-primary [appearance:textfield] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                      <span className="text-xs font-semibold text-text-muted">
+                        %
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <input
-            type="checkbox"
-            checked={isConcluido}
-            disabled={isCliente}
-            onChange={handleCheckboxChange}
-            className={`w-5 h-5 accent-green-600 flex-shrink-0 ${isCliente ? "cursor-not-allowed" : "cursor-pointer"}`}
-          />
-        </div>
-
-        <div className="w-full flex flex-col gap-1">
-          <label className="text-[11px] text-[#71717A] font-medium uppercase tracking-wider">
-            Progresso da Etapa
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={progressoLocal}
-            disabled={isCliente}
-            onChange={handleSliderChange}
-            onMouseUp={() => handleCommitProgresso(progressoLocal)}
-            onTouchEnd={() => handleCommitProgresso(progressoLocal)}
-            className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#464C54] ${
-              isCliente ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            style={{
-              background: `linear-gradient(to right, ${corPreenchimento} ${progressoNum}%, #E5E7EB ${progressoNum}%)`,
-            }}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col">
-            <label className="text-[12px] text-[#71717A] mb-1 font-medium">
-              Início
-            </label>
             <input
-              type="date"
-              value={etapa.data_inicio || ""}
+              type="checkbox"
+              checked={isConcluido}
               disabled={isCliente}
-              onChange={(e) =>
-                onChange(etapa.nome, "data_inicio", e.target.value)
-              }
-              className="p-1.5 text-[13px] border border-[#DBDADE] rounded-md bg-transparent focus:outline-none focus:border-[#464C54]"
+              onChange={handleCheckboxChange}
+              className={`mt-0.5 h-4 w-4 shrink-0 rounded border-border-primary text-emerald-600 accent-emerald-600 focus:ring-2 focus:ring-emerald-500/30 ${
+                isCliente ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+              }`}
             />
           </div>
-          <div className="flex flex-col">
-            <label className="text-[12px] text-[#71717A] mb-1 font-medium">
-              Conclusão
-            </label>
+
+          <div className="flex w-full flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-[9px] font-bold uppercase tracking-[0.13em] text-text-muted">
+                Progresso da etapa
+              </label>
+              <span className="text-[10px] font-semibold tabular-nums text-text-muted">
+                {progressoNum}%
+              </span>
+            </div>
             <input
-              type="date"
-              value={etapa.data_conclusao || ""}
+              type="range"
+              min="0"
+              max="100"
+              value={progressoLocal}
               disabled={isCliente}
-              onChange={(e) =>
-                onChange(etapa.nome, "data_conclusao", e.target.value)
-              }
-              className="p-1.5 text-[13px] border border-[#DBDADE] rounded-md bg-transparent focus:outline-none focus:border-[#464C54]"
+              onChange={handleSliderChange}
+              onMouseUp={() => handleCommitProgresso(progressoLocal)}
+              onTouchEnd={() => handleCommitProgresso(progressoLocal)}
+              className={`h-1.5 w-full cursor-pointer appearance-none rounded-full accent-accent-primary disabled:cursor-not-allowed disabled:opacity-50 ${
+                isCliente ? "" : ""
+              }`}
+              style={{
+                background: `linear-gradient(to right, ${corPreenchimento} ${progressoNum}%, #E5E7EB ${progressoNum}%)`,
+              }}
             />
+          </div>
+
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-semibold text-text-muted">
+                Início
+              </label>
+              <input
+                type="date"
+                value={etapa.data_inicio || ""}
+                disabled={isCliente}
+                onChange={(e) =>
+                  onChange(etapa.nome, "data_inicio", e.target.value)
+                }
+                className={inputDataClass}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-semibold text-text-muted">
+                Conclusão
+              </label>
+              <input
+                type="date"
+                value={etapa.data_conclusao || ""}
+                disabled={isCliente}
+                onChange={(e) =>
+                  onChange(etapa.nome, "data_conclusao", e.target.value)
+                }
+                className={inputDataClass}
+              />
+            </div>
           </div>
         </div>
       </div>
     );
   },
 );
+
+function TimelineStep({ index, isConcluido, isActive, isLast }) {
+  return (
+    <div className="relative flex w-9 shrink-0 flex-col items-center sm:w-10">
+      {!isLast ? (
+        <div
+          className="absolute left-1/2 top-9 z-0 h-[calc(100%+1.15rem)] w-px -translate-x-1/2 bg-gradient-to-b from-border-primary/45 via-border-primary/25 to-border-primary/10"
+          aria-hidden
+        />
+      ) : null}
+      <div
+        className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold shadow-md transition-all sm:h-9 sm:w-9 ${
+          isConcluido
+            ? "border-emerald-500 bg-emerald-500 text-white shadow-emerald-500/25"
+            : isActive
+              ? "border-accent-primary bg-accent-primary-50 text-accent-primary shadow-accent-primary/15 ring-2 ring-accent-primary/20"
+              : "border-border-primary/60 bg-white text-text-muted shadow-sm"
+        }`}
+      >
+        {isConcluido ? (
+          <Check className="h-5 w-5 sm:h-5 sm:w-5" strokeWidth={2.75} />
+        ) : (
+          <span className="tabular-nums">{index + 1}</span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function ListaEtapas({
   etapas = [],
@@ -245,23 +306,44 @@ export default function ListaEtapas({
     [etapas, isCliente, onUpdateEtapas],
   );
 
+  const shellClass =
+    "rounded-2xl border border-border-primary/35 bg-white px-4 py-5 shadow-[0_5px_20px_rgba(0,0,0,0.08)] sm:px-6 sm:py-6";
+
   if (!etapas || etapas.length === 0) {
     return (
-      <div className="p-4 bg-surface border border-border-primary rounded-[12px] shadow-sm mt-2 mb-4">
-        <div className="mb-5 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <h2 className="text-[24px] font-bold text-text-primary">
-            Lista de Etapas
-          </h2>
-          {headerAction}
+      <div className={`${shellClass} mt-2 mb-4`}>
+        <div className="mb-6 flex flex-col gap-4 border-b border-border-primary/25 pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/15">
+              <ListTree className="h-5 w-5" strokeWidth={2.25} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
+                Cronograma
+              </p>
+              <h2 className="mt-0.5 text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
+                Lista de etapas
+              </h2>
+              <p className="mt-1 max-w-xl text-sm text-text-muted">
+                Organize as fases da obra e acompanhe o avanço de cada uma.
+              </p>
+            </div>
+          </div>
+          {headerAction ? (
+            <div className="shrink-0 sm:self-center">{headerAction}</div>
+          ) : null}
         </div>
-        <div className="w-full flex justify-center items-center min-h-[24vh]">
-          <div className="w-full bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
-            <HardHat className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-[#464C54] mb-2">
+        <div className="flex min-h-[22vh] w-full items-center justify-center rounded-2xl border border-dashed border-border-primary/50 bg-gradient-to-br from-[#FAFAFA] to-white px-4 py-12">
+          <div className="max-w-md text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-border-primary/30">
+              <HardHat className="h-8 w-8 text-text-muted" strokeWidth={1.75} />
+            </div>
+            <h3 className="text-lg font-bold text-text-primary sm:text-xl">
               Nenhuma etapa definida
-            </h2>
-            <p className="text-gray-500">
-              Acesse o menu de seleção de etapas para começar o cronograma.
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-text-muted">
+              Use o botão acima para adicionar etapas e montar o cronograma desta
+              obra.
             </p>
           </div>
         </div>
@@ -273,25 +355,72 @@ export default function ListaEtapas({
     (e) => e.status !== "concluído",
   );
 
+  const concluidas = etapas.filter(
+    (e) => e.status === "concluído" || (e.progresso || 0) === 100,
+  ).length;
+
   return (
-    <div className="p-4 bg-surface border border-border-primary rounded-[12px] shadow-sm mt-2 mb-4">
-      <div className="mb-5 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="text-[24px] font-bold text-text-primary">
-          Lista de Etapas
-        </h2>
-        {headerAction}
+    <div className={`${shellClass} mt-2 mb-4`}>
+      <div className="mb-4 flex flex-col gap-3 border-b border-border-primary/25 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/15">
+              <ListTree className="h-[18px] w-[18px]" strokeWidth={2.25} />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
+              Cronograma
+            </p>
+              <h2 className="mt-0.5 text-base font-bold tracking-tight text-text-primary sm:text-lg">
+              Lista de etapas
+            </h2>
+              <p className="mt-1 text-xs text-text-muted sm:text-sm">
+              <span className="font-semibold text-text-primary">
+                {concluidas}
+              </span>
+              {" de "}
+              <span className="font-semibold text-text-primary">
+                {etapas.length}
+              </span>
+              {" etapas concluídas"}
+            </p>
+          </div>
+        </div>
+        {headerAction ? (
+          <div className="shrink-0 sm:self-center">{headerAction}</div>
+        ) : null}
       </div>
-      <div className="flex flex-col gap-4">
-        {etapas.map((etapa, index) => (
-          <EtapaCard
-            key={etapa.nome}
-            etapa={etapa}
-            index={index}
-            isCliente={isCliente}
-            indicePrimeiraPendente={indicePrimeiraPendente}
-            onChange={handleChange}
-          />
-        ))}
+
+      <div className="flex flex-col gap-0">
+        {etapas.map((etapa, index) => {
+          const progressoNum = parseInt(etapa.progresso) || 0;
+          const isConcluido =
+            progressoNum === 100 || etapa.status === "concluído";
+          const isActive =
+            etapa.status === "em andamento" || index === indicePrimeiraPendente;
+
+          return (
+            <div
+              key={etapa.nome}
+              className="relative flex gap-2 pb-4 last:pb-0 sm:gap-3"
+            >
+              <TimelineStep
+                index={index}
+                isConcluido={isConcluido}
+                isActive={isActive && !isConcluido}
+                isLast={index === etapas.length - 1}
+              />
+              <div className="min-w-0 flex-1 pt-0.5">
+                <EtapaCard
+                  etapa={etapa}
+                  index={index}
+                  isCliente={isCliente}
+                  indicePrimeiraPendente={indicePrimeiraPendente}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import DiarioObras from "../../components/obras/DiarioObras";
 import CronogramaObra from "../../components/obras/CronogramaObra";
 import { useObraById } from "./detalhe/hooks/useObraById";
 import { useObraFinancialSummary } from "./detalhe/hooks/useObraFinancialSummary";
+import { useIsMobile } from "./detalhe/hooks/useIsMobile";
 import { useObrasDetalheTableData } from "./detalhe/hooks/useObrasDetalheTableData";
 import ObraDetalheHeader from "./detalhe/components/ObraDetalheHeader";
 import ObraDetalheResumoFinanceiro from "./detalhe/components/ObraDetalheResumoFinanceiro";
@@ -25,12 +26,13 @@ import {
 } from "./detalhe/utils/obraDetalhePdf";
 import FeedbackModal from "../../components/gerais/FeedbackModal";
 import { useAuth } from "../../contexts/AuthContext";
-import { MessageSquareText, Send } from "lucide-react";
+import { Hammer, Loader2, MessageSquareText, Send } from "lucide-react";
 
 export default function ObrasDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile(768);
   const { obra, setObra, fetchDados } = useObraById(id);
   const [categoriaAtiva, setCategoriaAtiva] = useState(null);
   const [secaoObra, setSecaoObra] = useState("resumo");
@@ -404,11 +406,6 @@ export default function ObrasDetalhe() {
     [fetchDados, setObra],
   );
 
-  /**
-   * Abre o PDF direto no visualizador nativo do browser.
-   * `window.open` é chamada de forma síncrona para evitar popup blocker;
-   * atualizamos o src assim que o Blob fica pronto.
-   */
   const abrirPdfEmNovaAba = async (gerador, fallbackNome) => {
     const novaAba = window.open("", "_blank");
     try {
@@ -664,24 +661,84 @@ export default function ObrasDetalhe() {
 
   if (!obra)
     return (
-      <div className="flex justify-center mt-20 font-bold text-[#71717A]">
-        Carregando Obra...
+      <div className="flex min-h-screen items-center justify-center bg-[#FAFAFA] px-[5%] py-12">
+        <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border-primary/35 bg-white px-8 py-10 text-center shadow-[0_8px_32px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04]">
+          <div
+            className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent-primary/[0.07]"
+            aria-hidden
+          />
+          <div className="relative">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/15">
+              <Hammer className="h-6 w-6" strokeWidth={2} />
+            </div>
+            <Loader2
+              className="mx-auto mb-4 h-9 w-9 animate-spin text-accent-primary"
+              strokeWidth={2.25}
+              aria-hidden
+            />
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
+              Obra
+            </p>
+            <h2 className="mt-1 text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+              Carregando detalhes
+            </h2>
+            <p className="mx-auto mt-2 max-w-xs text-sm text-text-muted">
+              Sincronizando materiais, etapas e financeiro deste projeto.
+            </p>
+            <div
+              className="mx-auto mt-6 flex justify-center gap-1.5"
+              aria-hidden
+            >
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="h-2 w-2 animate-bounce rounded-full bg-accent-primary/75"
+                  style={{ animationDelay: `${i * 0.12}s` }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
 
+  const inputPremium =
+    "box-border min-h-11 h-11 w-full min-w-0 shrink-0 rounded-xl border border-border-primary/55 bg-white px-3 text-sm text-text-primary shadow-sm transition-all placeholder:text-text-muted focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
+
+  const selectPremium =
+    "box-border min-h-11 h-11 w-full min-w-0 shrink-0 cursor-pointer rounded-xl border border-border-primary/55 bg-white px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
+
+  const btnOutlinePremium =
+    "!h-11 !w-full !cursor-pointer !rounded-xl !border !border-border-primary/50 !bg-white !px-4 !text-sm !font-semibold !text-text-primary !shadow-sm transition-all hover:!-translate-y-0.5 hover:!border-accent-primary/35 hover:!shadow-md focus:!outline-none focus:!ring-2 focus:!ring-accent-primary/25 active:!translate-y-0 disabled:!cursor-not-allowed sm:!w-auto";
+
+  const btnAccentPremium =
+    "!h-11 !cursor-pointer !rounded-xl !border !border-accent-primary !bg-accent-primary !px-4 !text-sm !font-semibold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:!-translate-y-0.5 hover:!bg-accent-primary-dark hover:!shadow-lg focus:!outline-none focus:!ring-2 focus:!ring-accent-primary/35 focus:!ring-offset-2 active:!translate-y-0 disabled:!cursor-not-allowed";
+
+  const reportCardShell =
+    "w-full max-w-full overflow-hidden rounded-2xl border border-border-primary/35 bg-white px-4 py-5 shadow-[0_5px_20px_rgba(0,0,0,0.08)] sm:px-6 sm:py-6";
+
+  const totalBarClass =
+    "flex min-h-[44px] w-full flex-wrap items-center justify-center gap-1 rounded-xl border border-border-primary/40 bg-[#FAFAFA] px-4 py-3 text-center text-base font-semibold text-text-primary shadow-inner ring-1 ring-black/[0.04]";
+
   return (
-    <div className="flex flex-col items-center min-h-screen bg-bg-primary pb-8">
+    <div className="flex min-h-screen flex-col items-center overflow-x-hidden bg-[#FAFAFA] pb-10">
       <ObraDetalheHeader
         navigate={navigate}
         obra={obra}
         isReforma={isReforma}
+        isMobile={isMobile}
+        isEncarregado={isEncarregado}
+        onNovoMaterial={() => setModalMateriaisOpen(true)}
+        onNovaMaoDeObra={() => setModalMaoDeObraOpen(true)}
       />
-      <main className="w-[90%] mt-2 sm:mt-3">
+      <main className="mt-3 w-full px-[5%] sm:mt-4">
         <nav
-          className="mb-2 w-full tracking-tight"
+          className="mb-4 w-full tracking-tight"
           aria-label="Secções da obra"
         >
-          <div className="inline-flex max-w-full flex-wrap gap-0.5 rounded-2xl bg-surface-alt p-1 ring-1 ring-border-primary/30">
+          <div
+            className={`inline-flex max-w-full rounded-2xl border border-border-primary/30 bg-white p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.03] ${isMobile ? "flex w-full flex-col gap-1" : "flex flex-wrap gap-1"}`}
+          >
             {secoesPermitidas.map((aba) => {
               const ativa = secaoObra === aba.id;
               return (
@@ -695,10 +752,11 @@ export default function ObrasDetalhe() {
                     }
                   }}
                   className={[
-                    "min-h-[2.25rem] rounded-xl px-3 py-1.5 text-xs font-medium transition sm:min-h-0 sm:px-4 sm:py-2 sm:text-sm",
+                    "min-h-[2.75rem] cursor-pointer rounded-xl px-4 py-2 text-xs font-semibold transition-all sm:min-h-[2.25rem] sm:text-sm",
+                    isMobile ? "w-full" : "",
                     ativa
-                      ? "bg-surface text-text-primary shadow-sm"
-                      : "text-text-muted hover:text-text-primary",
+                      ? "bg-accent-primary text-white shadow-md shadow-accent-primary/25"
+                      : "text-text-muted hover:bg-[#FAFAFA] hover:text-text-primary",
                   ].join(" ")}
                 >
                   {aba.label}
@@ -717,43 +775,47 @@ export default function ObrasDetalhe() {
         {secaoObra === "resumo" && !isEncarregado && (
           <div className="mb-6 w-full">
             <DiarioObras obraId={id} />
-            <div className="mt-6 rounded-2xl border border-border-primary/80 bg-surface p-4 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className="text-base font-semibold text-text-primary">
+            <div className="mt-6 rounded-2xl border border-border-primary/35 bg-white p-4 shadow-[0_5px_20px_rgba(0,0,0,0.08)] sm:p-6">
+              <div
+                className={`mb-4 flex gap-4 ${isMobile ? "flex-col" : "flex-row flex-wrap items-center justify-between"}`}
+              >
+                <h3 className="text-base font-bold tracking-tight text-text-primary sm:text-lg">
                   Histórico da obra
                 </h3>
                 <ButtonDefault
                   type="button"
                   onClick={() => setShowNovoHistorico((prev) => !prev)}
-                  className="!h-9 !px-3 !text-xs !font-semibold"
+                  className={`${btnOutlinePremium} !min-w-0`}
                 >
-                  <span className="inline-flex items-center gap-1">
-                    <MessageSquareText className="h-4 w-4" />
+                  <span className="inline-flex items-center gap-2">
+                    <MessageSquareText className="h-4 w-4 shrink-0" />
                     {showNovoHistorico ? "Fechar" : "Novo lançamento"}
                   </span>
                 </ButtonDefault>
               </div>
 
               {showNovoHistorico ? (
-                <div className="mb-4 rounded-xl border border-border-primary/70 bg-surface-alt p-3">
+                <div className="mb-4 rounded-2xl border border-border-primary/35 bg-[#FAFAFA] p-4 shadow-inner">
                   <textarea
                     value={novaMensagemHistorico}
                     onChange={(e) => setNovaMensagemHistorico(e.target.value)}
                     rows={3}
                     placeholder="Adicionar atualização para o cliente..."
-                    className="w-full resize-none rounded-xl border border-border-primary/70 px-3 py-2 text-sm text-text-primary focus:outline-none"
+                    className={`${inputPremium} resize-none`}
                   />
-                  <div className="mt-2 flex justify-end">
+                  <div
+                    className={`mt-3 flex ${isMobile ? "justify-stretch" : "justify-end"}`}
+                  >
                     <ButtonDefault
                       type="button"
                       onClick={handleAdicionarHistorico}
                       disabled={
                         savingHistoricoObra || !novaMensagemHistorico.trim()
                       }
-                      className="!h-9 !px-3 !text-xs !font-semibold"
+                      className={`${btnAccentPremium} ${isMobile ? "!w-full" : ""}`}
                     >
-                      <span className="inline-flex items-center gap-1">
-                        <Send className="h-4 w-4" />
+                      <span className="inline-flex items-center gap-2">
+                        <Send className="h-4 w-4 shrink-0" />
                         Publicar
                       </span>
                     </ButtonDefault>
@@ -762,7 +824,7 @@ export default function ObrasDetalhe() {
               ) : null}
 
               {loadingHistoricoObra ? (
-                <p className="text-sm text-text-muted">
+                <p className="text-sm font-medium text-text-muted">
                   Carregando histórico...
                 </p>
               ) : historicoObra.length === 0 ? (
@@ -774,13 +836,13 @@ export default function ObrasDetalhe() {
                   {historicoObra.map((item) => (
                     <article
                       key={item.id}
-                      className="rounded-xl border border-border-primary/70 bg-surface-alt p-3"
+                      className="rounded-2xl border border-border-primary/30 bg-[#FAFAFA] p-4 shadow-sm transition-shadow hover:shadow-md"
                     >
-                      <div className="mb-1 flex items-center justify-between gap-2">
+                      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                         <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                           {item.author_nome || "Equipe Montezuma"}
                         </p>
-                        <p className="text-xs text-text-muted">
+                        <p className="text-xs font-medium text-text-muted">
                           {formatarDataHoraBR(item.created_at)}
                         </p>
                       </div>
@@ -823,7 +885,7 @@ export default function ObrasDetalhe() {
         {secaoObra === "relatorios" && (
           <div className="mb-4 w-full">
             {!isEncarregado && (
-              <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+              <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                 {[
                   {
                     id: "materiais",
@@ -848,21 +910,21 @@ export default function ObrasDetalhe() {
                       type="button"
                       onClick={() => setSubRelatorio(opt.id)}
                       className={[
-                        "flex flex-col items-start gap-0.5 rounded-2xl border p-3 text-left shadow-sm transition sm:p-4",
+                        "flex w-full cursor-pointer flex-col items-start gap-1 rounded-2xl border p-4 text-left shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all sm:p-5",
                         on
-                          ? "border-accent-primary/40 bg-surface ring-1 ring-accent-primary/20"
-                          : "border-border-primary/80 bg-surface hover:bg-surface-alt",
+                          ? "border-accent-primary/45 bg-white ring-2 ring-accent-primary/20"
+                          : "border-border-primary/35 bg-white hover:-translate-y-0.5 hover:border-accent-primary/25 hover:shadow-md",
                       ].join(" ")}
                     >
                       <span
                         className={[
-                          "text-sm font-semibold tracking-tight",
+                          "text-sm font-bold tracking-tight",
                           on ? "text-accent-primary" : "text-text-primary",
                         ].join(" ")}
                       >
                         {opt.label}
                       </span>
-                      <span className="text-xs tracking-tight text-text-muted">
+                      <span className="text-xs leading-snug tracking-tight text-text-muted">
                         {opt.sub}
                       </span>
                     </button>
@@ -873,29 +935,36 @@ export default function ObrasDetalhe() {
 
             {subRelatorio === "materiais" && !isEncarregado && (
               <div>
-                <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-0 pt-5 pb-5 sm:pt-6 sm:pb-6">
-                  <div className="flex w-full flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
-                    <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
+                <div
+                  className={`${reportCardShell} flex flex-col items-stretch gap-5 text-left sm:gap-6`}
+                >
+                  <div
+                    className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
+                  >
+                    <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
                       Relatório de Materiais
                     </h1>
-                    <div className="flex w-full max-w-full flex-wrap items-center gap-2 md:max-w-2xl md:justify-end">
+                    <div
+                      className={`flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-end`}
+                    >
                       <input
                         type="text"
                         placeholder="Buscar por material ou fornecedor..."
                         value={buscaMateriais}
                         onChange={(e) => setBuscaMateriais(e.target.value)}
-                        className="h-10 w-full min-w-0 flex-1 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[300px] md:flex-none"
+                        className={`${inputPremium} lg:max-w-[400px] lg:min-w-0 lg:flex-1`}
                       />
                       <ButtonDefault
                         type="button"
                         onClick={() => setModalMateriaisOpen(true)}
-                        className="!h-10 !shrink-0 !whitespace-nowrap !px-4 !text-sm"
+                        className={`${btnAccentPremium} shrink-0 lg:!w-auto`}
                       >
                         Novo material
                       </ButtonDefault>
                     </div>
                   </div>
                   <TabelaSimples
+                    variant="obraDetalhe"
                     colunas={[
                       "Material",
                       "Quantidade",
@@ -903,21 +972,21 @@ export default function ObrasDetalhe() {
                       "Valor",
                       <span
                         key="col-status"
-                        className="cursor-pointer hover:text-blue-600 select-none"
+                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
                         onClick={() => handleSortMateriais("status")}
                       >
                         Status ↕
                       </span>,
                       <span
                         key="col-forn"
-                        className="cursor-pointer hover:text-blue-600 select-none"
+                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
                         onClick={() => handleSortMateriais("fornecedor")}
                       >
                         Fornecedor ↕
                       </span>,
                       <span
                         key="col-data"
-                        className="cursor-pointer hover:text-blue-600 select-none"
+                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
                         onClick={() => handleSortMateriais("data")}
                       >
                         Data ↕
@@ -927,16 +996,20 @@ export default function ObrasDetalhe() {
                     ]}
                     dados={dadosMateriais}
                   />
-                  <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:h-[42px] md:flex-row">
+                  <div
+                    className={`flex w-full flex-col items-stretch justify-between gap-4 sm:items-center md:flex-row md:flex-wrap md:justify-center`}
+                  >
                     <ButtonDefault
                       onClick={handleGerarRelatorioMateriais}
-                      className="w-[90%] max-w-[450px]"
+                      className={btnOutlinePremium}
                     >
                       Relatório Materiais
                     </ButtonDefault>
-                    <div className="flex h-[40px] w-[90%] max-w-[450px] items-center justify-center gap-[4px] border border-border-muted rounded-[6px] p-2 text-[18px] text-text-primary">
-                      Total Lançado:{" "}
-                      <span> R$ {formatarMoeda(totais.materiais)}</span>
+                    <div className={totalBarClass}>
+                      <span className="text-text-muted">Total lançado:</span>
+                      <span className="font-bold tabular-nums text-text-primary">
+                        R$ {formatarMoeda(totais.materiais)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -945,35 +1018,42 @@ export default function ObrasDetalhe() {
 
             {subRelatorio === "mao" && (
               <div>
-                <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-3 pt-5 pb-5 sm:pt-6 sm:pb-6 sm:mt-4">
-                  <div className="flex w-full flex-col flex-wrap gap-4 md:flex-row md:items-center md:justify-between md:gap-3">
-                    <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
+                <div
+                  className={`${reportCardShell} mt-3 flex flex-col items-stretch gap-5 text-left sm:mt-4 sm:gap-6`}
+                >
+                  <div
+                    className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
+                  >
+                    <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
                       Relatório de Mão de Obra
                     </h1>
-                    <div className="flex w-full max-w-full flex-wrap items-center gap-2 md:max-w-[560px] md:justify-end">
+                    <div
+                      className={`flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-end`}
+                    >
                       <input
                         type="text"
                         placeholder="Buscar serviço ou prestador..."
                         value={buscaMaoDeObra}
                         onChange={(e) => setBuscaMaoDeObra(e.target.value)}
-                        className="h-[40px] w-full min-w-0 flex-1 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[250px] md:flex-none"
+                        className={`${inputPremium} lg:max-w-[400px] lg:min-w-0 lg:flex-1`}
                       />
                       <ButtonDefault
                         type="button"
                         onClick={() => setModalMaoDeObraOpen(true)}
-                        className="!h-10 !whitespace-nowrap !px-4 !text-sm !shadow-sm"
+                        className={`${btnAccentPremium} shrink-0 lg:!w-auto`}
                       >
                         Nova mão de obra
                       </ButtonDefault>
                     </div>
                   </div>
                   <TabelaSimples
+                    variant="obraDetalhe"
                     colunas={[
                       "Validação",
                       "Serviço",
                       <span
                         key="col-prest"
-                        className="cursor-pointer hover:text-blue-600 select-none"
+                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
                         onClick={() => handleSortMdo("profissional")}
                       >
                         Prestador ↕
@@ -988,26 +1068,32 @@ export default function ObrasDetalhe() {
                     dados={dadosMaoDeObra}
                   />
 
-                  <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:flex-row md:flex-wrap">
+                  <div
+                    className={`flex w-full flex-col items-stretch gap-4 md:flex-row md:flex-wrap md:items-center md:justify-center`}
+                  >
                     {!isEncarregado && (
-                      <div className="flex w-full max-w-[450px] justify-center gap-2">
+                      <div
+                        className={`flex w-full flex-col gap-3 sm:flex-row sm:justify-center`}
+                      >
                         <ButtonDefault
                           onClick={handleGerarRelatorioMaoDeObraGeral}
-                          className="w-full"
+                          className={`${btnOutlinePremium} sm:!flex-1`}
                         >
                           Relatório Geral
                         </ButtonDefault>
                         <ButtonDefault
                           onClick={() => setModalRelatorioPrestadorOpen(true)}
-                          className="w-full"
+                          className={`${btnOutlinePremium} sm:!flex-1`}
                         >
                           Por Prestador
                         </ButtonDefault>
                       </div>
                     )}
-                    <div className="w-full h-[40px] max-w-[450px] border border-border-muted rounded-[6px] text-[18px] text-text-primary items-center flex justify-center gap-[4px] p-2">
-                      Total Lançado:{" "}
-                      <span> R$ {formatarMoeda(totais.maoDeObra)}</span>
+                    <div className={totalBarClass}>
+                      <span className="text-text-muted">Total lançado:</span>
+                      <span className="font-bold tabular-nums text-text-primary">
+                        R$ {formatarMoeda(totais.maoDeObra)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1016,23 +1102,29 @@ export default function ObrasDetalhe() {
 
             {subRelatorio === "extrato" && !isEncarregado && (
               <div>
-                <div className="bg-surface border border-border-primary rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[20px] mt-3 pt-5 pb-5 sm:mt-4 sm:pt-6 sm:pb-6">
-                  <div className="flex w-full flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <h1 className="text-2xl font-bold text-text-primary sm:text-[35px]">
+                <div
+                  className={`${reportCardShell} mt-3 flex flex-col items-stretch gap-5 text-left sm:mt-4 sm:gap-6`}
+                >
+                  <div
+                    className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
+                  >
+                    <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
                       Extrato
                     </h1>
-                    <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center md:gap-2">
+                    <div
+                      className={`flex w-auto min-w-0 flex-col gap-3 lg:flex-row lg:items-center`}
+                    >
                       <input
                         type="text"
                         placeholder="Buscar no extrato..."
                         value={buscaExtrato}
                         onChange={(e) => setBuscaExtrato(e.target.value)}
-                        className="h-[40px] w-full min-w-0 box-border border border-border-primary rounded-[8px] p-2 px-[8px] text-text-primary focus:outline-none md:w-[250px]"
+                        className={`${inputPremium} lg:max-w-[400px] lg:min-w-0 lg:flex-1`}
                       />
                       <select
                         value={filtroExtrato}
                         onChange={(e) => setFiltroExtrato(e.target.value)}
-                        className="h-[40px] w-full cursor-pointer border border-border-primary rounded-[8px] bg-surface p-[6px] text-[14px] text-text-primary focus:outline-none md:w-auto"
+                        className={`${selectPremium} w-full lg:w-auto lg:min-w-[200px]`}
                       >
                         <option value="Tudo">Tudo</option>
                         <option value="Materiais">Materiais</option>
@@ -1041,19 +1133,24 @@ export default function ObrasDetalhe() {
                     </div>
                   </div>
                   <TabelaSimples
+                    variant="obraDetalhe"
                     colunas={headerExtrato}
                     dados={dadosRelatorioExtrato}
                   />
-                  <div className="box-border flex h-auto w-full flex-col items-center justify-between gap-4 gap-[20px] px-[5%] text-center md:h-[42px] md:flex-row">
+                  <div
+                    className={`flex w-full flex-col items-stretch gap-4 md:flex-row md:flex-wrap md:items-center md:justify-center`}
+                  >
                     <ButtonDefault
                       onClick={handleGerarPDFExtrato}
-                      className="w-full max-w-[450px]"
+                      className={btnAccentPremium}
                     >
                       Gerar pedido
                     </ButtonDefault>
-                    <div className="flex h-[40px] w-full max-w-[450px] items-center justify-center gap-[4px] border border-border-muted rounded-[6px] p-2 text-[18px] text-text-primary">
-                      Total no Extrato:{" "}
-                      <span> R$ {formatarMoeda(totais.totalExtrato)}</span>
+                    <div className={totalBarClass}>
+                      <span className="text-text-muted">Total no extrato:</span>
+                      <span className="font-bold tabular-nums text-text-primary">
+                        R$ {formatarMoeda(totais.totalExtrato)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1071,7 +1168,7 @@ export default function ObrasDetalhe() {
                 <ButtonDefault
                   type="button"
                   onClick={() => setModalEtapasisOpen(true)}
-                  className="!h-10 !shrink-0 !whitespace-nowrap !px-4 !text-sm"
+                  className={`${btnAccentPremium} !whitespace-nowrap`}
                 >
                   Nova etapa
                 </ButtonDefault>

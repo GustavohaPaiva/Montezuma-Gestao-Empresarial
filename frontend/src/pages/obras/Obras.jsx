@@ -9,6 +9,7 @@ import {
   Hammer,
   Hourglass,
   LayoutGrid,
+  Loader2,
   Trash2,
   User,
 } from "lucide-react";
@@ -304,8 +305,50 @@ export default function Obras() {
         )}
 
         {carregando ? (
-          <div className="flex justify-center items-center py-20">
-            <Hourglass className="w-8 h-8 animate-spin text-accent-primary" />
+          <div className="flex min-h-[42vh] w-full items-center justify-center px-4 py-16">
+            <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border-primary/35 bg-white px-8 py-10 text-center shadow-[0_8px_32px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04]">
+              <div
+                className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-accent-primary/[0.06]"
+                aria-hidden
+              />
+              <div
+                className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-accent-primary/[0.04]"
+                aria-hidden
+              />
+              <div className="relative">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary shadow-inner ring-1 ring-accent-primary/15">
+                  <Hammer className="h-7 w-7" strokeWidth={2} />
+                </div>
+                <Loader2
+                  className="mx-auto mb-5 h-10 w-10 animate-spin text-accent-primary"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                  Montezuma
+                </p>
+                <h3 className="mt-1.5 text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+                  Carregando obras
+                </h3>
+                <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-text-muted">
+                  Buscando projetos, clientes e indicadores. Isso costuma levar
+                  só um instante.
+                </p>
+                <div
+                  className="mx-auto mt-7 flex justify-center gap-1.5"
+                  role="presentation"
+                  aria-hidden
+                >
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="h-2 w-2 animate-bounce rounded-full bg-accent-primary/75"
+                      style={{ animationDelay: `${i * 0.12}s` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid w-full gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 place-items-center">

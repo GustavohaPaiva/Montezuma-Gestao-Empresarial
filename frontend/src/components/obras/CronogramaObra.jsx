@@ -524,7 +524,7 @@ const CronogramaObra = forwardRef(function CronogramaObra(
 
   return (
     <section className="w-full mx-auto mb-4 rounded-2xl border border-border-primary/50 bg-surface-alt p-3 shadow-sm ring-1 ring-slate-200/40 sm:mb-6 sm:p-5 md:p-6">
-      <div className="mb-4 flex flex-col md:flex-row gap-4 border-b border-slate-200/50 pb-4">
+      <div className="mb-4 flex flex-col gap-4 border-b border-slate-200/50 pb-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-[22px]">
             Cronograma da obra
@@ -533,7 +533,7 @@ const CronogramaObra = forwardRef(function CronogramaObra(
             Etapas e eventos no mesmo calendário.
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2">
+        <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[360px]">
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
             <div className="hidden w-full items-center justify-end gap-2 md:flex md:w-auto">
               <button

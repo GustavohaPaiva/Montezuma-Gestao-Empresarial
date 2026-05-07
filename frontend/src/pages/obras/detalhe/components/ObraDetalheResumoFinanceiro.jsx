@@ -11,44 +11,48 @@ export default function ObraDetalheResumoFinanceiro({
   return (
     <div
       id="#financeiro"
-      className="w-full bg-white h-auto rounded-[12px] mb-[24px] p-[24px] shadow-sm relative overflow-hidden"
+      className="relative mb-6 w-full overflow-hidden rounded-2xl border border-border-primary/35 bg-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.08)] sm:p-6 md:p-7"
     >
-      <h2 className="text-[24px] font-bold text-[#464C54] mb-[20px]">
-        Resumo Financeiro
+      <h2 className="mb-5 text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
+        Resumo financeiro
       </h2>
       <div
-        className={`flex flex-col md:flex-row gap-[20px] transition-all duration-700 ease-in-out ${categoriaAtiva ? "md:h-[320px]" : "md:h-[280px] items-center justify-center"}`}
+        className={`flex flex-col gap-6 transition-all duration-700 ease-in-out md:flex-row md:items-stretch md:gap-8 ${categoriaAtiva ? "md:min-h-[320px]" : "md:min-h-[280px]"}`}
       >
         <div
-          className={`flex flex-col transition-all duration-700 ease-in-out h-full ${categoriaAtiva ? "w-full md:w-[60%] justify-between" : "w-full md:w-[50%] justify-center items-center"}`}
+          className={`flex min-h-0 flex-col transition-all duration-700 ease-in-out ${categoriaAtiva ? "w-full justify-between md:w-[60%]" : "w-full justify-center md:w-1/2 md:items-center"}`}
         >
           <div
-            className={`w-full transition-all duration-700 ease-in-out overflow-hidden ${categoriaAtiva ? "max-h-[250px] opacity-100 mb-4" : "max-h-0 opacity-0"}`}
+            className={`w-full overflow-hidden transition-all duration-700 ease-in-out ${categoriaAtiva ? "mb-4 max-h-[280px] opacity-100" : "max-h-0 opacity-0"}`}
           >
             {categoriaAtiva &&
               (() => {
                 const ativo = dataGrafico.find((d) => d.name === categoriaAtiva);
                 return (
-                  <div className="bg-[#f6f6f6] border border-[#f1f1f1] rounded-[8px] p-5 shadow-sm h-auto">
-                    <h3 className="text-xl font-bold text-[#464C54] mb-2 uppercase">
+                  <div className="h-auto rounded-2xl border border-border-primary/30 bg-[#FAFAFA] p-4 shadow-inner sm:p-5">
+                    <h3 className="mb-2 text-lg font-bold uppercase tracking-wide text-text-primary">
                       Visão: {ativo.name}
                     </h3>
-                    <div className="flex flex-col md:flex-row md:items-end gap-3 mb-3">
+                    <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:gap-3">
                       <span
-                        className="text-4xl font-bold"
+                        className="text-3xl font-bold tabular-nums sm:text-4xl"
                         style={{ color: ativo.color }}
                       >
                         R$ {formatarMoeda(ativo.value)}
                       </span>
-                      <span className="text-sm font-medium text-[#919191] mb-1">
+                      <span className="mb-0.5 text-sm font-medium text-text-muted">
                         ({ativo.percentual}% do custo total da obra)
                       </span>
                     </div>
-                    <p className="text-sm text-[#71717A] leading-relaxed">
+                    <p className="text-sm leading-relaxed text-text-muted">
                       Este painel consolida todos os gastos referentes a{" "}
-                      <strong>{ativo.name.toLowerCase()}</strong>. Até o
-                      momento, foram registrados{" "}
-                      <strong className="text-black">{ativo.qtd}</strong>{" "}
+                      <strong className="font-semibold text-text-primary">
+                        {ativo.name.toLowerCase()}
+                      </strong>
+                      . Até o momento, foram registrados{" "}
+                      <strong className="font-semibold text-text-primary">
+                        {ativo.qtd}
+                      </strong>{" "}
                       lançamentos.
                     </p>
                   </div>
@@ -57,7 +61,7 @@ export default function ObraDetalheResumoFinanceiro({
           </div>
 
           <div
-            className={`transition-all duration-700 ease-in-out ${categoriaAtiva ? "w-[140px] h-[140px] self-start" : "w-full h-[250px] md:h-full flex justify-center"}`}
+            className={`transition-all duration-700 ease-in-out ${categoriaAtiva ? "h-[140px] w-[140px] shrink-0 self-start" : "flex h-[240px] w-full min-h-[240px] justify-center md:h-[280px] md:min-h-[280px]"}`}
           >
             {totais.materiais > 0 || totais.maoDeObra > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -97,7 +101,7 @@ export default function ObraDetalheResumoFinanceiro({
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full w-full text-[#919191] italic">
+              <div className="flex h-full w-full items-center justify-center text-sm italic text-text-muted">
                 Sem dados suficientes para gerar o gráfico.
               </div>
             )}
@@ -105,18 +109,18 @@ export default function ObraDetalheResumoFinanceiro({
         </div>
 
         <div
-          className={`flex flex-col justify-center transition-all duration-700 ease-in-out w-full md:w-[40%]`}
+          className={`flex w-full flex-col justify-center transition-all duration-700 ease-in-out md:w-[40%]`}
         >
-          <div className="flex flex-col w-full bg-[#fcfcfc] border border-[#f1f1f1] rounded-[8px] shadow-sm z-10 relative">
+          <div className="relative z-10 flex w-full flex-col overflow-hidden rounded-2xl border border-border-primary/30 bg-[#FAFAFA] shadow-inner">
             {dataGrafico.map((item, index) => (
               <div
                 key={index}
                 onClick={() => toggleCategoria(item.name)}
-                className={`flex justify-between items-center py-3 border-b border-[#f1f1f1] last:border-b-0 cursor-pointer transition-all duration-300 rounded-md px-2 ${categoriaAtiva === item.name ? "bg-[#EEEDF0] scale-[1.02] shadow-sm" : "hover:bg-gray-50"}`}
+                className={`flex cursor-pointer items-center justify-between border-b border-border-primary/15 px-3 py-3 transition-all last:border-b-0 sm:px-4 ${categoriaAtiva === item.name ? "bg-white shadow-sm ring-1 ring-accent-primary/15" : "hover:bg-white/80"}`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <div
-                    className="w-3 h-3 rounded-full transition-all duration-300"
+                    className="h-3 w-3 shrink-0 rounded-full transition-all duration-300"
                     style={{
                       backgroundColor: item.color,
                       boxShadow: `0 0 10px ${item.color}`,
@@ -125,21 +129,21 @@ export default function ObraDetalheResumoFinanceiro({
                           ? 0.4
                           : 1,
                     }}
-                  ></div>
+                  />
                   <span
-                    className={`font-medium text-sm transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-[#a1a1a1]" : "text-[#464C54]"}`}
+                    className={`truncate text-sm font-medium transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-text-muted" : "text-text-primary"}`}
                   >
                     {item.name}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                   <span
-                    className={`font-semibold text-sm transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-[#a1a1a1]" : "text-[#464C54]"}`}
+                    className={`text-sm font-semibold tabular-nums transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-text-muted" : "text-text-primary"}`}
                   >
                     R$ {formatarMoeda(item.value)}
                   </span>
                   <span
-                    className={`text-xs font-medium w-[35px] text-right transition-all duration-300 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-[#d1d1d1]" : "text-[#919191]"}`}
+                    className={`w-9 text-right text-xs font-semibold transition-all duration-300 sm:w-10 ${categoriaAtiva && categoriaAtiva !== item.name ? "text-text-muted/60" : "text-text-muted"}`}
                   >
                     {item.percentual}%
                   </span>
@@ -148,24 +152,26 @@ export default function ObraDetalheResumoFinanceiro({
             ))}
           </div>
 
-          <div
-            className="bg-[#EEEDF0] border border-[#DBDADE] rounded-[8px] p-[8px] flex justify-between items-center shadow-sm mt-4 w-full cursor-pointer hover:bg-[#e4e3e6] transition-colors"
+          <button
+            type="button"
+            className="mt-4 flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/12 px-4 py-3 text-left shadow-sm ring-1 ring-emerald-500/25 transition-all hover:bg-emerald-500/18 focus:outline-none focus:ring-2 focus:ring-emerald-500/35"
             onClick={() => setCategoriaAtiva(null)}
           >
-            <span className="font-bold text-black uppercase text-sm">
-              Custo Total Lançado
+            <span className="text-sm font-bold uppercase tracking-wide text-emerald-950">
+              Custo total lançado
             </span>
-            <span className="font-bold text-[#2E7D32] text-lg">
+            <span className="text-lg font-bold tabular-nums text-emerald-900">
               R$ {formatarMoeda(totais.materiais + totais.maoDeObra)}
             </span>
-          </div>
+          </button>
 
           <div
-            className={`text-center mt-3 transition-all duration-500 ${categoriaAtiva ? "opacity-100 max-h-[30px]" : "opacity-0 max-h-0"}`}
+            className={`mt-3 text-center transition-all duration-500 ${categoriaAtiva ? "max-h-8 opacity-100" : "max-h-0 opacity-0"}`}
           >
             <button
+              type="button"
               onClick={() => setCategoriaAtiva(null)}
-              className="text-xs text-[#DC3B0B] underline font-medium cursor-pointer"
+              className="cursor-pointer text-xs font-semibold text-accent-primary underline-offset-2 transition hover:underline"
             >
               Restaurar gráfico completo
             </button>

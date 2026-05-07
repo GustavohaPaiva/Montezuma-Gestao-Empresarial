@@ -3,19 +3,20 @@ import { useState } from "react";
 export default function CellInputNumber({ valorInicial, onSave, onCancel }) {
   const [val, setVal] = useState(valorInicial);
   return (
-    <div className="flex items-center gap-1">
-      <span>R$</span>
+    <div className="flex flex-nowrap items-center gap-1">
+      <span className="shrink-0">R$</span>
       <input
         type="number"
         step="0.01"
         value={val}
         onChange={(e) => setVal(e.target.value)}
-        className="w-[70px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none"
+        className="w-[72px] min-w-0 rounded-xl border border-border-primary/55 bg-white px-2 py-1.5 text-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
         autoFocus
       />
       <button
+        type="button"
         onClick={() => onSave(val)}
-        className="cursor-pointer border-none bg-transparent flex-shrink-0"
+        className="shrink-0 cursor-pointer border-none bg-transparent"
       >
         <img
           width="15"
@@ -24,8 +25,9 @@ export default function CellInputNumber({ valorInicial, onSave, onCancel }) {
         />
       </button>
       <button
+        type="button"
         onClick={onCancel}
-        className="cursor-pointer border-none bg-transparent flex-shrink-0"
+        className="shrink-0 cursor-pointer border-none bg-transparent"
       >
         <img
           width="15"

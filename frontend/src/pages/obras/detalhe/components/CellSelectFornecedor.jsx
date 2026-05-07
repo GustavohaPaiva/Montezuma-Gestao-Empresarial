@@ -29,7 +29,7 @@ export default function CellSelectFornecedor({
       <select
         value={val}
         onChange={(e) => setVal(e.target.value)}
-        className="w-[120px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-[13px] uppercase disabled:opacity-50"
+        className="w-[120px] rounded-xl border border-border-primary/55 bg-white p-1.5 text-[13px] uppercase transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 disabled:opacity-50"
         disabled={loading}
         autoFocus
       >

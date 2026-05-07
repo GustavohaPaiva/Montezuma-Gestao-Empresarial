@@ -122,7 +122,7 @@ export function useObrasDetalheTableData({
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
+                className="ml-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
               />
             </div>
           )}
@@ -131,7 +131,7 @@ export function useObrasDetalheTableData({
           key={`status-${m.id}`}
           value={m.status || "Solicitado"}
           onChange={(e) => handleStatusChange(m.id, e.target.value)}
-          className={`w-fit text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none ${getCorStatusMaterial(m.status || "Solicitado")}`}
+          className={`w-full max-w-[13rem] cursor-pointer appearance-none rounded-full border-0 px-3 py-1.5 text-center text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-9 sm:w-fit ${getCorStatusMaterial(m.status || "Solicitado")}`}
         >
           <option value="Solicitado">Solicitado</option>
           <option value="Em cotação">Em cotação</option>
@@ -163,7 +163,7 @@ export function useObrasDetalheTableData({
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[4px]"
+                className="ml-[4px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
               />
             </div>
           )}
@@ -191,15 +191,15 @@ export function useObrasDetalheTableData({
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[4px]"
+                className="ml-[4px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
               />
             </div>
           )}
         </div>,
-        <div className="flex justify-center group" key={`del-mat-${m.id}`}>
+        <div className="flex justify-center" key={`del-mat-${m.id}`}>
           <button
             onClick={() => handleDeleteMaterial(m.id)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full cursor-pointer border-none bg-transparent"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300/50 bg-rose-500/12 text-rose-700 hover:bg-rose-500/20 cursor-pointer transition-colors"
           >
             <img
               width="18"
@@ -280,9 +280,9 @@ export function useObrasDetalheTableData({
             className="h-[15px] w-[15px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer disabled:opacity-50"
           />
         </label>,
-        <div className="uppercase">{m.tipo}</div>,
+        <div className="whitespace-nowrap uppercase">{m.tipo}</div>,
         <div
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-2 whitespace-nowrap"
           key={`prof-${m.id}`}
         >
           {isEditingProfissional ? (
@@ -295,25 +295,25 @@ export function useObrasDetalheTableData({
             />
           ) : (
             <div
-              className="flex items-center gap-2 group cursor-pointer"
+              className="group flex cursor-pointer items-center gap-2"
               onClick={() =>
                 setEditandoMaoDeObra({ id: m.id, campo: "profissional" })
               }
             >
-              <span className="uppercase text-[13px]">
+              <span className="text-[13px] uppercase">
                 {m.profissional || "-"}
               </span>
               <img
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
+                className="ml-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
               />
             </div>
           )}
         </div>,
         <div
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-2 whitespace-nowrap"
           key={`cobrado-${m.id}`}
         >
           {isEditingCobrado ? (
@@ -324,7 +324,7 @@ export function useObrasDetalheTableData({
             />
           ) : (
             <div
-              className="flex items-center gap-2 group cursor-pointer"
+              className="group flex cursor-pointer items-center gap-2"
               onClick={() =>
                 setEditandoMaoDeObra({ id: m.id, campo: "cobrado" })
               }
@@ -334,13 +334,13 @@ export function useObrasDetalheTableData({
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
+                className="ml-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
               />
             </div>
           )}
         </div>,
         <div
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-2 whitespace-nowrap"
           key={`orcado-${m.id}`}
         >
           {isEditingOrcado ? (
@@ -351,7 +351,7 @@ export function useObrasDetalheTableData({
             />
           ) : (
             <div
-              className="flex items-center gap-2 group cursor-pointer"
+              className="group flex cursor-pointer items-center gap-2"
               onClick={() =>
                 setEditandoMaoDeObra({ id: m.id, campo: "orcado" })
               }
@@ -361,13 +361,13 @@ export function useObrasDetalheTableData({
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
+                className="ml-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
               />
             </div>
           )}
         </div>,
         <div
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-2 whitespace-nowrap"
           key={`pago-${m.id}`}
         >
           {isEditingPago ? (
@@ -378,7 +378,7 @@ export function useObrasDetalheTableData({
             />
           ) : (
             <div
-              className="flex items-center gap-2 group cursor-pointer"
+              className="group flex cursor-pointer items-center gap-2"
               onClick={() => setEditandoMaoDeObra({ id: m.id, campo: "pago" })}
             >
               <span>R$ {formatarMoeda(m.valor_pago || 0)}</span>
@@ -386,21 +386,29 @@ export function useObrasDetalheTableData({
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
+                className="ml-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
               />
             </div>
           )}
         </div>,
         <span
-          className={`${saldo < 0 ? "text-[red]" : saldo === 0 ? "text-[orange]" : "text-[green]"} font-bold`}
+          className={`inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1 text-sm font-bold tabular-nums shadow-sm ring-1 transition-colors ${
+            saldo < 0
+              ? "bg-rose-500/15 text-rose-900 ring-rose-400/35"
+              : saldo === 0
+                ? "bg-amber-500/15 text-amber-950 ring-amber-400/35"
+                : "bg-emerald-500/15 text-emerald-900 ring-emerald-500/35"
+          }`}
         >
           R$ {formatarMoeda(saldo)}
         </span>,
-        formatarDataBR(m.data_solicitacao),
-        <div className="flex justify-center group" key={`del-mdo-${m.id}`}>
+        <span className="whitespace-nowrap">
+          {formatarDataBR(m.data_solicitacao)}
+        </span>,
+        <div className="flex justify-center" key={`del-mdo-${m.id}`}>
           <button
             onClick={() => handleDeleteMaoDeObra(m.id)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full cursor-pointer border-none bg-transparent"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300/50 bg-rose-500/12 text-rose-700 hover:bg-rose-500/20 cursor-pointer transition-colors"
           >
             <img
               width="18"
@@ -546,7 +554,7 @@ export function useObrasDetalheTableData({
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
                 alt="edit"
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-[8px]"
+                className="ml-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
               />
             </div>
           )}
@@ -557,7 +565,11 @@ export function useObrasDetalheTableData({
           onChange={(e) =>
             handleStatusFinanceiroChange(item.id, e.target.value)
           }
-          className={`w-fit text-[14px] font-bold px-3 text-center h-[30px] rounded-[20px] focus:outline-none border-none cursor-pointer appearance-none ${item.status_financeiro === "Pago" ? "bg-[#E8F5E9] text-[#2E7D32]" : "bg-[#FFF3E0] text-[#E65100]"}`}
+          className={`w-full max-w-[13rem] cursor-pointer appearance-none rounded-full border-0 px-3 py-1.5 text-center text-sm font-semibold shadow-sm ring-1 transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-9 sm:w-fit ${
+            item.status_financeiro === "Pago"
+              ? "bg-emerald-500/18 text-emerald-900 ring-emerald-500/35"
+              : "bg-amber-500/18 text-amber-950 ring-amber-400/35"
+          }`}
         >
           <option value="Aguardando pagamento">Aguardando pagamento</option>
           <option value="Pago">Pago</option>
@@ -612,13 +624,13 @@ export function useObrasDetalheTableData({
       </label>,
       "Descrição",
       <span
-        className="cursor-pointer hover:text-blue-600 select-none"
+        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
         onClick={() => handleSortExtrato("tipo")}
       >
         Tipo {getSortIcon("tipo")}
       </span>,
       <span
-        className="cursor-pointer hover:text-blue-600 select-none"
+        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
         onClick={() => handleSortExtrato("fornecedor_prestador")}
       >
         Fornecedor / Prestador {getSortIcon("fornecedor_prestador")}
@@ -626,7 +638,7 @@ export function useObrasDetalheTableData({
       "Qtd",
       "Valor",
       <span
-        className="cursor-pointer hover:text-blue-600 select-none"
+        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
         onClick={() => handleSortExtrato("status_financeiro")}
       >
         Status Fin. {getSortIcon("status_financeiro")}

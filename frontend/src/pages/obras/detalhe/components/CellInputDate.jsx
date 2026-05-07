@@ -9,7 +9,7 @@ export default function CellInputDate({ valorInicial, onSave, onCancel }) {
         type="date"
         value={val}
         onChange={(e) => setVal(e.target.value)}
-        className="w-[150px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none"
+        className="w-[150px] min-w-0 rounded-xl border border-border-primary/55 bg-white px-2 py-1.5 text-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
         autoFocus
       />
       <button

@@ -59,73 +59,75 @@ export default function CellSelectPrestador({
     prestadores.find((p) => String(p.id) === String(prestadorId))?.nome || "";
 
   return (
-    <div className="flex flex-col gap-1 items-center">
-      <div className="flex items-center gap-1">
-        <select
-          value={classeId}
-          onChange={(e) => setClasseId(e.target.value)}
-          className="w-[120px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-[13px] uppercase"
-          autoFocus
-        >
-          <option value="">
-            {loadingClasses ? "Carregando..." : "Classe..."}
+    <div className="flex flex-nowrap items-center justify-center gap-1">
+      <select
+        value={classeId}
+        onChange={(e) => setClasseId(e.target.value)}
+        className="w-[120px] shrink-0 rounded-xl border border-border-primary/55 bg-white p-1.5 text-[13px] uppercase transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+        autoFocus
+      >
+        <option value="">
+          {loadingClasses ? "Carregando..." : "Classe..."}
+        </option>
+        {classes.map((op) => (
+          <option key={op.id} value={op.id}>
+            {op.nome}
           </option>
-          {classes.map((op) => (
-            <option key={op.id} value={op.id}>
-              {op.nome}
-            </option>
-          ))}
-        </select>
-        <select
-          value={prestadorId}
-          onChange={(e) => setPrestadorId(e.target.value)}
-          disabled={!classeId || loadingPrestadores}
-          className="w-[140px] p-[4px] border border-[#DBDADE] rounded-[8px] focus:outline-none text-[13px] uppercase disabled:opacity-50"
-        >
-          <option value="">
-            {!classeId
-              ? "Prestador..."
-              : loadingPrestadores
-                ? "Carregando..."
-                : "Selecione..."}
+        ))}
+      </select>
+      <select
+        value={prestadorId}
+        onChange={(e) => setPrestadorId(e.target.value)}
+        disabled={!classeId || loadingPrestadores}
+        className="w-[140px] shrink-0 rounded-xl border border-border-primary/55 bg-white p-1.5 text-[13px] uppercase transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 disabled:opacity-50"
+      >
+        <option value="">
+          {!classeId
+            ? "Prestador..."
+            : loadingPrestadores
+              ? "Carregando..."
+              : "Selecione..."}
+        </option>
+        {prestadores.map((op) => (
+          <option key={op.id} value={op.id}>
+            {op.nome}
           </option>
-          {prestadores.map((op) => (
-            <option key={op.id} value={op.id}>
-              {op.nome}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() =>
-            onSave({
-              profissional: nomePrestadorSelecionado,
-              prestador_id: prestadorId ? Number(prestadorId) : null,
-              classe_id: classeId ? Number(classeId) : null,
-            })
-          }
-          disabled={!prestadorId}
-          className="cursor-pointer border-none bg-transparent flex-shrink-0"
-        >
-          <img
-            width="15"
-            src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
-            alt="salvar"
-          />
-        </button>
-        <button
-          onClick={onCancel}
-          className="cursor-pointer border-none bg-transparent flex-shrink-0"
-        >
-          <img
-            width="15"
-            src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
-            alt="cancelar"
-          />
-        </button>
-      </div>
-      {!prestadorId && valorInicial && (
-        <span className="text-[11px] text-[#71717A]">Atual: {valorInicial}</span>
-      )}
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={() =>
+          onSave({
+            profissional: nomePrestadorSelecionado,
+            prestador_id: prestadorId ? Number(prestadorId) : null,
+            classe_id: classeId ? Number(classeId) : null,
+          })
+        }
+        disabled={!prestadorId}
+        className="shrink-0 cursor-pointer border-none bg-transparent"
+      >
+        <img
+          width="15"
+          src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
+          alt="salvar"
+        />
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="shrink-0 cursor-pointer border-none bg-transparent"
+      >
+        <img
+          width="15"
+          src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
+          alt="cancelar"
+        />
+      </button>
+      {!prestadorId && valorInicial ? (
+        <span className="max-w-[140px] truncate text-[11px] text-[#71717A]">
+          Atual: {valorInicial}
+        </span>
+      ) : null}
     </div>
   );
 }
