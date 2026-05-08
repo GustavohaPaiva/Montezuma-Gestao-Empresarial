@@ -1,11 +1,59 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { CalendarDays, Check, Pencil, Trash2, X } from "lucide-react";
+import BaseCard from "./BaseCard";
+import BaseButton from "../gerais/BaseButton";
+
+function formatarDataRegistro(dataValue) {
+  if (!dataValue) return "Não informado";
+  const data = new Date(dataValue);
+  if (Number.isNaN(data.getTime())) return String(dataValue);
+  return data.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+}
+
+/** Alinhado ao `statusTheme` de Obras (`BaseCard` entity). */
+function processStatusTheme(status) {
+  const s = status || "Produção";
+  if (s === "Finalizado") return "emerald";
+  if (s === "Obra") return "amber";
+  if (s === "Cartorio") return "pink";
+  if (s === "Caixa") return "indigo";
+  if (s === "Prefeitura") return "blue";
+  if (s === "Produção") return "purple";
+  return "blue";
+}
+
+function statusSelectClasses(status) {
+  const s = status || "Produção";
+  if (s === "Finalizado") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 focus:border-emerald-300 focus:ring-emerald-100";
+  }
+  if (s === "Obra") {
+    return "border-amber-200 bg-amber-50 text-amber-700 focus:border-amber-300 focus:ring-amber-100";
+  }
+  if (s === "Cartorio") {
+    return "border-pink-200 bg-pink-50 text-pink-700 focus:border-pink-300 focus:ring-pink-100";
+  }
+  if (s === "Caixa") {
+    return "border-indigo-200 bg-indigo-50 text-indigo-700 focus:border-indigo-300 focus:ring-indigo-100";
+  }
+  if (s === "Prefeitura") {
+    return "border-blue-200 bg-blue-50 text-blue-700 focus:border-blue-300 focus:ring-blue-100";
+  }
+  if (s === "Produção") {
+    return "border-purple-200 bg-purple-50 text-purple-700 focus:border-purple-300 focus:ring-purple-100";
+  }
+  return "border-slate-200 bg-white text-text-primary focus:border-accent-primary/40 focus:ring-accent-primary/15";
+}
+
+const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
 
 export default function CardProcessos({
   id,
   client,
   tipo,
   status,
+  dataRegistro,
   onUpdate,
   onDelete,
 }) {
@@ -14,47 +62,8 @@ export default function CardProcessos({
   const [editedClient, setEditedClient] = useState(client);
   const [editedTipo, setEditedTipo] = useState(tipo);
 
-  let bgColor, textColor, iconFilter;
-
-  if (status === "Produção") {
-    bgColor = "bg-purple-100";
-    textColor = "text-purple-700";
-    iconFilter =
-      "invert(24%) sepia(50%) saturate(3825%) hue-rotate(272deg) brightness(87%) contrast(98%)";
-  } else if (status === "Prefeitura") {
-    bgColor = "bg-blue-100";
-    textColor = "text-blue-700";
-    iconFilter =
-      "invert(29%) sepia(74%) saturate(2400%) hue-rotate(195deg) brightness(90%) contrast(93%)";
-  } else if (status === "Caixa") {
-    bgColor = "bg-teal-100";
-    textColor = "text-teal-700";
-    iconFilter =
-      "invert(26%) sepia(97%) saturate(1478%) hue-rotate(164deg) brightness(95%) contrast(102%)";
-  } else if (status === "Cartorio") {
-    bgColor = "bg-rose-100";
-    textColor = "text-rose-700";
-    iconFilter =
-      "invert(13%) sepia(89%) saturate(6032%) hue-rotate(346deg) brightness(94%) contrast(110%)";
-  } else if (status === "Obra") {
-    bgColor = "bg-orange-100";
-    textColor = "text-orange-700";
-    iconFilter =
-      "invert(42%) sepia(98%) saturate(1831%) hue-rotate(1deg) brightness(97%) contrast(100%)";
-  } else if (status === "Finalizado") {
-    bgColor = "bg-success-soft";
-    textColor = "text-success-primary";
-    iconFilter = "invert(36%) sepia(85%) saturate(450%) hue-rotate(95deg)";
-  } else {
-    bgColor = "bg-gray-100";
-    textColor = "text-gray-600";
-    iconFilter = "invert(50%)";
-  }
-
-  const handleCardClick = () => {
-    if (!isEditing) {
-      navigate(`/processo/${id}`);
-    }
+  const handleNavigate = () => {
+    if (!isEditing) navigate(`/processo/${id}`);
   };
 
   const handleCancel = (e) => {
@@ -72,6 +81,8 @@ export default function CardProcessos({
 
   const toggleEdit = (e) => {
     e.stopPropagation();
+    setEditedClient(client);
+    setEditedTipo(tipo);
     setIsEditing(true);
   };
 
@@ -80,151 +91,157 @@ export default function CardProcessos({
     onDelete();
   };
 
-  const handleStatusClick = (e) => {
-    e.stopPropagation();
-  };
-
   const handleStatusChange = async (e) => {
+    e.stopPropagation();
     const novoStatus = e.target.value;
     await onUpdate(id, { status: novoStatus });
   };
 
+  const metadata = dataRegistro
+    ? [
+        {
+          icon: <CalendarDays className="h-4 w-4 text-slate-500" />,
+          label: `Cadastro: ${formatarDataRegistro(dataRegistro)}`,
+        },
+      ]
+    : [];
+
   return (
     <div
-      onClick={handleCardClick}
-      className={`relative no-underline text-inherit block bg-surface-alt rounded-[8px] w-full h-[220px] flex flex-col justify-between p-[15px] shadow-[0_5px_20px_rgba(0,0,0,0.15)] md:max-w-[350px] box-border transition-transform ${
-        !isEditing ? "hover:scale-[1.02] cursor-pointer" : "cursor-default"
-      } text-black`}
+      className={joinClasses(
+        "h-full w-full outline-none transition-shadow",
+        !isEditing &&
+          "cursor-pointer focus-within:ring-2 focus-within:ring-accent-primary/25 rounded-2xl",
+      )}
+      role={!isEditing ? "button" : undefined}
+      tabIndex={!isEditing ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (isEditing) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleNavigate();
+        }
+      }}
+      onClick={() => handleNavigate()}
     >
-      <div className="right-4 flex gap-[8px] justify-end relative z-10">
-        {isEditing ? (
-          <>
-            <button
-              onClick={handleSave}
-              className="border border-success-primary rounded-[50%] bg-green-100 hover:bg-green-200 transition-colors w-[28px] h-[28px] flex items-center justify-center mr-2"
-            >
-              <img
-                width="18"
-                height="18"
-                src="https://img.icons8.com/ios-glyphs/30/2E7D32/checkmark--v1.png"
-                alt="salvar"
-              />
-            </button>
-            <button
-              onClick={handleCancel}
-              className="border border-red-500 rounded-[50%] bg-red-200 hover:bg-red-500 transition-colors w-[28px] h-[28px] flex items-center justify-center mr-2"
-            >
-              <img
-                width="18"
-                height="18"
-                src="https://img.icons8.com/ios-glyphs/30/c62828/multiply.png"
-                alt="cancelar"
-              />
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="flex justify-end w-full gap-[8px]">
-              <button
-                onClick={toggleEdit}
-                className="bg-transparent border-none cursor-pointer"
-              >
-                <img
-                  width="18"
-                  height="18"
-                  src="https://img.icons8.com/ios/50/edit--v1.png"
-                  alt="editar"
-                />
-              </button>
-              <button
-                onClick={handleDeleteClick}
-                className="bg-transparent border-none cursor-pointer"
-              >
-                <img
-                  width="18"
-                  height="18"
-                  src="https://img.icons8.com/material-outlined/24/filled-trash.png"
-                  alt="trash"
-                />
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="flex flex-col items-center w-full px-2">
-        {isEditing ? (
-          <div
-            className="flex flex-col gap-[10px] w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex flex-row gap-[8px] items-center">
-              <span className="text-[18px] font-semibold">Cliente:</span>
-              <input
-                type="text"
-                value={editedClient}
-                onChange={(e) => setEditedClient(e.target.value)}
-                className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
-              />
-            </div>
-            <div className="flex flex-row gap-[8px] items-center">
-              <span className="text-[18px] font-semibold">Tipo:</span>
-              <input
-                type="text"
-                value={editedTipo}
-                onChange={(e) => setEditedTipo(e.target.value)}
-                className="text-[16px] h-[28px] px-[8px] border border-gray-300 rounded-[6px] w-full uppercase"
-              />
-            </div>
-          </div>
-        ) : (
-          <>
-            <p className="text-[16px] text-gray-600 flex justify-center items-center w-full gap-[4px]">
-              <span className="font-semibold mr-2">CLIENTE: </span>
-              <span className="uppercase truncate max-w-[200px]">{client}</span>
-            </p>
-            <p className="text-[16px] text-gray-600 flex justify-center items-center w-full gap-[4px] mt-1">
-              <span className="font-semibold mr-2">TIPO: </span>
-              <span className="uppercase truncate max-w-[200px]">
-                {tipo || "-"}
-              </span>
-            </p>
-          </>
-        )}
-      </div>
-
-      <div className="flex justify-center mt-2 relative z-20">
+      <BaseCard
+        variant="entity"
+        title={isEditing ? "Editar dados" : client}
+        value={
+          isEditing
+            ? "Ajuste nome e tipo nos campos abaixo."
+            : tipo?.trim()
+              ? String(tipo)
+              : "Tipo não informado"
+        }
+        status={isEditing ? undefined : status || "Produção"}
+        metadata={isEditing ? [] : metadata}
+        colorTheme={processStatusTheme(status)}
+      >
         <div
-          className={`relative ${bgColor} ${textColor} w-[60%] h-[35px] rounded-[8px] flex items-center justify-center font-bold text-sm`}
+          className="mt-auto space-y-4 border-t border-slate-100 pt-4"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          role="presentation"
         >
-          <select
-            value={status || "Produção"}
-            onChange={handleStatusChange}
-            onClick={handleStatusClick}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30 appearance-none"
-          >
-            <option value="Produção">Produção</option>
-            <option value="Prefeitura">Prefeitura</option>
-            <option value="Caixa">Caixa</option>
-            <option value="Cartorio">Cartorio</option>
-            <option value="Obra">Obra</option>
-            <option value="Finalizado">Finalizado</option>
-          </select>
-
-          <div className="flex items-center justify-center pointer-events-none z-10">
-            <img
-              width="20"
-              height="20"
-              src="https://img.icons8.com/ios-glyphs/30/full-stop--v1.png"
-              alt="status-icon"
-              className="mr-1"
-              style={{ filter: iconFilter }}
-            />
-            {status || "Produção"}
-          </div>
+          {!isEditing ? (
+            <>
+              <div className="space-y-1.5">
+                <label
+                  htmlFor={`status-processo-${id}`}
+                  className="text-[11px] font-semibold uppercase tracking-wide text-text-muted"
+                >
+                  Status do processo
+                </label>
+                <select
+                  id={`status-processo-${id}`}
+                  value={status || "Produção"}
+                  onChange={handleStatusChange}
+                  className={joinClasses(
+                    "box-border w-full cursor-pointer rounded-xl border px-3 py-2.5 text-sm font-semibold shadow-inner outline-none transition focus:ring-2",
+                    statusSelectClasses(status),
+                  )}
+                >
+                  <option value="Produção">Produção</option>
+                  <option value="Prefeitura">Prefeitura</option>
+                  <option value="Caixa">Caixa</option>
+                  <option value="Cartorio">Cartorio</option>
+                  <option value="Obra">Obra</option>
+                  <option value="Finalizado">Finalizado</option>
+                </select>
+              </div>
+              <div className="flex w-full gap-2">
+                <BaseButton
+                  variant="ghost"
+                  size="sm"
+                  icon={<Pencil className="h-4 w-4" />}
+                  onClick={toggleEdit}
+                  className="flex-1"
+                >
+                  Editar
+                </BaseButton>
+                <BaseButton
+                  variant="ghost"
+                  size="sm"
+                  icon={<Trash2 className="h-4 w-4" />}
+                  onClick={handleDeleteClick}
+                  className="flex-1 text-red-600 hover:bg-red-50"
+                >
+                  Excluir
+                </BaseButton>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col gap-3">
+                <label className="flex flex-col gap-1 text-left">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    Cliente
+                  </span>
+                  <input
+                    type="text"
+                    value={editedClient}
+                    onChange={(e) => setEditedClient(e.target.value)}
+                    className="box-border h-10 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-sm text-text-primary outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-200"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-left">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    Tipo
+                  </span>
+                  <input
+                    type="text"
+                    value={editedTipo}
+                    onChange={(e) => setEditedTipo(e.target.value)}
+                    className="box-border h-10 w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 text-sm text-text-primary outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-200"
+                  />
+                </label>
+              </div>
+              <div className="flex w-full gap-2">
+                <BaseButton
+                  variant="primary"
+                  size="sm"
+                  icon={<Check className="h-4 w-4" />}
+                  onClick={handleSave}
+                  className="flex-1"
+                >
+                  Salvar
+                </BaseButton>
+                <BaseButton
+                  variant="ghost"
+                  size="sm"
+                  icon={<X className="h-4 w-4" />}
+                  onClick={handleCancel}
+                  className="flex-1"
+                >
+                  Cancelar
+                </BaseButton>
+              </div>
+            </>
+          )}
         </div>
-      </div>
+      </BaseCard>
     </div>
   );
 }
-

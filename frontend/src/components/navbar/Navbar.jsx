@@ -5,6 +5,7 @@ const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
 
 export default function Navbar({
   title = [],
+  subtitle,
   actions = [],
   filters = [],
   className = "",
@@ -37,6 +38,11 @@ export default function Navbar({
           <h1 className="truncate font-semibold tracking-tight text-text-primary text-3xl">
             {title}
           </h1>
+          {subtitle ? (
+            <p className="mt-1 line-clamp-2 text-sm leading-snug text-text-muted sm:text-base">
+              {subtitle}
+            </p>
+          ) : null}
         </div>
       </div>
 
