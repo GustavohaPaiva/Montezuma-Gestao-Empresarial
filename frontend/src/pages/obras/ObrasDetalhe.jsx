@@ -846,7 +846,7 @@ export default function ObrasDetalhe() {
                           {formatarDataHoraBR(item.created_at)}
                         </p>
                       </div>
-                      <p className="text-sm leading-relaxed text-text-primary">
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-text-primary">
                         {item.mensagem}
                       </p>
                     </article>
@@ -1050,7 +1050,13 @@ export default function ObrasDetalhe() {
                     variant="obraDetalhe"
                     colunas={[
                       "Validação",
-                      "Serviço",
+                      <span
+                        key="col-serv"
+                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+                        onClick={() => handleSortMdo("tipo")}
+                      >
+                        Serviço ↕
+                      </span>,
                       <span
                         key="col-prest"
                         className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"

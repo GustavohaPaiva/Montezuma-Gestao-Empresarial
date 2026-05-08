@@ -922,7 +922,7 @@ export default function ObraCliente() {
                               {formatarDataHoraBR(item.created_at)}
                             </p>
                           </div>
-                          <p className="text-sm leading-relaxed text-slate-700">
+                          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">
                             {item.mensagem}
                           </p>
                         </article>

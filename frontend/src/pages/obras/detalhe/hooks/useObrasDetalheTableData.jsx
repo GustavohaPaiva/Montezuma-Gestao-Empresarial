@@ -239,10 +239,14 @@ export function useObrasDetalheTableData({
 
     if (sortConfigMdo.campo) {
       listaMaoDeObra.sort((a, b) => {
-        let valA, valB;
+        let valA = "";
+        let valB = "";
         if (sortConfigMdo.campo === "profissional") {
           valA = (a.profissional || "").toLowerCase();
           valB = (b.profissional || "").toLowerCase();
+        } else if (sortConfigMdo.campo === "tipo") {
+          valA = (a.tipo || "").toLowerCase();
+          valB = (b.tipo || "").toLowerCase();
         }
         if (valA < valB) return sortConfigMdo.direcao === "asc" ? -1 : 1;
         if (valA > valB) return sortConfigMdo.direcao === "asc" ? 1 : -1;
