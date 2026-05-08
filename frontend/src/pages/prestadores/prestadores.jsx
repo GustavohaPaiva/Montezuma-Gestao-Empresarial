@@ -1,13 +1,17 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
-import ButtonDefault from "../../components/gerais/ButtonDefault";
+import Navbar from "../../components/navbar/Navbar";
+import BaseCard from "../../components/cards/BaseCard";
+import BaseInput from "../../components/gerais/BaseInput";
+import BaseSelect from "../../components/gerais/BaseSelect";
+import BaseButton from "../../components/gerais/BaseButton";
 import ModalPrestador from "../../components/modals/ModalPrestador";
+import { useScrollFadeIn } from "../../hooks/useScrollFadeIn";
 import {
   UserRound,
   Phone,
   Mail,
-  FileText,
   Power,
   PowerOff,
   Search,
@@ -16,7 +20,12 @@ import {
   Wallet,
   AlertCircle,
   CheckCircle2,
+  Loader2,
+  Plus,
+  Tags,
 } from "lucide-react";
+
+const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
 
 export default function Prestadores() {
   const navigate = useNavigate();
@@ -25,15 +34,19 @@ export default function Prestadores() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroClasseId, setFiltroClasseId] = useState("");
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [showElements, setShowElements] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
   const fileInputRef = useRef(null);
   const [prestadorParaFoto, setPrestadorParaFoto] = useState(null);
   const [uploadingFotoId, setUploadingFotoId] = useState(null);
 
+  const [refNav, isNavVisible] = useScrollFadeIn();
+  const [refMain] = useScrollFadeIn();
+
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -59,10 +72,20 @@ export default function Prestadores() {
     fetchBase();
   }, [fetchBase]);
 
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => setShowElements(true), 50);
+      return () => clearTimeout(timer);
+    }
+    setShowElements(false);
+  }, [loading]);
+
   const handleCreateClasse = async (nomeClasse) => {
     const classe = await api.createClassePrestador({ nome: nomeClasse });
     setClassesPrestadores((prev) =>
-      [...prev, classe].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")),
+      [...prev, classe].sort((a, b) =>
+        (a.nome || "").localeCompare(b.nome || ""),
+      ),
     );
     return classe;
   };
@@ -110,16 +133,24 @@ export default function Prestadores() {
   };
 
   const prestadoresFiltrados = useMemo(() => {
+    const termo = busca.toLowerCase().trim();
+    const idClasse = filtroClasseId ? String(filtroClasseId) : "";
+
     return prestadores
-      .filter(
-        (p) =>
-          (p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
-            p.cnpj_cpf?.toLowerCase().includes(busca.toLowerCase())) &&
-          (!filtroClasseId ||
-            (p.prestadores_classes || []).some(
-              (rel) => String(rel.classe_id) === String(filtroClasseId),
-            )),
-      )
+      .filter((p) => {
+        const matchTexto =
+          !termo ||
+          p.nome?.toLowerCase().includes(termo) ||
+          p.cnpj_cpf?.toLowerCase().includes(termo);
+
+        const matchClasse =
+          !idClasse ||
+          (p.prestadores_classes || []).some(
+            (rel) => String(rel.classe_id) === idClasse,
+          );
+
+        return matchTexto && matchClasse;
+      })
       .sort((a, b) => {
         if (a.ativo === b.ativo) {
           return (a.nome || "").localeCompare(b.nome || "");
@@ -127,21 +158,6 @@ export default function Prestadores() {
         return a.ativo ? -1 : 1;
       });
   }, [prestadores, busca, filtroClasseId]);
-
-  const corClasse = (nomeClasse = "") => {
-    const paleta = [
-      "bg-[#FEE2E2] text-[#991B1B]",
-      "bg-[#FFEDD5] text-[#9A3412]",
-      "bg-[#FEF9C3] text-[#854D0E]",
-      "bg-[#DCFCE7] text-[#166534]",
-      "bg-[#DBEAFE] text-[#1E3A8A]",
-      "bg-[#EDE9FE] text-[#4C1D95]",
-      "bg-[#FCE7F3] text-[#9D174D]",
-      "bg-[#E0F2FE] text-[#0C4A6E]",
-    ];
-    const hash = [...nomeClasse].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-    return paleta[hash % paleta.length];
-  };
 
   const formatarMoeda = (valor) =>
     new Intl.NumberFormat("pt-BR", {
@@ -159,16 +175,14 @@ export default function Prestadores() {
       pago += parseFloat(resumo.pago) || 0;
     });
 
-    return {
-      contratado,
-      pago,
-      pendente: Math.max(contratado - pago, 0),
-      excedente: Math.max(pago - contratado, 0),
-    };
+    const pendente = Math.max(contratado - pago, 0);
+    const excedente = Math.max(pago - contratado, 0);
+
+    return { contratado, pago, pendente, excedente };
   }, [prestadoresFiltrados]);
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0] pb-[40px]">
+    <div className="flex min-h-screen w-full flex-col items-center bg-bg-primary">
       <input
         type="file"
         ref={fileInputRef}
@@ -177,93 +191,146 @@ export default function Prestadores() {
         className="hidden"
       />
 
-      <header className="h-[60px] border-b border-[#DBDADE] flex justify-center top-0 z-10 w-full bg-[#EEEDF0]">
-        <div className="w-[90%] flex items-center justify-between">
-          <div className="flex items-center gap-[16px]">
-            <button
-              onClick={() => navigate("/")}
-              className="border-none bg-transparent cursor-pointer flex items-center hover:opacity-70 transition-opacity"
-            >
-              <img
-                width="30"
-                height="30"
-                src="https://img.icons8.com/ios/50/back--v1.png"
-                alt="voltar"
+      <div
+        ref={refNav}
+        className={`w-full transition-all duration-500 ease-out ${
+          isNavVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+        }`}
+      >
+        <Navbar
+          title="Prestadores"
+          actions={[
+            {
+              key: "novo-prestador",
+              label: "Novo prestador",
+              onClick: () => setModalOpen(true),
+              icon: <Plus className="h-4 w-4" aria-hidden />,
+              className:
+                "bg-accent-primary text-white hover:opacity-90 shadow-sm disabled:cursor-not-allowed disabled:opacity-60 h-10 px-4",
+            },
+          ]}
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex min-h-[42vh] w-full items-center justify-center px-4 py-16">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border-primary/35 bg-white px-8 py-10 text-center shadow-[0_8px_32px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04]">
+            <div
+              className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-accent-primary/[0.06]"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-accent-primary/[0.04]"
+              aria-hidden
+            />
+            <div className="relative">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary shadow-inner ring-1 ring-accent-primary/15">
+                <UserRound className="h-7 w-7" strokeWidth={2} />
+              </div>
+              <Loader2
+                className="mx-auto mb-5 h-10 w-10 animate-spin text-accent-primary"
+                strokeWidth={2.25}
+                aria-hidden
               />
-            </button>
-            <h1 className="text-[20px] font-bold uppercase tracking-[2px] text-[#464C54]">
-              Prestadores
-            </h1>
-          </div>
-          {!isMobile && (
-            <ButtonDefault className="w-[180px]" onClick={() => setModalOpen(true)}>
-              + Novo Prestador
-            </ButtonDefault>
-          )}
-        </div>
-      </header>
-
-      <main className="w-[90%] mt-3 sm:mt-4">
-        {isMobile && (
-          <div className="flex flex-col gap-[12px] mb-[24px]">
-            <ButtonDefault onClick={() => setModalOpen(true)}>
-              + Novo Prestador
-            </ButtonDefault>
-          </div>
-        )}
-
-        <div className="bg-transparent flex flex-col items-center gap-[24px] pb-[40px]">
-          <div className="w-full bg-white rounded-[16px] shadow-sm border border-[#DBDADE] p-6 mb-2">
-            <h2 className="text-[18px] font-bold text-[#464C54] mb-4 uppercase tracking-wide">
-              Visão Financeira Global
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#F7F7F8] p-4 rounded-xl border border-[#EEEEEE] flex flex-col justify-center">
-                <span className="text-[13px] font-bold text-[#71717A] flex items-center gap-2 uppercase">
-                  <Wallet size={16} /> Total Contratado
-                </span>
-                <span className="text-[24px] font-extrabold text-[#464C54] mt-1">
-                  R$ {formatarMoeda(totaisGerais.contratado)}
-                </span>
-              </div>
-              <div className="bg-[#E8F5E9] p-4 rounded-xl border border-[#C8E6C9] flex flex-col justify-center">
-                <span className="text-[13px] font-bold text-[#2E7D32] flex items-center gap-2 uppercase">
-                  <CheckCircle2 size={16} /> Total Pago
-                </span>
-                <span className="text-[24px] font-extrabold text-[#1b4b1e] mt-1">
-                  R$ {formatarMoeda(totaisGerais.pago)}
-                </span>
-              </div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                Montezuma
+              </p>
+              <h3 className="mt-1.5 text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+                Carregando prestadores
+              </h3>
+              <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-text-muted">
+                Buscando cadastros e resumo de mão de obra.
+              </p>
               <div
-                className={`p-4 rounded-xl border flex flex-col justify-center ${
-                  totaisGerais.excedente > 0
-                    ? "bg-[#FEE2E2] border-[#FECACA]"
-                    : totaisGerais.pendente > 0
-                      ? "bg-[#FFF3E0] border-[#FFE0B2]"
-                      : "bg-[#F7F7F8] border-[#EEEEEE]"
-                }`}
+                className="mx-auto mt-7 flex justify-center gap-1.5"
+                role="presentation"
+                aria-hidden
               >
-                <span
-                  className={`text-[13px] font-bold flex items-center gap-2 uppercase ${
-                    totaisGerais.excedente > 0
-                      ? "text-[#B91C1C]"
-                      : totaisGerais.pendente > 0
-                        ? "text-[#E65100]"
-                        : "text-[#71717A]"
-                  }`}
-                >
-                  <AlertCircle size={16} />
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="h-2 w-2 animate-bounce rounded-full bg-accent-primary/75"
+                    style={{ animationDelay: `${i * 0.12}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <main ref={refMain} className="w-[90%] pb-10">
+          <section
+            className={`mb-6 w-full rounded-2xl border border-border-primary/35 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 transition-all duration-700 ease-out sm:p-6 ${
+              showElements
+                ? "translate-y-0 opacity-100"
+                : "translate-y-8 opacity-0"
+            }`}
+          >
+            <div className="flex flex-row items-center gap-2 border-b border-slate-100 pb-4">
+              <Wallet
+                className="h-5 w-5 shrink-0 text-orange-600/55"
+                aria-hidden
+              />
+              <h2 className="text-md font-semibold uppercase">
+                Visão financeira
+              </h2>
+            </div>
+            <p className="mt-3 max-w-2xl text-xs leading-relaxed text-slate-500">
+              Totais de mão de obra (contratado e pago) dos prestadores que
+              passam pelos filtros abaixo.
+            </p>
+            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 text-left sm:grid-cols-3">
+              <div className="min-w-0">
+                <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  <Wallet
+                    className="h-3.5 w-3.5 shrink-0 text-orange-600/55"
+                    aria-hidden
+                  />
+                  Contratado
+                </dt>
+                <dd className="mt-1 text-lg font-semibold tabular-nums text-text-primary sm:text-xl">
+                  R$ {formatarMoeda(totaisGerais.contratado)}
+                </dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  <CheckCircle2
+                    className="h-3.5 w-3.5 shrink-0 text-orange-600/55"
+                    aria-hidden
+                  />
+                  Pago
+                </dt>
+                <dd className="mt-1 text-lg font-semibold tabular-nums text-text-primary sm:text-xl">
+                  R$ {formatarMoeda(totaisGerais.pago)}
+                </dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  {totaisGerais.excedente > 0 ? (
+                    <AlertCircle
+                      className="h-3.5 w-3.5 shrink-0 text-red-600/70"
+                      aria-hidden
+                    />
+                  ) : totaisGerais.pendente > 0 ? (
+                    <AlertCircle
+                      className="h-3.5 w-3.5 shrink-0 text-orange-600/55"
+                      aria-hidden
+                    />
+                  ) : (
+                    <CheckCircle2
+                      className="h-3.5 w-3.5 shrink-0 text-orange-600/55"
+                      aria-hidden
+                    />
+                  )}
                   {totaisGerais.excedente > 0
-                    ? "Pago Acima do Contratado"
-                    : "Total Pendente"}
-                </span>
-                <span
-                  className={`text-[24px] font-extrabold mt-1 ${
+                    ? "Acima do contratado"
+                    : "A pagar"}
+                </dt>
+                <dd
+                  className={`mt-1 text-lg font-semibold tabular-nums sm:text-xl ${
                     totaisGerais.excedente > 0
-                      ? "text-[#991B1B]"
-                      : totaisGerais.pendente > 0
-                        ? "text-[#b33d00]"
-                        : "text-[#464C54]"
+                      ? "text-red-800"
+                      : "text-text-primary"
                   }`}
                 >
                   R${" "}
@@ -272,206 +339,286 @@ export default function Prestadores() {
                       ? totaisGerais.excedente
                       : totaisGerais.pendente,
                   )}
-                </span>
+                </dd>
               </div>
-            </div>
-          </div>
+            </dl>
+          </section>
 
-          <div className="w-full flex flex-col md:flex-row md:justify-between md:items-center gap-3 bg-white p-4 rounded-[12px] shadow-sm border border-[#DBDADE]">
-            <h1 className="text-[20px] md:text-[25px] font-bold text-[#464C54] hidden md:block">
-              Diretório
-            </h1>
-            <div className="w-full md:w-auto flex flex-col md:flex-row gap-2">
-              <select
-                value={filtroClasseId}
-                onChange={(e) => setFiltroClasseId(e.target.value)}
-                className="h-[45px] px-3 border border-[#DBDADE] rounded-[8px] bg-[#F7F7F8] focus:outline-none text-[#464C54] md:w-[240px]"
-              >
-                <option value="">Todas as classes</option>
-                {classesPrestadores.map((classe) => (
-                  <option key={classe.id} value={classe.id}>
-                    {classe.nome}
-                  </option>
-                ))}
-              </select>
-              <div className="relative w-full md:w-[350px]">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={18}
+          <section
+            className={`mb-8 w-full rounded-2xl border border-border-primary/35 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 transition-all delay-75 duration-700 ease-out sm:p-6 ${
+              showElements
+                ? "translate-y-0 opacity-100"
+                : "translate-y-8 opacity-0"
+            }`}
+          >
+            <h2 className="flex items-center gap-2 text-md font-semibold uppercase">
+              <Search
+                className="h-5 w-5 opacity-80 text-orange-600"
+                aria-hidden
+              />
+              Pesquisa e filtro
+            </h2>
+            <div className="mt-4 flex w-full flex-col gap-4">
+              <div>
+                <label
+                  htmlFor="filtro-classe-prestador"
+                  className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-slate-500"
+                >
+                  Classe
+                </label>
+                <BaseSelect
+                  id="filtro-classe-prestador"
+                  value={filtroClasseId}
+                  onChange={(e) => setFiltroClasseId(e.target.value)}
+                  placeholder="Todas as classes"
+                  aria-label="Filtrar por classe"
+                  options={classesPrestadores.map((c) => ({
+                    value: String(c.id),
+                    label: c.nome || `Classe ${c.id}`,
+                  }))}
                 />
-                <input
-                  type="text"
-                  placeholder="Pesquisar por nome ou documento..."
+              </div>
+              <div className="w-full">
+                <label
+                  htmlFor="busca-prestadores"
+                  className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-slate-500"
+                >
+                  Nome ou documento
+                </label>
+                <BaseInput
+                  id="busca-prestadores"
+                  className="w-full"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className="w-full h-[45px] pl-10 pr-4 box-border border border-[#DBDADE] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] text-[#464C54]"
+                  placeholder="Filtrar por texto…"
+                  aria-label="Filtrar prestadores por nome ou documento"
                 />
               </div>
             </div>
-          </div>
+          </section>
 
-          {loading ? (
-            <div className="text-[#71717A] font-bold py-10">A carregar dados...</div>
-          ) : prestadoresFiltrados.length === 0 ? (
-            <div className="text-[#71717A] py-10">Nenhum prestador encontrado.</div>
+          {prestadoresFiltrados.length === 0 ? (
+            <div className="flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border-primary/60 bg-white/80 px-6 py-12 text-center shadow-inner ring-1 ring-slate-900/5">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 ring-1 ring-slate-200/80">
+                <UserRound className="h-6 w-6" strokeWidth={2} />
+              </div>
+              <p className="text-base font-semibold text-text-primary">
+                Nenhum prestador encontrado.
+              </p>
+              <p className="mt-2 max-w-md text-sm text-text-muted">
+                Ajuste a busca, a classe ou cadastre um novo prestador.
+              </p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 w-full">
-              {prestadoresFiltrados.map((prestador) => {
+            <div
+              className={
+                isMobile
+                  ? "flex w-full flex-col gap-4"
+                  : "grid w-full grid-cols-1 place-items-stretch gap-6 md:grid-cols-2 xl:grid-cols-4 xl:gap-8"
+              }
+            >
+              {prestadoresFiltrados.map((prestador, index) => {
                 const resumoCard = prestador.resumo_mdo || {
                   contratado: 0,
                   pago: 0,
-                  pendente: 0,
                 };
                 const contratadoCard = parseFloat(resumoCard.contratado) || 0;
                 const pagoCard = parseFloat(resumoCard.pago) || 0;
                 const pendenteCard = Math.max(contratadoCard - pagoCard, 0);
                 const excedenteCard = Math.max(pagoCard - contratadoCard, 0);
+
                 const classes = (prestador.prestadores_classes || [])
                   .map((rel) => rel.classes_prestadores?.nome)
                   .filter(Boolean);
 
+                let linhaFinanceira;
+                if (contratadoCard <= 0 && pagoCard <= 0) {
+                  linhaFinanceira = {
+                    icon: (
+                      <Wallet
+                        className="h-4 w-4 text-orange-600/45"
+                        aria-hidden
+                      />
+                    ),
+                    label: "Sem valores de mão de obra",
+                    textClass: "text-slate-500",
+                  };
+                } else if (excedenteCard > 0) {
+                  linhaFinanceira = {
+                    icon: (
+                      <AlertCircle
+                        className="h-4 w-4 text-red-600/90"
+                        aria-hidden
+                      />
+                    ),
+                    label: `Acima do contratado: R$ ${formatarMoeda(excedenteCard)}`,
+                    textClass: "text-red-800 font-medium",
+                  };
+                } else if (pendenteCard > 0) {
+                  linhaFinanceira = {
+                    icon: (
+                      <AlertCircle
+                        className="h-4 w-4 text-amber-600/90"
+                        aria-hidden
+                      />
+                    ),
+                    label: `Pendente: R$ ${formatarMoeda(pendenteCard)}`,
+                    textClass: "text-amber-800 font-medium",
+                  };
+                } else {
+                  linhaFinanceira = {
+                    icon: (
+                      <CheckCircle2
+                        className="h-4 w-4 text-emerald-600/90"
+                        aria-hidden
+                      />
+                    ),
+                    label: "Tudo pago",
+                    textClass: "text-emerald-700 font-medium",
+                  };
+                }
+
+                const classesLabel = classes.length
+                  ? classes.join(", ")
+                  : "Sem classes vinculadas";
+
+                const metadata = [
+                  {
+                    icon: (
+                      <Phone
+                        className="h-4 w-4 text-orange-600/50"
+                        aria-hidden
+                      />
+                    ),
+                    label: prestador.telefone || "Sem telefone",
+                  },
+                  {
+                    icon: (
+                      <Mail
+                        className="h-4 w-4 text-orange-600/50"
+                        aria-hidden
+                      />
+                    ),
+                    label: prestador.email || "Sem e-mail",
+                  },
+                  {
+                    icon: (
+                      <Tags
+                        className="h-4 w-4 text-orange-600/50"
+                        aria-hidden
+                      />
+                    ),
+                    label: classesLabel,
+                    textClass: classes.length ? "" : "text-slate-500",
+                  },
+                  linhaFinanceira,
+                ];
+
                 return (
                   <div
                     key={prestador.id}
-                    onClick={() => navigate(`/prestadores/${prestador.id}`)}
-                    className={`bg-white rounded-[16px] border border-[#DBDADE] shadow-sm hover:shadow-md transition-all duration-300 p-5 flex flex-col relative ${!prestador.ativo ? "opacity-70 grayscale-[30%]" : "cursor-pointer"}`}
+                    className={`flex h-full w-full justify-stretch transition-all duration-700 ease-out ${
+                      showElements
+                        ? "translate-y-0 opacity-100"
+                        : "translate-y-8 opacity-0"
+                    } ${!prestador.ativo ? "opacity-80 grayscale-[20%]" : ""}`}
+                    style={{ transitionDelay: `${index * 40}ms` }}
                   >
-                    <div className="flex items-center gap-4 mb-5 border-b border-gray-100 pb-4">
-                      <div
-                        onClick={(e) => {
+                    <div
+                      className={joinClasses(
+                        "h-full w-full rounded-2xl outline-none transition-shadow",
+                        "focus-within:ring-2 focus-within:ring-accent-primary/25",
+                      )}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          e.stopPropagation();
-                          setPrestadorParaFoto(prestador);
-                          fileInputRef.current.click();
-                        }}
-                        className="relative w-14 h-14 rounded-full bg-[#EEEDF0] border border-[#DBDADE] flex items-center justify-center text-[#464C54] shrink-0 overflow-hidden shadow-sm cursor-pointer group"
-                        title="Alterar imagem"
+                          navigate(`/prestadores/${prestador.id}`);
+                        }
+                      }}
+                      onClick={() => navigate(`/prestadores/${prestador.id}`)}
+                    >
+                      <BaseCard
+                        variant="entity"
+                        title={prestador.nome}
+                        value={prestador.cnpj_cpf || "Sem registo"}
+                        status={prestador.ativo ? "Ativo" : "Inativo"}
+                        metadata={metadata}
+                        colorTheme={prestador.ativo ? "emerald" : "amber"}
+                        leading={
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setPrestadorParaFoto(prestador);
+                              fileInputRef.current?.click();
+                            }}
+                            className="relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 shadow-sm ring-1 ring-slate-900/5 transition hover:border-slate-300"
+                            title="Alterar imagem"
+                          >
+                            {uploadingFotoId === prestador.id ? (
+                              <Hourglass className="h-5 w-5 animate-spin text-accent-primary" />
+                            ) : prestador.foto ? (
+                              <>
+                                <img
+                                  src={prestador.foto}
+                                  alt={prestador.nome}
+                                  className="h-full w-full object-cover"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100">
+                                  <Camera className="h-4 w-4 text-white" />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <UserRound
+                                  size={20}
+                                  className="text-slate-500"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity hover:opacity-100">
+                                  <Camera className="h-4 w-4 text-white" />
+                                </div>
+                              </>
+                            )}
+                          </button>
+                        }
                       >
-                        {uploadingFotoId === prestador.id ? (
-                          <Hourglass className="w-6 h-6 animate-spin text-[#DC3B0B]" />
-                        ) : prestador.foto ? (
-                          <>
-                            <img
-                              src={prestador.foto}
-                              alt={prestador.nome}
-                              className="w-full h-full object-cover group-hover:opacity-50 transition-opacity"
-                            />
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Camera className="text-white w-5 h-5" />
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <UserRound
-                              size={24}
-                              className="group-hover:opacity-50 transition-opacity"
-                            />
-                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Camera className="text-[#464C54] w-5 h-5" />
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col min-w-0">
-                        <h3
-                          className="font-bold text-[#464C54] uppercase text-[15px] leading-tight truncate"
-                          title={prestador.nome}
+                        <div
+                          className="mt-auto border-t border-slate-100 pt-4"
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          role="presentation"
                         >
-                          {prestador.nome}
-                        </h3>
-                        <span
-                          className={`w-fit mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${prestador.ativo ? "bg-[#E8F5E9] text-[#2E7D32]" : "bg-[#FFF3E0] text-[#E65100]"}`}
-                        >
-                          {prestador.ativo ? "ATIVO" : "INATIVO"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2.5 text-[12px] text-[#71717A] mb-2">
-                      <div className="flex items-center gap-3">
-                        <FileText size={15} className="text-[#A1A1AA]" />
-                        <span className="font-medium">
-                          {prestador.cnpj_cpf || "Sem registo"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Phone size={15} className="text-[#A1A1AA]" />
-                        <span className="font-medium">
-                          {prestador.telefone || "Sem telefone"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Mail size={15} className="text-[#A1A1AA]" />
-                        <span
-                          className="font-medium lowercase truncate"
-                          title={prestador.email}
-                        >
-                          {prestador.email || "Sem e-mail"}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 pt-2 border-t border-gray-100">
-                        {classes.length > 0 ? (
-                          classes.slice(0, 4).map((nomeClasse) => (
-                            <span
-                              key={`${prestador.id}-${nomeClasse}`}
-                              className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${corClasse(nomeClasse)}`}
-                            >
-                              {nomeClasse}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-[11px] text-[#A1A1AA]">
-                            Sem classes vinculadas
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
-                        {excedenteCard > 0 ? (
-                          <>
-                            <AlertCircle size={15} className="text-[#B91C1C]" />
-                            <span className="font-bold text-[#B91C1C]">
-                              Pago acima: R$ {formatarMoeda(excedenteCard)}
-                            </span>
-                          </>
-                        ) : pendenteCard > 0 ? (
-                          <>
-                            <AlertCircle size={15} className="text-[#E65100]" />
-                            <span className="font-bold text-[#E65100]">
-                              Pendente: R$ {formatarMoeda(pendenteCard)}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 size={15} className="text-[#2E7D32]" />
-                            <span className="font-bold text-[#2E7D32]">Tudo Pago</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-auto border-t border-[#DBDADE] pt-4 flex justify-between items-center">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleAtivo(prestador.id, prestador.ativo);
-                        }}
-                        className={`flex items-center gap-1.5 text-[11px] font-bold transition-colors cursor-pointer bg-transparent border-none ${prestador.ativo ? "text-[#E65100] hover:text-[#b33d00]" : "text-[#2E7D32] hover:text-[#1b4b1e]"}`}
-                      >
-                        {prestador.ativo ? <PowerOff size={14} /> : <Power size={14} />}
-                        {prestador.ativo ? "DESATIVAR" : "ATIVAR"}
-                      </button>
+                          <BaseButton
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            icon={
+                              prestador.ativo ? (
+                                <PowerOff className="h-4 w-4" />
+                              ) : (
+                                <Power className="h-4 w-4" />
+                              )
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleAtivo(prestador.id, prestador.ativo);
+                            }}
+                          >
+                            {prestador.ativo ? "Desativar" : "Ativar"}
+                          </BaseButton>
+                        </div>
+                      </BaseCard>
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
-      </main>
+        </main>
+      )}
 
       {modalOpen && (
         <ModalPrestador

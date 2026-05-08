@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
-import ButtonDefault from "../gerais/ButtonDefault";
-import ModalPortal from "../gerais/ModalPortal";
+import { useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
+import BaseModal from "../gerais/BaseModal";
+import BaseButton from "../gerais/BaseButton";
+import BaseInput from "../gerais/BaseInput";
 
 export default function ModalPrestador({
   isOpen,
@@ -10,23 +12,35 @@ export default function ModalPrestador({
   onCreateClasse,
   prestadorEdit,
 }) {
-  const [nome, setNome] = useState(prestadorEdit?.nome || "");
-  const [cnpjCpf, setCnpjCpf] = useState(prestadorEdit?.cnpj_cpf || "");
-  const [telefone, setTelefone] = useState(prestadorEdit?.telefone || "");
-  const [email, setEmail] = useState(prestadorEdit?.email || "");
-  const [classeIds, setClasseIds] = useState(
-    (prestadorEdit?.prestadores_classes || []).map((rel) => rel.classe_id),
-  );
+  const [nome, setNome] = useState("");
+  const [cnpjCpf, setCnpjCpf] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [email, setEmail] = useState("");
+  const [classeIds, setClasseIds] = useState([]);
   const [mostrarNovaClasse, setMostrarNovaClasse] = useState(false);
   const [novaClasseNome, setNovaClasseNome] = useState("");
   const [criandoClasse, setCriandoClasse] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const classesAtivas = useMemo(
     () => classesDisponiveis || [],
     [classesDisponiveis],
   );
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    setNome(prestadorEdit?.nome ?? "");
+    setCnpjCpf(prestadorEdit?.cnpj_cpf ?? "");
+    setTelefone(prestadorEdit?.telefone ?? "");
+    setEmail(prestadorEdit?.email ?? "");
+    setClasseIds(
+      (prestadorEdit?.prestadores_classes || []).map((rel) => rel.classe_id),
+    );
+    setMostrarNovaClasse(false);
+    setNovaClasseNome("");
+    setCriandoClasse(false);
+    setSaving(false);
+  }, [isOpen, prestadorEdit]);
 
   const toggleClasse = (idClasse) => {
     setClasseIds((prev) =>
@@ -61,7 +75,8 @@ export default function ModalPrestador({
     }
   };
 
-  const handleConfirmar = () => {
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!nome.trim()) {
       alert("O nome do prestador é obrigatório!");
       return;
@@ -79,139 +94,163 @@ export default function ModalPrestador({
       payload.id = prestadorEdit.id;
     }
 
-    onSave(payload);
+    setSaving(true);
+    try {
+      await Promise.resolve(onSave(payload));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-[10px]">
-      <div className="bg-[#ffffff] w-full max-w-[500px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
-        <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
-              {prestadorEdit ? "Editar Prestador" : "Novo Prestador"}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="border-none bg-transparent w-[50px] h-[50px] cursor-pointer flex items-center justify-center"
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={prestadorEdit ? "Editar prestador" : "Novo prestador"}
+      size="lg"
+      contentPaddingClass="max-h-[min(78vh,680px)] overflow-y-auto overscroll-contain p-6 sm:p-8"
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-600">
+          Cadastro
+        </p>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="modal-prestador-nome"
+            className="text-xs font-semibold uppercase text-text-muted"
           >
-            <img
-              width="30"
-              height="30"
-              src="https://img.icons8.com/ios/50/multiply.png"
-              alt="fechar"
-            />
-          </button>
+            Nome do prestador *
+          </label>
+          <BaseInput
+            id="modal-prestador-nome"
+            required
+            autoComplete="name"
+            placeholder="Ex.: João da Elétrica"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            className="uppercase"
+            disabled={saving}
+          />
         </div>
 
-        <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
-          <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] uppercase">
-              Nome do Prestador *
+        <div className="space-y-1.5">
+          <label
+            htmlFor="modal-prestador-doc"
+            className="text-xs font-semibold uppercase text-text-muted"
+          >
+            CPF / CNPJ / NIF
+          </label>
+          <BaseInput
+            id="modal-prestador-doc"
+            autoComplete="off"
+            placeholder="Documento fiscal"
+            value={cnpjCpf}
+            onChange={(e) => setCnpjCpf(e.target.value)}
+            disabled={saving}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="modal-prestador-telefone"
+              className="text-xs font-semibold uppercase text-text-muted"
+            >
+              Telefone
             </label>
-            <input
-              type="text"
-              placeholder="Ex: João da Elétrica"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border uppercase"
+            <BaseInput
+              id="modal-prestador-telefone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="(00) 00000-0000"
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              disabled={saving}
             />
           </div>
-
-          <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] uppercase">
-              CPF / CNPJ / NIF
+          <div className="space-y-1.5">
+            <label
+              htmlFor="modal-prestador-email"
+              className="text-xs font-semibold uppercase text-text-muted"
+            >
+              E-mail
             </label>
-            <input
-              type="text"
-              placeholder="Documento fiscal"
-              value={cnpjCpf}
-              onChange={(e) => setCnpjCpf(e.target.value)}
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border"
+            <BaseInput
+              id="modal-prestador-email"
+              type="email"
+              autoComplete="email"
+              placeholder="contato@prestador.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="lowercase"
+              disabled={saving}
             />
           </div>
+        </div>
 
-          <div className="flex gap-[12px] w-full">
-            <div className="flex-[1] flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
-                Telefone
-              </label>
-              <input
-                type="text"
-                placeholder="(00) 00000-0000"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border"
-              />
-            </div>
-
-            <div className="flex-[1] flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
-                E-mail
-              </label>
-              <input
-                type="email"
-                placeholder="contato@prestador.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border lowercase"
-              />
-            </div>
+        <div className="rounded-2xl border border-slate-200/90 bg-slate-50/90 p-4 ring-1 ring-slate-900/5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase text-text-muted">
+              Classes do prestador
+            </span>
+            <BaseButton
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+              disabled={saving || criandoClasse}
+              onClick={() => setMostrarNovaClasse((prev) => !prev)}
+              icon={<Plus className="h-4 w-4" aria-hidden />}
+            >
+              Nova classe
+            </BaseButton>
           </div>
 
-          <div className="bg-[#F7F7F8] border border-[#DBDADE] rounded-[10px] p-3 flex flex-col gap-3">
-            <div className="flex justify-between items-center">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
-                Classes do Prestador
-              </label>
-              <button
+          {mostrarNovaClasse ? (
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <BaseInput
+                value={novaClasseNome}
+                onChange={(e) => setNovaClasseNome(e.target.value)}
+                placeholder="Ex.: Pintura"
+                className="uppercase sm:flex-1"
+                disabled={criandoClasse}
+                aria-label="Nome da nova classe"
+              />
+              <BaseButton
                 type="button"
-                onClick={() => setMostrarNovaClasse((prev) => !prev)}
-                className="text-[12px] font-bold text-[#464C54] cursor-pointer border-none bg-transparent hover:opacity-70"
+                variant="outline"
+                size="md"
+                className="shrink-0 sm:w-auto"
+                disabled={criandoClasse}
+                isLoading={criandoClasse}
+                onClick={handleCriarClasse}
               >
-                + Nova Classe
-              </button>
+                Criar
+              </BaseButton>
             </div>
+          ) : null}
 
-            {mostrarNovaClasse && (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={novaClasseNome}
-                  onChange={(e) => setNovaClasseNome(e.target.value)}
-                  placeholder="Ex: Pintura"
-                  className="flex-1 h-[40px] text-[14px] px-[10px] border border-[#C4C4C9] rounded-[8px] bg-white focus:outline-none focus:border-[#464C54] uppercase"
-                />
-                <button
-                  type="button"
-                  onClick={handleCriarClasse}
-                  disabled={criandoClasse}
-                  className="h-[40px] px-3 rounded-[8px] border border-[#C4C4C9] bg-white text-[12px] font-bold text-[#464C54] cursor-pointer hover:bg-[#EEEDF0] disabled:opacity-50"
-                >
-                  {criandoClasse ? "..." : "Criar"}
-                </button>
-              </div>
-            )}
-
+          <div className="mt-3">
             {classesAtivas.length === 0 ? (
-              <p className="text-[12px] text-[#71717A]">
-                Nenhuma classe cadastrada.
+              <p className="text-sm text-text-muted">
+                Nenhuma classe cadastrada no sistema.
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {classesAtivas.map((classe) => (
                   <label
                     key={classe.id}
-                    className="flex items-center gap-2 text-[13px] text-[#464C54] font-medium bg-white border border-[#E6E5E8] rounded-[8px] px-2 py-2"
+                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-text-primary ring-1 ring-slate-900/5 transition hover:border-slate-300"
                   >
                     <input
                       type="checkbox"
                       checked={classeIds.includes(classe.id)}
                       onChange={() => toggleClasse(classe.id)}
-                      className="h-4 w-4 accent-[#464C54]"
+                      disabled={saving}
+                      className="h-4 w-4 shrink-0 rounded border-slate-300 text-accent-primary focus:ring-2 focus:ring-accent-primary/25"
                     />
-                    <span className="uppercase truncate" title={classe.nome}>
+                    <span className="truncate uppercase" title={classe.nome}>
                       {classe.nome}
                     </span>
                   </label>
@@ -219,16 +258,26 @@ export default function ModalPrestador({
               </div>
             )}
           </div>
-
-          <ButtonDefault
-            onClick={handleConfirmar}
-            className="w-full py-1 bg-[#464C54] text-black h-[50px] text-[16px] font-bold mt-[10px]"
-          >
-            {prestadorEdit ? "Guardar Alterações" : "Registar Prestador"}
-          </ButtonDefault>
         </div>
-      </div>
-    </div>
-    </ModalPortal>
+
+        <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <BaseButton
+            type="button"
+            variant="ghost"
+            disabled={saving || criandoClasse}
+            onClick={onClose}
+          >
+            Cancelar
+          </BaseButton>
+          <BaseButton
+            type="submit"
+            isLoading={saving}
+            disabled={criandoClasse}
+          >
+            {prestadorEdit ? "Guardar alterações" : "Registar prestador"}
+          </BaseButton>
+        </div>
+      </form>
+    </BaseModal>
   );
 }

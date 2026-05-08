@@ -76,6 +76,8 @@ export default function BaseCard({
   colorTheme = "primary",
   onClick,
   children,
+  /** Conteúdo à esquerda do título (ex.: avatar), só em variant="entity". */
+  leading,
 }) {
   const palette = THEME_STYLES[colorTheme] || THEME_STYLES.primary;
   const isInteractive = typeof onClick === "function";
@@ -132,42 +134,22 @@ export default function BaseCard({
       >
         <div className="flex-1 flex flex-col">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              {title ? (
-                <h3 className="truncate text-base font-semibold text-text-primary tracking-tight">
-                  {title}
-                </h3>
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              {leading ? (
+                <div className="shrink-0 pt-0.5">{leading}</div>
               ) : null}
-              {value !== undefined && value !== null ? (
-                <p className="truncate text-sm text-text-muted tracking-tight">
-                  {value}
-                </p>
-              ) : null}
-              {metadata?.length ? (
-                <div className="mt-3 flex flex-col gap-1.5">
-                  {metadata.map((item, index) => (
-                    <div
-                      key={`${item?.label || "metadata"}-${index}`}
-                      className={[
-                        "flex items-center gap-2 text-sm text-slate-600",
-                        item?.color,
-                        item?.textClass,
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      {item?.icon ? (
-                        <span className="inline-flex shrink-0">
-                          {item.icon}
-                        </span>
-                      ) : null}
-                      <span className="min-w-0 truncate" title={String(item?.label || "")}>
-                        {item?.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
+              <div className="min-w-0 flex-1 space-y-1">
+                {title ? (
+                  <h3 className="truncate text-base font-semibold text-text-primary tracking-tight">
+                    {title}
+                  </h3>
+                ) : null}
+                {value !== undefined && value !== null ? (
+                  <p className="truncate text-sm text-text-muted tracking-tight">
+                    {value}
+                  </p>
+                ) : null}
+              </div>
             </div>
             {status ? (
               <span
@@ -180,6 +162,34 @@ export default function BaseCard({
               </span>
             ) : null}
           </div>
+          {metadata?.length ? (
+            <div className="mt-4 w-full border-t border-slate-100 pt-4 text-left">
+              <div className="flex w-full flex-col items-start gap-2">
+                {metadata.map((item, index) => (
+                  <div
+                    key={`${item?.label || "metadata"}-${index}`}
+                    className={[
+                      "flex w-full max-w-full items-center justify-start gap-2 text-left text-sm text-slate-600",
+                      item?.color,
+                      item?.textClass,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {item?.icon ? (
+                      <span className="inline-flex shrink-0">{item.icon}</span>
+                    ) : null}
+                    <span
+                      className="min-w-0 flex-1 truncate text-left"
+                      title={String(item?.label || "")}
+                    >
+                      {item?.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
         {children ? <div className="mt-auto pt-4">{children}</div> : null}
       </WrapperTag>

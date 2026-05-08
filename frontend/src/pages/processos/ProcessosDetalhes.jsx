@@ -472,7 +472,7 @@ export default function ProcessosDetalhes() {
               </p>
               <h1 className="truncate text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
                 {processo.nome}
-              </h1>
+            </h1>
             </div>
           </div>
 
@@ -857,11 +857,11 @@ export default function ProcessosDetalhes() {
               </div>
             </div>
           ) : (
-            <TabelaSimples
+          <TabelaSimples
               variant="processoDetalhe"
-              colunas={["Tipo", "Status", "Protocolo", "OBS."]}
-              dados={dadosPrefeitura}
-            />
+            colunas={["Tipo", "Status", "Protocolo", "OBS."]}
+            dados={dadosPrefeitura}
+          />
           )}
         </section>
 
@@ -934,11 +934,11 @@ export default function ProcessosDetalhes() {
               </div>
             </div>
           ) : (
-            <TabelaSimples
+          <TabelaSimples
               variant="processoDetalhe"
-              colunas={["Status", "Engenheiro", "Protocolo", "Data Assinatura"]}
-              dados={dadosCaixa}
-            />
+            colunas={["Status", "Engenheiro", "Protocolo", "Data Assinatura"]}
+            dados={dadosCaixa}
+          />
           )}
         </section>
 
@@ -1016,17 +1016,17 @@ export default function ProcessosDetalhes() {
               </div>
             </div>
           ) : (
-            <TabelaSimples
+          <TabelaSimples
               variant="processoDetalhe"
-              colunas={[
-                "Tipo",
-                "Status",
-                "Nº Alvara",
-                "Nº Contrato",
-                "Data Assinatura",
-              ]}
-              dados={dadosFinalizados}
-            />
+            colunas={[
+              "Tipo",
+              "Status",
+              "Nº Alvara",
+              "Nº Contrato",
+              "Data Assinatura",
+            ]}
+            dados={dadosFinalizados}
+          />
           )}
         </section>
 

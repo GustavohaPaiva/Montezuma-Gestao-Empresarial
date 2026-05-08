@@ -223,7 +223,6 @@ export default function Obras() {
       >
         <Navbar
           title="Obras"
-          subtitle="Gestao centralizada do portifolio de obras"
           user={user}
           onLogoClick={() => navigate("/")}
           filters={[
