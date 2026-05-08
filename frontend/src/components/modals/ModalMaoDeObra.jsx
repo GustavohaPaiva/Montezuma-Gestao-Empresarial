@@ -79,41 +79,41 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
 
   return (
     <ModalPortal>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-[10px]">
-        <div className="bg-[#ffffff] w-[500px] max-w-[95%] rounded-[16px] shadow-2xl flex flex-col overflow-hidden border border-[#C4C4C9]">
-          <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 backdrop-blur-[2px] sm:p-4">
+        <div className="flex w-full max-w-[500px] flex-col overflow-hidden rounded-2xl border border-border-primary/40 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+          <div className="flex items-center justify-between border-b border-border-primary/35 bg-white px-5 py-4">
             <div className="flex-1 min-w-0">
-              <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
+              <h2 className="truncate text-base font-bold uppercase tracking-wide text-text-primary sm:text-lg">
                 Solicitação Mão de Obra
               </h2>
-              <p className="text-[13px] text-[#71717A] truncate">
+              <p className="truncate text-xs text-text-muted sm:text-sm">
                 Obra: {nomeObra}
               </p>
             </div>
 
             <button
               onClick={onClose}
-              className="border-none bg-transparent w-[50px] h-[50px] cursor-pointer flex justify-center items-center"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border-primary/40 bg-[#FAFAFA] transition-all hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
             >
               <img
-                width="30"
-                height="30"
+                width="20"
+                height="20"
                 src="https://img.icons8.com/ios/50/multiply.png"
                 alt="multiply"
               />
             </button>
           </div>
 
-          <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto max-h-[70vh]">
+          <div className="flex max-h-[70vh] flex-col gap-3.5 overflow-y-auto px-5 py-5">
             <div className="flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Serviço
               </label>
               <input
                 type="text"
                 placeholder="Ex: Pintura de fachada"
                 value={formData.tipo}
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                 onChange={(e) =>
                   setFormData({ ...formData, tipo: e.target.value })
                 }
@@ -121,7 +121,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
             </div>
 
             <div className="flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Classe do Serviço
               </label>
               <select
@@ -133,7 +133,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
                     prestador_id: "",
                   })
                 }
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
               >
                 <option value="">
                   {loadingClasses
@@ -149,7 +149,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
             </div>
 
             <div className="flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Prestador
               </label>
               <select
@@ -158,7 +158,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
                   setFormData({ ...formData, prestador_id: e.target.value })
                 }
                 disabled={!formData.classe_id || loadingPrestadores}
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border disabled:opacity-60"
+                className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25 disabled:opacity-60"
               >
                 <option value="">
                   {!formData.classe_id
@@ -176,14 +176,14 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
             </div>
 
             <div className="flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Valor Estimado
               </label>
               <input
                 type="number"
                 placeholder="R$ 0,00"
                 value={formData.valor}
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                 onChange={(e) =>
                   setFormData({ ...formData, valor: e.target.value })
                 }
@@ -192,7 +192,7 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
 
             <ButtonDefault
               onClick={handleSave}
-              className="w-full bg-[#464C54] text-black h-[50px] text-[16px] font-bold mt-[10px]"
+              className="!mt-2 !h-11 !w-full !cursor-pointer !rounded-xl !border !border-accent-primary !bg-accent-primary !text-sm !font-bold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:!bg-accent-primary-dark hover:!shadow-lg"
             >
               Confirmar Registro
             </ButtonDefault>

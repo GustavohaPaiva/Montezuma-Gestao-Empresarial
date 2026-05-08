@@ -58,7 +58,7 @@ const EtapaCard = memo(
           : "bg-slate-500/10 text-slate-700 ring-slate-400/25";
 
     const inputDataClass =
-      "h-9 w-full rounded-lg border border-border-primary/50 bg-white px-2.5 text-xs text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 disabled:cursor-not-allowed disabled:opacity-60";
+      "h-9 w-full min-w-0 max-w-full rounded-lg border border-border-primary/50 bg-white px-2.5 text-xs text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 disabled:cursor-not-allowed disabled:opacity-60";
 
     return (
       <div

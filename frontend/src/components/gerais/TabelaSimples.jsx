@@ -2,6 +2,7 @@ export default function TabelaSimples({ colunas, dados, variant = "light" }) {
   const esc = variant === "escritorio";
   const obraDetalhe = variant === "obraDetalhe";
   const financeiro = variant === "financeiro";
+  const processoDetalhe = variant === "processoDetalhe";
   return (
     <div
       className={
@@ -11,13 +12,19 @@ export default function TabelaSimples({ colunas, dados, variant = "light" }) {
             ? "mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-border-primary/35 bg-white shadow-[0_5px_20px_rgba(0,0,0,0.08)]"
             : financeiro
               ? "mb-6 w-full overflow-hidden rounded-2xl border border-border-primary/35 bg-white shadow-[0_5px_20px_rgba(0,0,0,0.08)]"
+              : processoDetalhe
+                ? "mb-0 w-full max-w-full overflow-hidden rounded-xl border border-gray-100 bg-[#FAFAFA]/80 shadow-inner"
             : "mb-[24px] w-full overflow-hidden rounded-[8px] border border-[#DBDADE] bg-[#FFFFFF] shadow-sm"
       }
     >
-      <div className="scrollbar-thin max-h-[1450px] overflow-x-auto overflow-y-auto">
+      <div
+        className={`scrollbar-thin overflow-x-auto overflow-y-auto ${
+          obraDetalhe || financeiro ? "max-h-[1040px]" : processoDetalhe ? "max-h-none" : "max-h-[1450px]"
+        }`}
+      >
         <table
           className={
-            obraDetalhe || financeiro
+            obraDetalhe || financeiro || processoDetalhe
               ? "relative w-full min-w-[640px] border-collapse text-left"
               : "relative w-full border-collapse text-left"
           }
@@ -31,6 +38,8 @@ export default function TabelaSimples({ colunas, dados, variant = "light" }) {
                     ? "bg-[#FAFAFA] text-center text-[11px] font-semibold uppercase tracking-wide text-text-muted sm:text-xs"
                     : financeiro
                       ? "bg-[#FAFAFA] text-center text-xs font-semibold uppercase tracking-[0.12em] text-text-muted"
+                      : processoDetalhe
+                        ? "border-b border-gray-100 bg-white text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 sm:text-xs"
                     : "bg-[#eeedf0] text-center text-[14px] font-semibold uppercase text-[#71717A]"
               }
             >
@@ -44,6 +53,8 @@ export default function TabelaSimples({ colunas, dados, variant = "light" }) {
                         ? "whitespace-nowrap bg-[#FAFAFA] px-3 py-3.5 text-center sm:px-4 sm:py-4"
                         : financeiro
                           ? "whitespace-nowrap bg-[#FAFAFA] px-4 py-4 text-center"
+                          : processoDetalhe
+                            ? "whitespace-nowrap bg-white px-4 py-3.5 text-center text-gray-600 sm:py-4"
                         : "bg-[#eeedf0] p-[12px] text-center"
                   }
                 >
@@ -61,6 +72,8 @@ export default function TabelaSimples({ colunas, dados, variant = "light" }) {
                   ? "text-center text-sm text-text-primary"
                   : financeiro
                     ? "text-center text-sm text-text-primary"
+                    : processoDetalhe
+                      ? "divide-y divide-gray-100 bg-white text-center text-sm text-gray-800"
                   : "text-center text-[#464C54]"
             }
           >
@@ -74,6 +87,8 @@ export default function TabelaSimples({ colunas, dados, variant = "light" }) {
                       ? "border-b border-border-primary/15 transition-colors last:border-0 hover:bg-[#FAFAFA]/90"
                       : financeiro
                         ? "border-b border-border-primary/20 transition-colors last:border-0 hover:bg-[#FCFCFD]"
+                        : processoDetalhe
+                          ? "transition-colors odd:bg-white even:bg-[#FAFAFA]/40 hover:bg-orange-50/40"
                       : "border-b border-[#F0F0F2] last:border-0 hover:bg-[#F9FAFB]"
                 }
               >
@@ -87,6 +102,8 @@ export default function TabelaSimples({ colunas, dados, variant = "light" }) {
                           ? "px-3 py-3 align-middle sm:px-4 sm:py-3.5"
                           : financeiro
                             ? "px-4 py-4 align-middle"
+                            : processoDetalhe
+                              ? "px-4 py-4 align-middle"
                           : "p-[12px]"
                     }
                   >

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
 
 export default function Navbar({
-  title = "Montezuma",
+  title = [],
   actions = [],
   filters = [],
   className = "",

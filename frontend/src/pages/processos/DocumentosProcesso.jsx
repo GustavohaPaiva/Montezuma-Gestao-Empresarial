@@ -50,35 +50,36 @@ const DocumentosProcesso = () => {
 
   if (erro) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-gray-100 p-4 text-center">
-        <p className="text-xl font-bold text-red-500 mb-2">
-          Erro ao renderizar o documento.
-        </p>
-        <p className="text-gray-600">
-          Verifique se você <b>apagou as tags &lt;Document&gt;</b> de dentro dos
-          6 arquivos de layout!
-        </p>
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gradient-to-b from-[#F4F4F5] to-[#E4E4E7] p-6 text-center">
+        <div className="max-w-md rounded-2xl border border-red-100 bg-white p-8 shadow-lg shadow-red-900/5">
+          <p className="mb-2 text-lg font-semibold text-red-600">
+            Erro ao renderizar o documento.
+          </p>
+        </div>
       </div>
     );
   }
 
   if (!pdfUrl) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-100">
-        <p className="text-xl font-bold text-gray-500">
-          Processando as páginas do PDF... Aguarde.
-        </p>
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-gradient-to-b from-[#FAFAFA] to-[#EEEDF0] px-4">
+        <div className="rounded-2xl border border-gray-200 bg-white/90 px-10 py-8 shadow-sm backdrop-blur-sm">
+          <p className="text-base font-semibold tracking-tight text-gray-700">
+            Processando as páginas do PDF…
+          </p>
+          <p className="mt-2 text-sm text-gray-500">Aguarde um instante.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ width: "100%", height: "100vh", backgroundColor: "#525659" }}>
+    <div className="h-screen w-full bg-[#3F4448]">
       <iframe
         src={pdfUrl}
         width="100%"
         height="100%"
-        style={{ border: "none" }}
+        className="border-0"
         title="Visualizador de Documentos do Processo"
       />
     </div>

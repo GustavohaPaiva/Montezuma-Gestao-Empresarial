@@ -799,9 +799,9 @@ export default function ObrasDetalhe() {
                   <textarea
                     value={novaMensagemHistorico}
                     onChange={(e) => setNovaMensagemHistorico(e.target.value)}
-                    rows={3}
+                    rows={5}
                     placeholder="Adicionar atualização para o cliente..."
-                    className={`${inputPremium} resize-none`}
+                    className={`${inputPremium} min-h-[132px] resize-y`}
                   />
                   <div
                     className={`mt-3 flex ${isMobile ? "justify-stretch" : "justify-end"}`}
@@ -812,7 +812,7 @@ export default function ObrasDetalhe() {
                       disabled={
                         savingHistoricoObra || !novaMensagemHistorico.trim()
                       }
-                      className={`${btnAccentPremium} ${isMobile ? "!w-full" : ""}`}
+                      className={`${btnAccentPremium} !w-full`}
                     >
                       <span className="inline-flex items-center gap-2">
                         <Send className="h-4 w-4 shrink-0" />
@@ -1001,7 +1001,7 @@ export default function ObrasDetalhe() {
                   >
                     <ButtonDefault
                       onClick={handleGerarRelatorioMateriais}
-                      className={btnOutlinePremium}
+                      className={`${btnAccentPremium} !w-full`}
                     >
                       Relatório Materiais
                     </ButtonDefault>
@@ -1142,7 +1142,7 @@ export default function ObrasDetalhe() {
                   >
                     <ButtonDefault
                       onClick={handleGerarPDFExtrato}
-                      className={btnAccentPremium}
+                      className={`${btnAccentPremium} !w-full`}
                     >
                       Gerar pedido
                     </ButtonDefault>

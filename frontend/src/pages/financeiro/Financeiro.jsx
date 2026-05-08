@@ -15,6 +15,7 @@ import {
   CircleDollarSign,
   Pencil,
   Plus,
+  Loader2,
   Search,
   Trash2,
   TrendingDown,
@@ -46,6 +47,8 @@ export default function Financeiro() {
   const [buscaSaida, setBuscaSaida] = useState("");
   const [limiteMobileEntradas, setLimiteMobileEntradas] = useState(8);
   const [limiteMobileSaidas, setLimiteMobileSaidas] = useState(8);
+  const [loadingMensal, setLoadingMensal] = useState(true);
+  const [loadingAnual, setLoadingAnual] = useState(Boolean(isAdmin));
 
   const [editandoItem, setEditandoItem] = useState({
     tabela: null,
@@ -99,6 +102,7 @@ export default function Financeiro() {
   useEffect(() => {
     if (!escritorioId) return;
     const carregarDados = async () => {
+      setLoadingMensal(true);
       try {
         if (isAdmin) {
           const dadosEntradas = await api.getFinanceiro(
@@ -119,13 +123,18 @@ export default function Financeiro() {
         setSaidas(Array.isArray(dadosSaidas) ? dadosSaidas : []);
       } catch (erro) {
         console.error("Erro ao buscar financeiro:", erro);
+      } finally {
+        setLoadingMensal(false);
       }
     };
     carregarDados();
   }, [escritorioId, mesSelecionado, anoAtual, recarregar, isAdmin]);
 
   useEffect(() => {
-    if (!escritorioId || !isAdmin) return;
+    if (!escritorioId || !isAdmin) {
+      setLoadingAnual(false);
+      return;
+    }
     const carregarResumoAnual = async () => {
       const meses = [
         "01",
@@ -157,6 +166,7 @@ export default function Financeiro() {
       ];
 
       try {
+        setLoadingAnual(true);
         const promessas = meses.map(async (mes) => {
           const ent = await api.getFinanceiro(
             "entradas",
@@ -255,10 +265,14 @@ export default function Financeiro() {
         setTotaisAnuais({ validado: sumVal, previsto: sumPrev });
       } catch (erro) {
         console.error("Erro no resumo anual:", erro);
+      } finally {
+        setLoadingAnual(false);
       }
     };
     carregarResumoAnual();
   }, [escritorioId, anoFiltroAnual, recarregar, isAdmin]);
+
+  const carregandoFinanceiro = loadingMensal || (isAdmin && loadingAnual);
 
   const handleSalvarEntrada = async (dadosFormulario) => {
     try {
@@ -575,7 +589,10 @@ export default function Financeiro() {
 
   const entradasFiltradas = gerarListaFiltrada(entradas, buscaEntrada);
   const saidasFiltradas = gerarListaFiltrada(saidas, buscaSaida);
-  const entradasMobileVisiveis = entradasFiltradas.slice(0, limiteMobileEntradas);
+  const entradasMobileVisiveis = entradasFiltradas.slice(
+    0,
+    limiteMobileEntradas,
+  );
   const saidasMobileVisiveis = saidasFiltradas.slice(0, limiteMobileSaidas);
 
   const gerarLinhasTabela = (dadosIniciais, termoBusca, nomeTabela) => {
@@ -643,7 +660,7 @@ export default function Financeiro() {
               <img
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                className="opacity-100 transition-opacity"
                 alt="editar"
               />
             </div>
@@ -662,7 +679,7 @@ export default function Financeiro() {
           <button
             title="Jogar para o próximo mês"
             onClick={() => handleAdiarMes(nomeTabela, item)}
-            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-blue-50 rounded-full border-none bg-transparent cursor-pointer"
+            className="p-2 hover:bg-blue-50 rounded-full border-none bg-transparent cursor-pointer"
           >
             <img
               width="18"
@@ -674,7 +691,7 @@ export default function Financeiro() {
             <button
               title="Excluir"
               onClick={() => handleDelete(nomeTabela, item)}
-              className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 rounded-full border-none bg-transparent cursor-pointer"
+              className="p-2 hover:bg-red-50 rounded-full border-none bg-transparent cursor-pointer"
             >
               <img
                 width="18"
@@ -754,597 +771,675 @@ export default function Financeiro() {
         visaoEscritorioAtual="Montezuma"
       />
 
-      <Navbar className="static" />
+      <Navbar className="static" title={"Financeiro"} />
 
-      <div className="mt-4 flex w-full items-center px-[5%]">
-        <div className="flex w-full flex-wrap items-center gap-3 rounded-2xl border border-border-primary/40 bg-white p-3 shadow-[0_5px_20px_rgba(0,0,0,0.06)]">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/15">
-            <CalendarRange className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-              Filtro de período
-            </p>
-            <select
-              value={mesSelecionado}
-              onChange={(e) => {
-                setMesSelecionado(e.target.value);
-                setLimiteMobileEntradas(8);
-                setLimiteMobileSaidas(8);
-              }}
-              className="mt-1 h-10 w-full cursor-pointer rounded-xl border border-border-primary/45 bg-[#FAFAFA] px-3 text-sm font-semibold text-text-primary shadow-sm transition-all focus:border-accent-primary/40 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 sm:w-auto sm:min-w-[220px]"
-            >
-              {[
-                "01",
-                "02",
-                "03",
-                "04",
-                "05",
-                "06",
-                "07",
-                "08",
-                "09",
-                "10",
-                "11",
-                "12",
-              ].map((m) => (
-                <option key={m} value={m}>
-                  {new Date(2000, parseInt(m) - 1).toLocaleString("pt-BR", {
-                    month: "long",
-                  })}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {isAdmin && (
-        <div className="mb-4 mt-6 px-[5%]">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <article className="rounded-2xl border border-border-primary/40 bg-gradient-to-br from-white to-[#FAFAFA] p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)]">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <Wallet className="h-5 w-5" />
+      {carregandoFinanceiro ? (
+        <div className="flex min-h-[58vh] w-full items-center justify-center px-4 py-16">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border-primary/35 bg-white px-8 py-10 text-center shadow-[0_8px_32px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04]">
+            <div
+              className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-accent-primary/[0.06]"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-accent-primary/[0.04]"
+              aria-hidden
+            />
+            <div className="relative">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary shadow-inner ring-1 ring-accent-primary/15">
+                <Wallet className="h-7 w-7" strokeWidth={2} />
               </div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-                Saldo validado
-              </p>
-              <p
-                className={`mt-1 text-2xl font-medium tracking-tight ${saldoFinal >= 0 ? "text-emerald-700" : "text-rose-700"}`}
-              >
-                R$ {formatarMoeda(saldoFinal)}
-              </p>
-            </article>
-            <article className="rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/70 to-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)]">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-700">
-                <TrendingUp className="h-5 w-5" />
-              </div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700/80">
-                Entradas validadas
-              </p>
-              <p className="mt-1 text-2xl font-medium tracking-tight text-emerald-800">
-                R$ {formatarMoeda(totalEntradasValidadas)}
-              </p>
-            </article>
-            <article className="rounded-2xl border border-rose-200/70 bg-gradient-to-br from-rose-50/70 to-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)]">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/15 text-rose-700">
-                <TrendingDown className="h-5 w-5" />
-              </div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-rose-700/80">
-                Saídas validadas
-              </p>
-              <p className="mt-1 text-2xl font-medium tracking-tight text-rose-800">
-                R$ {formatarMoeda(totalSaidasValidadas)}
-              </p>
-            </article>
-          </div>
-        </div>
-      )}
-
-      <div className="px-[5%]">
-        {isAdmin && (
-          <div className="mb-6 rounded-2xl border border-border-primary/40 bg-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)] sm:p-6">
-            <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-[30px]">
-                  Entradas
-                </h1>
-                <p className="text-sm text-text-muted">
-                  Receitas e recebimentos do período selecionado.
-                </p>
-              </div>
-              <div className="flex w-full flex-wrap gap-3 md:w-auto md:justify-end">
-                <label className="relative min-w-0 flex-1 md:min-w-[280px]">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                  <input
-                    type="text"
-                    placeholder="Buscar descrição..."
-                    value={buscaEntrada}
-                    onChange={(e) => {
-                      setBuscaEntrada(e.target.value);
-                      setLimiteMobileEntradas(8);
-                    }}
-                    className="h-11 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] pl-9 pr-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
-                  />
-                </label>
-                <ButtonDefault
-                  onClick={() => setModalEntradaAberto(true)}
-                  className="!h-11 !w-full !rounded-xl !border !border-emerald-500/30 !bg-emerald-500/12 !px-4 !text-sm !font-semibold !text-emerald-800 hover:!bg-emerald-500/18 md:!w-auto"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Nova Entrada
-                  </span>
-                </ButtonDefault>
-              </div>
-            </div>
-            <div className="hidden md:block">
-              <TabelaSimples
-                variant="financeiro"
-                colunas={[
-                  "Pago",
-                  "Descrição",
-                  "Forma Pag.",
-                  "Valor",
-                  "Data",
-                  "",
-                ]}
-                dados={gerarLinhasTabela(entradas, buscaEntrada, "entradas")}
+              <Loader2
+                className="mx-auto mb-5 h-10 w-10 animate-spin text-accent-primary"
+                strokeWidth={2.25}
+                aria-hidden
               />
-            </div>
-            <div className="space-y-3 md:hidden">
-              {entradasFiltradas.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border-primary/55 bg-[#FAFAFA] px-4 py-8 text-center">
-                  <CircleDollarSign className="mx-auto mb-2 h-8 w-8 text-text-muted" />
-                  <p className="text-sm font-semibold text-text-primary">
-                    Nenhuma entrada encontrada
-                  </p>
-                  <p className="mt-1 text-xs text-text-muted">
-                    Ajuste os filtros ou adicione um novo lançamento.
-                  </p>
-                </div>
-              ) : (
-                entradasMobileVisiveis.map((item) => (
-                  <article
-                    key={item.id}
-                    className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-4 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold uppercase text-text-primary">
-                          {item.descricao}
-                        </p>
-                        <p className="mt-1 text-xs uppercase tracking-wide text-text-muted">
-                          {item.forma}
-                        </p>
-                      </div>
-                      <span className="inline-flex rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-500/30">
-                        {item.validacao === 1 ? "Validado" : "Pendente"}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-lg font-medium text-emerald-800">
-                        R$ {formatarMoeda(item.valor)}
-                      </p>
-                      <p className="text-xs text-text-muted">
-                        {formatarDataBR(item.data)}
-                      </p>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-muted">
-                        <input
-                          type="checkbox"
-                          checked={item.validacao === 1}
-                          onChange={() =>
-                            handleToggleValidacao("entradas", item)
-                          }
-                          className="h-4 w-4 cursor-pointer accent-check-accent"
-                        />
-                        Pago
-                      </label>
-                      <div className="inline-flex items-center gap-1">
-                        {editandoItem.tabela === "entradas" &&
-                        editandoItem.id === item.id &&
-                        editandoItem.campo === "valor" ? (
-                          <>
-                            <input
-                              type="number"
-                              value={valorEditado}
-                              onChange={(e) => setValorEditado(e.target.value)}
-                              className="h-8 w-24 rounded-lg border border-border-primary/50 bg-white px-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                salvarEdicao("entradas", item, "valor")
-                              }
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700"
-                            >
-                              <Check className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelarEdicao}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/70 text-slate-700"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              title="Editar valor"
-                              onClick={() =>
-                                iniciarEdicao("entradas", item, "valor")
-                              }
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-700 ring-1 ring-slate-200"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              title="Passar para o próximo mês"
-                              onClick={() => handleAdiarMes("entradas", item)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-700"
-                            >
-                              <CalendarClock className="h-4 w-4" />
-                            </button>
-                            {isAdmin && (
-                              <button
-                                type="button"
-                                title="Excluir"
-                                onClick={() => handleDelete("entradas", item)}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/15 text-rose-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                ))
-              )}
-              {entradasFiltradas.length > limiteMobileEntradas && (
-                <button
-                  type="button"
-                  onClick={() => setLimiteMobileEntradas((prev) => prev + 8)}
-                  className="w-full rounded-xl border border-border-primary/40 bg-white py-2.5 text-sm font-semibold text-text-primary shadow-sm"
-                >
-                  Ver mais entradas ({entradasFiltradas.length - limiteMobileEntradas} restantes)
-                </button>
-              )}
-            </div>
-            <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
-              <div className="rounded-2xl border border-border-primary/40 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
-                <div className="mb-2 mr-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-                  <Wallet className="h-4 w-4" />
-                </div>
-                <span className="text-sm text-text-muted uppercase font-semibold">
-                  Total Lançado:
-                </span>
-                <span className="block text-lg font-medium text-text-primary">
-                  R$ {formatarMoeda(somaTotalEntradas)}
-                </span>
-              </div>
-              <div className="rounded-2xl border border-emerald-300/45 bg-gradient-to-br from-emerald-50/70 to-white p-4 shadow-sm">
-                <div className="mb-2 mr-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700">
-                  <TrendingUp className="h-4 w-4" />
-                </div>
-                <span className="text-sm text-success-primary uppercase font-semibold">
-                  Total Validado:
-                </span>
-                <span className="block text-lg font-medium text-success-primary-dark">
-                  R$ {formatarMoeda(totalEntradasValidadas)}
-                </span>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-text-muted">
+                Montezuma
+              </p>
+              <h3 className="mt-1.5 text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+                Carregando financeiro
+              </h3>
+              <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-text-muted">
+                Buscando lançamentos, totais e consolidação anual. Isso costuma
+                levar só um instante.
+              </p>
+              <div
+                className="mx-auto mt-7 flex justify-center gap-1.5"
+                role="presentation"
+                aria-hidden
+              >
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="h-2 w-2 animate-bounce rounded-full bg-accent-primary/75"
+                    style={{ animationDelay: `${i * 0.12}s` }}
+                  />
+                ))}
               </div>
             </div>
           </div>
-        )}
-
-        <div className="mb-[24px] mt-6 rounded-2xl border border-border-primary/40 bg-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)] sm:p-6">
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-[30px]">
-                Saídas
-              </h1>
-              <p className="text-sm text-text-muted">
-                Despesas e pagamentos do período selecionado.
-              </p>
-            </div>
-            <div className="flex w-full flex-wrap gap-3 md:w-auto md:justify-end">
-              <label className="relative min-w-0 flex-1 md:min-w-[280px]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                <input
-                  type="text"
-                  placeholder="Buscar descrição..."
-                  value={buscaSaida}
+        </div>
+      ) : (
+        <>
+          <div className="mt-4 flex w-full items-center px-[5%]">
+            <div className="flex w-full flex-wrap items-center gap-3 rounded-2xl border border-border-primary/40 bg-white p-3 shadow-[0_5px_20px_rgba(0,0,0,0.06)]">
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/15">
+                <CalendarRange className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                  Filtro de período
+                </p>
+                <select
+                  value={mesSelecionado}
                   onChange={(e) => {
-                    setBuscaSaida(e.target.value);
+                    setMesSelecionado(e.target.value);
+                    setLimiteMobileEntradas(8);
                     setLimiteMobileSaidas(8);
                   }}
-                  className="h-11 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] pl-9 pr-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
-                />
-              </label>
-              <ButtonDefault
-                className="!h-11 !w-full !rounded-xl !border !border-rose-500/30 !bg-rose-500/12 !px-4 !text-sm !font-semibold !text-rose-800 hover:!bg-rose-500/18 md:!w-auto"
-                onClick={() => setModalSaidaAberto(true)}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Nova Saída
-                </span>
-              </ButtonDefault>
-            </div>
-          </div>
-          <div className="hidden md:block">
-            <TabelaSimples
-              variant="financeiro"
-              colunas={["Pago", "Descrição", "Forma Pag.", "Valor", "Data", ""]}
-              dados={gerarLinhasTabela(saidas, buscaSaida, "saida")}
-            />
-          </div>
-          <div className="space-y-3 md:hidden">
-            {saidasFiltradas.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border-primary/55 bg-[#FAFAFA] px-4 py-8 text-center">
-                <CircleDollarSign className="mx-auto mb-2 h-8 w-8 text-text-muted" />
-                <p className="text-sm font-semibold text-text-primary">
-                  Nenhuma saída encontrada
-                </p>
-                <p className="mt-1 text-xs text-text-muted">
-                  Ajuste os filtros ou adicione um novo lançamento.
-                </p>
-              </div>
-            ) : (
-              saidasMobileVisiveis.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-2xl border border-rose-200/70 bg-rose-50/40 p-4 shadow-sm"
+                  className="mt-1 h-10 w-full cursor-pointer rounded-xl border border-border-primary/45 bg-[#FAFAFA] px-3 text-sm font-semibold text-text-primary shadow-sm transition-all focus:border-accent-primary/40 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 sm:w-auto sm:min-w-[220px]"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold uppercase text-text-primary">
-                        {item.descricao}
-                      </p>
-                      <p className="mt-1 text-xs uppercase tracking-wide text-text-muted">
-                        {item.forma}
-                      </p>
-                    </div>
-                    <span className="inline-flex rounded-full bg-rose-500/15 px-2.5 py-1 text-[11px] font-semibold text-rose-800 ring-1 ring-rose-500/30">
-                      {item.validacao === 1 ? "Validado" : "Pendente"}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-lg font-medium text-rose-800">
-                      R$ {formatarMoeda(item.valor)}
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      {formatarDataBR(item.data)}
-                    </p>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-3">
-                    <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-muted">
-                      <input
-                        type="checkbox"
-                        checked={item.validacao === 1}
-                        onChange={() => handleToggleValidacao("saida", item)}
-                        className="h-4 w-4 cursor-pointer accent-check-accent"
-                      />
-                      Pago
-                    </label>
-                    <div className="inline-flex items-center gap-1">
-                      {editandoItem.tabela === "saida" &&
-                      editandoItem.id === item.id &&
-                      editandoItem.campo === "valor" ? (
-                        <>
-                          <input
-                            type="number"
-                            value={valorEditado}
-                            onChange={(e) => setValorEditado(e.target.value)}
-                            className="h-8 w-24 rounded-lg border border-border-primary/50 bg-white px-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => salvarEdicao("saida", item, "valor")}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700"
-                          >
-                            <Check className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelarEdicao}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/70 text-slate-700"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            title="Editar valor"
-                            onClick={() =>
-                              iniciarEdicao("saida", item, "valor")
-                            }
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-700 ring-1 ring-slate-200"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            title="Passar para o próximo mês"
-                            onClick={() => handleAdiarMes("saida", item)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-700"
-                          >
-                            <CalendarClock className="h-4 w-4" />
-                          </button>
-                          {isAdmin && (
-                            <button
-                              type="button"
-                              title="Excluir"
-                              onClick={() => handleDelete("saida", item)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/15 text-rose-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              ))
-            )}
-            {saidasFiltradas.length > limiteMobileSaidas && (
-              <button
-                type="button"
-                onClick={() => setLimiteMobileSaidas((prev) => prev + 8)}
-                className="w-full rounded-xl border border-border-primary/40 bg-white py-2.5 text-sm font-semibold text-text-primary shadow-sm"
-              >
-                Ver mais saídas ({saidasFiltradas.length - limiteMobileSaidas} restantes)
-              </button>
-            )}
-          </div>
-          <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
-            <div className="rounded-2xl border border-border-primary/40 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
-              <div className="mb-2 mr-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-                <Wallet className="h-4 w-4" />
+                  {[
+                    "01",
+                    "02",
+                    "03",
+                    "04",
+                    "05",
+                    "06",
+                    "07",
+                    "08",
+                    "09",
+                    "10",
+                    "11",
+                    "12",
+                  ].map((m) => (
+                    <option key={m} value={m}>
+                      {new Date(2000, parseInt(m) - 1).toLocaleString("pt-BR", {
+                        month: "long",
+                      })}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <span className="text-sm text-text-muted uppercase font-semibold">
-                Total Lançado:
-              </span>
-              <span className="block text-lg font-medium text-text-primary">
-                R$ {formatarMoeda(somaTotalSaidas)}
-              </span>
-            </div>
-            <div className="rounded-2xl border border-rose-300/45 bg-gradient-to-br from-rose-50/70 to-white p-4 shadow-sm">
-              <div className="mb-2 mr-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-rose-500/15 text-rose-700">
-                <TrendingDown className="h-4 w-4" />
-              </div>
-              <span className="text-sm text-danger-primary uppercase font-semibold">
-                Total Validado:
-              </span>
-              <span className="block text-lg font-medium text-danger-primary-dark">
-                R$ {formatarMoeda(totalSaidasValidadas)}
-              </span>
             </div>
           </div>
-        </div>
 
-        {isAdmin && (
-          <div className="mb-[40px] rounded-2xl border border-border-primary/40 bg-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)] sm:p-6">
-            <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-[30px]">
-                Controle Anual
-              </h1>
-              <label className="relative w-full sm:w-auto">
-                <CalendarRange className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                <input
-                  type="number"
-                  value={anoFiltroAnual}
-                  onChange={(e) => setAnoFiltroAnual(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] pl-9 pr-3 text-sm font-semibold text-text-primary shadow-sm transition-all focus:border-accent-primary/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 sm:w-[140px]"
-                />
-              </label>
+          {isAdmin && (
+            <div className="mb-4 mt-6 px-[5%]">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <article className="rounded-2xl border border-border-primary/40 bg-gradient-to-br from-white to-[#FAFAFA] p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)]">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                    Saldo validado
+                  </p>
+                  <p
+                    className={`mt-1 text-2xl font-medium tracking-tight ${saldoFinal >= 0 ? "text-emerald-700" : "text-rose-700"}`}
+                  >
+                    R$ {formatarMoeda(saldoFinal)}
+                  </p>
+                </article>
+                <article className="rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/70 to-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)]">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-700">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700/80">
+                    Entradas validadas
+                  </p>
+                  <p className="mt-1 text-2xl font-medium tracking-tight text-emerald-800">
+                    R$ {formatarMoeda(totalEntradasValidadas)}
+                  </p>
+                </article>
+                <article className="rounded-2xl border border-rose-200/70 bg-gradient-to-br from-rose-50/70 to-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)]">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/15 text-rose-700">
+                    <TrendingDown className="h-5 w-5" />
+                  </div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-rose-700/80">
+                    Saídas validadas
+                  </p>
+                  <p className="mt-1 text-2xl font-medium tracking-tight text-rose-800">
+                    R$ {formatarMoeda(totalSaidasValidadas)}
+                  </p>
+                </article>
+              </div>
             </div>
-            <div className="hidden md:block">
-              <TabelaSimples
-                variant="financeiro"
-                colunas={["Mês", "Entrada", "Saida", "Balanço"]}
-                dados={dadosAnuais}
-              />
-            </div>
-            <div className="space-y-3 md:hidden">
-              {dadosAnuaisResumo.map((item) => (
-                <article
-                  key={item.mes}
-                  className="rounded-2xl border border-border-primary/45 bg-[#FAFAFA] p-4 shadow-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-text-primary">
-                      {item.mes}
-                    </h3>
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${
-                        item.balancoValidado >= 0
-                          ? "bg-emerald-500/15 text-emerald-800 ring-emerald-500/30"
-                          : "bg-rose-500/15 text-rose-800 ring-rose-500/30"
-                      }`}
+          )}
+
+          <div className="px-[5%]">
+            {isAdmin && (
+              <div className="mb-6 rounded-2xl border border-border-primary/40 bg-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)] sm:p-6">
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-[30px]">
+                      Entradas
+                    </h1>
+                    <p className="text-sm text-text-muted">
+                      Receitas e recebimentos do período selecionado.
+                    </p>
+                  </div>
+                  <div className="flex w-full flex-wrap gap-3 md:w-auto md:justify-end">
+                    <label className="relative min-w-0 flex-1 md:min-w-[280px]">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                      <input
+                        type="text"
+                        placeholder="Buscar descrição..."
+                        value={buscaEntrada}
+                        onChange={(e) => {
+                          setBuscaEntrada(e.target.value);
+                          setLimiteMobileEntradas(8);
+                        }}
+                        className="h-11 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] pl-9 pr-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+                      />
+                    </label>
+                    <ButtonDefault
+                      onClick={() => setModalEntradaAberto(true)}
+                      className="!h-11 !w-full !rounded-xl !border !border-emerald-500/30 !bg-emerald-500/12 !px-4 !text-sm !font-semibold !text-emerald-800 hover:!bg-emerald-500/18 md:!w-auto"
                     >
-                      {item.balancoValidado >= 0 ? "Positivo" : "Negativo"}
+                      <span className="inline-flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Nova Entrada
+                      </span>
+                    </ButtonDefault>
+                  </div>
+                </div>
+                <div className="hidden md:block">
+                  <TabelaSimples
+                    variant="financeiro"
+                    colunas={[
+                      "Pago",
+                      "Descrição",
+                      "Forma Pag.",
+                      "Valor",
+                      "Data",
+                      "Adiar/Excluir",
+                    ]}
+                    dados={gerarLinhasTabela(
+                      entradas,
+                      buscaEntrada,
+                      "entradas",
+                    )}
+                  />
+                </div>
+                <div className="space-y-3 md:hidden">
+                  {entradasFiltradas.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border-primary/55 bg-[#FAFAFA] px-4 py-8 text-center">
+                      <CircleDollarSign className="mx-auto mb-2 h-8 w-8 text-text-muted" />
+                      <p className="text-sm font-semibold text-text-primary">
+                        Nenhuma entrada encontrada
+                      </p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        Ajuste os filtros ou adicione um novo lançamento.
+                      </p>
+                    </div>
+                  ) : (
+                    entradasMobileVisiveis.map((item) => (
+                      <article
+                        key={item.id}
+                        className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-4 shadow-sm"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold uppercase text-text-primary">
+                              {item.descricao}
+                            </p>
+                            <p className="mt-1 text-xs uppercase tracking-wide text-text-muted">
+                              {item.forma}
+                            </p>
+                          </div>
+                          <span className="inline-flex rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-500/30">
+                            {item.validacao === 1 ? "Validado" : "Pendente"}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between">
+                          <p className="text-lg font-medium text-emerald-800">
+                            R$ {formatarMoeda(item.valor)}
+                          </p>
+                          <p className="text-xs text-text-muted">
+                            {formatarDataBR(item.data)}
+                          </p>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-muted">
+                            <input
+                              type="checkbox"
+                              checked={item.validacao === 1}
+                              onChange={() =>
+                                handleToggleValidacao("entradas", item)
+                              }
+                              className="h-4 w-4 cursor-pointer accent-check-accent"
+                            />
+                            Pago
+                          </label>
+                          <div className="inline-flex items-center gap-1">
+                            {editandoItem.tabela === "entradas" &&
+                            editandoItem.id === item.id &&
+                            editandoItem.campo === "valor" ? (
+                              <>
+                                <input
+                                  type="number"
+                                  value={valorEditado}
+                                  onChange={(e) =>
+                                    setValorEditado(e.target.value)
+                                  }
+                                  className="h-8 w-24 rounded-lg border border-border-primary/50 bg-white px-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    salvarEdicao("entradas", item, "valor")
+                                  }
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={cancelarEdicao}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/70 text-slate-700"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  title="Editar valor"
+                                  onClick={() =>
+                                    iniciarEdicao("entradas", item, "valor")
+                                  }
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-700 ring-1 ring-slate-200"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Passar para o próximo mês"
+                                  onClick={() =>
+                                    handleAdiarMes("entradas", item)
+                                  }
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-700"
+                                >
+                                  <CalendarClock className="h-4 w-4" />
+                                </button>
+                                {isAdmin && (
+                                  <button
+                                    type="button"
+                                    title="Excluir"
+                                    onClick={() =>
+                                      handleDelete("entradas", item)
+                                    }
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/15 text-rose-700"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    ))
+                  )}
+                  {entradasFiltradas.length > limiteMobileEntradas && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLimiteMobileEntradas((prev) => prev + 8)
+                      }
+                      className="w-full rounded-xl border border-border-primary/40 bg-white py-2.5 text-sm font-semibold text-text-primary shadow-sm"
+                    >
+                      Ver mais entradas (
+                      {entradasFiltradas.length - limiteMobileEntradas}{" "}
+                      restantes)
+                    </button>
+                  )}
+                </div>
+                <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
+                  <div className="rounded-2xl border border-border-primary/40 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+                    <div className="mb-2 mr-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                      <Wallet className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm text-text-muted uppercase font-semibold">
+                      Total Lançado:
+                    </span>
+                    <span className="block text-lg font-medium text-text-primary">
+                      R$ {formatarMoeda(somaTotalEntradas)}
                     </span>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl bg-emerald-50/70 p-2">
-                      <p className="font-semibold uppercase text-emerald-700/80">
-                        Entrada
-                      </p>
-                      <p className="mt-1 font-medium text-emerald-800">
-                        R$ {formatarMoeda(item.entradaValidada)}
-                      </p>
-                      <p className="text-[11px] text-emerald-700/70">
-                        Total: R$ {formatarMoeda(item.entradaPrevista)}
-                      </p>
+                  <div className="rounded-2xl border border-emerald-300/45 bg-gradient-to-br from-emerald-50/70 to-white p-4 shadow-sm">
+                    <div className="mb-2 mr-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700">
+                      <TrendingUp className="h-4 w-4" />
                     </div>
-                    <div className="rounded-xl bg-rose-50/70 p-2">
-                      <p className="font-semibold uppercase text-rose-700/80">
-                        Saída
-                      </p>
-                      <p className="mt-1 font-medium text-rose-800">
-                        R$ {formatarMoeda(item.saidaValidada)}
-                      </p>
-                      <p className="text-[11px] text-rose-700/70">
-                        Total: R$ {formatarMoeda(item.saidaPrevista)}
-                      </p>
-                    </div>
+                    <span className="text-sm text-success-primary uppercase font-semibold">
+                      Total Validado:
+                    </span>
+                    <span className="block text-lg font-medium text-success-primary-dark">
+                      R$ {formatarMoeda(totalEntradasValidadas)}
+                    </span>
                   </div>
-                  <div className="mt-3 rounded-xl border border-border-primary/40 bg-white px-3 py-2">
-                    <p className="text-[11px] font-semibold uppercase text-text-muted">
-                      Balanço
+                </div>
+              </div>
+            )}
+
+            <div className="mb-[24px] mt-6 rounded-2xl border border-border-primary/40 bg-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)] sm:p-6">
+              <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-[30px]">
+                    Saídas
+                  </h1>
+                  <p className="text-sm text-text-muted">
+                    Despesas e pagamentos do período selecionado.
+                  </p>
+                </div>
+                <div className="flex w-full flex-wrap gap-3 md:w-auto md:justify-end">
+                  <label className="relative min-w-0 flex-1 md:min-w-[280px]">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                    <input
+                      type="text"
+                      placeholder="Buscar descrição..."
+                      value={buscaSaida}
+                      onChange={(e) => {
+                        setBuscaSaida(e.target.value);
+                        setLimiteMobileSaidas(8);
+                      }}
+                      className="h-11 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] pl-9 pr-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+                    />
+                  </label>
+                  <ButtonDefault
+                    className="!h-11 !w-full !rounded-xl !border !border-rose-500/30 !bg-rose-500/12 !px-4 !text-sm !font-semibold !text-rose-800 hover:!bg-rose-500/18 md:!w-auto"
+                    onClick={() => setModalSaidaAberto(true)}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Nova Saída
+                    </span>
+                  </ButtonDefault>
+                </div>
+              </div>
+              <div className="hidden md:block">
+                <TabelaSimples
+                  variant="financeiro"
+                  colunas={[
+                    "Pago",
+                    "Descrição",
+                    "Forma Pag.",
+                    "Valor",
+                    "Data",
+                    "Adiar/Excluir",
+                  ]}
+                  dados={gerarLinhasTabela(saidas, buscaSaida, "saida")}
+                />
+              </div>
+              <div className="space-y-3 md:hidden">
+                {saidasFiltradas.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border-primary/55 bg-[#FAFAFA] px-4 py-8 text-center">
+                    <CircleDollarSign className="mx-auto mb-2 h-8 w-8 text-text-muted" />
+                    <p className="text-sm font-semibold text-text-primary">
+                      Nenhuma saída encontrada
                     </p>
-                    <p
-                      className={`text-base font-medium ${
-                        item.balancoValidado >= 0
-                          ? "text-emerald-700"
-                          : "text-rose-700"
-                      }`}
+                    <p className="mt-1 text-xs text-text-muted">
+                      Ajuste os filtros ou adicione um novo lançamento.
+                    </p>
+                  </div>
+                ) : (
+                  saidasMobileVisiveis.map((item) => (
+                    <article
+                      key={item.id}
+                      className="rounded-2xl border border-rose-200/70 bg-rose-50/40 p-4 shadow-sm"
                     >
-                      R$ {formatarMoeda(item.balancoValidado)}
-                    </p>
-                    <p className="text-[11px] text-text-muted">
-                      Previsto: R$ {formatarMoeda(item.balancoPrevisto)}
-                    </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold uppercase text-text-primary">
+                            {item.descricao}
+                          </p>
+                          <p className="mt-1 text-xs uppercase tracking-wide text-text-muted">
+                            {item.forma}
+                          </p>
+                        </div>
+                        <span className="inline-flex rounded-full bg-rose-500/15 px-2.5 py-1 text-[11px] font-semibold text-rose-800 ring-1 ring-rose-500/30">
+                          {item.validacao === 1 ? "Validado" : "Pendente"}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <p className="text-lg font-medium text-rose-800">
+                          R$ {formatarMoeda(item.valor)}
+                        </p>
+                        <p className="text-xs text-text-muted">
+                          {formatarDataBR(item.data)}
+                        </p>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-muted">
+                          <input
+                            type="checkbox"
+                            checked={item.validacao === 1}
+                            onChange={() =>
+                              handleToggleValidacao("saida", item)
+                            }
+                            className="h-4 w-4 cursor-pointer accent-check-accent"
+                          />
+                          Pago
+                        </label>
+                        <div className="inline-flex items-center gap-1">
+                          {editandoItem.tabela === "saida" &&
+                          editandoItem.id === item.id &&
+                          editandoItem.campo === "valor" ? (
+                            <>
+                              <input
+                                type="number"
+                                value={valorEditado}
+                                onChange={(e) =>
+                                  setValorEditado(e.target.value)
+                                }
+                                className="h-8 w-24 rounded-lg border border-border-primary/50 bg-white px-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  salvarEdicao("saida", item, "valor")
+                                }
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelarEdicao}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/70 text-slate-700"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                title="Editar valor"
+                                onClick={() =>
+                                  iniciarEdicao("saida", item, "valor")
+                                }
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-700 ring-1 ring-slate-200"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Passar para o próximo mês"
+                                onClick={() => handleAdiarMes("saida", item)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-700"
+                              >
+                                <CalendarClock className="h-4 w-4" />
+                              </button>
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  title="Excluir"
+                                  onClick={() => handleDelete("saida", item)}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/15 text-rose-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  ))
+                )}
+                {saidasFiltradas.length > limiteMobileSaidas && (
+                  <button
+                    type="button"
+                    onClick={() => setLimiteMobileSaidas((prev) => prev + 8)}
+                    className="w-full rounded-xl border border-border-primary/40 bg-white py-2.5 text-sm font-semibold text-text-primary shadow-sm"
+                  >
+                    Ver mais saídas (
+                    {saidasFiltradas.length - limiteMobileSaidas} restantes)
+                  </button>
+                )}
+              </div>
+              <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
+                <div className="rounded-2xl border border-border-primary/40 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+                  <div className="mb-2 mr-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                    <Wallet className="h-4 w-4" />
                   </div>
-                </article>
-              ))}
-            </div>
-            <div className="mt-4 flex flex-col items-center justify-center gap-5 rounded-xl border border-border-primary/40 bg-[#FAFAFA] p-4 lg:flex-row lg:gap-8">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold uppercase text-text-muted">
-                  Balanço Validado do Ano:
-                </span>
-                <span
-                  className={`text-[18px] font-medium ${totaisAnuais.validado >= 0 ? "text-emerald-700" : "text-rose-700"}`}
-                >
-                  R$ {formatarMoeda(totaisAnuais.validado)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold uppercase text-text-muted">
-                  Balanço Previsto (Total Lançado):
-                </span>
-                <span
-                  className={`text-[18px] font-medium ${totaisAnuais.previsto >= 0 ? "text-emerald-700/80" : "text-rose-700/80"}`}
-                >
-                  R$ {formatarMoeda(totaisAnuais.previsto)}
-                </span>
+                  <span className="text-sm text-text-muted uppercase font-semibold">
+                    Total Lançado:
+                  </span>
+                  <span className="block text-lg font-medium text-text-primary">
+                    R$ {formatarMoeda(somaTotalSaidas)}
+                  </span>
+                </div>
+                <div className="rounded-2xl border border-rose-300/45 bg-gradient-to-br from-rose-50/70 to-white p-4 shadow-sm">
+                  <div className="mb-2 mr-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-rose-500/15 text-rose-700">
+                    <TrendingDown className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm text-danger-primary uppercase font-semibold">
+                    Total Validado:
+                  </span>
+                  <span className="block text-lg font-medium text-danger-primary-dark">
+                    R$ {formatarMoeda(totalSaidasValidadas)}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {isAdmin && (
+              <div className="mb-[40px] rounded-2xl border border-border-primary/40 bg-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)] sm:p-6">
+                <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+                  <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-[30px]">
+                    Controle Anual
+                  </h1>
+                  <label className="relative w-full sm:w-auto">
+                    <CalendarRange className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                    <input
+                      type="number"
+                      value={anoFiltroAnual}
+                      onChange={(e) => setAnoFiltroAnual(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] pl-9 pr-3 text-sm font-semibold text-text-primary shadow-sm transition-all focus:border-accent-primary/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 sm:w-[140px]"
+                    />
+                  </label>
+                </div>
+                <div className="hidden md:block">
+                  <TabelaSimples
+                    variant="financeiro"
+                    colunas={["Mês", "Entrada", "Saida", "Balanço"]}
+                    dados={dadosAnuais}
+                  />
+                </div>
+                <div className="space-y-3 md:hidden">
+                  {dadosAnuaisResumo.map((item) => (
+                    <article
+                      key={item.mes}
+                      className="rounded-2xl border border-border-primary/45 bg-[#FAFAFA] p-4 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-text-primary">
+                          {item.mes}
+                        </h3>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${
+                            item.balancoValidado >= 0
+                              ? "bg-emerald-500/15 text-emerald-800 ring-emerald-500/30"
+                              : "bg-rose-500/15 text-rose-800 ring-rose-500/30"
+                          }`}
+                        >
+                          {item.balancoValidado >= 0 ? "Positivo" : "Negativo"}
+                        </span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-emerald-50/70 p-2">
+                          <p className="font-semibold uppercase text-emerald-700/80">
+                            Entrada
+                          </p>
+                          <p className="mt-1 font-medium text-emerald-800">
+                            R$ {formatarMoeda(item.entradaValidada)}
+                          </p>
+                          <p className="text-[11px] text-emerald-700/70">
+                            Total: R$ {formatarMoeda(item.entradaPrevista)}
+                          </p>
+                        </div>
+                        <div className="rounded-xl bg-rose-50/70 p-2">
+                          <p className="font-semibold uppercase text-rose-700/80">
+                            Saída
+                          </p>
+                          <p className="mt-1 font-medium text-rose-800">
+                            R$ {formatarMoeda(item.saidaValidada)}
+                          </p>
+                          <p className="text-[11px] text-rose-700/70">
+                            Total: R$ {formatarMoeda(item.saidaPrevista)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 rounded-xl border border-border-primary/40 bg-white px-3 py-2">
+                        <p className="text-[11px] font-semibold uppercase text-text-muted">
+                          Balanço
+                        </p>
+                        <p
+                          className={`text-base font-medium ${
+                            item.balancoValidado >= 0
+                              ? "text-emerald-700"
+                              : "text-rose-700"
+                          }`}
+                        >
+                          R$ {formatarMoeda(item.balancoValidado)}
+                        </p>
+                        <p className="text-[11px] text-text-muted">
+                          Previsto: R$ {formatarMoeda(item.balancoPrevisto)}
+                        </p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <div className="mt-4 flex flex-col items-center justify-center gap-5 rounded-xl border border-border-primary/40 bg-[#FAFAFA] p-4 lg:flex-row lg:gap-8">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold uppercase text-text-muted">
+                      Balanço Validado do Ano:
+                    </span>
+                    <span
+                      className={`text-[18px] font-medium ${totaisAnuais.validado >= 0 ? "text-emerald-700" : "text-rose-700"}`}
+                    >
+                      R$ {formatarMoeda(totaisAnuais.validado)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold uppercase text-text-muted">
+                      Balanço Previsto (Total Lançado):
+                    </span>
+                    <span
+                      className={`text-[18px] font-medium ${totaisAnuais.previsto >= 0 ? "text-emerald-700/80" : "text-rose-700/80"}`}
+                    >
+                      R$ {formatarMoeda(totaisAnuais.previsto)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

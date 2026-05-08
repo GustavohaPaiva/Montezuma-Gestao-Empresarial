@@ -71,33 +71,33 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
 
   return (
     <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-[10px]">
-      <div className="bg-[#ffffff] w-full max-w-[500px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
-        <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 backdrop-blur-[2px] sm:p-4">
+      <div className="flex max-h-[95vh] w-full max-w-[500px] flex-col overflow-hidden rounded-2xl border border-border-primary/40 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+        <div className="flex items-center justify-between border-b border-border-primary/35 bg-white px-5 py-4">
           <div className="flex-1 min-w-0">
-            <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
+            <h2 className="truncate text-base font-bold uppercase tracking-wide text-text-primary sm:text-lg">
               Solicitação Material
             </h2>
-            <p className="text-[13px] text-[#71717A] truncate">
+            <p className="truncate text-xs text-text-muted sm:text-sm">
               Obra: {nomeObra}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="border-none bg-transparent w-[50px] h-[50px] cursor-pointer"
+            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border-primary/40 bg-[#FAFAFA] transition-all hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
           >
             <img
-              width="30"
-              height="30"
+              width="20"
+              height="20"
               src="https://img.icons8.com/ios/50/multiply.png"
               alt="fechar"
             />
           </button>
         </div>
 
-        <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
+        <div className="flex flex-col gap-3.5 overflow-y-auto px-5 py-5">
           <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] uppercase">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
               Material
             </label>
             <input
@@ -105,19 +105,19 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
               placeholder="Ex: Cimento, tijolo..."
               value={material}
               onChange={(e) => setMaterial(e.target.value)}
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border"
+              className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
             />
           </div>
 
           <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] uppercase">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
               Fornecedor
             </label>
             <select
               value={fornecedorId}
               onChange={(e) => setFornecedorId(e.target.value)}
               disabled={carregandoFornecedores}
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border cursor-pointer disabled:opacity-50"
+              className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25 disabled:opacity-50"
             >
               <option value="">
                 {carregandoFornecedores
@@ -132,9 +132,9 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
             </select>
           </div>
 
-          <div className="flex gap-[12px] w-full">
+          <div className="flex w-full gap-3">
             <div className="flex-[2] flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Quant.
               </label>
               <input
@@ -142,17 +142,17 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
                 placeholder="0"
                 value={quantidade}
                 onChange={(e) => setQuantidade(e.target.value)}
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
               />
             </div>
             <div className="flex-[1] flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Un.
               </label>
               <select
                 value={unidade}
                 onChange={(e) => setUnidade(e.target.value)}
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] cursor-pointer appearance-none"
+                className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
               >
                 {listaUnidades.map((un) => (
                   <option key={un} value={un}>
@@ -164,20 +164,20 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
           </div>
 
           <div className="flex flex-col gap-[5px]">
-            <label className="text-[12px] font-bold text-[#71717A] uppercase">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
               Data de vencimento (opcional)
             </label>
             <input
               type="date"
               value={dataVencimento}
               onChange={(e) => setDataVencimento(e.target.value)}
-              className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none focus:border-[#464C54] box-border"
+              className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
             />
           </div>
 
           <ButtonDefault
             onClick={handleConfirmar}
-            className="w-full bg-[#464C54] text-black h-[50px] text-[16px] font-bold mt-[10px]"
+            className="!mt-2 !h-11 !w-full !cursor-pointer !rounded-xl !border !border-accent-primary !bg-accent-primary !text-sm !font-bold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:!bg-accent-primary-dark hover:!shadow-lg"
           >
             Confirmar Solicitação
           </ButtonDefault>

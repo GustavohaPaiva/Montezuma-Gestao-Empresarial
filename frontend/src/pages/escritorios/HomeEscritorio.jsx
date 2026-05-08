@@ -354,21 +354,47 @@ export default function HomeEscritorio() {
       />
 
       <div className="relative z-10 mx-auto flex w-full flex-col gap-8">
-        <div className="relative w-full overflow-hidden rounded-2xl border mt-4 border-white/5 bg-esc-card/30 p-6 backdrop-blur-sm">
+        <div className="relative mt-4 w-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-black/85 via-zinc-950/90 to-black/75 p-6 shadow-[0_12px_48px_rgba(0,0,0,0.45)] ring-1 ring-white/[0.06] backdrop-blur-xl md:p-8">
+          <div
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_0%_-20%,rgba(255,255,255,0.08),transparent_50%),radial-gradient(ellipse_100%_60%_at_100%_100%,var(--color-esc-destaque),transparent_45%)] opacity-90"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-esc-destaque/15 via-transparent to-sky-500/10"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -left-24 top-1/2 h-[min(320px,50vh)] w-[min(320px,70vw)] -translate-y-1/2 rounded-full bg-esc-destaque/20 blur-[100px]"
+            aria-hidden
+          />
           <Droplets
-            className="pointer-events-none absolute -bottom-6 -right-4 h-40 w-40 text-esc-destaque opacity-[0.05] sm:h-48 sm:w-48"
+            className="pointer-events-none absolute -bottom-8 -right-6 h-44 w-44 text-white/10 sm:h-52 sm:w-52"
             strokeWidth={1}
             aria-hidden
           />
-          <div className="relative z-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+          <div className="relative z-10 flex flex-col items-start justify-between gap-5 md:flex-row md:items-center md:gap-8">
             <div className="min-w-0">
-              <h1 className="flex flex-col gap-2 text-3xl font-bold tracking-tight text-esc-text sm:flex-row">
-                Bem-Vindo ao{" "}
-                <p className="text-esc-destaque">{nomeEscritorio}</p>
+              <h1 className="mt-2 flex flex-col gap-2 text-3xl font-bold tracking-tight text-white drop-shadow-sm sm:flex-row sm:items-baseline">
+                <span className="text-white/95">Bem-vindo ao</span>
+                <span className="bg-esc-destaque bg-clip-text text-transparent">
+                  {nomeEscritorio}
+                </span>
               </h1>
-              <p className="mt-2 text-base text-esc-muted">
+              <p className="mt-3 max-w-xl text-base leading-relaxed text-white/55">
                 {dataHojeExtenso()}
               </p>
+            </div>
+            <div
+              className="hidden h-px w-full max-w-xs shrink-0 bg-gradient-to-r from-transparent via-white/20 to-transparent md:block md:h-16 md:w-px md:bg-gradient-to-b"
+              aria-hidden
+            />
+            <div className="flex w-full shrink-0 flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/60 backdrop-blur-md md:max-w-xs">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                Visão geral
+              </span>
+              <span className="text-white/80">
+                Acompanhe orçamentos, projetos e pendências em um só lugar.
+              </span>
             </div>
           </div>
         </div>
@@ -392,10 +418,10 @@ export default function HomeEscritorio() {
                   key={item.id}
                   type="button"
                   onClick={() => navigate(item.path)}
-                  className="group relative flex h-[170px] flex-col justify-between overflow-hidden rounded-xl border border-white/10 bg-esc-card/60 p-4 text-left shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-esc-destaque/60 hover:shadow-[0_0_40px_-10px_var(--color-esc-destaque)]"
+                  className="border-l-4 border-esc-destaque/80 group relative flex h-[170px] cursor-pointer flex-col justify-between overflow-hidden rounded-xl bg-esc-card/60 p-4 text-left shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-esc-destaque/60 hover:shadow-[0_0_40px_-10px_var(--color-esc-destaque)]"
                 >
                   <div className="pointer-events-none absolute inset-x-0 -top-10 h-20 bg-esc-destaque opacity-0 blur-[60px] transition-opacity duration-500 group-hover:opacity-20" />
-                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-esc-muted transition-all duration-300 group-hover:border-esc-destaque/40 group-hover:bg-esc-destaque/20 group-hover:text-esc-destaque">
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-esc-destaque/20 bg-esc-destaque/10 text-esc-destaque transition-all duration-300 group-hover:border-esc-destaque/40 group-hover:bg-esc-destaque/20 group-hover:text-esc-destaque">
                     <Icon className="h-6 w-6" strokeWidth={1.75} aria-hidden />
                   </span>
                   <div>
@@ -424,48 +450,68 @@ export default function HomeEscritorio() {
             >
               Resumo do mês
             </h2>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-esc-muted">
-              {loading ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                  Atualizando…
-                </>
-              ) : (
-                "Atualizado agora"
-              )}
-            </span>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 md:gap-5 lg:grid-cols-4 lg:gap-6">
             {KPI_CARDS.map((kpi) => {
               const { Icon } = kpi;
               const mostrarSkeleton = loading || kpi.valor === null;
+              const accent =
+                kpi.id === "novosOrcamentos"
+                  ? {
+                      border: "border-t-blue-500/90",
+                      iconWrap:
+                        "border-blue-500/25 bg-blue-500/10 text-blue-400",
+                    }
+                  : kpi.id === "projetosAtivos"
+                    ? {
+                        border: "border-t-amber-500/90",
+                        iconWrap:
+                          "border-amber-500/25 bg-amber-500/10 text-amber-400",
+                      }
+                    : kpi.id === "tarefasUrgentes"
+                      ? {
+                          border: "border-t-orange-500/90",
+                          iconWrap:
+                            "border-orange-500/25 bg-orange-500/10 text-orange-400",
+                        }
+                      : {
+                          border: "border-t-emerald-500/90",
+                          iconWrap:
+                            "border-emerald-500/25 bg-emerald-500/10 text-emerald-400",
+                        };
               return (
                 <div
                   key={kpi.id}
-                  className="group relative overflow-hidden rounded-xl border border-white/5 bg-esc-card/40 p-5 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-esc-destaque/40 hover:shadow-[0_0_30px_-15px_var(--color-esc-destaque)]"
+                  className={`group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-950/80 p-5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] ring-1 ring-black/40 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(0,0,0,0.5)] ${accent.border} border-t-4`}
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent opacity-60"
+                    aria-hidden
+                  />
+                  <div className="relative flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-esc-muted">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">
                         {kpi.label}
                       </p>
                       {mostrarSkeleton ? (
-                        <div className="mt-2 h-9 w-20 animate-pulse rounded-lg bg-white/5" />
+                        <div className="mt-2 h-9 w-20 animate-pulse rounded-lg bg-white/10" />
                       ) : (
-                        <p className="mt-2 text-3xl font-bold tracking-tight text-esc-text">
+                        <p className="mt-2 text-3xl font-bold tracking-tight text-white">
                           {kpi.valor}
                           {kpi.sufixo ? (
-                            <span className="text-xl text-esc-muted">
+                            <span className="text-xl text-white/45">
                               {kpi.sufixo}
                             </span>
                           ) : null}
                         </p>
                       )}
-                      <p className="mt-2 text-[11px] text-esc-muted">
+                      <p className="mt-2 text-[11px] text-white/40">
                         {kpi.hint}
                       </p>
                     </div>
-                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-esc-muted transition-colors duration-300 group-hover:border-esc-destaque/30 group-hover:bg-esc-destaque/15 group-hover:text-esc-destaque">
+                    <span
+                      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-all duration-300 group-hover:scale-105 ${accent.iconWrap}`}
+                    >
                       <Icon
                         className="h-5 w-5"
                         strokeWidth={1.75}
@@ -483,8 +529,8 @@ export default function HomeEscritorio() {
         </section>
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <article className="min-h-[380px] rounded-xl border border-white/5 bg-esc-card/40 shadow-sm backdrop-blur-sm lg:col-span-2">
-            <header className="flex items-center justify-between gap-3 border-b border-white/5 px-5 py-4">
+          <article className="min-h-[380px] overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-950/70 shadow-[0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-white/[0.04] backdrop-blur-md lg:col-span-2">
+            <header className="flex items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.02] px-5 py-4">
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-esc-destaque">
                   <ListTodo className="h-4 w-4" aria-hidden />
@@ -501,14 +547,14 @@ export default function HomeEscritorio() {
               <button
                 type="button"
                 onClick={() => navigate("tarefas")}
-                className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
+                className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
               >
                 Ver todas
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               </button>
             </header>
 
-            <ul className="divide-y divide-white/5">
+            <ul className="divide-y divide-white/[0.06]">
               {loading ? (
                 <li className="flex items-center justify-center gap-2 px-5 py-10 text-xs text-esc-muted">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -524,7 +570,7 @@ export default function HomeEscritorio() {
                   return (
                     <li
                       key={t.id}
-                      className="flex items-center gap-3 px-5 py-3 transition hover:bg-white/[0.03]"
+                      className="flex items-center gap-3 px-5 py-3.5 transition-colors duration-200 hover:bg-white/[0.05]"
                     >
                       <button
                         type="button"
@@ -532,7 +578,7 @@ export default function HomeEscritorio() {
                         disabled={marcando}
                         title="Marcar como concluída"
                         aria-label="Marcar como concluída"
-                        className="group inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-esc-muted transition-all duration-200 hover:border-emerald-400/60 hover:bg-emerald-400/15 hover:text-emerald-300 disabled:cursor-wait disabled:opacity-60"
+                        className="group inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/5 text-esc-muted transition-all duration-200 hover:border-emerald-400/60 hover:bg-emerald-400/15 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {marcando ? (
                           <Loader2
@@ -556,7 +602,7 @@ export default function HomeEscritorio() {
                       <button
                         type="button"
                         onClick={() => navigate("tarefas")}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold text-esc-text">
@@ -587,8 +633,8 @@ export default function HomeEscritorio() {
             </ul>
           </article>
 
-          <aside className="rounded-xl border border-white/5 bg-esc-card/40 shadow-sm backdrop-blur-sm">
-            <header className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+          <aside className="overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-950/70 shadow-[0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-white/[0.04] backdrop-blur-md">
+            <header className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.02] px-5 py-4">
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-esc-destaque">
                   <Wallet className="h-4 w-4" aria-hidden />
@@ -605,7 +651,7 @@ export default function HomeEscritorio() {
               <button
                 type="button"
                 onClick={() => navigate("financeiro")}
-                className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
+                className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
               >
                 Abrir
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden />
@@ -624,11 +670,11 @@ export default function HomeEscritorio() {
                     Sem vencimentos nos próximos 7 dias.
                   </p>
                 ) : (
-                  <ul className="flex flex-col gap-2">
+                  <ul className="divide-y divide-white/[0.06] overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02]">
                     {contasPagar.map((c) => (
                       <li
                         key={c.id}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2"
+                        className="flex items-center justify-between gap-2 px-3 py-2.5 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl hover:bg-white/[0.05]"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-xs font-semibold text-esc-text">
@@ -660,11 +706,11 @@ export default function HomeEscritorio() {
                     Sem recebimentos previstos.
                   </p>
                 ) : (
-                  <ul className="flex flex-col gap-2">
+                  <ul className="divide-y divide-white/[0.06] overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02]">
                     {contasReceber.map((c) => (
                       <li
                         key={c.id}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2"
+                        className="flex items-center justify-between gap-2 px-3 py-2.5 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl hover:bg-white/[0.05]"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-xs font-semibold text-esc-text">

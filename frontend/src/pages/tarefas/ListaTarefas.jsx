@@ -113,42 +113,42 @@ function formatDataAmigavel(dateStr) {
 function badgePrioridadeClasses(pri) {
   switch (pri) {
     case "Alta":
-      return "bg-red-600 text-white shadow-sm";
+      return "bg-[#DC3B0B]/18 text-[#8F2609] ring-1 ring-[#DC3B0B]/35";
     case "Média":
-      return "bg-amber-400 text-amber-950 shadow-sm";
+      return "bg-orange-400/20 text-orange-900 ring-1 ring-orange-400/35";
     case "Baixa":
-      return "bg-sky-600 text-white shadow-sm";
+      return "bg-amber-300/28 text-amber-900 ring-1 ring-amber-400/35";
     default:
-      return "bg-amber-400 text-amber-950 shadow-sm";
+      return "bg-orange-400/20 text-orange-900 ring-1 ring-orange-400/35";
   }
 }
 
 const SELECT_STATUS_CLASS =
-  "h-8 w-full rounded-lg border border-gray-200 bg-white pl-2.5 pr-8 text-xs font-medium text-gray-800 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-200";
+  "h-10 w-full rounded-xl border border-border-primary/50 bg-white px-3 text-xs font-semibold text-text-primary shadow-sm transition-all focus:border-accent-primary/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/20";
 
 function badgeStatusSolido(status) {
   switch (status) {
     case STATUS.pendente:
-      return "bg-amber-500 text-white";
+      return "bg-amber-500/15 text-amber-900 ring-1 ring-amber-500/30";
     case STATUS.emAndamento:
-      return "bg-orange-500 text-white";
+      return "bg-blue-500/15 text-blue-800 ring-1 ring-blue-500/30";
     case STATUS.aguardando:
-      return "bg-yellow-500 text-yellow-950";
+      return "bg-orange-500/15 text-orange-900 ring-1 ring-orange-500/30";
     case STATUS.concluida:
-      return "bg-emerald-600 text-white";
+      return "bg-emerald-500/15 text-emerald-800 ring-1 ring-emerald-500/30";
     default:
-      return "bg-gray-400 text-white";
+      return "bg-slate-500/15 text-slate-700 ring-1 ring-slate-400/30";
   }
 }
 
 function secaoPrioridadeBarra(pri) {
   switch (pri) {
     case "Alta":
-      return "border-l-[3px] border-red-600";
+      return "border-l-[3px] border-[#DC3B0B]";
     case "Média":
-      return "border-l-[3px] border-amber-400";
+      return "border-l-[3px] border-orange-400";
     case "Baixa":
-      return "border-l-[3px] border-sky-600";
+      return "border-l-[3px] border-amber-300";
     default:
       return "border-l-[3px] border-gray-300";
   }
@@ -221,6 +221,9 @@ export default function ListaTarefas({
   const [busca, setBusca] = useState("");
   const [pillAtivo, setPillAtivo] = useState("todas");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [prioridadesSelecionadas, setPrioridadesSelecionadas] = useState([
+    ...PRIORIDADES,
+  ]);
   const [selecionadaId, setSelecionadaId] = useState(null);
   const [atualizandoStatus, setAtualizandoStatus] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -364,8 +367,13 @@ export default function ListaTarefas({
         });
       }
     }
+    if (prioridadesSelecionadas.length > 0) {
+      list = list.filter((t) =>
+        prioridadesSelecionadas.includes(normalizarPrioridade(t.prioridade)),
+      );
+    }
     return list;
-  }, [tarefasVisiveis, busca, pillAtivo, filtroStatus]);
+  }, [tarefasVisiveis, busca, pillAtivo, filtroStatus, prioridadesSelecionadas]);
 
   const porPrioridade = useMemo(() => {
     const buckets = { Alta: [], Média: [], Baixa: [] };
@@ -682,6 +690,15 @@ export default function ListaTarefas({
   }, [user?.tipo]);
 
   const totalNaLista = listaFiltrada.length;
+  const alternarPrioridadeMultipla = (prioridade) => {
+    setPrioridadesSelecionadas((prev) => {
+      if (prev.includes(prioridade)) {
+        const next = prev.filter((p) => p !== prioridade);
+        return next.length > 0 ? next : ["Média"];
+      }
+      return [...prev, prioridade];
+    });
+  };
 
   const mostrarLista = !isNarrow || !selecionadaId;
   const mostrarDetalhe = !isNarrow || !!selecionadaId;
@@ -698,7 +715,7 @@ export default function ListaTarefas({
     .join(" ");
 
   const btnIconHeader =
-    "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-slate-50 hover:text-gray-900";
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border-primary/40 bg-white text-text-muted shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#FAFAFA] hover:text-text-primary hover:shadow-md";
 
   const renderCardLista = (t) => {
     const pri = normalizarPrioridade(t.prioridade);
@@ -718,24 +735,24 @@ export default function ListaTarefas({
         onClick={() => setSelecionadaId(t.id)}
         className={`flex min-h-[152px] w-full flex-col rounded-xl border p-3 text-left shadow-sm transition hover:shadow ${
           ativo
-            ? "border-gray-300 bg-white ring-1 ring-gray-200"
-            : "border-gray-200 bg-white hover:border-gray-300"
+            ? "rounded-2xl border-border-primary/45 bg-white ring-2 ring-accent-primary/20"
+            : "rounded-2xl border-border-primary/30 bg-white hover:border-border-primary/45 hover:shadow-md"
         }`}
       >
         <div className="flex min-h-0 flex-1 flex-col justify-between gap-2">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1 space-y-1.5">
-              <p className="line-clamp-2 text-sm font-semibold leading-snug text-gray-800">
+              <p className="line-clamp-2 text-sm font-medium leading-snug text-gray-800">
                 {t.titulo}
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span
-                  className={`inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badgePrioridadeClasses(pri)}`}
+                  className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${badgePrioridadeClasses(pri)}`}
                 >
                   {pri}
                 </span>
                 <span
-                  className={`inline-flex rounded px-2 py-0.5 text-[10px] font-semibold ${badgeStatusSolido(stt)}`}
+                  className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ${badgeStatusSolido(stt)}`}
                 >
                   {stt}
                 </span>
@@ -756,7 +773,7 @@ export default function ListaTarefas({
               </div>
             </div>
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-gray-700 shadow-sm ring-1 ring-gray-200/80"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FAFAFA] text-[10px] font-bold text-gray-700 shadow-sm ring-1 ring-border-primary/35"
               title={nomeDesignadorTarefa(t) || "Quem designou"}
             >
               {iniciais(nomeDesignadorTarefa(t))}
@@ -766,7 +783,7 @@ export default function ListaTarefas({
             <span className="text-[10px] font-bold uppercase text-slate-500">
               Responsável:
             </span>
-            <span className="rounded-md bg-gray-900 px-2 py-1 text-xs font-black uppercase tracking-wider text-white shadow-sm">
+            <span className="rounded-full bg-accent-primary px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-[0_4px_10px_rgba(220,59,11,0.28)]">
               {nomeResponsavel}
             </span>
             {restantes > 0 && (
@@ -789,13 +806,13 @@ export default function ListaTarefas({
       )}
 
       {embedded && (
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 py-2.5 shadow-sm">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-primary/35 bg-white px-4 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-gray-800 shadow-sm ring-1 ring-gray-200/80">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-primary/10 text-accent-primary shadow-sm ring-1 ring-accent-primary/20">
               <ListTodo className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-sm font-semibold text-gray-800">
+              <h2 className="truncate text-sm font-semibold text-text-primary">
                 Tarefas
               </h2>
               <p className="text-[11px] text-gray-500">Painel de trabalho</p>
@@ -837,17 +854,17 @@ export default function ListaTarefas({
         <aside
           className={`${
             mostrarLista ? "flex" : "hidden"
-          } min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden border-b border-gray-200 bg-white shadow-sm md:flex md:h-auto md:min-h-0 md:w-[38%] md:min-w-[280px] md:flex-none md:border-b-0 md:border-r md:border-gray-200`}
+          } min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden border-b border-border-primary/35 bg-white shadow-[0_5px_20px_rgba(0,0,0,0.06)] md:flex md:h-auto md:min-h-0 md:w-[38%] md:min-w-[280px] md:flex-none md:border-b-0 md:border-r md:border-border-primary/35`}
         >
-          <div className="shrink-0 space-y-3 border-b border-gray-200 bg-white p-3 md:p-4">
+          <div className="shrink-0 space-y-3 border-b border-border-primary/35 bg-white p-3 md:p-4">
             {!embedded && (
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-gray-800 shadow-sm ring-1 ring-gray-200/80">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-primary/10 text-accent-primary shadow-sm ring-1 ring-accent-primary/20">
                     <ListTodo className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <h1 className="text-sm font-semibold text-gray-800">
+                    <h1 className="text-sm font-semibold text-text-primary">
                       Tarefas
                     </h1>
                     <p className="text-[11px] text-gray-500">Por prioridade</p>
@@ -876,7 +893,8 @@ export default function ListaTarefas({
             {podeCriar && (
               <ButtonDefault
                 onClick={abrirModal}
-                className="!h-8 w-full !rounded-lg !border-gray-800 !bg-gray-900 !px-3 !text-sm !font-medium !text-white hover:!bg-gray-800 shadow-sm"
+                className="!h-9 !w-full !rounded-xl !border !border-accent-primary !bg-accent-primary !px-3 !text-sm !font-semibold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:!bg-accent-primary-dark hover:!shadow-lg"
+                
               >
                 + Nova tarefa
               </ButtonDefault>
@@ -889,7 +907,7 @@ export default function ListaTarefas({
                 placeholder="Buscar…"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="h-8 w-full rounded-lg border border-gray-200 bg-slate-50 pl-8 pr-2.5 text-xs text-gray-800 placeholder:text-gray-400 focus:border-gray-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-200"
+                className="h-10 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] pl-9 pr-3 text-xs text-text-primary placeholder:text-text-muted shadow-sm transition-all focus:border-accent-primary/35 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
               />
             </div>
 
@@ -909,17 +927,42 @@ export default function ListaTarefas({
                 <option value={STATUS.concluida}>{STATUS.concluida}</option>
               </select>
             </div>
+            <div className="rounded-xl border border-border-primary/35 bg-[#FAFAFA] p-2.5 shadow-sm">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                  Prioridade
+                </label>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-text-muted ring-1 ring-border-primary/35">
+                  {prioridadesSelecionadas.length} ativa(s)
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {PRIORIDADES.map((p) => {
+                  const ativo = prioridadesSelecionadas.includes(p);
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => alternarPrioridadeMultipla(p)}
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all ${ativo ? `${badgePrioridadeClasses(p)} shadow-sm` : "bg-white text-text-muted ring-1 ring-border-primary/35 hover:bg-[#FAFAFA]"}`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {pillsFiltro.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => setPillAtivo(p.id)}
-                  className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition shadow-sm ${
+                  className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all shadow-sm ${
                     pillAtivo === p.id
-                      ? "border-gray-800 bg-gray-900 text-white"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-slate-50"
+                      ? "border-accent-primary bg-accent-primary text-white shadow-[0_4px_12px_rgba(220,59,11,0.35)]"
+                      : "border-border-primary/45 bg-white text-text-muted hover:border-accent-primary/35 hover:bg-[#FAFAFA]"
                   }`}
                 >
                   {p.label}
@@ -928,7 +971,7 @@ export default function ListaTarefas({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-3 [-webkit-overflow-scrolling:touch] md:p-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#FAFAFA] p-3 [-webkit-overflow-scrolling:touch] md:p-4">
             {loading && (
               <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                 <Loader2 className="mb-2 h-7 w-7 animate-spin" />
@@ -954,7 +997,7 @@ export default function ListaTarefas({
             {!loading && !erro && totalNaLista === 0 && (
               <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-10 text-center shadow-sm">
                 <Inbox className="mb-2 h-9 w-9 text-gray-300" />
-                <p className="text-sm font-medium text-gray-800">
+                <p className="text-sm font-medium text-text-primary">
                   Nenhuma tarefa
                 </p>
                 <p className="mt-0.5 text-xs text-gray-500">
@@ -970,17 +1013,17 @@ export default function ListaTarefas({
                 return (
                   <section
                     key={pri}
-                    className={`mb-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm last:mb-0 ${secaoPrioridadeBarra(pri)}`}
+                    className={`mb-4 overflow-hidden rounded-2xl border border-border-primary/35 bg-white shadow-[0_5px_20px_rgba(0,0,0,0.08)] last:mb-0 ${secaoPrioridadeBarra(pri)}`}
                   >
-                    <div className="border-b border-gray-100 bg-white px-3 py-2">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-800">
+                    <div className="border-b border-border-primary/20 bg-white px-3 py-2.5">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-text-primary">
                         Prioridade {pri}
                       </h3>
                       <p className="mt-0.5 text-[11px] text-gray-500">
                         {itens.length} tarefa(s) · por data de entrega
                       </p>
                     </div>
-                    <div className="space-y-2 bg-slate-50/80 p-2.5">
+                    <div className="space-y-2 bg-[#FAFAFA] p-2.5">
                       {itens.map((t) => renderCardLista(t))}
                     </div>
                   </section>
@@ -998,7 +1041,7 @@ export default function ListaTarefas({
             <div className="hidden h-full min-h-0 flex-col items-center justify-center p-6 text-center md:flex">
               <div className="max-w-sm rounded-xl border border-gray-200 bg-slate-50/80 px-6 py-8 shadow-sm">
                 <CircleDot className="mx-auto mb-2 h-8 w-8 text-gray-300" />
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-sm font-semibold text-text-primary">
                   Selecione uma tarefa
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
@@ -1008,8 +1051,8 @@ export default function ListaTarefas({
             </div>
           ) : (
             <div className="mx-auto w-full max-w-3xl flex-1 p-3 md:p-6 lg:p-8">
-              <article className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <header className="border-b border-gray-100 bg-white px-3 py-3 md:px-5 md:py-4">
+              <article className="overflow-hidden rounded-2xl border border-border-primary/35 bg-white shadow-[0_8px_28px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.03]">
+                <header className="border-b border-border-primary/20 bg-gradient-to-b from-[#FAFAFA] to-white px-3 py-3 md:px-5 md:py-4">
                   <button
                     type="button"
                     onClick={() => setSelecionadaId(null)}
@@ -1020,12 +1063,12 @@ export default function ListaTarefas({
                   </button>
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <span
-                      className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badgePrioridadeClasses(normalizarPrioridade(tarefaSelecionada.prioridade))}`}
+                      className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${badgePrioridadeClasses(normalizarPrioridade(tarefaSelecionada.prioridade))}`}
                     >
                       {normalizarPrioridade(tarefaSelecionada.prioridade)}
                     </span>
                     <span
-                      className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold ${badgeStatusSolido(st)}`}
+                      className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ${badgeStatusSolido(st)}`}
                     >
                       {st}
                     </span>
@@ -1039,22 +1082,22 @@ export default function ListaTarefas({
                       <Calendar className="h-3.5 w-3.5 text-gray-400" />
                       <span>
                         Entrega:{" "}
-                        <span className="font-medium text-gray-800">
+                        <span className="font-medium text-text-primary">
                           {formatDataEntrega(tarefaSelecionada.data_conclusao)}
                         </span>
                       </span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                    <h2 className="min-w-0 flex-1 text-lg font-semibold leading-snug tracking-tight text-gray-800 md:text-xl">
+                    <h2 className="min-w-0 flex-1 text-lg font-semibold leading-snug tracking-tight text-text-primary md:text-xl">
                       {tarefaSelecionada.titulo}
                     </h2>
                     {podeCriar && (
-                      <div className="flex shrink-0 flex-wrap gap-2">
+                    <div className="flex shrink-0 flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => abrirModalEdicao(tarefaSelecionada)}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-slate-50"
+                          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border-primary/40 bg-white px-3 text-sm font-medium text-text-primary shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#FAFAFA] hover:shadow-md"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                           Editar
@@ -1063,7 +1106,7 @@ export default function ListaTarefas({
                           type="button"
                           disabled={excluindo || atualizandoStatus}
                           onClick={excluirTarefaSelecionada}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50 disabled:opacity-50"
+                          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-rose-300/40 bg-rose-500/10 px-3 text-sm font-medium text-rose-700 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-rose-500/15 hover:shadow-md disabled:opacity-50"
                         >
                           {excluindo ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1082,14 +1125,14 @@ export default function ListaTarefas({
                     <h3 className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                       Descrição
                     </h3>
-                    <div className="min-h-[72px] whitespace-pre-wrap rounded-lg border border-gray-200 bg-slate-50/90 p-3 text-sm leading-relaxed text-gray-700 shadow-sm">
+                    <div className="min-h-[72px] whitespace-pre-wrap rounded-xl border border-border-primary/30 bg-[#FAFAFA] p-3 text-sm leading-relaxed text-gray-700 shadow-sm ring-1 ring-black/[0.02]">
                       {tarefaSelecionada.descricao?.trim()
                         ? tarefaSelecionada.descricao
                         : "Sem descrição registada."}
                     </div>
                   </section>
 
-                  <section className="rounded-xl border border-gray-200 bg-gradient-to-b from-slate-50 to-white p-4 shadow-sm">
+                  <section className="rounded-2xl border border-border-primary/30 bg-gradient-to-b from-[#FAFAFA] to-white p-4 shadow-sm">
                     <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                       Diário de Progresso
                     </h3>
@@ -1107,14 +1150,14 @@ export default function ListaTarefas({
                         feedProgresso.map((item) => (
                           <div
                             key={item.id}
-                            className="mb-3 flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-3 shadow-sm last:mb-0"
+                            className="mb-3 flex flex-col gap-2 rounded-xl border border-border-primary/30 bg-white p-3 shadow-sm ring-1 ring-black/[0.02] last:mb-0"
                           >
                             <div className="flex items-start gap-3">
-                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-gray-800 ring-1 ring-gray-200/80">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FAFAFA] text-xs font-bold text-text-primary ring-1 ring-border-primary/35">
                                 {iniciais(item.usuarios?.nome)}
                               </span>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-gray-900">
+                                <p className="truncate text-sm font-semibold text-text-primary">
                                   {item.usuarios?.nome ?? "Usuário"}
                                 </p>
                                 <p className="text-xs text-gray-500">
@@ -1131,7 +1174,7 @@ export default function ListaTarefas({
                     </div>
                     <div className="mt-4 border-t border-gray-200 pt-4">
                       <textarea
-                        className="min-h-[80px] w-full rounded-xl border border-gray-700 p-3 text-sm text-gray-700 placeholder:text-gray-500 focus:border-gray-500 focus:ring-1 focus:ring-gray-400 focus:outline-none"
+                        className="min-h-[92px] w-full rounded-xl border border-border-primary/55 bg-white p-3 text-sm text-gray-700 placeholder:text-gray-500 shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                         placeholder="Nova atualização…"
                         value={textoNovoProgresso}
                         onChange={(e) => setTextoNovoProgresso(e.target.value)}
@@ -1145,7 +1188,7 @@ export default function ListaTarefas({
                           !user?.id
                         }
                         onClick={adicionarAtualizacaoProgresso}
-                        className="mt-2 inline-flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-900 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-2 inline-flex items-center gap-2 rounded-xl border border-accent-primary bg-accent-primary px-4 py-2 text-sm font-bold text-white shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:bg-accent-primary-dark hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {enviandoProgresso ? (
                           <>
@@ -1165,11 +1208,11 @@ export default function ListaTarefas({
                         Designado por
                       </h3>
                       <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-bold text-gray-800 shadow-sm ring-1 ring-gray-200/80">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FAFAFA] text-sm font-bold text-text-primary shadow-sm ring-1 ring-border-primary/35">
                           {iniciais(nomeDesignadorSel)}
                         </span>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-800">
+                          <p className="text-sm font-semibold text-text-primary">
                             {nomeDesignadorSel ?? "—"}
                           </p>
                           {escritorioDesignadorSel ? (
@@ -1193,7 +1236,7 @@ export default function ListaTarefas({
                           {respsSel.map((r) => (
                             <li
                               key={r.id}
-                              className="flex items-center gap-2.5 rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm"
+                            className="flex items-center gap-2.5 rounded-xl border border-border-primary/30 bg-white p-2.5 shadow-sm"
                             >
                               {r.foto ? (
                                 <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-gray-200/80">
@@ -1204,11 +1247,11 @@ export default function ListaTarefas({
                                   />
                                 </span>
                               ) : (
-                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-gray-800 ring-1 ring-gray-200/80">
+                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FAFAFA] text-xs font-bold text-text-primary ring-1 ring-border-primary/35">
                                   {iniciais(r.nome)}
                                 </span>
                               )}
-                              <span className="text-sm font-semibold text-gray-800">
+                              <span className="text-sm font-semibold text-text-primary">
                                 {r.nome && r.nome !== "—"
                                   ? r.nome
                                   : "Responsável"}
@@ -1238,7 +1281,7 @@ export default function ListaTarefas({
                                 STATUS.concluida,
                               )
                             }
-                            className="inline-flex h-8 items-center justify-center rounded-lg border border-gray-800 bg-gray-900 px-3 text-sm font-medium text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50"
+                            className="inline-flex h-8 items-center justify-center rounded-lg border border-accent-primary bg-accent-primary px-3 text-sm font-medium text-white shadow-[0_4px_12px_rgba(220,59,11,0.3)] transition-all hover:bg-accent-primary-dark disabled:opacity-50"
                           >
                             Concluir tarefa
                           </button>
@@ -1253,7 +1296,7 @@ export default function ListaTarefas({
                                 STATUS.aguardando,
                               )
                             }
-                            className="inline-flex h-8 items-center justify-center rounded-lg border border-gray-800 bg-gray-900 px-3 text-sm font-medium text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50"
+                            className="inline-flex h-8 items-center justify-center rounded-lg border border-accent-primary bg-accent-primary px-3 text-sm font-medium text-white shadow-[0_4px_12px_rgba(220,59,11,0.3)] transition-all hover:bg-accent-primary-dark disabled:opacity-50"
                           >
                             Enviar para aprovação
                           </button>
@@ -1269,7 +1312,7 @@ export default function ListaTarefas({
                                   STATUS.concluida,
                                 )
                               }
-                              className="inline-flex h-8 items-center justify-center rounded-lg border border-gray-800 bg-gray-900 px-3 text-sm font-medium text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50"
+                              className="inline-flex h-8 items-center justify-center rounded-lg border border-accent-primary bg-accent-primary px-3 text-sm font-medium text-white shadow-[0_4px_12px_rgba(220,59,11,0.3)] transition-all hover:bg-accent-primary-dark disabled:opacity-50"
                             >
                               Aprovar e concluir
                             </button>
@@ -1309,13 +1352,13 @@ export default function ListaTarefas({
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
             <button
               type="button"
-              className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
               aria-hidden
               onClick={fecharModal}
             />
-            <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-              <div className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 shadow-sm">
-                <h2 className="text-lg font-bold text-gray-800">
+            <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border-primary/40 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+              <div className="flex items-center justify-between border-b border-border-primary/30 bg-white px-6 py-4 shadow-sm">
+                <h2 className="text-lg font-bold text-text-primary">
                   {editandoId ? "Editar tarefa" : "Nova tarefa"}
                 </h2>
                 <button
@@ -1333,7 +1376,7 @@ export default function ListaTarefas({
                     Título
                   </label>
                   <input
-                    className="h-12 w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-800 focus:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="h-12 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] px-3 text-sm text-gray-800 shadow-sm transition-all focus:border-accent-primary/35 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
                     value={form.titulo}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, titulo: e.target.value }))
@@ -1347,7 +1390,7 @@ export default function ListaTarefas({
                   </label>
                   <textarea
                     rows={3}
-                    className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="w-full resize-none rounded-xl border border-border-primary/50 bg-[#FAFAFA] px-3 py-2 text-sm text-gray-800 shadow-sm transition-all focus:border-accent-primary/35 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
                     value={form.descricao}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, descricao: e.target.value }))
@@ -1361,7 +1404,7 @@ export default function ListaTarefas({
                     </label>
                     <input
                       type="date"
-                      className="h-12 w-full rounded-xl border border-gray-200 px-3 text-sm"
+                      className="h-12 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] px-3 text-sm shadow-sm transition-all focus:border-accent-primary/35 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
                       value={form.data_conclusao}
                       onChange={(e) =>
                         setForm((f) => ({
@@ -1376,7 +1419,7 @@ export default function ListaTarefas({
                       Prioridade
                     </label>
                     <select
-                      className="h-12 w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-800"
+                      className="h-12 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] px-3 text-sm text-gray-800 shadow-sm transition-all focus:border-accent-primary/35 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
                       value={form.prioridade}
                       onChange={(e) =>
                         setForm((f) => ({ ...f, prioridade: e.target.value }))
@@ -1394,14 +1437,14 @@ export default function ListaTarefas({
                   <label className="mb-2 block text-xs font-bold uppercase text-gray-500">
                     Responsáveis
                   </label>
-                  <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-2">
+                  <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border border-border-primary/35 bg-[#FAFAFA] p-2">
                     {usuariosLista.length === 0 ? (
                       <p className="p-2 text-sm text-gray-500">Carregando…</p>
                     ) : (
                       usuariosLista.map((u) => (
                         <label
                           key={u.id}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-white"
+                          className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-white"
                         >
                           <input
                             type="checkbox"
@@ -1411,7 +1454,7 @@ export default function ListaTarefas({
                               .includes(String(u.id))}
                             onChange={() => toggleResponsavel(u.id)}
                           />
-                          <span className="flex-1 text-gray-800">{u.nome}</span>
+                          <span className="flex-1 text-text-primary">{u.nome}</span>
                           {u.escritorio ? (
                             <span className="text-xs text-gray-500">
                               {u.escritorio}
@@ -1423,7 +1466,7 @@ export default function ListaTarefas({
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 border-t border-gray-100 bg-white px-6 py-4 shadow-sm">
+              <div className="flex justify-end gap-2 border-t border-border-primary/25 bg-white px-6 py-4 shadow-sm">
                 <button
                   type="button"
                   disabled={salvando}
@@ -1436,7 +1479,7 @@ export default function ListaTarefas({
                   type="button"
                   disabled={salvando}
                   onClick={salvarModal}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-gray-800 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-accent-primary bg-accent-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:bg-accent-primary-dark hover:shadow-lg disabled:opacity-50"
                 >
                   {salvando ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

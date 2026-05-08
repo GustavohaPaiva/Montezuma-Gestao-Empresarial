@@ -480,21 +480,31 @@ export default function Obras() {
             title="Confirmar Exclusão"
             size="sm"
           >
-            <p className="text-sm text-text-muted">
-              Tem certeza que deseja excluir a obra{" "}
-              <span className="font-semibold text-text-primary">
-                {obraParaExcluir?.local}
-              </span>
-              ?
-            </p>
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50/70 to-white p-4 shadow-[0_5px_18px_rgba(0,0,0,0.05)]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-rose-700/80">
+                Atenção
+              </p>
+              <p className="mt-1 text-sm text-text-muted">
+                Tem certeza que deseja excluir a obra{" "}
+                <span className="font-semibold text-text-primary">
+                  {obraParaExcluir?.local}
+                </span>
+                ? Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <BaseButton
                 variant="ghost"
                 onClick={() => setObraParaExcluir(null)}
+                className="w-full sm:w-auto"
               >
                 Cancelar
               </BaseButton>
-              <BaseButton variant="danger" onClick={handleDelete}>
+              <BaseButton
+                variant="danger"
+                onClick={handleDelete}
+                className="w-full sm:w-auto"
+              >
                 Confirmar Exclusão
               </BaseButton>
             </div>

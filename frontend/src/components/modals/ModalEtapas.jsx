@@ -80,54 +80,54 @@ export default function ModalEtapas({
 
   return (
     <ModalPortal>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-[10px]">
-        <div className="bg-[#ffffff] w-full max-w-[600px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
-          <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 backdrop-blur-[2px] sm:p-4">
+        <div className="flex max-h-[95vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-border-primary/40 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+          <div className="flex items-center justify-between border-b border-border-primary/35 bg-white px-5 py-4">
             <div className="flex-1 min-w-0">
-              <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
+              <h2 className="truncate text-base font-bold uppercase tracking-wide text-text-primary sm:text-lg">
                 Seleção de Etapas
               </h2>
-              <p className="text-[13px] text-[#71717A] truncate">
+              <p className="truncate text-xs text-text-muted sm:text-sm">
                 Obra: {nomeObra}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="border-none bg-transparent w-[50px] h-[50px] flex items-center justify-center cursor-pointer"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border-primary/40 bg-[#FAFAFA] transition-all hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
             >
               <img
-                width="24"
-                height="24"
+                width="20"
+                height="20"
                 src="https://img.icons8.com/ios/50/multiply.png"
                 alt="fechar"
               />
             </button>
           </div>
 
-          <div className="p-[20px] flex flex-col gap-[20px] overflow-y-auto">
-            <div className="pb-4 border-b border-[#DBDADE]">
-              <label className="flex items-center gap-2 cursor-pointer text-[#464C54] text-[15px] font-bold">
+          <div className="flex flex-col gap-4 overflow-y-auto px-5 py-5">
+            <div className="rounded-xl border border-border-primary/35 bg-[#FAFAFA] p-3 sm:p-4">
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-text-primary sm:text-[15px]">
                 <input
                   type="checkbox"
                   checked={isAllSelected}
                   onChange={handleToggleAll}
-                  className="w-4 h-4 cursor-pointer accent-[#464C54] flex-shrink-0"
+                  className="h-4 w-4 shrink-0 cursor-pointer accent-accent-primary"
                 />
                 <span className="truncate">Selecionar todas as etapas</span>
               </label>
             </div>
 
-            <div className="grid grid-rows-8 grid-flow-col gap-x-4 gap-y-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {ETAPAS_OBRA.map((etapa) => (
                 <label
                   key={etapa}
-                  className="flex items-center gap-2 cursor-pointer text-[#464C54] text-[14px]"
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-border-primary/30 bg-white px-3 py-2.5 text-sm text-text-primary transition-colors hover:bg-[#FAFAFA]"
                 >
                   <input
                     type="checkbox"
                     checked={etapasSelecionadas.includes(etapa)}
                     onChange={() => handleToggle(etapa)}
-                    className="w-4 h-4 cursor-pointer accent-[#464C54] flex-shrink-0"
+                    className="h-4 w-4 shrink-0 cursor-pointer accent-accent-primary"
                   />
                   <span className="truncate" title={etapa}>
                     {etapa}
@@ -138,7 +138,7 @@ export default function ModalEtapas({
 
             <ButtonDefault
               onClick={handleConfirmar}
-              className="w-full h-[50px] text-[16px] font-bold mt-[10px]"
+              className="!mt-1 !h-11 !w-full !cursor-pointer !rounded-xl !border !border-accent-primary !bg-accent-primary !text-sm !font-bold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:!bg-accent-primary-dark hover:!shadow-lg"
             >
               Confirmar Seleção
             </ButtonDefault>

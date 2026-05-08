@@ -196,10 +196,10 @@ export function useObrasDetalheTableData({
             </div>
           )}
         </div>,
-        <div className="flex justify-center" key={`del-mat-${m.id}`}>
+        <div className="flex justify-center px-1 py-0.5" key={`del-mat-${m.id}`}>
           <button
             onClick={() => handleDeleteMaterial(m.id)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300/50 bg-rose-500/12 text-rose-700 hover:bg-rose-500/20 cursor-pointer transition-colors"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-300/50 bg-rose-500/12 text-rose-700 shadow-sm hover:bg-rose-500/20 cursor-pointer transition-colors"
           >
             <img
               width="18"

@@ -76,12 +76,12 @@ export default function TarefasGlobalDock() {
           <button
             type="button"
             onClick={() => setAberto(true)}
-            className="fixed bottom-6 right-6 z-[80] flex h-14 w-14 items-center justify-center rounded-full bg-white text-gray-800 shadow-md ring-1 ring-gray-200 transition hover:shadow-lg hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+            className="fixed bottom-6 right-6 z-[80] flex h-14 w-14 items-center justify-center rounded-full border border-border-primary/35 bg-white text-text-primary shadow-[0_8px_24px_rgba(0,0,0,0.14)] ring-1 ring-black/[0.03] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(0,0,0,0.18)] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/35"
             aria-label="Abrir tarefas"
           >
             <Bell className="h-6 w-6" strokeWidth={1.75} />
             {contagem > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow-sm">
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[11px] font-bold text-white shadow-sm ring-2 ring-white">
                 {contagem > 99 ? "99+" : contagem}
               </span>
             )}
@@ -97,7 +97,7 @@ export default function TarefasGlobalDock() {
                   onClick={() => setAberto(false)}
                 />
                 <div
-                  className="relative flex h-[100dvh] max-h-[100dvh] w-[90vw] max-w-5xl flex-col bg-white shadow-sm ring-1 ring-gray-200 lg:ml-auto"
+                  className="relative flex h-[100dvh] max-h-[100dvh] w-[92vw] max-w-5xl flex-col overflow-hidden rounded-l-2xl border-l border-border-primary/35 bg-white shadow-[0_14px_42px_rgba(0,0,0,0.22)] ring-1 ring-black/[0.04] lg:ml-auto"
                   role="dialog"
                   aria-modal="true"
                 >

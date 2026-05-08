@@ -56,30 +56,30 @@ export default function ModalFinanceiroSaida({
 
   return (
     <ModalPortal>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-[10px]">
-        <div className="bg-[#ffffff] max-w-[95%] w-[500px] rounded-[16px] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-[#C4C4C9]">
-          <div className="p-[20px] border-b border-[#DBDADE] bg-[#FFFFFF] flex justify-between items-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 backdrop-blur-[2px] sm:p-4">
+        <div className="flex max-h-[95vh] w-[500px] max-w-[95%] flex-col overflow-hidden rounded-2xl border border-border-primary/40 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+          <div className="flex items-center justify-between border-b border-border-primary/35 bg-white px-5 py-4">
             <div className="flex-1 min-w-0">
-              <h2 className="text-[18px] font-bold text-[#464C54] uppercase truncate">
+              <h2 className="truncate text-base font-bold uppercase tracking-wide text-text-primary sm:text-lg">
                 Nova Saída
               </h2>
             </div>
             <button
               onClick={onClose}
-              className="w-[35px] h-[35px] flex items-center justify-center border border-[#C4C4C9] rounded-[8px] text-[24px] text-[#71717A] hover:bg-gray-100 cursor-pointer"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border-primary/40 bg-[#FAFAFA] text-[22px] text-text-muted transition-all hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
             >
               &times;
             </button>
           </div>
 
-          <div className="p-[20px] flex flex-col gap-[15px] overflow-y-auto">
+          <div className="flex flex-col gap-3.5 overflow-y-auto px-5 py-5">
             <div className="flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Escritório
               </label>
               <select
                 disabled={escritorioSelectDisabled}
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border disabled:opacity-70 disabled:cursor-not-allowed"
+                className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25 disabled:cursor-not-allowed disabled:opacity-70"
                 value={escritorioLan}
                 onChange={(e) => setEscritorioLan(e.target.value)}
               >
@@ -93,13 +93,13 @@ export default function ModalFinanceiroSaida({
             </div>
 
             <div className="flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Descrição
               </label>
               <input
                 type="text"
                 placeholder="Descrição da Saída"
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                 value={formData.descricao}
                 onChange={(e) =>
                   setFormData({ ...formData, descricao: e.target.value })
@@ -107,15 +107,15 @@ export default function ModalFinanceiroSaida({
               />
             </div>
 
-            <div className="w-full flex flex-row gap-x-[20px]">
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:gap-4">
               <div className="flex flex-col gap-[5px] w-full">
-                <label className="text-[12px] font-bold text-[#71717A] uppercase">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   Valor
                 </label>
                 <input
                   type="number"
                   placeholder="Valor da Saída"
-                  className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                  className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                   value={formData.valor}
                   onChange={(e) =>
                     setFormData({ ...formData, valor: e.target.value })
@@ -123,13 +123,13 @@ export default function ModalFinanceiroSaida({
                 />
               </div>
               <div className="flex flex-col gap-[5px] w-full">
-                <label className="text-[12px] font-bold text-[#71717A] uppercase">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   Data
                 </label>
                 <input
                   type="date"
                   placeholder="Data da Saída"
-                  className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                  className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                   value={formData.data}
                   onChange={(e) =>
                     setFormData({ ...formData, data: e.target.value })
@@ -139,11 +139,11 @@ export default function ModalFinanceiroSaida({
             </div>
 
             <div className="flex flex-col gap-[5px]">
-              <label className="text-[12px] font-bold text-[#71717A] uppercase">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Forma de Pagamento
               </label>
               <select
-                className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                 value={formData.formaPagamento}
                 onChange={(e) =>
                   setFormData({ ...formData, formaPagamento: e.target.value })
@@ -158,11 +158,11 @@ export default function ModalFinanceiroSaida({
 
             {formData.formaPagamento === "Parcelado" && (
               <div className="flex flex-col gap-[5px]">
-                <label className="text-[12px] font-bold text-[#71717A] uppercase">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   Quantidade de Parcelas
                 </label>
                 <select
-                  className="w-full h-[45px] text-[16px] px-[12px] border border-[#C4C4C9] rounded-[8px] bg-[#F7F7F8] focus:outline-none box-border"
+                  className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                   value={formData.parcelas}
                   onChange={(e) =>
                     setFormData({ ...formData, parcelas: e.target.value })
@@ -179,7 +179,7 @@ export default function ModalFinanceiroSaida({
 
             <ButtonDefault
               onClick={salvar}
-              className="w-full bg-[#464C54] text-[#000000] h-[50px] text-[16px] font-bold mt-[10px]"
+              className="!mt-2 !h-11 !w-full !cursor-pointer !rounded-xl !border !border-accent-primary !bg-accent-primary !text-sm !font-bold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:!bg-accent-primary-dark hover:!shadow-lg"
             >
               Salvar Saída
             </ButtonDefault>
