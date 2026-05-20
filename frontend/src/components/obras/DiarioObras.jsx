@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { MessageSquareText, Pencil, Send, Trash2 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../services/api";
 import ButtonDefault from "../gerais/ButtonDefault";
@@ -20,6 +20,15 @@ function formatarDataHora(iso) {
 
 const BATCH = 100;
 
+const inputPremium =
+  "box-border min-h-11 h-11 w-full min-w-0 shrink-0 rounded-xl border border-border-primary/55 bg-white px-3 text-sm text-text-primary shadow-sm transition-all placeholder:text-text-muted focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
+
+const btnOutlinePremium =
+  "!h-11 !w-full !cursor-pointer !rounded-xl !border !border-border-primary/50 !bg-white !px-4 !text-sm !font-semibold !text-text-primary !shadow-sm transition-all hover:!-translate-y-0.5 hover:!border-accent-primary/35 hover:!shadow-md focus:!outline-none focus:!ring-2 focus:!ring-accent-primary/25 active:!translate-y-0 disabled:!cursor-not-allowed sm:!w-auto";
+
+const btnAccentPremium =
+  "!h-11 !cursor-pointer !rounded-xl !border !border-accent-primary !bg-accent-primary !px-4 !text-sm !font-semibold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:!-translate-y-0.5 hover:!bg-accent-primary-dark hover:!shadow-lg focus:!outline-none focus:!ring-2 focus:!ring-accent-primary/35 focus:!ring-offset-2 active:!translate-y-0 disabled:!cursor-not-allowed";
+
 /**
  * @param {{ obraId: string | number | undefined }} props
  */
@@ -30,6 +39,7 @@ export default function DiarioObras({ obraId }) {
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [texto, setTexto] = useState("");
+  const [showNovoLancamento, setShowNovoLancamento] = useState(false);
 
   const [editandoId, setEditandoId] = useState(null);
   const [textoEdicao, setTextoEdicao] = useState("");
@@ -89,6 +99,7 @@ export default function DiarioObras({ obraId }) {
         mensagem: msg,
       });
       setTexto("");
+      setShowNovoLancamento(false);
       setItens((prev) => [novo, ...prev]);
     } catch (e) {
       console.error("[DiarioObras] enviar:", e);
@@ -146,11 +157,50 @@ export default function DiarioObras({ obraId }) {
 
   return (
     <div className="w-full mx-auto mb-6 flex flex-col gap-4 text-left bg-surface border border-border-primary rounded-2xl shadow-sm p-5 md:p-6">
-      <h2 className="text-lg md:text-[22px] font-bold text-text-primary tracking-tight">
-        Diário de Obras
-      </h2>
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h2 className="text-base font-bold tracking-tight text-text-primary sm:text-lg">
+          Diário de Obras
+        </h2>
+        {podeInteragir ? (
+          <ButtonDefault
+            type="button"
+            onClick={() => setShowNovoLancamento((prev) => !prev)}
+            className={`${btnOutlinePremium} !min-w-0`}
+          >
+            <span className="inline-flex items-center gap-2">
+              <MessageSquareText className="h-4 w-4 shrink-0" />
+              {showNovoLancamento ? "Fechar" : "Novo lançamento"}
+            </span>
+          </ButtonDefault>
+        ) : null}
+      </div>
 
-      {/* Histórico (recentes no topo) */}
+      {podeInteragir && showNovoLancamento ? (
+        <div className="mb-4 rounded-2xl border border-border-primary/35 bg-[#FAFAFA] p-4 shadow-inner">
+          <textarea
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            rows={5}
+            placeholder="Registre uma observação, progresso ou ocorrência…"
+            className={`${inputPremium} min-h-[132px] resize-y`}
+          />
+          <div className="mt-3 flex justify-stretch sm:justify-end">
+            <ButtonDefault
+              type="button"
+              onClick={handleEnviar}
+              disabled={enviando || !String(texto || "").trim()}
+              className={`${btnAccentPremium} !w-full`}
+            >
+              <span className="inline-flex items-center gap-2">
+                <Send className="h-4 w-4 shrink-0" />
+                {enviando ? "A enviar…" : "Publicar"}
+              </span>
+            </ButtonDefault>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Histórico */}
       <div
         className="flex flex-col gap-3 max-h-[280px] md:max-h-[560px] overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:var(--color-border-muted)_transparent] scroll-smooth
         [&::-webkit-scrollbar]:w-1.5
@@ -238,28 +288,6 @@ export default function DiarioObras({ obraId }) {
             </article>
           ))}
       </div>
-
-      {/* Lançamento */}
-      {podeInteragir && (
-        <div className="pt-1 border-t border-border-primary/50 flex flex-col gap-3">
-          <textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            placeholder="Registre uma observação, progresso ou ocorrência…"
-            rows={3}
-            className="w-full min-h-[44px] mt-2 box-border resize-y rounded-xl border border-border-primary bg-surface-alt px-3.5 py-3 text-sm text-text-primary placeholder:text-text-muted/80 transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-0 focus:bg-surface"
-          />
-          <div className="flex justify-end">
-            <ButtonDefault
-              onClick={handleEnviar}
-              disabled={enviando || !String(texto || "").trim()}
-              className="!min-w-[128px] !w-full !h-10 !rounded-xl !font-semibold !bg-accent-primary !text-white !border-accent-primary hover:!bg-accent-primary-dark"
-            >
-              {enviando ? "A enviar…" : "Publicar"}
-            </ButtonDefault>
-          </div>
-        </div>
-      )}
 
       {msgErro != null && (
         <ModalPortal>

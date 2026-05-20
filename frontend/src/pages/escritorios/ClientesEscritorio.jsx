@@ -10,6 +10,8 @@ import {
 } from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalClienteEscritorio from "../../components/modals/ModalClienteEscritorio";
+import StatusSelectBadge from "../../components/gerais/StatusSelectBadge";
+import { STATUS_CLIENTE_OPCOES } from "../../components/gerais/statusSelectOptions";
 
 const STATUS_FILTRO = [
   "Tudo",
@@ -44,37 +46,6 @@ const inputDateBarClass =
 function clienteEstaFinalizado(status) {
   const s = (status || "").trim().toLowerCase();
   return s.includes("finaliz");
-}
-
-function ClienteStatusBadge({ status }) {
-  const raw = (status || "").trim();
-  const base =
-    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold backdrop-blur-sm";
-  if (!raw) {
-    return (
-      <span className={`${base} border-esc-border bg-esc-bg/70 text-esc-muted`}>
-        —
-      </span>
-    );
-  }
-  const s = raw.toLowerCase();
-  let tone = "border-esc-border/80 bg-black/50 text-esc-muted";
-  if (clienteEstaFinalizado(status)) {
-    tone =
-      "border-status-concluida-text/45 bg-black/50 text-status-concluida-text";
-  } else if (s === "produção" || s === "producao") {
-    tone = "border-purple-700 bg-black/50 text-purple-700";
-  } else if (s === "prefeitura") {
-    tone =
-      "border-status-andamento-text/45 bg-black/50 text-status-andamento-text";
-  } else if (s === "caixa") {
-    tone = "border-teal-700 bg-black/50 text-teal-700";
-  } else if (s === "cartorio" || s === "cartório") {
-    tone = "border-rose-600 bg-black/50 text-rose-600";
-  } else if (s === "obra") {
-    tone = "border-blue-700 bg-black/50 text-blue-700";
-  }
-  return <span className={`${base} ${tone}`}>{raw}</span>;
 }
 
 function ListaSkeleton() {
@@ -222,6 +193,36 @@ export default function ClientesEscritorio() {
     } catch (e) {
       console.error(e);
       alert("Erro ao salvar cliente.");
+    }
+  }
+
+  async function handleStatusCliente(cliente, novoStatus) {
+    if (!cliente?.id || cliente.escritorio_id !== currentEscritorioId) return;
+    if ((cliente.status || "") === novoStatus) return;
+    try {
+      await api.updateCliente(
+        cliente.id,
+        { status: novoStatus },
+        currentEscritorioId,
+      );
+      if (novoStatus === "Obra") {
+        await api.createObra({
+          cliente: cliente.nome,
+          local:
+            cliente.rua_obra ||
+            cliente.bairro_obra ||
+            "Local a definir",
+          cliente_id: cliente.id,
+        });
+      }
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === cliente.id ? { ...r, status: novoStatus } : r,
+        ),
+      );
+    } catch (e) {
+      console.error(e);
+      alert("Não foi possível atualizar o status.");
     }
   }
 
@@ -436,9 +437,12 @@ export default function ClientesEscritorio() {
                       {c.tipo ? (
                         <span className="text-sm text-esc-muted">{c.tipo}</span>
                       ) : null}
-                      {c.status ? (
-                        <ClienteStatusBadge status={c.status} />
-                      ) : null}
+                      <StatusSelectBadge
+                        value={c.status || "Produção"}
+                        options={STATUS_CLIENTE_OPCOES}
+                        variant="cliente"
+                        onChange={(novo) => handleStatusCliente(c, novo)}
+                      />
                     </div>
                     {c.pagamento ? (
                       <p className="mt-1 text-xs text-esc-muted">

@@ -72,6 +72,8 @@ export default function BaseCard({
   value,
   icon,
   status,
+  /** React node no lugar do badge de status (ex.: select editável). */
+  statusElement,
   metadata = [],
   colorTheme = "primary",
   onClick,
@@ -81,13 +83,31 @@ export default function BaseCard({
 }) {
   const palette = THEME_STYLES[colorTheme] || THEME_STYLES.primary;
   const isInteractive = typeof onClick === "function";
-  const WrapperTag = isInteractive ? "button" : "div";
+  const useDivAsInteractive = isInteractive && Boolean(children);
+  const WrapperTag = useDivAsInteractive ? "div" : isInteractive ? "button" : "div";
+
+  const interactiveProps = isInteractive
+    ? {
+        onClick,
+        ...(useDivAsInteractive
+          ? {
+              role: "button",
+              tabIndex: 0,
+              onKeyDown: (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onClick(e);
+                }
+              },
+            }
+          : { type: "button" }),
+      }
+    : {};
 
   if (variant === "action") {
     return (
       <WrapperTag
-        type={isInteractive ? "button" : undefined}
-        onClick={onClick}
+        {...interactiveProps}
         className={joinClasses(
           "group h-full min-h-36 w-full flex flex-col items-center rounded-2xl bg-white p-6 text-center tracking-tight ring-1 ring-slate-900/5 shadow-sm transition-all duration-200",
           palette.actionHover,
@@ -123,8 +143,7 @@ export default function BaseCard({
   if (variant === "entity") {
     return (
       <WrapperTag
-        type={isInteractive ? "button" : undefined}
-        onClick={onClick}
+        {...interactiveProps}
         className={joinClasses(
           "group h-full w-full flex flex-col rounded-2xl border-l-4 bg-white p-5 text-left ring-1 ring-slate-900/5 shadow-sm transition-all duration-200",
           palette.leftIdle,
@@ -151,7 +170,9 @@ export default function BaseCard({
                 ) : null}
               </div>
             </div>
-            {status ? (
+            {statusElement ? (
+              <div className="shrink-0">{statusElement}</div>
+            ) : status ? (
               <span
                 className={joinClasses(
                   "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold tracking-tight",
@@ -198,8 +219,7 @@ export default function BaseCard({
 
   return (
     <WrapperTag
-      type={isInteractive ? "button" : undefined}
-      onClick={onClick}
+      {...interactiveProps}
       className={joinClasses(
         "group relative h-full w-full flex flex-col overflow-hidden rounded-2xl bg-white p-5 text-left tracking-tight ring-1 ring-slate-900/5 shadow-sm transition-all duration-200",
         isInteractive && "cursor-pointer hover:shadow-md",

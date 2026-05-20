@@ -26,6 +26,8 @@ import { useScrollFadeIn } from "../../hooks/useScrollFadeIn";
 import { verificarStatusPagamento } from "./utils/obraPagamento";
 import { useObrasList } from "./hooks/useObrasList";
 import { obrasDictionary } from "../../constants/dictionaries";
+import StatusSelectBadge from "../../components/gerais/StatusSelectBadge";
+import { STATUS_OBRA_OPCOES } from "../../components/gerais/statusSelectOptions";
 
 function nomeResponsavelObra(obra, diretoriaUsuarios = []) {
   if (obra?.responsavel_id && Array.isArray(diretoriaUsuarios)) {
@@ -102,8 +104,24 @@ export default function Obras() {
   const [obraParaEditar, setObraParaEditar] = useState(null);
   const [obraParaExcluir, setObraParaExcluir] = useState(null);
   const [diretoriaUsuarios, setDiretoriaUsuarios] = useState([]);
-  const { obras, carregando, showElements, reloadObras } = useObrasList();
+  const { obras, setObras, carregando, showElements, reloadObras } =
+    useObrasList();
   const isEncarregado = user?.tipo === "encarregado";
+
+  const handleStatusObra = async (obra, novoStatus) => {
+    if (!obra?.id || (obra.status || "") === novoStatus) return;
+    try {
+      await api.updateObra(obra.id, { status: novoStatus });
+      setObras((prev) =>
+        prev.map((o) =>
+          o.id === obra.id ? { ...o, status: novoStatus } : o,
+        ),
+      );
+    } catch (err) {
+      console.error("Erro ao atualizar status da obra:", err);
+      alert("Não foi possível atualizar o status da obra.");
+    }
+  };
 
   const [refNav, isNavVisible] = useScrollFadeIn();
   const [refMain] = useScrollFadeIn();
@@ -365,7 +383,14 @@ export default function Obras() {
                   variant="entity"
                   title={obra.clientes?.nome || obra.cliente}
                   value={obra.local}
-                  status={obra.status || "Aguardando iniciação"}
+                  statusElement={
+                    <StatusSelectBadge
+                      value={obra.status || "Aguardando iniciação"}
+                      options={STATUS_OBRA_OPCOES}
+                      variant="obra"
+                      onChange={(novo) => handleStatusObra(obra, novo)}
+                    />
+                  }
                   metadata={[
                     ...(!isEncarregado
                       ? [

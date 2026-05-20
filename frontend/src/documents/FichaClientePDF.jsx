@@ -7,6 +7,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 import logo from "../assets/logos/logo sem fundo.png";
+import { formatClienteParaDocumentos } from "../utils/clienteFormatters";
 
 const COR_PRIMARIA = "#DC3B0B";
 const COR_TEXTO = "#111827";
@@ -172,32 +173,32 @@ const Field = ({ label, value }) => (
 );
 
 export default function FichaClientePDF({ cliente = {} }) {
+  const c = formatClienteParaDocumentos(cliente);
   const dataEmissaoLegivel = formatarDataHora(new Date().toISOString());
 
   const enderecoResidencial = montarEndereco({
-    rua: cliente.rua,
-    numero: cliente.numero_casa,
-    complemento: cliente.complemento,
-    bairro: cliente.bairro,
-    cidade: cliente.cidade,
-    estado: cliente.estado,
-    cep: cliente.cep,
+    rua: c.rua,
+    numero: c.numero_casa,
+    complemento: c.complemento,
+    bairro: c.bairro,
+    cidade: c.cidade,
+    estado: c.estado,
+    cep: c.cep,
   });
 
-  const temEnderecoObra =
-    cliente.rua_obra || cliente.bairro_obra || cliente.numero_obra;
+  const temEnderecoObra = c.rua_obra || c.bairro_obra || c.numero_obra;
   const enderecoObra = temEnderecoObra
     ? montarEndereco({
-        rua: cliente.rua_obra,
-        numero: cliente.numero_obra,
-        bairro: cliente.bairro_obra,
-        cidade: cliente.cidade,
-        estado: cliente.estado,
+        rua: c.rua_obra,
+        numero: c.numero_obra,
+        bairro: c.bairro_obra,
+        cidade: c.cidade,
+        estado: c.estado,
       })
     : null;
 
   return (
-    <Document title={`Ficha — ${cliente.nome || "Cliente"}`} author="Montezuma">
+    <Document title={`Ficha — ${c.nome || "Cliente"}`} author="Montezuma">
       <Page size="A4" style={styles.page}>
         <View style={styles.header} fixed>
           <View style={styles.brand}>
@@ -214,15 +215,15 @@ export default function FichaClientePDF({ cliente = {} }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Identificação</Text>
           <View style={styles.row}>
-            <Field label="Nome completo" value={cliente.nome} />
-            <Field label="CPF / CNPJ" value={cliente.cpf} />
+            <Field label="Nome completo" value={c.nome} />
+            <Field label="CPF / CNPJ" value={c.cpf} />
           </View>
           <View style={styles.row}>
-            <Field label="RG" value={cliente.rg} />
-            <Field label="Profissão" value={cliente.profissao} />
+            <Field label="RG" value={c.rg} />
+            <Field label="Profissão" value={c.profissao} />
           </View>
           <View style={styles.row}>
-            <Field label="E-mail" value={cliente.email} />
+            <Field label="E-mail" value={c.email} />
           </View>
         </View>
 
@@ -245,11 +246,11 @@ export default function FichaClientePDF({ cliente = {} }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cadastro</Text>
           <View style={styles.row}>
-            <Field label="Tipo" value={cliente.tipo} />
-            <Field label="Status" value={cliente.status} />
+            <Field label="Tipo" value={c.tipo} />
+            <Field label="Status" value={c.status} />
             <Field
               label="Data de cadastro"
-              value={formatarData(cliente.data || cliente.created_at)}
+              value={formatarData(c.data || c.created_at)}
             />
           </View>
         </View>

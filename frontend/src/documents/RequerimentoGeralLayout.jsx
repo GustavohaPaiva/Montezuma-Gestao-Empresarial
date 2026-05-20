@@ -1,5 +1,6 @@
 import React from "react";
 import { ID_YBYOCA, ID_VOGELKOP } from "../constants/escritorios";
+import { formatClienteParaDocumentos } from "../utils/clienteFormatters";
 import logo from "../assets/imgDocumentos/secretariaMunicipalAdministracao.jpg";
 import { Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
 
@@ -241,7 +242,8 @@ const InlineInput = ({ label, value, flex = 1, marginRight = 5 }) => (
   </View>
 );
 
-const RequerimentoGeralLayout = ({ cliente }) => {
+const RequerimentoGeralLayout = ({ cliente: clienteProp }) => {
+  const cliente = formatClienteParaDocumentos(clienteProp);
   let contatoTelefone = cliente?.telefone || "";
   let contatoEmail = cliente?.email || "";
 

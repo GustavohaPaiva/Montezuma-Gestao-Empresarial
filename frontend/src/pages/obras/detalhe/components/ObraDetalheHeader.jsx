@@ -28,7 +28,7 @@ export default function ObraDetalheHeader({
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/obras")}
             aria-label="Voltar"
             className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-border-primary/50 bg-white text-text-primary shadow-sm transition-all hover:border-accent-primary/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/25 active:scale-[0.98]"
           >

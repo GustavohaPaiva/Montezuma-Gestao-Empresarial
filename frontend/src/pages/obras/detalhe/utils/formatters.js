@@ -16,8 +16,11 @@ export function getCorStatusMaterial(status) {
   const chip =
     "shadow-sm ring-1 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
   switch (status) {
+    case "Pendente":
     case "Solicitado":
       return `${chip} bg-amber-500/18 text-amber-950 ring-amber-400/35`;
+    case "Cancelado":
+      return `${chip} bg-slate-500/15 text-slate-800 ring-slate-400/30`;
     case "Em cotação":
       return `${chip} bg-violet-500/15 text-violet-900 ring-violet-400/30`;
     case "Aprovado":

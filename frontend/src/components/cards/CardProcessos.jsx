@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { CalendarDays, Check, Pencil, Trash2, X } from "lucide-react";
 import BaseCard from "./BaseCard";
 import BaseButton from "../gerais/BaseButton";
+import StatusSelectBadge from "../gerais/StatusSelectBadge";
+import { STATUS_CLIENTE_OPCOES } from "../gerais/statusSelectOptions";
 
 function formatarDataRegistro(dataValue) {
   if (!dataValue) return "Não informado";
@@ -21,29 +23,6 @@ function processStatusTheme(status) {
   if (s === "Prefeitura") return "blue";
   if (s === "Produção") return "purple";
   return "blue";
-}
-
-function statusSelectClasses(status) {
-  const s = status || "Produção";
-  if (s === "Finalizado") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700 focus:border-emerald-300 focus:ring-emerald-100";
-  }
-  if (s === "Obra") {
-    return "border-amber-200 bg-amber-50 text-amber-700 focus:border-amber-300 focus:ring-amber-100";
-  }
-  if (s === "Cartorio") {
-    return "border-pink-200 bg-pink-50 text-pink-700 focus:border-pink-300 focus:ring-pink-100";
-  }
-  if (s === "Caixa") {
-    return "border-indigo-200 bg-indigo-50 text-indigo-700 focus:border-indigo-300 focus:ring-indigo-100";
-  }
-  if (s === "Prefeitura") {
-    return "border-blue-200 bg-blue-50 text-blue-700 focus:border-blue-300 focus:ring-blue-100";
-  }
-  if (s === "Produção") {
-    return "border-purple-200 bg-purple-50 text-purple-700 focus:border-purple-300 focus:ring-purple-100";
-  }
-  return "border-slate-200 bg-white text-text-primary focus:border-accent-primary/40 focus:ring-accent-primary/15";
 }
 
 const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
@@ -91,9 +70,7 @@ export default function CardProcessos({
     onDelete();
   };
 
-  const handleStatusChange = async (e) => {
-    e.stopPropagation();
-    const novoStatus = e.target.value;
+  const handleStatusChange = async (novoStatus) => {
     await onUpdate(id, { status: novoStatus });
   };
 
@@ -154,22 +131,14 @@ export default function CardProcessos({
                 >
                   Status do processo
                 </label>
-                <select
+                <StatusSelectBadge
                   id={`status-processo-${id}`}
                   value={status || "Produção"}
+                  options={STATUS_CLIENTE_OPCOES}
+                  variant="processo"
                   onChange={handleStatusChange}
-                  className={joinClasses(
-                    "box-border w-full cursor-pointer rounded-xl border px-3 py-2.5 text-sm font-semibold shadow-inner outline-none transition focus:ring-2",
-                    statusSelectClasses(status),
-                  )}
-                >
-                  <option value="Produção">Produção</option>
-                  <option value="Prefeitura">Prefeitura</option>
-                  <option value="Caixa">Caixa</option>
-                  <option value="Cartorio">Cartorio</option>
-                  <option value="Obra">Obra</option>
-                  <option value="Finalizado">Finalizado</option>
-                </select>
+                  className="shadow-inner"
+                />
               </div>
               <div className="flex w-full gap-2">
                 <BaseButton

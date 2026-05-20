@@ -10,6 +10,7 @@ import DeclaracaoCUBLayout from "../../documents/DeclaracaoCUBLayout";
 import DeclaracaoHabiteseLayout from "../../documents/DeclaracaoHabiteseLayout";
 import DeclaracaoMovimentacaoSoloLayout from "../../documents/DeclaracaoMovimentacaoSoloLayout";
 import GerenciamentoResiduosLayout from "../../documents/GerenciamentoResiduosLayout";
+import { formatClienteRecord } from "../../utils/clienteFormatters";
 
 const DocumentosProcesso = () => {
   const { id } = useParams();
@@ -19,10 +20,11 @@ const DocumentosProcesso = () => {
   useEffect(() => {
     const carregarEGerarPDF = async () => {
       try {
-        const dadosCliente = await api.getClienteById(id, {
+        const raw = await api.getClienteById(id, {
           allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
         });
-        if (!dadosCliente) throw new Error("Cliente não encontrado");
+        if (!raw) throw new Error("Cliente não encontrado");
+        const dadosCliente = formatClienteRecord(raw);
 
         const blob = await pdf(
           <Document>

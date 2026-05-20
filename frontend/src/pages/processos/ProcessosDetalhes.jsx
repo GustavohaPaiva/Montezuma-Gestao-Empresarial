@@ -17,6 +17,12 @@ import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { api } from "../../services/api";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import FichaClientePDF from "../../documents/FichaClientePDF";
+import {
+  formatClienteCampo,
+  formatClienteRecord,
+  formatValorPipeline,
+  FORMATADORES_POR_CAMPO,
+} from "../../utils/clienteFormatters";
 
 function nomeArquivoSeguro(raw) {
   const limpo = String(raw || "Cliente")
@@ -42,7 +48,7 @@ export default function ProcessosDetalhes() {
         const data = await api.getClienteById(id, {
           allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
         });
-        setProcesso(data);
+        setProcesso(formatClienteRecord(data));
       } catch (error) {
         console.error("Erro ao carregar detalhes do processo:", error);
       }
@@ -81,8 +87,10 @@ export default function ProcessosDetalhes() {
     setEditando(campo);
     if (tipoInput === "date" && valorAtual) {
       setValorEdicao(valorAtual.split("T")[0]);
+    } else if (FORMATADORES_POR_CAMPO[campo]) {
+      setValorEdicao(formatClienteCampo(campo, valorAtual));
     } else {
-      setValorEdicao(valorAtual || "");
+      setValorEdicao(valorAtual ?? "");
     }
   };
 
@@ -94,7 +102,9 @@ export default function ProcessosDetalhes() {
   const salvarEdicao = async (campo, tipoInput) => {
     let novoValor = valorEdicao;
 
-    if (tipoInput === "number") {
+    if (FORMATADORES_POR_CAMPO[campo]) {
+      novoValor = formatClienteCampo(campo, novoValor);
+    } else if (tipoInput === "number") {
       novoValor = novoValor ? Number(novoValor) : null;
     } else if (tipoInput === "date") {
       novoValor = novoValor ? new Date(novoValor).toISOString() : null;
@@ -115,7 +125,7 @@ export default function ProcessosDetalhes() {
       const data = await api.getClienteById(id, {
         allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
       });
-      setProcesso(data);
+      setProcesso(formatClienteRecord(data));
     }
   };
 
@@ -133,7 +143,7 @@ export default function ProcessosDetalhes() {
       const data = await api.getClienteById(id, {
         allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
       });
-      setProcesso(data);
+      setProcesso(formatClienteRecord(data));
     }
   };
 
@@ -141,7 +151,7 @@ export default function ProcessosDetalhes() {
     const { name, value } = e.target;
     setProcesso((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: formatClienteCampo(name, value),
     }));
   };
 
@@ -150,9 +160,11 @@ export default function ProcessosDetalhes() {
     const novaAba = window.open("", "_blank");
     setGerandoPDF(true);
     try {
-      const dados = await api.getClienteById(processo.id, {
-        allowedEscritorioIds: [processo.escritorio_id],
-      });
+      const dados = formatClienteRecord(
+        await api.getClienteById(processo.id, {
+          allowedEscritorioIds: [processo.escritorio_id],
+        }),
+      );
       if (!dados) {
         throw new Error("Cliente não encontrado ou fora do escritório atual.");
       }
@@ -180,12 +192,14 @@ export default function ProcessosDetalhes() {
 
   const handleSalvarInformacoes = async () => {
     try {
-      const dadosParaSalvar = { ...processo };
+      const formatado = formatClienteRecord(processo);
+      const dadosParaSalvar = { ...formatado };
       delete dadosParaSalvar.id;
       delete dadosParaSalvar.created_at;
 
       if (!processo?.escritorio_id) return;
       await api.updateCliente(id, dadosParaSalvar, processo.escritorio_id);
+      setProcesso(formatado);
       alert("Informações atualizadas com sucesso!");
     } catch (err) {
       console.error("Erro ao salvar informações do formulário:", err);
@@ -256,7 +270,12 @@ export default function ProcessosDetalhes() {
           <input
             type={tipoInput}
             value={valorEdicao}
-            onChange={(e) => setValorEdicao(e.target.value)}
+            onChange={(e) => {
+              const v = FORMATADORES_POR_CAMPO[campo]
+                ? formatClienteCampo(campo, e.target.value)
+                : e.target.value;
+              setValorEdicao(v);
+            }}
             className={`rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-sm text-gray-900 shadow-inner outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-500/20 ${
               tipoInput === "text" ? "min-w-[150px]" : "min-w-[130px]"
             }`}
@@ -288,8 +307,7 @@ export default function ProcessosDetalhes() {
       );
     }
 
-    let exibicao = valorAtual || "-";
-    if (tipoInput === "date" && valorAtual) exibicao = formatarData(valorAtual);
+    const exibicao = formatValorPipeline(campo, valorAtual, tipoInput);
 
     return (
       <div
@@ -447,7 +465,7 @@ export default function ProcessosDetalhes() {
         <option value="Futuros">Futuros</option>
         <option value="Concluído">Concluído</option>
       </select>,
-      renderCelulaEditavel("n_alvara", "number", processo.n_alvara),
+      renderCelulaEditavel("n_alvara", "text", processo.n_alvara),
       renderCelulaEditavel("n_contrato", "number", processo.n_contrato),
       renderCelulaEditavel("data_ass_fin", "date", processo.data_ass_fin),
     ],

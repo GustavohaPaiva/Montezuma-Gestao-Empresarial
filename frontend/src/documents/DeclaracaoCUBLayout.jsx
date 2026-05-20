@@ -1,5 +1,6 @@
 import React from "react";
 import { ID_YBYOCA, ID_VOGELKOP } from "../constants/escritorios";
+import { formatClienteParaDocumentos } from "../utils/clienteFormatters";
 import logo from "../assets/imgDocumentos/secretariaFazenda.png";
 import {
   Page,
@@ -228,7 +229,8 @@ const Checkbox = ({ label, checked, noMargin }) => (
   </View>
 );
 
-const DeclaracaoCUBLayout = ({ cliente }) => {
+const DeclaracaoCUBLayout = ({ cliente: clienteProp }) => {
+  const cliente = formatClienteParaDocumentos(clienteProp);
   const isReformaObra = cliente?.tipo?.toLowerCase().includes("reforma");
   const isConstrucaoObra = !isReformaObra;
 

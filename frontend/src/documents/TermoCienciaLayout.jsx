@@ -1,6 +1,7 @@
 import React from "react";
 import logo from "../assets/imgDocumentos/prefeitura.png";
 import { Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
+import { formatClienteParaDocumentos } from "../utils/clienteFormatters";
 
 Font.register({});
 
@@ -140,7 +141,8 @@ const styles = StyleSheet.create({
   },
 });
 
-const TermoCienciaLayout = ({ cliente }) => {
+const TermoCienciaLayout = ({ cliente: clienteProp }) => {
+  const cliente = formatClienteParaDocumentos(clienteProp);
   const hoje = new Date();
   const dia = String(hoje.getDate()).padStart(2, "0");
   const meses = [

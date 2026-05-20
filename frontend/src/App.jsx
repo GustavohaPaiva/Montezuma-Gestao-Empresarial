@@ -5,6 +5,9 @@ import PageTransition from "./components/gerais/PageTransition";
 
 import Obras from "./pages/obras/Obras";
 import ObrasDetalhe from "./pages/obras/ObrasDetalhe";
+import PedidoObraDetalhe from "./pages/obras/detalhe/PedidoObraDetalhe";
+import PedidosGestao from "./pages/pedidos/PedidosGestao";
+import PedidoGestaoDetalhe from "./pages/pedidos/PedidoGestaoDetalhe";
 import Home from "./pages/home/Home";
 import Processos from "./pages/processos/Processos";
 import LoginCliente from "./pages/login/LoginCliente";
@@ -72,6 +75,14 @@ export default function App() {
               element={
                 <PageTransition>
                   <ObrasDetalhe />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/obrasD/:id/pedidos/:pedidoId"
+              element={
+                <PageTransition>
+                  <PedidoObraDetalhe />
                 </PageTransition>
               }
             />
@@ -165,6 +176,22 @@ export default function App() {
               element={
                 <PageTransition>
                   <Financeiro />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/pedidos"
+              element={
+                <PageTransition>
+                  <PedidosGestao />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/pedidos/:pedidoId"
+              element={
+                <PageTransition>
+                  <PedidoGestaoDetalhe />
                 </PageTransition>
               }
             />

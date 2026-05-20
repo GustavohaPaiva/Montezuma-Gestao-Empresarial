@@ -8,6 +8,7 @@ import ModalPortal from "../../components/gerais/ModalPortal";
 import logo from "../../assets/logos/logo sem fundo.png";
 import imagemHome from "../../assets/img/ImagemHome.png";
 import { homeDictionary } from "../../constants/dictionaries";
+import { isGestorPedidos } from "../../constants/pedidos";
 
 export default function Home() {
   const { user, updateUserFoto } = useAuth();
@@ -71,10 +72,20 @@ export default function Home() {
       path: "/prestadores",
       roles: ["gestor_master", "diretoria", "suporte_ti"],
     },
+    {
+      id: 7,
+      titulo: "Pedidos",
+      imagem: "https://img.icons8.com/ios/125/shopping-cart.png",
+      path: "/pedidos",
+      gestorPedidos: true,
+    },
   ];
 
   const modulosPermitidos = modulos
     .filter((modulo) => {
+      if (modulo.gestorPedidos) {
+        return isGestorPedidos(user);
+      }
       if (modulo.meuEscritorio) {
         return (
           (user?.tipo === "diretoria" || user?.tipo === "gestor_master") &&
@@ -82,7 +93,7 @@ export default function Home() {
             user?.escritorio_id === ID_YBYOCA)
         );
       }
-      return modulo.roles.includes(user?.tipo);
+      return modulo.roles?.includes(user?.tipo);
     })
     .map((modulo) => {
       if (modulo.meuEscritorio) {

@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -9,11 +9,15 @@ import ModalEtapas from "../../components/modals/ModalEtapas";
 import Etapas from "../../components/gerais/ObraEtapas";
 import ListaEtapas from "../../components/obras/ListaEtapas";
 import DiarioObras from "../../components/obras/DiarioObras";
+import ObraDetalhePedidos from "./detalhe/components/ObraDetalhePedidos";
 import CronogramaObra from "../../components/obras/CronogramaObra";
 import { useObraById } from "./detalhe/hooks/useObraById";
 import { useObraFinancialSummary } from "./detalhe/hooks/useObraFinancialSummary";
 import { useIsMobile } from "./detalhe/hooks/useIsMobile";
-import { useObrasDetalheTableData } from "./detalhe/hooks/useObrasDetalheTableData";
+import {
+  filtrarExtratoLista,
+  useObrasDetalheTableData,
+} from "./detalhe/hooks/useObrasDetalheTableData";
 import ObraDetalheHeader from "./detalhe/components/ObraDetalheHeader";
 import ObraDetalheResumoFinanceiro from "./detalhe/components/ObraDetalheResumoFinanceiro";
 import ModalRelatorioPrestador from "./detalhe/components/ModalRelatorioPrestador";
@@ -30,13 +34,15 @@ import { Hammer, Loader2, MessageSquareText, Send } from "lucide-react";
 
 export default function ObrasDetalhe() {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isMobile = useIsMobile(768);
   const { obra, setObra, fetchDados } = useObraById(id);
   const [categoriaAtiva, setCategoriaAtiva] = useState(null);
-  const [secaoObra, setSecaoObra] = useState("resumo");
+  const [secaoObra, setSecaoObra] = useState("diario_historico");
   const [subRelatorio, setSubRelatorio] = useState("materiais");
+  const [subDiarioHistorico, setSubDiarioHistorico] = useState("diario");
 
   const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
   const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
@@ -94,14 +100,17 @@ export default function ObrasDetalhe() {
     () =>
       isEncarregado
         ? [
-            { id: "diario", label: "Diário de Obra" },
-            { id: "cronograma", label: "Cronograma" },
+            { id: "diario_historico", label: "Diário e histórico" },
+            { id: "pedidos", label: "Pedidos" },
             { id: "relatorios", label: "Relatórios" },
+            { id: "cronograma", label: "Cronograma" },
           ]
         : [
+            { id: "diario_historico", label: "Diário e histórico" },
+            { id: "pedidos", label: "Pedidos" },
+            { id: "relatorios", label: "Relatórios" },
             { id: "resumo", label: "Resumo" },
             { id: "cronograma", label: "Cronograma" },
-            { id: "relatorios", label: "Relatórios" },
             { id: "etapas", label: "Etapas" },
           ],
     [isEncarregado],
@@ -113,10 +122,16 @@ export default function ObrasDetalhe() {
     obra?.cliente?.tipo?.toLowerCase() === "reforma";
 
   useEffect(() => {
-    const secaoPadrao = isEncarregado ? "diario" : "resumo";
+    const secaoPadrao = "diario_historico";
     const permitida = secoesPermitidas.some((aba) => aba.id === secaoObra);
     if (!permitida) setSecaoObra(secaoPadrao);
   }, [isEncarregado, secaoObra, secoesPermitidas]);
+
+  useEffect(() => {
+    if (location.state?.secao === "pedidos") {
+      setSecaoObra("pedidos");
+    }
+  }, [location.state?.secao]);
 
   useEffect(() => {
     if (isEncarregado) {
@@ -535,22 +550,29 @@ export default function ObrasDetalhe() {
   const handleCheckAllExtrato = useCallback(
     async (isChecked) => {
       const novoStatus = isChecked ? 1 : 0;
+      const lista = filtrarExtratoLista(
+        obra?.relatorioExtrato,
+        buscaExtrato,
+        filtroExtrato,
+      );
+      const ids = lista.map((i) => i.id);
+      if (ids.length === 0) return;
+
       setObra((prev) => ({
         ...prev,
-        relatorioExtrato: prev.relatorioExtrato.map((i) => ({
-          ...i,
-          validacao: novoStatus,
-        })),
+        relatorioExtrato: (prev.relatorioExtrato || []).map((i) =>
+          ids.includes(i.id) ? { ...i, validacao: novoStatus } : i,
+        ),
       }));
       try {
-        await api.updateExtratoValidacaoAll(id, novoStatus);
+        await api.updateExtratoValidacaoInIds(ids, novoStatus);
         await fetchDados();
       } catch (err) {
         console.error("Erro ao validar todos no extrato:", err);
         fetchDados();
       }
     },
-    [id, fetchDados, setObra],
+    [obra?.relatorioExtrato, buscaExtrato, filtroExtrato, fetchDados, setObra],
   );
 
   const handleGerarPDFExtrato = () => {
@@ -627,6 +649,7 @@ export default function ObrasDetalhe() {
     dadosMaoDeObra,
     dadosRelatorioExtrato,
     headerExtrato,
+    totaisExtratoSelecionados,
   } = useObrasDetalheTableData({
     obra,
     buscaMateriais,
@@ -750,6 +773,9 @@ export default function ObrasDetalhe() {
                     if (aba.id === "relatorios") {
                       setSubRelatorio(isEncarregado ? "mao" : "materiais");
                     }
+                    if (aba.id === "diario_historico") {
+                      setSubDiarioHistorico("diario");
+                    }
                   }}
                   className={[
                     "min-h-[2.75rem] cursor-pointer rounded-xl px-4 py-2 text-xs font-semibold transition-all sm:min-h-[2.25rem] sm:text-sm",
@@ -766,95 +792,9 @@ export default function ObrasDetalhe() {
           </div>
         </nav>
 
-        {secaoObra === "diario" && isEncarregado && (
-          <div className="mb-6 w-full">
-            <DiarioObras obraId={id} />
-          </div>
-        )}
-
         {secaoObra === "resumo" && !isEncarregado && (
           <div className="mb-6 w-full">
-            <DiarioObras obraId={id} />
-            <div className="mt-6 rounded-2xl border border-border-primary/35 bg-white p-4 shadow-[0_5px_20px_rgba(0,0,0,0.08)] sm:p-6">
-              <div
-                className={`mb-4 flex gap-4 ${isMobile ? "flex-col" : "flex-row flex-wrap items-center justify-between"}`}
-              >
-                <h3 className="text-base font-bold tracking-tight text-text-primary sm:text-lg">
-                  Histórico da obra
-                </h3>
-                <ButtonDefault
-                  type="button"
-                  onClick={() => setShowNovoHistorico((prev) => !prev)}
-                  className={`${btnOutlinePremium} !min-w-0`}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <MessageSquareText className="h-4 w-4 shrink-0" />
-                    {showNovoHistorico ? "Fechar" : "Novo lançamento"}
-                  </span>
-                </ButtonDefault>
-              </div>
-
-              {showNovoHistorico ? (
-                <div className="mb-4 rounded-2xl border border-border-primary/35 bg-[#FAFAFA] p-4 shadow-inner">
-                  <textarea
-                    value={novaMensagemHistorico}
-                    onChange={(e) => setNovaMensagemHistorico(e.target.value)}
-                    rows={5}
-                    placeholder="Adicionar atualização para o cliente..."
-                    className={`${inputPremium} min-h-[132px] resize-y`}
-                  />
-                  <div
-                    className={`mt-3 flex ${isMobile ? "justify-stretch" : "justify-end"}`}
-                  >
-                    <ButtonDefault
-                      type="button"
-                      onClick={handleAdicionarHistorico}
-                      disabled={
-                        savingHistoricoObra || !novaMensagemHistorico.trim()
-                      }
-                      className={`${btnAccentPremium} !w-full`}
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        <Send className="h-4 w-4 shrink-0" />
-                        Publicar
-                      </span>
-                    </ButtonDefault>
-                  </div>
-                </div>
-              ) : null}
-
-              {loadingHistoricoObra ? (
-                <p className="text-sm font-medium text-text-muted">
-                  Carregando histórico...
-                </p>
-              ) : historicoObra.length === 0 ? (
-                <p className="text-sm text-text-muted">
-                  Nenhum lançamento de histórico.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {historicoObra.map((item) => (
-                    <article
-                      key={item.id}
-                      className="rounded-2xl border border-border-primary/30 bg-[#FAFAFA] p-4 shadow-sm transition-shadow hover:shadow-md"
-                    >
-                      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                          {item.author_nome || "Equipe Montezuma"}
-                        </p>
-                        <p className="text-xs font-medium text-text-muted">
-                          {formatarDataHoraBR(item.created_at)}
-                        </p>
-                      </div>
-                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-text-primary">
-                        {item.mensagem}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="mt-6 w-full">
+            <div className="mt-0 w-full">
               <ObraDetalheResumoFinanceiro
                 totais={totais}
                 dataGrafico={dataGrafico}
@@ -869,6 +809,148 @@ export default function ObrasDetalhe() {
                 isReforma={isReforma}
               />
             </div>
+          </div>
+        )}
+
+        {secaoObra === "diario_historico" && (
+          <div className="mb-6 w-full">
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              {[
+                {
+                  id: "diario",
+                  label: "Diário de obra",
+                  sub: "Registros diários no canteiro",
+                },
+                {
+                  id: "historico",
+                  label: "Histórico para o cliente",
+                  sub: "Atualizações visíveis ao cliente",
+                },
+              ].map((opt) => {
+                const on = subDiarioHistorico === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setSubDiarioHistorico(opt.id)}
+                    className={[
+                      "flex w-full cursor-pointer flex-col items-start gap-1 rounded-2xl border p-4 text-left shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all sm:p-5",
+                      on
+                        ? "border-accent-primary/45 bg-white ring-2 ring-accent-primary/20"
+                        : "border-border-primary/35 bg-white hover:-translate-y-0.5 hover:border-accent-primary/25 hover:shadow-md",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "text-sm font-bold tracking-tight",
+                        on ? "text-accent-primary" : "text-text-primary",
+                      ].join(" ")}
+                    >
+                      {opt.label}
+                    </span>
+                    <span className="text-xs leading-snug tracking-tight text-text-muted">
+                      {opt.sub}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {subDiarioHistorico === "diario" && (
+              <div className="w-full">
+                <DiarioObras obraId={id} />
+              </div>
+            )}
+
+            {subDiarioHistorico === "historico" && (
+              <div className="rounded-2xl border border-border-primary/35 bg-white p-4 shadow-[0_5px_20px_rgba(0,0,0,0.08)] sm:p-6">
+                <div
+                  className={`mb-4 flex gap-4 ${isMobile ? "flex-col" : "flex-row flex-wrap items-center justify-between"}`}
+                >
+                  <h3 className="text-base font-bold tracking-tight text-text-primary sm:text-lg">
+                    Histórico da obra
+                  </h3>
+                  {!isEncarregado ? (
+                    <ButtonDefault
+                      type="button"
+                      onClick={() => setShowNovoHistorico((prev) => !prev)}
+                      className={`${btnOutlinePremium} !min-w-0`}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <MessageSquareText className="h-4 w-4 shrink-0" />
+                        {showNovoHistorico ? "Fechar" : "Novo lançamento"}
+                      </span>
+                    </ButtonDefault>
+                  ) : null}
+                </div>
+
+                {!isEncarregado && showNovoHistorico ? (
+                  <div className="mb-4 rounded-2xl border border-border-primary/35 bg-[#FAFAFA] p-4 shadow-inner">
+                    <textarea
+                      value={novaMensagemHistorico}
+                      onChange={(e) => setNovaMensagemHistorico(e.target.value)}
+                      rows={5}
+                      placeholder="Adicionar atualização para o cliente..."
+                      className={`${inputPremium} min-h-[132px] resize-y`}
+                    />
+                    <div
+                      className={`mt-3 flex ${isMobile ? "justify-stretch" : "justify-end"}`}
+                    >
+                      <ButtonDefault
+                        type="button"
+                        onClick={handleAdicionarHistorico}
+                        disabled={
+                          savingHistoricoObra || !novaMensagemHistorico.trim()
+                        }
+                        className={`${btnAccentPremium} !w-full`}
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <Send className="h-4 w-4 shrink-0" />
+                          Publicar
+                        </span>
+                      </ButtonDefault>
+                    </div>
+                  </div>
+                ) : null}
+
+                {loadingHistoricoObra ? (
+                  <p className="text-sm font-medium text-text-muted">
+                    Carregando histórico...
+                  </p>
+                ) : historicoObra.length === 0 ? (
+                  <p className="text-sm text-text-muted">
+                    Nenhum lançamento de histórico.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {historicoObra.map((item) => (
+                      <article
+                        key={item.id}
+                        className="rounded-2xl border border-border-primary/30 bg-[#FAFAFA] p-4 shadow-sm transition-shadow hover:shadow-md"
+                      >
+                        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                            {item.author_nome || "Equipe Montezuma"}
+                          </p>
+                          <p className="text-xs font-medium text-text-muted">
+                            {formatarDataHoraBR(item.created_at)}
+                          </p>
+                        </div>
+                        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-text-primary">
+                          {item.mensagem}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {secaoObra === "pedidos" && (
+          <div className="mb-6 w-full">
+            <ObraDetalhePedidos obraId={id} />
           </div>
         )}
 
@@ -965,6 +1047,7 @@ export default function ObrasDetalhe() {
                   </div>
                   <TabelaSimples
                     variant="obraDetalhe"
+                    dense
                     colunas={[
                       "Material",
                       "Quantidade",
@@ -1048,6 +1131,7 @@ export default function ObrasDetalhe() {
                   </div>
                   <TabelaSimples
                     variant="obraDetalhe"
+                    dense
                     colunas={[
                       "Validação",
                       <span
@@ -1140,24 +1224,51 @@ export default function ObrasDetalhe() {
                   </div>
                   <TabelaSimples
                     variant="obraDetalhe"
+                    dense
                     colunas={headerExtrato}
                     dados={dadosRelatorioExtrato}
                   />
-                  <div
-                    className={`flex w-full flex-col items-stretch gap-4 md:flex-row md:flex-wrap md:items-center md:justify-center`}
-                  >
+                  <div className="flex w-full flex-col gap-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className={totalBarClass}>
+                        <span className="text-text-muted">Total no extrato:</span>
+                        <span className="font-bold tabular-nums text-text-primary">
+                          R$ {formatarMoeda(totais.totalExtrato)}
+                        </span>
+                      </div>
+                      <div className={totalBarClass}>
+                        <span className="text-text-muted">
+                          Materiais selecionados:
+                        </span>
+                        <span className="font-bold tabular-nums text-text-primary">
+                          R$ {formatarMoeda(totaisExtratoSelecionados.materiais)}
+                        </span>
+                      </div>
+                      <div className={totalBarClass}>
+                        <span className="text-text-muted">
+                          Mão de obra selecionada:
+                        </span>
+                        <span className="font-bold tabular-nums text-text-primary">
+                          R$ {formatarMoeda(totaisExtratoSelecionados.maoDeObra)}
+                        </span>
+                      </div>
+                      <div
+                        className={`${totalBarClass} border-accent-primary/25 bg-accent-primary/[0.06] ring-accent-primary/15`}
+                      >
+                        <span className="text-text-muted">
+                          Todos selecionados:
+                        </span>
+                        <span className="font-bold tabular-nums text-accent-primary">
+                          R$ {formatarMoeda(totaisExtratoSelecionados.todos)}
+                        </span>
+                      </div>
+                    </div>
                     <ButtonDefault
                       onClick={handleGerarPDFExtrato}
                       className={`${btnAccentPremium} !w-full`}
                     >
                       Gerar pedido
                     </ButtonDefault>
-                    <div className={totalBarClass}>
-                      <span className="text-text-muted">Total no extrato:</span>
-                      <span className="font-bold tabular-nums text-text-primary">
-                        R$ {formatarMoeda(totais.totalExtrato)}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>

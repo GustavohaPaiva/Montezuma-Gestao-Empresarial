@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { validarItemPedido } from "../utils/pedidosUtils";
 
 function normalizeCnpjNif(val) {
   if (val === undefined || val === null) return null;
@@ -22,6 +23,97 @@ function normalizeObraIdForHistorico(obraId) {
   const s = String(obraId).trim();
   if (/^\d+$/.test(s)) return parseInt(s, 10);
   return s;
+}
+
+const PEDIDO_SELECT_ITENS =
+  "obra_pedido_itens(id, material, quantidade, unidade, data_entrega, created_at, fornecedor_id, data_pagamento, valor)";
+
+const PEDIDO_SELECT_BASE = `id, obra_id, status, solicitante_id, solicitante_nome, created_at, updated_at, ${PEDIDO_SELECT_ITENS}`;
+
+const PEDIDO_SELECT_SIMPLES =
+  "id, obra_id, status, solicitante_id, solicitante_nome, created_at, updated_at";
+
+function normalizarPedido(row) {
+  if (!row) return row;
+  const itens = row.itens ?? row.obra_pedido_itens ?? [];
+  const { obra_pedido_itens: _omit, ...rest } = row;
+  return {
+    ...rest,
+    itens: Array.isArray(itens) ? itens : [],
+  };
+}
+
+function mensagemErroPedido(error) {
+  const msg = error?.message || "";
+  const code = error?.code || "";
+  if (code === "23502" && /material|quantidade|data_entrega/i.test(msg)) {
+    return "A tabela obra_pedidos ainda tem colunas antigas (material/quantidade). Execute supabase/migrations/20260515140000_obra_pedidos_fix.sql no SQL Editor.";
+  }
+  if (
+    code === "42P01" ||
+    /obra_pedido_itens/i.test(msg) ||
+    /relationship/i.test(msg) ||
+    /schema cache/i.test(msg)
+  ) {
+    return "Estrutura de pedidos incompleta no Supabase. Execute as migrações em supabase/migrations/ (incluindo 20260515140000_obra_pedidos_fix.sql).";
+  }
+  return msg || "Não foi possível concluir a operação de pedidos.";
+}
+
+async function anexarItensAosPedidos(pedidos) {
+  if (!pedidos?.length) return pedidos;
+  const ids = pedidos.map((p) => p.id).filter((id) => id != null);
+  if (!ids.length) return pedidos;
+
+  const { data: itens, error } = await supabase
+    .from("obra_pedido_itens")
+    .select(
+      "id, pedido_id, material, quantidade, unidade, data_entrega, created_at, grupo_compra_id, material_relatorio_id, fornecedor_id, data_pagamento, valor",
+    )
+    .in("pedido_id", ids);
+  if (error) throw new Error(mensagemErroPedido(error));
+
+  const porPedido = {};
+  for (const item of itens || []) {
+    const pid = item.pedido_id;
+    if (!porPedido[pid]) porPedido[pid] = [];
+    porPedido[pid].push(item);
+  }
+  return pedidos.map((p) => ({ ...p, itens: porPedido[p.id] || [] }));
+}
+
+async function enriquecerPedidosComObra(pedidos) {
+  if (!pedidos?.length) return pedidos;
+  const obraIds = [
+    ...new Set(pedidos.map((p) => p.obra_id).filter((id) => id != null)),
+  ];
+  if (!obraIds.length) return pedidos;
+
+  const { data: obras, error } = await supabase
+    .from("obras")
+    .select("id, local, cliente, clientes!cliente_id(nome)")
+    .in("id", obraIds);
+  if (error) {
+    console.warn("[pedidos] enriquecer obras:", error);
+    return pedidos;
+  }
+
+  const mapa = Object.fromEntries((obras || []).map((o) => [String(o.id), o]));
+  return pedidos.map((p) => ({
+    ...p,
+    obras: mapa[String(p.obra_id)] ?? null,
+  }));
+}
+
+async function buscarPedidosComItens(buildQuery) {
+  let { data, error } = await buildQuery(PEDIDO_SELECT_BASE);
+  if (error) {
+    const fallback = await buildQuery(PEDIDO_SELECT_SIMPLES);
+    if (fallback.error) throw new Error(mensagemErroPedido(fallback.error));
+    const base = (fallback.data || []).map(normalizarPedido);
+    return anexarItensAosPedidos(base);
+  }
+  return (data || []).map(normalizarPedido);
 }
 
 function sanitizeClientePayload(dados) {
@@ -1007,6 +1099,16 @@ export const api = {
     if (error) throw error;
   },
 
+  /** Atualiza validação só dos IDs listados (ex.: “marcar todos” na vista filtrada). */
+  updateExtratoValidacaoInIds: async (ids, status) => {
+    if (!ids?.length) return;
+    const { error } = await supabase
+      .from("relatorio_extrato")
+      .update({ validacao: status })
+      .in("id", ids);
+    if (error) throw error;
+  },
+
   uploadFotoUsuario: async (userId, file) => {
     try {
       const fileExt = file.name.split(".").pop();
@@ -1869,6 +1971,513 @@ export const api = {
   deleteDiarioObra: async (id) => {
     const { error } = await supabase.from("diario_obras").delete().eq("id", id);
     if (error) throw error;
+  },
+
+  getObraPedidos: async (obraId) => {
+    const oid = normalizeObraIdForHistorico(obraId);
+    if (oid == null) return [];
+    return buscarPedidosComItens((select) =>
+      supabase
+        .from("obra_pedidos")
+        .select(select)
+        .eq("obra_id", oid)
+        .order("created_at", { ascending: false }),
+    );
+  },
+
+  getAllObraPedidos: async () => {
+    const pedidos = await buscarPedidosComItens((select) =>
+      supabase
+        .from("obra_pedidos")
+        .select(select)
+        .order("created_at", { ascending: false }),
+    );
+    return enriquecerPedidosComObra(pedidos);
+  },
+
+  getObraPedidoById: async (pedidoId) => {
+    if (pedidoId == null || pedidoId === "") return null;
+    let { data, error } = await supabase
+      .from("obra_pedidos")
+      .select(PEDIDO_SELECT_BASE)
+      .eq("id", pedidoId)
+      .maybeSingle();
+    if (error) {
+      const fb = await supabase
+        .from("obra_pedidos")
+        .select(PEDIDO_SELECT_SIMPLES)
+        .eq("id", pedidoId)
+        .maybeSingle();
+      if (fb.error) throw new Error(mensagemErroPedido(fb.error));
+      if (!fb.data) return null;
+      const [comItens] = await anexarItensAosPedidos([
+        normalizarPedido(fb.data),
+      ]);
+      const [enriquecido] = await enriquecerPedidosComObra([comItens]);
+      return enriquecido;
+    }
+    if (!data) return null;
+    const pedido = normalizarPedido(data);
+    const [enriquecido] = await enriquecerPedidosComObra([pedido]);
+    return enriquecido;
+  },
+
+  addObraPedido: async ({
+    obra_id,
+    solicitante_id,
+    solicitante_nome,
+    itens,
+  }) => {
+    const oid = normalizeObraIdForHistorico(obra_id);
+    const lista = Array.isArray(itens) ? itens : [];
+    if (oid == null || lista.length === 0) {
+      throw new Error(
+        "Adicione pelo menos um material antes de lançar o pedido.",
+      );
+    }
+    for (const item of lista) {
+      if (!validarItemPedido(item)) {
+        throw new Error(
+          "Cada material precisa de nome, quantidade, unidade e data de entrega.",
+        );
+      }
+    }
+    const { data: pedido, error: errPedido } = await supabase
+      .from("obra_pedidos")
+      .insert({
+        obra_id: oid,
+        status: "Pendente",
+        solicitante_id: solicitante_id || null,
+        solicitante_nome: solicitante_nome
+          ? String(solicitante_nome).trim()
+          : null,
+      })
+      .select("id")
+      .single();
+    if (errPedido) {
+      throw new Error(mensagemErroPedido(errPedido));
+    }
+
+    const rows = lista.map((item) => {
+      const v = validarItemPedido(item);
+      return {
+        pedido_id: pedido.id,
+        material: v.material,
+        quantidade: v.quantidade,
+        unidade: v.unidade,
+        data_entrega: v.data_entrega,
+      };
+    });
+    const { error: errItens } = await supabase
+      .from("obra_pedido_itens")
+      .insert(rows);
+    if (errItens) {
+      await supabase.from("obra_pedidos").delete().eq("id", pedido.id);
+      throw new Error(mensagemErroPedido(errItens));
+    }
+    return api.getObraPedidoById(pedido.id);
+  },
+
+  updateObraPedido: async (pedidoId, { itens }) => {
+    const atual = await api.getObraPedidoById(pedidoId);
+    if (!atual) throw new Error("Pedido não encontrado.");
+    const statusNorm = String(atual.status || "")
+      .trim()
+      .toLowerCase();
+    if (statusNorm !== "pendente") {
+      throw new Error(
+        "Este pedido não pode ser editado porque o status já foi alterado.",
+      );
+    }
+    const lista = Array.isArray(itens) ? itens : [];
+    if (lista.length === 0) {
+      throw new Error("O pedido precisa de pelo menos um material.");
+    }
+    for (const item of lista) {
+      if (!validarItemPedido(item)) {
+        throw new Error(
+          "Cada material precisa de nome, quantidade, unidade e data de entrega.",
+        );
+      }
+    }
+    const { error: errDel } = await supabase
+      .from("obra_pedido_itens")
+      .delete()
+      .eq("pedido_id", pedidoId);
+    if (errDel) throw errDel;
+
+    const rows = lista.map((item) => {
+      const v = validarItemPedido(item);
+      return {
+        pedido_id: pedidoId,
+        material: v.material,
+        quantidade: v.quantidade,
+        unidade: v.unidade,
+        data_entrega: v.data_entrega,
+      };
+    });
+    const { error: errIns } = await supabase
+      .from("obra_pedido_itens")
+      .insert(rows);
+    if (errIns) throw errIns;
+
+    const { error: errUpd } = await supabase
+      .from("obra_pedidos")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", pedidoId);
+    if (errUpd) throw errUpd;
+
+    return api.getObraPedidoById(pedidoId);
+  },
+
+  updateObraPedidoItemGestao: async (itemId, campos = {}) => {
+    if (itemId == null) throw new Error("Item inválido.");
+    const payload = {};
+    if (campos.material !== undefined) {
+      payload.material = String(campos.material || "").trim();
+    }
+    if (campos.quantidade !== undefined) {
+      const q = Number(campos.quantidade);
+      if (!Number.isFinite(q) || q <= 0) {
+        throw new Error("Quantidade inválida.");
+      }
+      payload.quantidade = q;
+    }
+    if (campos.unidade !== undefined) {
+      payload.unidade = String(campos.unidade || "Un.").trim();
+    }
+    if (campos.data_entrega !== undefined) {
+      payload.data_entrega = campos.data_entrega || null;
+    }
+    if (campos.fornecedor_id !== undefined) {
+      payload.fornecedor_id = campos.fornecedor_id || null;
+    }
+    if (campos.data_pagamento !== undefined) {
+      payload.data_pagamento = campos.data_pagamento || null;
+    }
+    if (campos.valor !== undefined) {
+      if (campos.valor === "" || campos.valor == null) {
+        payload.valor = null;
+      } else {
+        const v = Number(campos.valor);
+        payload.valor = Number.isFinite(v) ? v : null;
+      }
+    }
+    if (!Object.keys(payload).length) return true;
+
+    const { error } = await supabase
+      .from("obra_pedido_itens")
+      .update(payload)
+      .eq("id", itemId);
+    if (error) throw new Error(mensagemErroPedido(error));
+    return true;
+  },
+
+  removerItemDaOrdemCompra: async (itemId) => {
+    if (itemId == null) throw new Error("Item inválido.");
+
+    const { data: item, error: errItem } = await supabase
+      .from("obra_pedido_itens")
+      .select("id, pedido_id, grupo_compra_id")
+      .eq("id", itemId)
+      .maybeSingle();
+    if (errItem) throw new Error(mensagemErroPedido(errItem));
+    if (!item) throw new Error("Material não encontrado.");
+    if (item.grupo_compra_id == null) {
+      throw new Error("Este material não está numa ordem de compra.");
+    }
+
+    const grupoId = item.grupo_compra_id;
+
+    const { error: errUp } = await supabase
+      .from("obra_pedido_itens")
+      .update({ grupo_compra_id: null })
+      .eq("id", itemId);
+    if (errUp) throw new Error(mensagemErroPedido(errUp));
+
+    const { data: restantes, error: errCount } = await supabase
+      .from("obra_pedido_itens")
+      .select("id")
+      .eq("grupo_compra_id", grupoId);
+    if (errCount) throw new Error(mensagemErroPedido(errCount));
+
+    if (!(restantes || []).length) {
+      await supabase
+        .from("obra_pedido_grupos_compra")
+        .delete()
+        .eq("id", grupoId);
+    }
+
+    return api.getPedidoGruposCompra(item.pedido_id);
+  },
+
+  updateObraPedidoStatus: async (pedidoId, status) => {
+    const novo = String(status || "").trim();
+    if (!pedidoId || !novo) {
+      throw new Error("Pedido e status são obrigatórios.");
+    }
+    const { error } = await supabase
+      .from("obra_pedidos")
+      .update({ status: novo, updated_at: new Date().toISOString() })
+      .eq("id", pedidoId);
+    if (error) {
+      throw new Error(mensagemErroPedido(error));
+    }
+    return api.getObraPedidoById(pedidoId);
+  },
+
+  getPedidoGruposCompra: async (pedidoId) => {
+    if (pedidoId == null) return [];
+    const { data: grupos, error: errG } = await supabase
+      .from("obra_pedido_grupos_compra")
+      .select("*")
+      .eq("pedido_id", pedidoId)
+      .order("numero", { ascending: true });
+    if (errG) {
+      if (errG.code === "42P01") return [];
+      throw new Error(mensagemErroPedido(errG));
+    }
+
+    const { data: itens, error: errI } = await supabase
+      .from("obra_pedido_itens")
+      .select(
+        "id, pedido_id, material, quantidade, unidade, data_entrega, grupo_compra_id, material_relatorio_id, fornecedor_id, data_pagamento, valor",
+      )
+      .eq("pedido_id", pedidoId);
+    if (errI) throw new Error(mensagemErroPedido(errI));
+
+    const porGrupo = {};
+    const semGrupo = [];
+    for (const item of itens || []) {
+      if (item.grupo_compra_id != null) {
+        const gid = item.grupo_compra_id;
+        if (!porGrupo[gid]) porGrupo[gid] = [];
+        porGrupo[gid].push(item);
+      } else {
+        semGrupo.push(item);
+      }
+    }
+
+    return {
+      grupos: (grupos || []).map((g) => ({
+        ...g,
+        itens: porGrupo[g.id] || [],
+      })),
+      itensSemGrupo: semGrupo,
+    };
+  },
+
+  _aplicarFornecedorItensGrupo: async (grupoId, fornecedorId) => {
+    const fid = fornecedorId || null;
+    const { error } = await supabase
+      .from("obra_pedido_itens")
+      .update({ fornecedor_id: fid })
+      .eq("grupo_compra_id", grupoId);
+    if (error) throw new Error(mensagemErroPedido(error));
+  },
+
+  updateGrupoCompraFornecedor: async (grupoId, fornecedorId) => {
+    if (!grupoId) throw new Error("Grupo inválido.");
+    await api._aplicarFornecedorItensGrupo(grupoId, fornecedorId || null);
+    const { data: grupo } = await supabase
+      .from("obra_pedido_grupos_compra")
+      .select("pedido_id")
+      .eq("id", grupoId)
+      .maybeSingle();
+    return api.getPedidoGruposCompra(grupo?.pedido_id);
+  },
+
+  criarOrdensCompra: async ({
+    pedidoId,
+    emitente,
+    itemIds,
+    fornecedorId,
+    separarPorItem = false,
+  }) => {
+    const pedido = await api.getObraPedidoById(pedidoId);
+    if (!pedido) throw new Error("Pedido não encontrado.");
+
+    const ids = (Array.isArray(itemIds) ? itemIds : [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id));
+    if (!ids.length) {
+      throw new Error("Selecione pelo menos um material.");
+    }
+
+    const emit = String(emitente || "montezuma").trim();
+    if (!["cliente", "montezuma"].includes(emit)) {
+      throw new Error("Emitente inválido.");
+    }
+
+    const { data: itensDb, error: errItens } = await supabase
+      .from("obra_pedido_itens")
+      .select("id, pedido_id, grupo_compra_id, material")
+      .eq("pedido_id", pedidoId)
+      .in("id", ids);
+    if (errItens) throw new Error(mensagemErroPedido(errItens));
+
+    if ((itensDb || []).length !== ids.length) {
+      throw new Error("Alguns materiais não pertencem a este pedido.");
+    }
+    const jaEmGrupo = (itensDb || []).filter((i) => i.grupo_compra_id != null);
+    if (jaEmGrupo.length) {
+      throw new Error(
+        "Um ou mais materiais já pertencem a outra ordem de compra.",
+      );
+    }
+
+    const { data: existentes } = await supabase
+      .from("obra_pedido_grupos_compra")
+      .select("numero")
+      .eq("pedido_id", pedidoId)
+      .order("numero", { ascending: false })
+      .limit(1);
+    let proximoNumero = (existentes?.[0]?.numero ?? 0) + 1;
+
+    const criados = [];
+
+    const criarGrupoComItens = async (listaIds) => {
+      const { data: grupo, error: errG } = await supabase
+        .from("obra_pedido_grupos_compra")
+        .insert({
+          pedido_id: pedidoId,
+          numero: proximoNumero,
+          emitente: emit,
+          status: "Pendente",
+        })
+        .select()
+        .single();
+      if (errG) throw new Error(mensagemErroPedido(errG));
+      proximoNumero += 1;
+
+      const { error: errUp } = await supabase
+        .from("obra_pedido_itens")
+        .update({ grupo_compra_id: grupo.id })
+        .in("id", listaIds)
+        .eq("pedido_id", pedidoId)
+        .is("grupo_compra_id", null);
+      if (errUp) throw new Error(mensagemErroPedido(errUp));
+
+      if (fornecedorId) {
+        await api._aplicarFornecedorItensGrupo(grupo.id, fornecedorId);
+      }
+
+      criados.push(grupo);
+    };
+
+    if (separarPorItem) {
+      for (const itemId of ids) {
+        await criarGrupoComItens([itemId]);
+      }
+    } else {
+      await criarGrupoComItens(ids);
+    }
+
+    const completo = await api.getPedidoGruposCompra(pedidoId);
+    const idsCriados = new Set(criados.map((g) => g.id));
+    return {
+      ...completo,
+      gruposCriados: (completo.grupos || []).filter((g) =>
+        idsCriados.has(g.id),
+      ),
+    };
+  },
+
+  updateGrupoCompraStatus: async (grupoId, status) => {
+    const novo = String(status || "").trim();
+    if (!grupoId || !novo) throw new Error("Grupo e status são obrigatórios.");
+
+    const { data: grupo, error } = await supabase
+      .from("obra_pedido_grupos_compra")
+      .update({ status: novo, updated_at: new Date().toISOString() })
+      .eq("id", grupoId)
+      .select()
+      .single();
+    if (error) throw new Error(mensagemErroPedido(error));
+
+    if (novo === "Comprado") {
+      await api._sincronizarGrupoCompraComMateriais(grupoId);
+    }
+
+    const pedidoId = grupo.pedido_id;
+    return api.getPedidoGruposCompra(pedidoId);
+  },
+
+  _sincronizarGrupoCompraComMateriais: async (grupoId) => {
+    const { data: grupoRow, error: errG } = await supabase
+      .from("obra_pedido_grupos_compra")
+      .select("pedido_id")
+      .eq("id", grupoId)
+      .maybeSingle();
+    if (errG) throw new Error(mensagemErroPedido(errG));
+    if (!grupoRow?.pedido_id) return;
+
+    const { data: pedidoRow, error: errP } = await supabase
+      .from("obra_pedidos")
+      .select("obra_id")
+      .eq("id", grupoRow.pedido_id)
+      .maybeSingle();
+    if (errP) throw new Error(mensagemErroPedido(errP));
+
+    const obraId = pedidoRow?.obra_id;
+    if (obraId == null) return;
+
+    const { data: itens, error: errI } = await supabase
+      .from("obra_pedido_itens")
+      .select(
+        "id, material, quantidade, unidade, data_entrega, material_relatorio_id, fornecedor_id, valor",
+      )
+      .eq("grupo_compra_id", grupoId);
+    if (errI) throw new Error(mensagemErroPedido(errI));
+
+    const dataAtual = new Date().toISOString().split("T")[0];
+    const pendentes = (itens || []).filter(
+      (item) => item.material_relatorio_id == null,
+    );
+
+    await Promise.all(
+      pendentes.map(async (item) => {
+        const valorNum =
+          item.valor != null && item.valor !== "" ? Number(item.valor) : 0;
+
+        const payload = {
+          obra_id: obraId,
+          material: item.material,
+          quantidade: `${item.quantidade} ${item.unidade || "Un."}`,
+          valor: Number.isFinite(valorNum) ? valorNum : 0,
+          fornecedor_id: item.fornecedor_id || null,
+          data_solicitacao: dataAtual,
+          data_vencimento: item.data_entrega || null,
+          status_financeiro: "Aguardando pagamento",
+          status: "Aguardando entrega",
+        };
+
+        let { data: mat, error: errM } = await supabase
+          .from("relatorio_materiais")
+          .insert(payload)
+          .select("id")
+          .single();
+
+        if (errM && /fornecedor/i.test(errM.message || "")) {
+          ({ data: mat, error: errM } = await supabase
+            .from("relatorio_materiais")
+            .insert({ ...payload, fornecedor_id: null })
+            .select("id")
+            .single());
+        }
+        if (errM) {
+          console.error("[grupo compra] sync material:", errM);
+          return;
+        }
+
+        if (mat?.id) {
+          await supabase
+            .from("obra_pedido_itens")
+            .update({ material_relatorio_id: mat.id })
+            .eq("id", item.id);
+        }
+      }),
+    );
   },
 
   getCronogramaEventos: async (obraId, de, ate) => {

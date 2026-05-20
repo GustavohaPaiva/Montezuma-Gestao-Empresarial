@@ -16,6 +16,8 @@ import {
 } from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalOrcamentoEscritorio from "../../components/modals/ModalOrcamentoEscritorio";
+import StatusSelectBadge from "../../components/gerais/StatusSelectBadge";
+import { STATUS_ORCAMENTO_OPCOES } from "../../components/gerais/statusSelectOptions";
 
 const formatarDataBR = (dataString) => {
   if (!dataString) return "—";
@@ -68,34 +70,6 @@ function pesoStatusOrcamento(status) {
   if (orcamentoNaoFechado(status)) return 1;
   if (orcamentoEstaFechado(status)) return 2;
   return 3;
-}
-
-function StatusBadge({ status }) {
-  const raw = (status || "").trim();
-  const base =
-    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold backdrop-blur-sm";
-
-  if (!raw) {
-    return (
-      <span className={`${base} border-esc-border bg-esc-bg/70 text-esc-muted`}>
-        —
-      </span>
-    );
-  }
-
-  let tone = "border-esc-border/80 bg-black/50 text-esc-muted";
-
-  if (orcamentoEmAndamento(status)) {
-    tone = "border-orange-400/45 bg-black/50 text-orange-400";
-  } else if (orcamentoNaoFechado(status)) {
-    tone = "border-red-400/45 bg-black/50 text-red-400";
-  } else if (orcamentoEstaFechado(status)) {
-    tone = "border-green-400/45 bg-black/50 text-green-400";
-  } else {
-    tone = "border-esc-destaque/45 bg-black/50 text-esc-destaque";
-  }
-
-  return <span className={`${base} ${tone}`}>{raw}</span>;
 }
 
 export default function OrcamentoEscritorio() {
@@ -261,6 +235,26 @@ export default function OrcamentoEscritorio() {
     } catch (e) {
       console.error(e);
       alert("Erro ao salvar orçamento.");
+    }
+  }
+
+  async function handleStatusOrcamento(orcamento, novoStatus) {
+    if (!orcamento?.id || orcamento.escritorio_id !== currentEscritorioId) return;
+    if ((orcamento.status || "") === novoStatus) return;
+    try {
+      await api.updateOrcamento(
+        orcamento.id,
+        { status: novoStatus },
+        currentEscritorioId,
+      );
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === orcamento.id ? { ...r, status: novoStatus } : r,
+        ),
+      );
+    } catch (e) {
+      console.error(e);
+      alert("Não foi possível atualizar o status.");
     }
   }
 
@@ -549,7 +543,12 @@ export default function OrcamentoEscritorio() {
                     <p className="font-semibold text-esc-text">
                       {o.nome || "—"}
                     </p>
-                    <StatusBadge status={o.status} />
+                    <StatusSelectBadge
+                      value={o.status || "Em andamento"}
+                      options={STATUS_ORCAMENTO_OPCOES}
+                      variant="orcamento"
+                      onChange={(novo) => handleStatusOrcamento(o, novo)}
+                    />
                   </div>
                   <p className="mt-1 text-xs text-esc-muted">
                     {formatarDataBR(o.data || o.created_at)}

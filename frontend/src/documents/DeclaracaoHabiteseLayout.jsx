@@ -1,6 +1,7 @@
 import React from "react";
 import logo from "../assets/imgDocumentos/prefeitura.png";
 import { Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import { formatClienteParaDocumentos } from "../utils/clienteFormatters";
 
 const styles = StyleSheet.create({
   page: {
@@ -102,7 +103,8 @@ const SignatureBlock = ({ title, subtitle }) => (
   </View>
 );
 
-const DeclaracaoHabiteseLayout = ({ cliente }) => {
+const DeclaracaoHabiteseLayout = ({ cliente: clienteProp }) => {
+  const cliente = formatClienteParaDocumentos(clienteProp);
   const hoje = new Date();
   const meses = [
     "janeiro",

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Droplets,
+  Bird,
+  Earth,
   FileSpreadsheet,
   Wallet,
   ListTodo,
@@ -17,7 +18,10 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
 } from "lucide-react";
-import { ESCRITORIO_NOME_POR_ID } from "../../constants/escritorios";
+import {
+  ESCRITORIO_NOME_POR_ID,
+  ID_VOGELKOP,
+} from "../../constants/escritorios";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../services/supabase";
 import { api } from "../../services/api";
@@ -137,6 +141,7 @@ export default function HomeEscritorio() {
   const escritorioIdPath = useEscritorioIdFromPath();
   const escritorioId = escritorioIdPath || user?.escritorio_id || null;
   const nomeEscritorio = ESCRITORIO_NOME_POR_ID[escritorioId] ?? "Escritório";
+  const isVogelkop = escritorioId === ID_VOGELKOP;
 
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
@@ -367,11 +372,26 @@ export default function HomeEscritorio() {
             className="pointer-events-none absolute -left-24 top-1/2 h-[min(320px,50vh)] w-[min(320px,70vw)] -translate-y-1/2 rounded-full bg-esc-destaque/20 blur-[100px]"
             aria-hidden
           />
-          <Droplets
-            className="pointer-events-none absolute -bottom-8 -right-6 h-44 w-44 text-white/10 sm:h-52 sm:w-52"
-            strokeWidth={1}
-            aria-hidden
-          />
+          {isVogelkop ? (
+            <>
+              <Bird
+                className="pointer-events-none absolute -bottom-6 -right-2 h-32 w-32 text-white/12 sm:h-48 sm:w-48"
+                strokeWidth={1}
+                aria-hidden
+              />
+              <Bird
+                className="pointer-events-none absolute bottom-16 right-24 h-16 w-16 rotate-[-18deg] text-white/8 sm:h-24 sm:w-24 sm:right-32"
+                strokeWidth={1}
+                aria-hidden
+              />
+            </>
+          ) : (
+            <Earth
+              className="pointer-events-none absolute -bottom-10 -right-4 h-36 w-36 text-white/10 sm:h-52 sm:w-52"
+              strokeWidth={1}
+              aria-hidden
+            />
+          )}
           <div className="relative z-10 flex flex-col items-start justify-between gap-5 md:flex-row md:items-center md:gap-8">
             <div className="min-w-0">
               <h1 className="mt-2 flex flex-col gap-2 text-3xl font-bold tracking-tight text-white drop-shadow-sm sm:flex-row sm:items-baseline">

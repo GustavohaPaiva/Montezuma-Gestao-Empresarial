@@ -11,6 +11,23 @@ import CellInputDate from "../components/CellInputDate";
 import CellSelectFornecedor from "../components/CellSelectFornecedor";
 import CellSelectPrestador from "../components/CellSelectPrestador";
 
+/** Lista do extrato após busca textual e filtro de tipo (mesma regra da tabela). */
+export function filtrarExtratoLista(relatorioExtrato, buscaExtrato, filtroExtrato) {
+  if (!relatorioExtrato?.length) return [];
+  let lista = [...relatorioExtrato];
+  if (buscaExtrato) {
+    const termo = buscaExtrato.toLowerCase();
+    lista = lista.filter((item) =>
+      item.descricao?.toLowerCase().includes(termo),
+    );
+  }
+  if (filtroExtrato === "Materiais")
+    lista = lista.filter((i) => i.tipo === "Material");
+  else if (filtroExtrato === "Mão de Obra")
+    lista = lista.filter((i) => i.tipo === "Mão de Obra");
+  return lista;
+}
+
 export function useObrasDetalheTableData({
   obra,
   buscaMateriais,
@@ -436,21 +453,18 @@ export function useObrasDetalheTableData({
     setEditandoMaoDeObra,
   ]);
 
-  const dadosRelatorioExtrato = useMemo(() => {
-    if (!obra || !obra.relatorioExtrato) return [];
-    let listaFiltradaTexto = [...obra.relatorioExtrato];
-    if (buscaExtrato) {
-      listaFiltradaTexto = listaFiltradaTexto.filter((item) =>
-        item.descricao?.toLowerCase().includes(buscaExtrato.toLowerCase()),
-      );
-    }
+  const listaExtratoFiltrada = useMemo(
+    () =>
+      filtrarExtratoLista(
+        obra?.relatorioExtrato,
+        buscaExtrato,
+        filtroExtrato,
+      ),
+    [obra?.relatorioExtrato, buscaExtrato, filtroExtrato],
+  );
 
-    const itensFiltrados = listaFiltradaTexto.filter((item) => {
-      if (filtroExtrato === "Tudo") return true;
-      if (filtroExtrato === "Materiais") return item.tipo === "Material";
-      if (filtroExtrato === "Mão de Obra") return item.tipo === "Mão de Obra";
-      return true;
-    });
+  const listaExtratoProcessada = useMemo(() => {
+    if (!obra || !listaExtratoFiltrada.length) return [];
 
     const mapaFornecedorPorMaterialId = Object.fromEntries(
       (obra.materiais || []).map((material) => [
@@ -466,7 +480,7 @@ export function useObrasDetalheTableData({
       ]),
     );
 
-    const itensComFornecedorPrestador = itensFiltrados.map((item) => {
+    const itensComFornecedorPrestador = listaExtratoFiltrada.map((item) => {
       let fornecedorPrestador =
         item.fornecedor_prestador || item.fornecedor || item.prestador || "";
 
@@ -518,7 +532,32 @@ export function useObrasDetalheTableData({
       return desempatePorId(a, b);
     });
 
-    return itensComFornecedorPrestador.map((item) => {
+    return itensComFornecedorPrestador;
+  }, [
+    obra,
+    listaExtratoFiltrada,
+    sortField,
+    sortDirection,
+  ]);
+
+  const totaisExtratoSelecionados = useMemo(() => {
+    let materiais = 0;
+    let maoDeObra = 0;
+    let todos = 0;
+    for (const item of listaExtratoProcessada) {
+      if (item.validacao !== 1) continue;
+      const v = Number(item.valor) || 0;
+      todos += v;
+      if (item.tipo === "Material") materiais += v;
+      else if (item.tipo === "Mão de Obra") maoDeObra += v;
+    }
+    return { materiais, maoDeObra, todos };
+  }, [listaExtratoProcessada]);
+
+  const dadosRelatorioExtrato = useMemo(() => {
+    if (!listaExtratoProcessada.length) return [];
+
+    return listaExtratoProcessada.map((item) => {
       const isEditing = editandoId === item.id;
       const isSelected = item.validacao === 1;
 
@@ -569,7 +608,7 @@ export function useObrasDetalheTableData({
           onChange={(e) =>
             handleStatusFinanceiroChange(item.id, e.target.value)
           }
-          className={`w-full max-w-[13rem] cursor-pointer appearance-none rounded-full border-0 px-3 py-1.5 text-center text-sm font-semibold shadow-sm ring-1 transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-9 sm:w-fit ${
+          className={`w-full max-w-[11rem] cursor-pointer appearance-none rounded-full border-0 px-2 py-1 text-center text-xs font-semibold shadow-sm ring-1 transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-8 sm:max-w-[13rem] sm:w-fit sm:px-3 sm:text-sm ${
             item.status_financeiro === "Pago"
               ? "bg-emerald-500/18 text-emerald-900 ring-emerald-500/35"
               : "bg-amber-500/18 text-amber-950 ring-amber-400/35"
@@ -582,35 +621,18 @@ export function useObrasDetalheTableData({
       ];
     });
   }, [
-    obra,
+    listaExtratoProcessada,
     editandoId,
     salvarValorExtrato,
     handleCheckExtrato,
-    filtroExtrato,
     handleStatusFinanceiroChange,
-    buscaExtrato,
-    sortField,
-    sortDirection,
     setEditandoId,
   ]);
 
   const headerExtrato = useMemo(() => {
-    let itensParaVerificar = obra?.relatorioExtrato || [];
-    if (buscaExtrato)
-      itensParaVerificar = itensParaVerificar.filter((i) =>
-        i.descricao?.toLowerCase().includes(buscaExtrato.toLowerCase()),
-      );
-    if (filtroExtrato === "Materiais")
-      itensParaVerificar = itensParaVerificar.filter(
-        (i) => i.tipo === "Material",
-      );
-    else if (filtroExtrato === "Mão de Obra")
-      itensParaVerificar = itensParaVerificar.filter(
-        (i) => i.tipo === "Mão de Obra",
-      );
     const todosSelecionados =
-      itensParaVerificar.length > 0 &&
-      itensParaVerificar.every((i) => i.validacao === 1);
+      listaExtratoFiltrada.length > 0 &&
+      listaExtratoFiltrada.every((i) => i.validacao === 1);
 
     const getSortIcon = (campo) => {
       if (sortField !== campo) return "↕";
@@ -650,10 +672,8 @@ export function useObrasDetalheTableData({
       "Data",
     ];
   }, [
-    obra,
+    listaExtratoFiltrada,
     handleCheckAllExtrato,
-    filtroExtrato,
-    buscaExtrato,
     handleSortExtrato,
     sortField,
     sortDirection,
@@ -664,5 +684,6 @@ export function useObrasDetalheTableData({
     dadosMaoDeObra,
     dadosRelatorioExtrato,
     headerExtrato,
+    totaisExtratoSelecionados,
   };
 }

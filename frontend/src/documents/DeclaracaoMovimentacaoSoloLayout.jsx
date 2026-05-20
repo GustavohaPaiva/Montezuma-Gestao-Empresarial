@@ -75,7 +75,9 @@ const styles = StyleSheet.create({
   },
 });
 
-const DeclaracaoMovimentacaoSoloLayout = ({ cliente }) => (
+const DeclaracaoMovimentacaoSoloLayout = ({ cliente: clienteProp }) => {
+  const cliente = formatClienteParaDocumentos(clienteProp);
+  return (
   <Page size="A4" style={styles.page}>
     <Text style={styles.title}>
       DECLARAÇÃO TÉCNICA SOBRE MOVIMENTAÇÃO DE SOLO{"\n"}E FORMAÇÕES
@@ -150,6 +152,7 @@ const DeclaracaoMovimentacaoSoloLayout = ({ cliente }) => (
       </View>
     </View>
   </Page>
-);
+  );
+};
 
 export default DeclaracaoMovimentacaoSoloLayout;
