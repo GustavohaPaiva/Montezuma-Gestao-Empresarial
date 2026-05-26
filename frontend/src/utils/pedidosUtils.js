@@ -46,20 +46,28 @@ export function formatarQuantidadePedido(valor) {
   }).format(n);
 }
 
+/** Número exibido do pedido dentro da obra (1, 2, 3…). */
+export function numeroPedidoObra(pedido) {
+  const n = Number(pedido?.numero);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Rótulo principal: Pedido #1, Pedido #2… */
+export function rotuloPedido(pedido) {
+  const n = numeroPedidoObra(pedido);
+  if (n != null) return `Pedido #${n}`;
+  return `Pedido #${pedido?.id ?? "—"}`;
+}
+
 export function resumoPedidoCard(pedido) {
   const itens = Array.isArray(pedido?.itens) ? pedido.itens : [];
   const qtd = itens.length;
+  const titulo = rotuloPedido(pedido);
+
   if (qtd === 0) {
-    return {
-      titulo: `Pedido #${pedido?.id ?? "—"}`,
-      subtitulo: "Sem materiais",
-    };
+    return { titulo, subtitulo: "Sem materiais" };
   }
-  const primeiro = itens[0]?.material || "Material";
-  const titulo =
-    qtd === 1
-      ? primeiro
-      : `${primeiro} + ${qtd - 1} material${qtd > 2 ? "is" : ""}`;
+
   const entregas = [
     ...new Set(
       itens
@@ -69,9 +77,40 @@ export function resumoPedidoCard(pedido) {
   ];
   const subtitulo =
     qtd === 1
-      ? `${formatarQuantidadePedido(itens[0].quantidade)} ${itens[0].unidade || "Un."} · Entrega ${entregas[0] || "—"}`
+      ? `1 material · Entrega ${entregas[0] || "—"}`
       : `${qtd} materiais · ${entregas.length === 1 ? `Entrega ${entregas[0]}` : "Várias datas de entrega"}`;
+
   return { titulo, subtitulo };
+}
+
+/** Atribui numero (#1, #2…) por obra quando ainda não veio do banco. */
+export function enriquecerNumerosPedidos(pedidos) {
+  if (!Array.isArray(pedidos) || !pedidos.length) return pedidos || [];
+
+  const porObra = {};
+  for (const p of pedidos) {
+    const chave = String(p.obra_id ?? "");
+    if (!porObra[chave]) porObra[chave] = [];
+    porObra[chave].push(p);
+  }
+
+  const mapa = new Map();
+  for (const grupo of Object.values(porObra)) {
+    const ordenados = [...grupo].sort((a, b) => {
+      const na = numeroPedidoObra(a);
+      const nb = numeroPedidoObra(b);
+      if (na != null && nb != null && na !== nb) return na - nb;
+      return (
+        new Date(a.created_at || 0).getTime() -
+        new Date(b.created_at || 0).getTime()
+      );
+    });
+    ordenados.forEach((p, idx) => {
+      mapa.set(p.id, { ...p, numero: numeroPedidoObra(p) ?? idx + 1 });
+    });
+  }
+
+  return pedidos.map((p) => mapa.get(p.id) ?? p);
 }
 
 /**
@@ -93,6 +132,8 @@ export function filtrarPedidos(pedidos, { busca = "", status = "Tudo" } = {}) {
     list = list.filter((p) => {
       const partes = [
         String(p.id ?? ""),
+        String(p.numero ?? ""),
+        rotuloPedido(p),
         p.solicitante_nome,
         p.status,
         ...(Array.isArray(p.itens) ? p.itens.map((i) => i.material) : []),
@@ -110,10 +151,38 @@ export function filtrarPedidos(pedidos, { busca = "", status = "Tudo" } = {}) {
   }
 
   return list.sort((a, b) => {
+    const oa = String(a.obra_id ?? "");
+    const ob = String(b.obra_id ?? "");
+    if (oa !== ob) {
+      const labelA =
+        a.obras?.clientes?.nome || a.obras?.cliente || a.obras?.local || oa;
+      const labelB =
+        b.obras?.clientes?.nome || b.obras?.cliente || b.obras?.local || ob;
+      const cmp = String(labelA).localeCompare(String(labelB), "pt-BR");
+      if (cmp !== 0) return cmp;
+    }
+    const na = numeroPedidoObra(a);
+    const nb = numeroPedidoObra(b);
+    if (na != null && nb != null && na !== nb) return na - nb;
     const ta = new Date(a.created_at || 0).getTime();
     const tb = new Date(b.created_at || 0).getTime();
     return tb - ta;
   });
+}
+
+export function normalizarNomeMaterial(valor) {
+  return String(valor ?? "")
+    .trim()
+    .toLocaleUpperCase("pt-BR");
+}
+
+export function normalizarMateriaisLista(materiais) {
+  if (!Array.isArray(materiais)) return materiais;
+  return materiais.map((m) =>
+    m && m.material != null
+      ? { ...m, material: normalizarNomeMaterial(m.material) }
+      : m,
+  );
 }
 
 export function validarItemPedido({
@@ -122,7 +191,7 @@ export function validarItemPedido({
   unidade,
   data_entrega,
 }) {
-  const mat = String(material || "").trim();
+  const mat = normalizarNomeMaterial(material);
   const qtd = Number(quantidade);
   const uni = String(unidade || "").trim();
   const entrega = String(data_entrega || "").trim();

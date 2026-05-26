@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { api } from "../../services/api";
 import { UNIDADES_MEDIDA_PEDIDO } from "../../constants/pedidos";
 import { formatarMoeda } from "../../pages/obras/detalhe/utils/formatters";
+import { normalizarNomeMaterial } from "../../utils/pedidosUtils";
 import { inputTabelaGestao, selectTabelaGestao } from "./pedidosUi";
 
 const selectCellClass = `${selectTabelaGestao} bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27%3E%3Cpath d=%27m3 5 3 3 3-3%27/%3E%3C/svg%3E')]`;
@@ -122,11 +123,13 @@ export default function PedidoItensTableGestao({
                     disabled={!item.id}
                     onFocus={() => marcarEditando(item.id, "material")}
                     onChange={(e) => {
-                      atualizarLinha(item.id, { material: e.target.value });
+                      atualizarLinha(item.id, {
+                        material: normalizarNomeMaterial(e.target.value),
+                      });
                     }}
                     onBlur={(e) => {
                       salvarNoBlur(item.id, "material", {
-                        material: e.target.value,
+                        material: normalizarNomeMaterial(e.target.value),
                       });
                     }}
                     className={inputTabelaGestao}

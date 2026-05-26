@@ -1,5 +1,10 @@
 import { supabase } from "./supabase";
-import { validarItemPedido } from "../utils/pedidosUtils";
+import {
+  enriquecerNumerosPedidos,
+  normalizarNomeMaterial,
+  normalizarMateriaisLista,
+  validarItemPedido,
+} from "../utils/pedidosUtils";
 
 function normalizeCnpjNif(val) {
   if (val === undefined || val === null) return null;
@@ -16,7 +21,6 @@ function omitUndefined(obj) {
   return out;
 }
 
-/** Id de obra em query: inteiro quando numérico, senão string (ex.: uuid). */
 function normalizeObraIdForHistorico(obraId) {
   if (obraId == null || obraId === "") return null;
   if (typeof obraId === "number" && Number.isFinite(obraId)) return obraId;
@@ -28,18 +32,42 @@ function normalizeObraIdForHistorico(obraId) {
 const PEDIDO_SELECT_ITENS =
   "obra_pedido_itens(id, material, quantidade, unidade, data_entrega, created_at, fornecedor_id, data_pagamento, valor)";
 
-const PEDIDO_SELECT_BASE = `id, obra_id, status, solicitante_id, solicitante_nome, created_at, updated_at, ${PEDIDO_SELECT_ITENS}`;
+const PEDIDO_SELECT_BASE = `id, obra_id, numero, status, solicitante_id, solicitante_nome, created_at, updated_at, ${PEDIDO_SELECT_ITENS}`;
 
 const PEDIDO_SELECT_SIMPLES =
-  "id, obra_id, status, solicitante_id, solicitante_nome, created_at, updated_at";
+  "id, obra_id, numero, status, solicitante_id, solicitante_nome, created_at, updated_at";
+
+async function proximoNumeroPedidoObra(obraId) {
+  const oid = normalizeObraIdForHistorico(obraId);
+  if (oid == null) return 1;
+  const { data, error } = await supabase
+    .from("obra_pedidos")
+    .select("numero")
+    .eq("obra_id", oid)
+    .order("numero", { ascending: false })
+    .limit(1);
+  if (error) {
+    if (/numero|column/i.test(error.message || "")) return null;
+    throw error;
+  }
+  return (data?.[0]?.numero ?? 0) + 1;
+}
+
+function itemPedidoComMaterialMaiusculo(item) {
+  if (!item || item.material == null) return item;
+  return { ...item, material: normalizarNomeMaterial(item.material) };
+}
 
 function normalizarPedido(row) {
   if (!row) return row;
-  const itens = row.itens ?? row.obra_pedido_itens ?? [];
+  const itensRaw = row.itens ?? row.obra_pedido_itens ?? [];
+  const itens = (Array.isArray(itensRaw) ? itensRaw : []).map(
+    itemPedidoComMaterialMaiusculo,
+  );
   const { obra_pedido_itens: _omit, ...rest } = row;
   return {
     ...rest,
-    itens: Array.isArray(itens) ? itens : [],
+    itens,
   };
 }
 
@@ -77,7 +105,7 @@ async function anexarItensAosPedidos(pedidos) {
   for (const item of itens || []) {
     const pid = item.pedido_id;
     if (!porPedido[pid]) porPedido[pid] = [];
-    porPedido[pid].push(item);
+    porPedido[pid].push(itemPedidoComMaterialMaiusculo(item));
   }
   return pedidos.map((p) => ({ ...p, itens: porPedido[p.id] || [] }));
 }
@@ -110,10 +138,12 @@ async function buscarPedidosComItens(buildQuery) {
   if (error) {
     const fallback = await buildQuery(PEDIDO_SELECT_SIMPLES);
     if (fallback.error) throw new Error(mensagemErroPedido(fallback.error));
-    const base = (fallback.data || []).map(normalizarPedido);
-    return anexarItensAosPedidos(base);
+    const base = enriquecerNumerosPedidos(
+      (fallback.data || []).map(normalizarPedido),
+    );
+    return enriquecerNumerosPedidos(await anexarItensAosPedidos(base));
   }
-  return (data || []).map(normalizarPedido);
+  return enriquecerNumerosPedidos((data || []).map(normalizarPedido));
 }
 
 function sanitizeClientePayload(dados) {
@@ -595,10 +625,6 @@ export const api = {
     return Array.isArray(data) ? data : [];
   },
 
-  /**
-   * Apenas tarefas em que o utilizador é responsável (linha em tarefa_responsaveis).
-   * Usado no filtro "Minhas tarefas" — não inclui criador sem vínculo de responsável.
-   */
   getTarefasGlobaisMontezumaMinhasResponsavel: async (usuarioId) => {
     if (!usuarioId) return [];
     const uid = String(usuarioId);
@@ -845,18 +871,18 @@ export const api = {
     let query = supabase
       .from("obras")
       .select(
-        "*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome, tipo)",
+        "*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), locacoes:relatorio_locacoes(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome, tipo)",
       )
       .eq("active", true)
       .order("created_at", { ascending: false });
     const { data, error } = await query;
     if (error) throw error;
-    return data;
+    return (data || []).map((obra) => ({
+      ...obra,
+      materiais: normalizarMateriaisLista(obra.materiais),
+    }));
   },
 
-  /**
-   * Utilizadores com tipo "diretoria" (candidatos a responsável de obra).
-   */
   listUsuariosDiretoria: async () => {
     const { data, error } = await supabase
       .from("usuarios")
@@ -932,11 +958,185 @@ export const api = {
     await supabase.from("relatorio_extrato").delete().eq("mao_de_obra_id", id);
   },
 
+  addLocacao: async (dados) => {
+    const obraId = dados?.obra_id;
+    const equipamento = normalizarNomeMaterial(dados?.equipamento);
+    const quantidade = Number(dados?.quantidade);
+    const tipoPeriodo = String(dados?.tipo_periodo || "").trim();
+    const periodo = Number(dados?.periodo);
+    const solicitante = String(dados?.solicitante || "").trim();
+    const tiposValidos = new Set(["Diário", "Semanal", "Mensal", "Anual"]);
+
+    if (obraId == null || obraId === "") {
+      throw new Error("Obra inválida para lançar locação.");
+    }
+    if (!equipamento) {
+      throw new Error("Informe o equipamento.");
+    }
+    if (!Number.isFinite(quantidade) || quantidade <= 0) {
+      throw new Error("Quantidade inválida.");
+    }
+    if (!tiposValidos.has(tipoPeriodo)) {
+      throw new Error("Tipo de período inválido.");
+    }
+    if (!Number.isFinite(periodo) || periodo <= 0) {
+      throw new Error("Período inválido.");
+    }
+    if (!solicitante) {
+      throw new Error("Selecione o solicitante.");
+    }
+
+    const dataColeta =
+      dados.data_coleta || new Date().toISOString().split("T")[0];
+
+    const periodoInt = Math.trunc(periodo);
+    const baseColeta = new Date(`${dataColeta}T12:00:00`);
+    if (tipoPeriodo === "Diário") {
+      baseColeta.setDate(baseColeta.getDate() + periodoInt);
+    } else if (tipoPeriodo === "Semanal") {
+      baseColeta.setDate(baseColeta.getDate() + periodoInt * 7);
+    } else if (tipoPeriodo === "Mensal") {
+      baseColeta.setMonth(baseColeta.getMonth() + periodoInt);
+    } else if (tipoPeriodo === "Anual") {
+      baseColeta.setFullYear(baseColeta.getFullYear() + periodoInt);
+    }
+    const yyyy = baseColeta.getFullYear();
+    const mm = String(baseColeta.getMonth() + 1).padStart(2, "0");
+    const dd = String(baseColeta.getDate()).padStart(2, "0");
+    const dataVencimentoCalc = `${yyyy}-${mm}-${dd}`;
+
+    const { data, error } = await supabase
+      .from("relatorio_locacoes")
+      .insert([
+        {
+          obra_id: obraId,
+          equipamento,
+          quantidade,
+          tipo_periodo: tipoPeriodo,
+          periodo: periodoInt,
+          solicitante,
+          data_coleta: dataColeta,
+          data_vencimento: dataVencimentoCalc,
+          valor: Number(dados.valor) || 0,
+          status: "Solicitado",
+          status_financeiro: "Aguardando pagamento",
+        },
+      ])
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateLocacaoStatus: async (id, novoStatus) => {
+    const { data, error } = await supabase
+      .from("relatorio_locacoes")
+      .update({ status: novoStatus })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateLocacaoValor: async (id, novoValor) => {
+    const { data, error } = await supabase
+      .from("relatorio_locacoes")
+      .update({ valor: novoValor })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateLocacaoSolicitante: async (id, novoSolicitante) => {
+    const solicitante = String(novoSolicitante ?? "").trim();
+    if (!solicitante) {
+      throw new Error("Solicitante inválido.");
+    }
+    const { data, error } = await supabase
+      .from("relatorio_locacoes")
+      .update({ solicitante })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateLocacaoDataVencimento: async (id, dataVencimento) => {
+    const { data, error } = await supabase
+      .from("relatorio_locacoes")
+      .update({ data_vencimento: dataVencimento ?? null })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateLocacaoDataColeta: async (id, dataColeta, dataVencimentoCalculada) => {
+    const payload = { data_coleta: dataColeta ?? null };
+    if (typeof dataVencimentoCalculada !== "undefined") {
+      payload.data_vencimento = dataVencimentoCalculada;
+    }
+    const { data, error } = await supabase
+      .from("relatorio_locacoes")
+      .update(payload)
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  deleteLocacao: async (id) => {
+    await supabase.from("relatorio_extrato").delete().eq("locacao_id", id);
+    const { error } = await supabase
+      .from("relatorio_locacoes")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  validarLocacao: async (id, dadosOriginais) => {
+    const { error } = await supabase
+      .from("relatorio_locacoes")
+      .update({ validacao: 1 })
+      .eq("id", id);
+    if (error) throw error;
+
+    const valorParaExtrato = Number(dadosOriginais?.valor) || 0;
+    const descricao = [
+      dadosOriginais?.equipamento,
+      dadosOriginais?.fornecedor ? `(${dadosOriginais.fornecedor})` : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const { error: errorExtrato } = await supabase
+      .from("relatorio_extrato")
+      .insert([
+        {
+          obra_id: dadosOriginais.obra_id,
+          locacao_id: id,
+          descricao: descricao || "Locação",
+          tipo: "Locação",
+          quantidade: String(dadosOriginais?.quantidade ?? "1"),
+          data:
+            dadosOriginais?.data_coleta ||
+            dadosOriginais?.data_solicitacao ||
+            new Date().toISOString(),
+          valor: valorParaExtrato,
+          validacao: 0,
+          status_financeiro:
+            dadosOriginais?.status_financeiro || "Aguardando pagamento",
+        },
+      ]);
+    if (errorExtrato) throw errorExtrato;
+    return true;
+  },
+
   getObraById: async (id) => {
     const { data, error } = await supabase
       .from("obras")
       .select(
-        `*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
+        `*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), locacoes:relatorio_locacoes(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
       )
       .eq("id", id)
       .maybeSingle();
@@ -979,8 +1179,13 @@ export const api = {
       ...data,
       ...(responsavelRow ? { responsavel: responsavelRow } : {}),
       etapas_selecionadas: etapas,
-      materiais: data.materiais || [],
+      materiais: normalizarMateriaisLista(data.materiais || []),
       maoDeObra: data.maoDeObra || [],
+      locacoes: (data.locacoes || []).map((l) =>
+        l?.equipamento != null
+          ? { ...l, equipamento: normalizarNomeMaterial(l.equipamento) }
+          : l,
+      ),
       relatorioExtrato: relatorioOrdenado,
       processos: data.clientes || [],
     };
@@ -1099,7 +1304,6 @@ export const api = {
     if (error) throw error;
   },
 
-  /** Atualiza validação só dos IDs listados (ex.: “marcar todos” na vista filtrada). */
   updateExtratoValidacaoInIds: async (ids, status) => {
     if (!ids?.length) return;
     const { error } = await supabase
@@ -1142,7 +1346,7 @@ export const api = {
       .insert([
         {
           obra_id: dados.obra_id,
-          material: dados.material,
+          material: normalizarNomeMaterial(dados.material),
           quantidade: dados.quantidade,
           valor: dados.valor,
           fornecedor_id: dados.fornecedor_id,
@@ -1164,6 +1368,27 @@ export const api = {
       .select();
     if (error) throw error;
     return data[0];
+  },
+
+  updateMaterialDataSolicitacao: async (id, dataSolicitacao) => {
+    if (!dataSolicitacao) {
+      throw new Error("Data de lançamento inválida.");
+    }
+    const { data, error } = await supabase
+      .from("relatorio_materiais")
+      .update({ data_solicitacao: dataSolicitacao })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    const materialAtualizado = data[0];
+
+    if (materialAtualizado) {
+      await supabase
+        .from("relatorio_extrato")
+        .update({ data: dataSolicitacao })
+        .eq("material_id", id);
+    }
+    return materialAtualizado;
   },
 
   addMaoDeObra: async (dados) => {
@@ -1981,7 +2206,8 @@ export const api = {
         .from("obra_pedidos")
         .select(select)
         .eq("obra_id", oid)
-        .order("created_at", { ascending: false }),
+        .order("numero", { ascending: true })
+        .order("created_at", { ascending: true }),
     );
   },
 
@@ -1990,13 +2216,21 @@ export const api = {
       supabase
         .from("obra_pedidos")
         .select(select)
-        .order("created_at", { ascending: false }),
+        .order("numero", { ascending: true })
+        .order("created_at", { ascending: true }),
     );
     return enriquecerPedidosComObra(pedidos);
   },
 
   getObraPedidoById: async (pedidoId) => {
     if (pedidoId == null || pedidoId === "") return null;
+
+    const finalizarPedido = async (pedido) => {
+      if (!pedido) return null;
+      const [comObra] = await enriquecerPedidosComObra([pedido]);
+      return api._enriquecerNumeroPedidoUnico(comObra);
+    };
+
     let { data, error } = await supabase
       .from("obra_pedidos")
       .select(PEDIDO_SELECT_BASE)
@@ -2013,13 +2247,30 @@ export const api = {
       const [comItens] = await anexarItensAosPedidos([
         normalizarPedido(fb.data),
       ]);
-      const [enriquecido] = await enriquecerPedidosComObra([comItens]);
-      return enriquecido;
+      return finalizarPedido(comItens);
     }
     if (!data) return null;
-    const pedido = normalizarPedido(data);
-    const [enriquecido] = await enriquecerPedidosComObra([pedido]);
-    return enriquecido;
+    return finalizarPedido(normalizarPedido(data));
+  },
+
+  _enriquecerNumeroPedidoUnico: async (pedido) => {
+    if (!pedido?.obra_id) return pedido;
+    const oid = normalizeObraIdForHistorico(pedido.obra_id);
+    const { data, error } = await supabase
+      .from("obra_pedidos")
+      .select("id, obra_id, numero, created_at")
+      .eq("obra_id", oid);
+    if (error) {
+      const [fallback] = enriquecerNumerosPedidos([pedido]);
+      return fallback;
+    }
+    const mesclado = (data || []).map((row) =>
+      row.id === pedido.id ? { ...row, ...pedido } : row,
+    );
+    const enriquecidos = enriquecerNumerosPedidos(mesclado);
+    return (
+      enriquecidos.find((p) => String(p.id) === String(pedido.id)) || pedido
+    );
   },
 
   addObraPedido: async ({
@@ -2042,18 +2293,40 @@ export const api = {
         );
       }
     }
-    const { data: pedido, error: errPedido } = await supabase
+    const numero = await proximoNumeroPedidoObra(oid);
+    const payloadPedido = {
+      obra_id: oid,
+      status: "Pendente",
+      solicitante_id: solicitante_id || null,
+      solicitante_nome: solicitante_nome
+        ? String(solicitante_nome).trim()
+        : null,
+    };
+    if (numero != null) payloadPedido.numero = numero;
+
+    let { data: pedido, error: errPedido } = await supabase
       .from("obra_pedidos")
-      .insert({
-        obra_id: oid,
-        status: "Pendente",
-        solicitante_id: solicitante_id || null,
-        solicitante_nome: solicitante_nome
-          ? String(solicitante_nome).trim()
-          : null,
-      })
+      .insert(payloadPedido)
       .select("id")
       .single();
+    if (
+      errPedido &&
+      numero != null &&
+      /numero|column/i.test(errPedido.message || "")
+    ) {
+      ({ data: pedido, error: errPedido } = await supabase
+        .from("obra_pedidos")
+        .insert({
+          obra_id: oid,
+          status: "Pendente",
+          solicitante_id: solicitante_id || null,
+          solicitante_nome: solicitante_nome
+            ? String(solicitante_nome).trim()
+            : null,
+        })
+        .select("id")
+        .single());
+    }
     if (errPedido) {
       throw new Error(mensagemErroPedido(errPedido));
     }
@@ -2134,7 +2407,7 @@ export const api = {
     if (itemId == null) throw new Error("Item inválido.");
     const payload = {};
     if (campos.material !== undefined) {
-      payload.material = String(campos.material || "").trim();
+      payload.material = normalizarNomeMaterial(campos.material);
     }
     if (campos.quantidade !== undefined) {
       const q = Number(campos.quantidade);
@@ -2249,12 +2522,13 @@ export const api = {
     const porGrupo = {};
     const semGrupo = [];
     for (const item of itens || []) {
+      const norm = itemPedidoComMaterialMaiusculo(item);
       if (item.grupo_compra_id != null) {
         const gid = item.grupo_compra_id;
         if (!porGrupo[gid]) porGrupo[gid] = [];
-        porGrupo[gid].push(item);
+        porGrupo[gid].push(norm);
       } else {
-        semGrupo.push(item);
+        semGrupo.push(norm);
       }
     }
 
@@ -2442,7 +2716,7 @@ export const api = {
 
         const payload = {
           obra_id: obraId,
-          material: item.material,
+          material: normalizarNomeMaterial(item.material),
           quantidade: `${item.quantidade} ${item.unidade || "Un."}`,
           valor: Number.isFinite(valorNum) ? valorNum : 0,
           fornecedor_id: item.fornecedor_id || null,

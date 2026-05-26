@@ -26,6 +26,7 @@ import {
   pedidoSecaoClass,
   selectPremium,
 } from "../../components/pedidos/pedidosUi";
+import { rotuloPedido } from "../../utils/pedidosUtils";
 
 function formatarDataHora(iso) {
   if (!iso) return "—";
@@ -58,6 +59,7 @@ export default function PedidoGestaoDetalhe() {
   const carregar = useCallback(async (opts = {}) => {
     const silencioso = opts?.silencioso === true;
     if (!pedidoId || !autorizado) return;
+    const idRequisitado = String(pedidoId);
     if (!silencioso) {
       setLoading(true);
       setErro(null);
@@ -65,7 +67,7 @@ export default function PedidoGestaoDetalhe() {
     }
     try {
       const dados = await api.getObraPedidoById(pedidoId);
-      if (!dados) {
+      if (!dados || String(dados.id) !== idRequisitado) {
         if (!silencioso) {
           setErro("Pedido não encontrado.");
           setPedido(null);
@@ -75,6 +77,7 @@ export default function PedidoGestaoDetalhe() {
       setPedido(dados);
       if (!silencioso) {
         setStatusSel(dados.status || STATUS_PEDIDO_PENDENTE);
+        statusIgnorarRef.current = true;
       }
     } catch (e) {
       console.error("[PedidoGestaoDetalhe] carregar:", e);
@@ -96,6 +99,10 @@ export default function PedidoGestaoDetalhe() {
   }, [carregar]);
 
   useEffect(() => {
+    statusIgnorarRef.current = true;
+    setPedido(null);
+    setStatusSel(STATUS_PEDIDO_PENDENTE);
+    setErro(null);
     carregar();
   }, [carregar]);
 
@@ -114,23 +121,27 @@ export default function PedidoGestaoDetalhe() {
   }, [autorizado, user, navigate]);
 
   useEffect(() => {
-    if (statusIgnorarRef.current || !pedido?.id) return;
+    if (statusIgnorarRef.current || !pedido?.id || !pedidoId) return;
+    if (String(pedido.id) !== String(pedidoId)) return;
     if (statusSel === (pedido.status || "")) return;
 
     if (statusDebounceRef.current) {
       clearTimeout(statusDebounceRef.current);
     }
 
+    const idSalvar = pedido.id;
     statusDebounceRef.current = setTimeout(async () => {
       setSalvandoStatus(true);
       setErro(null);
       try {
-        const atualizado = await api.updateObraPedidoStatus(
-          pedido.id,
-          statusSel,
-        );
+        const atualizado = await api.updateObraPedidoStatus(idSalvar, statusSel);
+        if (String(atualizado?.id) !== String(pedidoId)) return;
         setPedido(atualizado);
+        statusIgnorarRef.current = true;
         setStatusSel(atualizado.status);
+        setTimeout(() => {
+          statusIgnorarRef.current = false;
+        }, 0);
       } catch (e) {
         setErro(e?.message || "Não foi possível atualizar o status.");
         setStatusSel(pedido.status || STATUS_PEDIDO_PENDENTE);
@@ -142,7 +153,7 @@ export default function PedidoGestaoDetalhe() {
     return () => {
       if (statusDebounceRef.current) clearTimeout(statusDebounceRef.current);
     };
-  }, [statusSel, pedido?.id, pedido?.status]);
+  }, [statusSel, pedido?.id, pedido?.status, pedidoId]);
 
   const obra = pedido?.obras;
   const nomeObra =
@@ -175,7 +186,7 @@ export default function PedidoGestaoDetalhe() {
               Gestão de pedidos
             </p>
             <h1 className="truncate text-sm font-bold sm:text-base">
-              Pedido #{pedidoId}
+              {pedido ? rotuloPedido(pedido) : "Pedido"}
             </h1>
           </div>
         </div>
@@ -202,7 +213,7 @@ export default function PedidoGestaoDetalhe() {
                       <Package className="h-6 w-6" />
                     </span>
                     <div>
-                      <h2 className="text-lg font-bold">Pedido #{pedido.id}</h2>
+                      <h2 className="text-lg font-bold">{rotuloPedido(pedido)}</h2>
                       <p className="mt-1 text-sm text-text-muted">{nomeObra}</p>
                       <p className="mt-1 flex items-center gap-1 text-xs text-text-muted">
                         <User className="h-3.5 w-3.5" />

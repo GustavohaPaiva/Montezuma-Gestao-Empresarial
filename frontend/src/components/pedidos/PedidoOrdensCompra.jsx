@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Eye, FileDown, Layers, Loader2, ShoppingCart, Trash2 } from "lucide-react";
+import {
+  Eye,
+  FileDown,
+  Layers,
+  Loader2,
+  ShoppingCart,
+  Trash2,
+} from "lucide-react";
 import { api } from "../../services/api";
 import {
   EMITENTE_ORDEM_MONTEZUMA,
@@ -264,21 +271,6 @@ export default function PedidoOrdensCompra({
 
           <div className="grid grid-cols-1 gap-4 border-t border-border-primary/20 pt-4 md:grid-cols-2">
             <label className="flex flex-col gap-1.5">
-              <span className={pedidoSubpainelTituloClass}>Fornecedor</span>
-              <select
-                value={fornecedorId}
-                onChange={(e) => setFornecedorId(e.target.value)}
-                className={selectPremium}
-              >
-                <option value="">— Selecionar fornecedor —</option>
-                {fornecedores.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5">
               <span className={pedidoSubpainelTituloClass}>
                 Emitente no documento
               </span>
@@ -294,6 +286,21 @@ export default function PedidoOrdensCompra({
                 ))}
               </select>
             </label>
+            <label className="flex flex-col gap-1.5">
+              <span className={pedidoSubpainelTituloClass}>Fornecedor</span>
+              <select
+                value={fornecedorId}
+                onChange={(e) => setFornecedorId(e.target.value)}
+                className={selectPremium}
+              >
+                <option value="">— Selecionar fornecedor —</option>
+                {fornecedores.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <div className="mt-5 flex justify-end border-t border-border-primary/20 pt-4">
@@ -301,7 +308,7 @@ export default function PedidoOrdensCompra({
               type="button"
               disabled={gerando || selecionados.size === 0}
               onClick={handleGerarOrdens}
-              className={`${btnAccentPremium} !w-full sm:!w-auto`}
+              className={`${btnAccentPremium} w-full sm:!w-full`}
             >
               <span className="inline-flex items-center gap-2">
                 {gerando ? (
@@ -418,7 +425,7 @@ export default function PedidoOrdensCompra({
                 <ButtonDefault
                   type="button"
                   onClick={() => handleVisualizarPdf(grupo)}
-                  className={`${btnOutlinePremium} shrink-0`}
+                  className={`${btnOutlinePremium} w-full sm:!w-full shrink-0`}
                 >
                   <span className="inline-flex items-center gap-2">
                     <Eye className="h-4 w-4" />

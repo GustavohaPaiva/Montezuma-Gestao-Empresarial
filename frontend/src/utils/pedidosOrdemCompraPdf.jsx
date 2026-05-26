@@ -1,7 +1,11 @@
 import { pdf } from "@react-pdf/renderer";
 import OrdemCompraPDF from "../documents/OrdemCompraPDF";
 import { formatarDataBR } from "../pages/obras/detalhe/utils/formatters";
-import { formatarQuantidadePedido } from "./pedidosUtils";
+import {
+  formatarQuantidadePedido,
+  normalizarNomeMaterial,
+  numeroPedidoObra,
+} from "./pedidosUtils";
 import {
   DADOS_EMITENTE_MONTEZUMA,
   EMITENTE_ORDEM_CLIENTE,
@@ -38,7 +42,9 @@ function montarObraPdf(obra) {
 
 function montarItensPdf(itens) {
   return (itens || []).map((i) => ({
-    material: i.material || "—",
+    material: i.material
+      ? normalizarNomeMaterial(i.material)
+      : "—",
     quantidade: formatarQuantidadePedido(i.quantidade),
     unidade: i.unidade || "Un.",
     entrega: formatarDataBR(i.data_entrega),
@@ -64,12 +70,13 @@ export async function gerarPdfOrdemCompra({
   const itens = montarItensPdf(grupo.itens);
   const dataEmissao = new Date().toISOString();
 
-  const nomePadrao = `ORDEM_COMPRA_${grupo.numero}_PEDIDO_${pedido.id}.pdf`;
+  const nPedido = numeroPedidoObra(pedido) ?? pedido.id;
+  const nomePadrao = `ORDEM_COMPRA_${grupo.numero}_PEDIDO_${nPedido}.pdf`;
 
   const doc = (
     <OrdemCompraPDF
       numeroOrdem={grupo.numero}
-      numeroPedido={pedido.id}
+      numeroPedido={numeroPedidoObra(pedido) ?? pedido.id}
       dataEmissao={dataEmissao}
       statusOrdem={grupo.status}
       statusPedido={pedido.status}

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../services/api";
 import ModalMateriais from "../../components/modals/ModalMateriais";
 import ModalMaoDeObra from "../../components/modals/ModalMaoDeObra";
+import ModalLocacoes from "../../components/modals/ModalLocacoes";
 import ModalEtapas from "../../components/modals/ModalEtapas";
 import Etapas from "../../components/gerais/ObraEtapas";
 import ListaEtapas from "../../components/obras/ListaEtapas";
@@ -21,14 +22,20 @@ import {
 import ObraDetalheHeader from "./detalhe/components/ObraDetalheHeader";
 import ObraDetalheResumoFinanceiro from "./detalhe/components/ObraDetalheResumoFinanceiro";
 import ModalRelatorioPrestador from "./detalhe/components/ModalRelatorioPrestador";
-import { formatarMoeda } from "./detalhe/utils/formatters";
+import {
+  calcularDataDevolucao,
+  formatarMoeda,
+} from "./detalhe/utils/formatters";
 import {
   gerarPdfExtrato,
+  gerarPdfRelatorioLocacoes,
   gerarPdfRelatorioMaoDeObraGeral,
   gerarPdfRelatorioMateriais,
   gerarPdfRelatorioPorPrestador,
-} from "./detalhe/utils/obraDetalhePdf";
+} from "./detalhe/utils/obraDetalhePdf.jsx";
 import FeedbackModal from "../../components/gerais/FeedbackModal";
+import BaseModal from "../../components/gerais/BaseModal";
+import BaseButton from "../../components/gerais/BaseButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { Hammer, Loader2, MessageSquareText, Send } from "lucide-react";
 
@@ -46,6 +53,7 @@ export default function ObrasDetalhe() {
 
   const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
   const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
+  const [modalLocacoesOpen, setModalLocacoesOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
   const [modalRelatorioPrestadorOpen, setModalRelatorioPrestadorOpen] =
     useState(false);
@@ -68,6 +76,7 @@ export default function ObrasDetalhe() {
 
   const [buscaMateriais, setBuscaMateriais] = useState("");
   const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
+  const [buscaLocacoes, setBuscaLocacoes] = useState("");
   const [buscaExtrato, setBuscaExtrato] = useState("");
   const [sortField, setSortField] = useState("status_financeiro");
   const [sortDirection, setSortDirection] = useState("asc");
@@ -87,6 +96,13 @@ export default function ObrasDetalhe() {
     id: null,
     campo: null,
   });
+  const [editandoLocacao, setEditandoLocacao] = useState({
+    id: null,
+    campo: null,
+  });
+  const [locacaoParaExcluir, setLocacaoParaExcluir] = useState(null);
+  const [materialParaExcluir, setMaterialParaExcluir] = useState(null);
+  const [maoDeObraParaExcluir, setMaoDeObraParaExcluir] = useState(null);
 
   const { totais, dataGrafico, prestadoresUnicos } =
     useObraFinancialSummary(obra);
@@ -147,19 +163,28 @@ export default function ObrasDetalhe() {
   };
 
   const handleDeleteMaterial = useCallback(
-    async (materialId) => {
-      if (window.confirm("Tem certeza que deseja excluir este material?")) {
-        try {
-          await api.deleteMaterial(materialId);
-          await fetchDados();
-        } catch (err) {
-          console.error("Erro ao excluir material:", err);
-          showFeedback("Erro ao excluir.");
-        }
-      }
+    (materialId) => {
+      const idStr = String(materialId);
+      const alvo = (obra?.materiais || []).find(
+        (m) => String(m.id) === idStr,
+      );
+      setMaterialParaExcluir(alvo ?? { id: materialId, nome: "" });
     },
-    [fetchDados, showFeedback],
+    [obra],
   );
+
+  const handleConfirmarExclusaoMaterial = async () => {
+    if (!materialParaExcluir?.id) return;
+    try {
+      await api.deleteMaterial(materialParaExcluir.id);
+      setMaterialParaExcluir(null);
+      await fetchDados();
+    } catch (err) {
+      console.error("Erro ao excluir material:", err);
+      showFeedback("Erro ao excluir.");
+      await fetchDados();
+    }
+  };
 
   const handleStatusChange = useCallback(
     async (materialId, novoStatus) => {
@@ -272,6 +297,194 @@ export default function ObrasDetalhe() {
     [fetchDados, setObra],
   );
 
+  const salvarDataSolicitacaoMaterial = useCallback(
+    async (materialId, novaDataSolicitacao) => {
+      if (!novaDataSolicitacao) {
+        showFeedback("Informe uma data válida.");
+        return;
+      }
+      setObra((prev) => ({
+        ...prev,
+        materiais: prev.materiais.map((m) =>
+          m.id === materialId
+            ? { ...m, data_solicitacao: novaDataSolicitacao }
+            : m,
+        ),
+      }));
+      setEditandoMaterial({ id: null, campo: null });
+      try {
+        await api.updateMaterialDataSolicitacao(
+          materialId,
+          novaDataSolicitacao,
+        );
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar data de lançamento:", err);
+        showFeedback("Erro ao atualizar a data de lançamento.");
+        fetchDados();
+      }
+    },
+    [fetchDados, setObra, showFeedback],
+  );
+
+  const handleSaveLocacao = useCallback(
+    async (dados) => {
+      const dataAtual = new Date().toISOString().split("T")[0];
+      try {
+        await api.addLocacao({
+          obra_id: id,
+          equipamento: dados.equipamento,
+          quantidade: dados.quantidade,
+          tipo_periodo: dados.tipo_periodo,
+          periodo: dados.periodo,
+          solicitante: dados.solicitante,
+          data_solicitacao: dataAtual,
+          data_vencimento: dados.data_vencimento || null,
+          valor: 0,
+        });
+        await fetchDados();
+        setModalLocacoesOpen(false);
+      } catch (err) {
+        console.error("Erro ao salvar locação:", err);
+        showFeedback(err?.message || "Erro ao salvar locação.");
+        throw err;
+      }
+    },
+    [id, fetchDados, showFeedback],
+  );
+
+  const handleStatusChangeLocacao = useCallback(
+    async (locacaoId, novoStatus) => {
+      setObra((prev) => ({
+        ...prev,
+        locacoes: (prev.locacoes || []).map((l) =>
+          l.id === locacaoId ? { ...l, status: novoStatus } : l,
+        ),
+      }));
+      try {
+        await api.updateLocacaoStatus(locacaoId, novoStatus);
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro status locação:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados, setObra],
+  );
+
+  const salvarValorLocacao = useCallback(
+    async (locacaoId, novoValor) => {
+      const valorFloat = parseFloat(novoValor) || 0;
+      setObra((prev) => ({
+        ...prev,
+        locacoes: (prev.locacoes || []).map((l) =>
+          l.id === locacaoId ? { ...l, valor: valorFloat } : l,
+        ),
+      }));
+      setEditandoLocacao({ id: null, campo: null });
+      try {
+        await api.updateLocacaoValor(locacaoId, valorFloat);
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar valor locação:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados, setObra],
+  );
+
+  const salvarSolicitanteLocacao = useCallback(
+    async (locacaoId, novoSolicitante) => {
+      const solicitante = String(novoSolicitante ?? "").trim();
+      if (!solicitante) {
+        setEditandoLocacao({ id: null, campo: null });
+        return;
+      }
+      setObra((prev) => ({
+        ...prev,
+        locacoes: (prev.locacoes || []).map((l) =>
+          l.id === locacaoId ? { ...l, solicitante } : l,
+        ),
+      }));
+      setEditandoLocacao({ id: null, campo: null });
+      try {
+        await api.updateLocacaoSolicitante(locacaoId, solicitante);
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar solicitante da locação:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados, setObra],
+  );
+
+  const salvarDataColetaLocacao = useCallback(
+    async (locacaoId, novaDataColeta) => {
+      const locacaoAtual = (obra?.locacoes || []).find(
+        (l) => l.id === locacaoId,
+      );
+      const novaDataVencimento = locacaoAtual
+        ? calcularDataDevolucao(
+            novaDataColeta,
+            locacaoAtual.periodo,
+            locacaoAtual.tipo_periodo,
+          )
+        : null;
+
+      setObra((prev) => ({
+        ...prev,
+        locacoes: (prev.locacoes || []).map((l) =>
+          l.id === locacaoId
+            ? {
+                ...l,
+                data_coleta: novaDataColeta,
+                data_vencimento: novaDataVencimento ?? l.data_vencimento,
+              }
+            : l,
+        ),
+      }));
+      setEditandoLocacao({ id: null, campo: null });
+      try {
+        await api.updateLocacaoDataColeta(
+          locacaoId,
+          novaDataColeta,
+          novaDataVencimento,
+        );
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar data de coleta da locação:", err);
+        fetchDados();
+      }
+    },
+    [obra, fetchDados, setObra],
+  );
+
+  const handleDeleteLocacao = useCallback(
+    (locacaoId) => {
+      const idStr = String(locacaoId);
+      const alvo = (obra?.locacoes || []).find(
+        (l) => String(l.id) === idStr,
+      );
+      setLocacaoParaExcluir(
+        alvo ?? { id: locacaoId, equipamento: "" },
+      );
+    },
+    [obra],
+  );
+
+  const handleConfirmarExclusaoLocacao = async () => {
+    if (!locacaoParaExcluir?.id) return;
+    try {
+      await api.deleteLocacao(locacaoParaExcluir.id);
+      setLocacaoParaExcluir(null);
+      await fetchDados();
+    } catch (err) {
+      console.error("Erro ao excluir locação:", err);
+      showFeedback("Erro ao excluir locação.");
+      await fetchDados();
+    }
+  };
+
   const handleSortMdo = (campo) => {
     setSortConfigMdo((prev) => ({
       campo,
@@ -292,19 +505,30 @@ export default function ObrasDetalhe() {
   );
 
   const handleDeleteMaoDeObra = useCallback(
-    async (mdoId) => {
-      if (window.confirm("Tem certeza que deseja excluir este registro?")) {
-        try {
-          await api.deleteMaoDeObra(mdoId);
-          await fetchDados();
-        } catch (err) {
-          console.error("Erro ao excluir mão de obra:", err);
-          showFeedback("Erro ao excluir item.");
-        }
-      }
+    (mdoId) => {
+      const idStr = String(mdoId);
+      const alvo = (obra?.maoDeObra || []).find(
+        (m) => String(m.id) === idStr,
+      );
+      setMaoDeObraParaExcluir(
+        alvo ?? { id: mdoId, profissional: "", tipo: "" },
+      );
     },
-    [fetchDados, showFeedback],
+    [obra],
   );
+
+  const handleConfirmarExclusaoMaoDeObra = async () => {
+    if (!maoDeObraParaExcluir?.id) return;
+    try {
+      await api.deleteMaoDeObra(maoDeObraParaExcluir.id);
+      setMaoDeObraParaExcluir(null);
+      await fetchDados();
+    } catch (err) {
+      console.error("Erro ao excluir mão de obra:", err);
+      showFeedback("Erro ao excluir item.");
+      await fetchDados();
+    }
+  };
 
   const handleSaveMaoDeObra = useCallback(
     async (dados) => {
@@ -346,6 +570,26 @@ export default function ObrasDetalhe() {
         await fetchDados();
       } catch (err) {
         console.error("Erro ao validar mão de obra:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados, setObra],
+  );
+
+  const handleValidarLocacao = useCallback(
+    async (item) => {
+      if (item.validacao === 1) return;
+      setObra((prev) => ({
+        ...prev,
+        locacoes: (prev.locacoes || []).map((l) =>
+          l.id === item.id ? { ...l, validacao: 1 } : l,
+        ),
+      }));
+      try {
+        await api.validarLocacao(item.id, item);
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao validar locação:", err);
         fetchDados();
       }
     },
@@ -428,12 +672,53 @@ export default function ObrasDetalhe() {
       const blob = resultado?.blob ?? resultado;
       if (!blob) throw new Error("PDF vazio.");
       const url = URL.createObjectURL(blob);
+      const nomeArquivo =
+        resultado?.nomePadrao || fallbackNome || "documento.pdf";
+
       if (novaAba && !novaAba.closed) {
-        novaAba.location.href = url;
+        // Renderiza uma página com toolbar (download com nome correto) + visualizador
+        // do PDF. Resolve o bug de o download vir com UUID quando o usuário usa
+        // "Salvar como..." direto do visualizador do navegador.
+        const safeNome = String(nomeArquivo).replace(/"/g, "&quot;");
+        novaAba.document.open();
+        novaAba.document.write(
+          `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>${safeNome}</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; background: #1f2937; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: #111827; color: #f9fafb; border-bottom: 1px solid #374151; gap: 12px; }
+    .topbar .titulo { font-size: 13px; font-weight: 600; letter-spacing: 0.2px; opacity: 0.95; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .topbar .acoes { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+    .btn-primary { background: #DC3B0B; color: #ffffff; }
+    .btn-primary:hover { background: #c53108; }
+    .btn-ghost { background: transparent; color: #f9fafb; border-color: #4b5563; }
+    .btn-ghost:hover { background: #374151; }
+    iframe { display: block; width: 100%; height: calc(100% - 49px); border: 0; background: #4b5563; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="titulo">${safeNome}</div>
+    <div class="acoes">
+      <a class="btn btn-ghost" href="${url}" target="_blank" rel="noopener">Abrir em nova aba</a>
+      <a class="btn btn-primary" href="${url}" download="${safeNome}">Baixar PDF</a>
+    </div>
+  </div>
+  <iframe src="${url}#toolbar=1&navpanes=0" title="${safeNome}"></iframe>
+</body>
+</html>`,
+        );
+        novaAba.document.close();
       } else {
+        // Fallback: pop-up bloqueado → dispara download direto com nome correto.
         const a = document.createElement("a");
         a.href = url;
-        a.download = resultado?.nomePadrao || fallbackNome || "documento.pdf";
+        a.download = nomeArquivo;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -484,6 +769,21 @@ export default function ObrasDetalhe() {
           retornarBlob: true,
         }),
       "Relatorio_Materiais.pdf",
+    );
+  };
+
+  const handleGerarRelatorioLocacoes = () => {
+    const lista = obra?.locacoes || [];
+    if (lista.length === 0) {
+      showFeedback("Nenhuma locação lançada nesta obra.", "info");
+      return;
+    }
+    abrirPdfEmNovaAba(
+      () =>
+        gerarPdfRelatorioLocacoes(obra, buscaLocacoes, {
+          retornarBlob: true,
+        }),
+      "Relatorio_Locacoes.pdf",
     );
   };
 
@@ -646,6 +946,7 @@ export default function ObrasDetalhe() {
 
   const {
     dadosMateriais,
+    dadosLocacoes,
     dadosMaoDeObra,
     dadosRelatorioExtrato,
     headerExtrato,
@@ -660,7 +961,17 @@ export default function ObrasDetalhe() {
     salvarValorMaterial,
     salvarFornecedorMaterial,
     salvarDataVencimentoMaterial,
+    salvarDataSolicitacaoMaterial,
     handleDeleteMaterial,
+    buscaLocacoes,
+    editandoLocacao,
+    setEditandoLocacao,
+    handleStatusChangeLocacao,
+    salvarValorLocacao,
+    salvarSolicitanteLocacao,
+    salvarDataColetaLocacao,
+    handleDeleteLocacao,
+    handleValidarLocacao,
     buscaMaoDeObra,
     sortConfigMdo,
     editandoMaoDeObra,
@@ -967,7 +1278,7 @@ export default function ObrasDetalhe() {
         {secaoObra === "relatorios" && (
           <div className="mb-4 w-full">
             {!isEncarregado && (
-              <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+              <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
                 {[
                   {
                     id: "materiais",
@@ -978,6 +1289,11 @@ export default function ObrasDetalhe() {
                     id: "mao",
                     label: "Mão de Obra",
                     sub: "Serviços e prestadores",
+                  },
+                  {
+                    id: "locacoes",
+                    label: "Locações",
+                    sub: "Equipamentos e ferramentas",
                   },
                   {
                     id: "extrato",
@@ -1190,6 +1506,73 @@ export default function ObrasDetalhe() {
               </div>
             )}
 
+            {subRelatorio === "locacoes" && (
+              <div
+                className={`${reportCardShell} mt-3 flex flex-col items-stretch gap-5 text-left sm:mt-4 sm:gap-6`}
+              >
+                <div
+                  className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
+                >
+                  <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
+                    Relatório de Locações
+                  </h1>
+                  <div
+                    className={`flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-end`}
+                  >
+                    <input
+                      type="text"
+                      placeholder="Buscar equipamento ou locatário..."
+                      value={buscaLocacoes}
+                      onChange={(e) => setBuscaLocacoes(e.target.value)}
+                      className={`${inputPremium} lg:max-w-[400px] lg:min-w-0 lg:flex-1`}
+                    />
+                    <ButtonDefault
+                      type="button"
+                      onClick={() => setModalLocacoesOpen(true)}
+                      className={`${btnAccentPremium} shrink-0 lg:!w-auto`}
+                    >
+                      Nova Locação
+                    </ButtonDefault>
+                  </div>
+                </div>
+                <TabelaSimples
+                  variant="obraDetalhe"
+                  dense
+                  colunas={[
+                    "Validação",
+                    "Descrição",
+                    "Quantidade",
+                    "Período",
+                    "Solicitante",
+                    "Fornecedor",
+                    "Valor Unitário",
+                    "Valor Total",
+                    "Status",
+                    "Data de Coleta",
+                    "Data de Devolução",
+                    " ",
+                  ]}
+                  dados={dadosLocacoes}
+                />
+                <div
+                  className={`flex w-full flex-col items-stretch justify-between gap-4 sm:items-center md:flex-row md:flex-wrap md:justify-center`}
+                >
+                  <ButtonDefault
+                    onClick={handleGerarRelatorioLocacoes}
+                    className={`${btnAccentPremium} !w-full`}
+                  >
+                    Relatório Locações
+                  </ButtonDefault>
+                  <div className={totalBarClass}>
+                    <span className="text-text-muted">Total lançado:</span>
+                    <span className="font-bold tabular-nums text-text-primary">
+                      R$ {formatarMoeda(totais.locacoes)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {subRelatorio === "extrato" && !isEncarregado && (
               <div>
                 <div
@@ -1219,6 +1602,7 @@ export default function ObrasDetalhe() {
                         <option value="Tudo">Tudo</option>
                         <option value="Materiais">Materiais</option>
                         <option value="Mão de Obra">Mão de Obra</option>
+                        <option value="Locações">Locações</option>
                       </select>
                     </div>
                   </div>
@@ -1231,7 +1615,9 @@ export default function ObrasDetalhe() {
                   <div className="flex w-full flex-col gap-4">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <div className={totalBarClass}>
-                        <span className="text-text-muted">Total no extrato:</span>
+                        <span className="text-text-muted">
+                          Total no extrato:
+                        </span>
                         <span className="font-bold tabular-nums text-text-primary">
                           R$ {formatarMoeda(totais.totalExtrato)}
                         </span>
@@ -1241,7 +1627,8 @@ export default function ObrasDetalhe() {
                           Materiais selecionados:
                         </span>
                         <span className="font-bold tabular-nums text-text-primary">
-                          R$ {formatarMoeda(totaisExtratoSelecionados.materiais)}
+                          R${" "}
+                          {formatarMoeda(totaisExtratoSelecionados.materiais)}
                         </span>
                       </div>
                       <div className={totalBarClass}>
@@ -1249,7 +1636,8 @@ export default function ObrasDetalhe() {
                           Mão de obra selecionada:
                         </span>
                         <span className="font-bold tabular-nums text-text-primary">
-                          R$ {formatarMoeda(totaisExtratoSelecionados.maoDeObra)}
+                          R${" "}
+                          {formatarMoeda(totaisExtratoSelecionados.maoDeObra)}
                         </span>
                       </div>
                       <div
@@ -1320,6 +1708,13 @@ export default function ObrasDetalhe() {
         nomeObra={obra.local}
         onSave={handleSaveMaterial}
       />
+      <ModalLocacoes
+        isOpen={modalLocacoesOpen}
+        onClose={() => setModalLocacoesOpen(false)}
+        nomeObra={obra.local}
+        nomeCliente={obra.clientes}
+        onSave={handleSaveLocacao}
+      />
       <ModalMaoDeObra
         isOpen={modalMaoDeObraOpen}
         onClose={() => setModalMaoDeObraOpen(false)}
@@ -1338,6 +1733,113 @@ export default function ObrasDetalhe() {
         message={feedback.message}
         variant={feedback.variant}
       />
+      <BaseModal
+        isOpen={Boolean(materialParaExcluir)}
+        onClose={() => setMaterialParaExcluir(null)}
+        title="Confirmar Exclusão"
+        size="sm"
+      >
+        <div className="rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50/70 to-white p-4 shadow-[0_5px_18px_rgba(0,0,0,0.05)]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-rose-700/80">
+            Atenção
+          </p>
+          <p className="mt-1 text-sm text-text-muted">
+            Tem certeza que deseja excluir o material{" "}
+            <span className="font-semibold text-text-primary">
+              {materialParaExcluir?.material || "selecionado"}
+            </span>
+            ? Esta ação não pode ser desfeita.
+          </p>
+        </div>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <BaseButton
+            variant="ghost"
+            onClick={() => setMaterialParaExcluir(null)}
+            className="w-full sm:w-auto"
+          >
+            Cancelar
+          </BaseButton>
+          <BaseButton
+            variant="danger"
+            onClick={handleConfirmarExclusaoMaterial}
+            className="w-full sm:w-auto"
+          >
+            Confirmar Exclusão
+          </BaseButton>
+        </div>
+      </BaseModal>
+      <BaseModal
+        isOpen={Boolean(maoDeObraParaExcluir)}
+        onClose={() => setMaoDeObraParaExcluir(null)}
+        title="Confirmar Exclusão"
+        size="sm"
+      >
+        <div className="rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50/70 to-white p-4 shadow-[0_5px_18px_rgba(0,0,0,0.05)]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-rose-700/80">
+            Atenção
+          </p>
+          <p className="mt-1 text-sm text-text-muted">
+            Tem certeza que deseja excluir o registro de mão de obra{" "}
+            <span className="font-semibold text-text-primary">
+              {maoDeObraParaExcluir?.profissional ||
+                maoDeObraParaExcluir?.tipo ||
+                "selecionado"}
+            </span>
+            ? Esta ação não pode ser desfeita.
+          </p>
+        </div>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <BaseButton
+            variant="ghost"
+            onClick={() => setMaoDeObraParaExcluir(null)}
+            className="w-full sm:w-auto"
+          >
+            Cancelar
+          </BaseButton>
+          <BaseButton
+            variant="danger"
+            onClick={handleConfirmarExclusaoMaoDeObra}
+            className="w-full sm:w-auto"
+          >
+            Confirmar Exclusão
+          </BaseButton>
+        </div>
+      </BaseModal>
+      <BaseModal
+        isOpen={Boolean(locacaoParaExcluir)}
+        onClose={() => setLocacaoParaExcluir(null)}
+        title="Confirmar Exclusão"
+        size="sm"
+      >
+        <div className="rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50/70 to-white p-4 shadow-[0_5px_18px_rgba(0,0,0,0.05)]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-rose-700/80">
+            Atenção
+          </p>
+          <p className="mt-1 text-sm text-text-muted">
+            Tem certeza que deseja excluir a locação{" "}
+            <span className="font-semibold text-text-primary">
+              {locacaoParaExcluir?.equipamento || "selecionada"}
+            </span>
+            ? Esta ação não pode ser desfeita.
+          </p>
+        </div>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <BaseButton
+            variant="ghost"
+            onClick={() => setLocacaoParaExcluir(null)}
+            className="w-full sm:w-auto"
+          >
+            Cancelar
+          </BaseButton>
+          <BaseButton
+            variant="danger"
+            onClick={handleConfirmarExclusaoLocacao}
+            className="w-full sm:w-auto"
+          >
+            Confirmar Exclusão
+          </BaseButton>
+        </div>
+      </BaseModal>
     </div>
   );
 }

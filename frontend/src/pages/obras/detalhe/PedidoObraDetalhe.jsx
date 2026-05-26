@@ -6,6 +6,7 @@ import { api } from "../../../services/api";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useObraById } from "./hooks/useObraById";
 import { getCorStatusMaterial } from "./utils/formatters";
+import { rotuloPedido } from "../../../utils/pedidosUtils";
 import { isPedidoEditavel } from "../../../constants/pedidos";
 import PedidoItensTable from "../../../components/pedidos/PedidoItensTable";
 import PedidoFormComposer from "../../../components/pedidos/PedidoFormComposer";
@@ -158,7 +159,7 @@ export default function PedidoObraDetalhe() {
                   </span>
                   <div className="min-w-0">
                     <h2 className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
-                      Pedido #{pedido.id}
+                      {rotuloPedido(pedido)}
                     </h2>
                     <p className="mt-1 flex items-center gap-1.5 text-sm text-text-muted">
                       <User className="h-3.5 w-3.5" />

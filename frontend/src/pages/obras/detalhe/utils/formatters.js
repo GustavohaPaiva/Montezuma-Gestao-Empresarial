@@ -39,3 +39,35 @@ export function desempatePorId(a, b) {
   if (a.id > b.id) return 1;
   return 0;
 }
+
+/**
+ * Soma o intervalo (período + tipo de período) à data de coleta e devolve
+ * a data de devolução no formato "YYYY-MM-DD".
+ *
+ * Aceita tipos: "Diário" | "Semanal" | "Mensal" | "Anual".
+ * Retorna null para entradas inválidas — assim o chamador pode preservar
+ * o valor original em vez de gravar algo errado.
+ */
+export function calcularDataDevolucao(dataColeta, periodo, tipoPeriodo) {
+  if (!dataColeta) return null;
+  const periodoNum = Math.trunc(Number(periodo));
+  if (!Number.isFinite(periodoNum) || periodoNum <= 0) return null;
+  const base = new Date(`${String(dataColeta).split("T")[0]}T12:00:00`);
+  if (Number.isNaN(base.getTime())) return null;
+  const tipo = String(tipoPeriodo || "").trim();
+  if (tipo === "Diário") {
+    base.setDate(base.getDate() + periodoNum);
+  } else if (tipo === "Semanal") {
+    base.setDate(base.getDate() + periodoNum * 7);
+  } else if (tipo === "Mensal") {
+    base.setMonth(base.getMonth() + periodoNum);
+  } else if (tipo === "Anual") {
+    base.setFullYear(base.getFullYear() + periodoNum);
+  } else {
+    return null;
+  }
+  const yyyy = base.getFullYear();
+  const mm = String(base.getMonth() + 1).padStart(2, "0");
+  const dd = String(base.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}

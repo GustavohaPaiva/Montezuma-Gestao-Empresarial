@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { ORDEM_STATUS } from "../constants";
 import {
+  calcularDataDevolucao,
   desempatePorId,
   formatarDataBR,
   formatarMoeda,
@@ -10,9 +11,14 @@ import CellInputNumber from "../components/CellInputNumber";
 import CellInputDate from "../components/CellInputDate";
 import CellSelectFornecedor from "../components/CellSelectFornecedor";
 import CellSelectPrestador from "../components/CellSelectPrestador";
+import CellSelectSolicitante from "../components/CellSelectSolicitante";
 
 /** Lista do extrato após busca textual e filtro de tipo (mesma regra da tabela). */
-export function filtrarExtratoLista(relatorioExtrato, buscaExtrato, filtroExtrato) {
+export function filtrarExtratoLista(
+  relatorioExtrato,
+  buscaExtrato,
+  filtroExtrato,
+) {
   if (!relatorioExtrato?.length) return [];
   let lista = [...relatorioExtrato];
   if (buscaExtrato) {
@@ -25,6 +31,8 @@ export function filtrarExtratoLista(relatorioExtrato, buscaExtrato, filtroExtrat
     lista = lista.filter((i) => i.tipo === "Material");
   else if (filtroExtrato === "Mão de Obra")
     lista = lista.filter((i) => i.tipo === "Mão de Obra");
+  else if (filtroExtrato === "Locações")
+    lista = lista.filter((i) => i.tipo === "Locação");
   return lista;
 }
 
@@ -37,8 +45,19 @@ export function useObrasDetalheTableData({
   handleStatusChange,
   salvarValorMaterial,
   salvarFornecedorMaterial,
+  salvarFornecedorLocacao,
   salvarDataVencimentoMaterial,
+  salvarDataSolicitacaoMaterial,
   handleDeleteMaterial,
+  buscaLocacoes,
+  editandoLocacao,
+  setEditandoLocacao,
+  handleStatusChangeLocacao,
+  salvarValorLocacao,
+  salvarSolicitanteLocacao,
+  salvarDataColetaLocacao,
+  handleDeleteLocacao,
+  handleValidarLocacao,
   buscaMaoDeObra,
   sortConfigMdo,
   editandoMaoDeObra,
@@ -107,11 +126,20 @@ export function useObrasDetalheTableData({
         editandoMaterial.id === m.id && editandoMaterial.campo === "fornecedor";
       const isEditingVencimento =
         editandoMaterial.id === m.id && editandoMaterial.campo === "vencimento";
+      const isEditingDataSolicitacao =
+        editandoMaterial.id === m.id &&
+        editandoMaterial.campo === "data_solicitacao";
       const qtdNumerica = parseFloat(m.quantidade) || 0;
       const valorUnitario = qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
 
       const nomeFornecedorExibicao =
         m.fornecedores?.nome || m.fornecedor || "-";
+
+      const isPagoMat =
+        (m.status_financeiro || "").toLowerCase() === "pago";
+      const valorTotalClassMat = isPagoMat
+        ? "text-emerald-700"
+        : "text-text-primary";
 
       return [
         <div className="uppercase">{m.material}</div>,
@@ -120,6 +148,7 @@ export function useObrasDetalheTableData({
         <div
           className="flex items-center justify-center gap-2"
           key={`val-${m.id}`}
+          title={isPagoMat ? "Material pago" : "Material aguardando pagamento"}
         >
           {isEditingValor ? (
             <CellInputNumber
@@ -132,7 +161,7 @@ export function useObrasDetalheTableData({
               className="flex items-center gap-2 group cursor-pointer"
               onClick={() => setEditandoMaterial({ id: m.id, campo: "valor" })}
             >
-              <span className="font-bold">
+              <span className={`font-bold tabular-nums ${valorTotalClassMat}`}>
                 R$ {formatarMoeda(m.valor || 0)}
               </span>
               <img
@@ -185,7 +214,33 @@ export function useObrasDetalheTableData({
             </div>
           )}
         </div>,
-        formatarDataBR(m.data_solicitacao),
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`sol-${m.id}`}
+        >
+          {isEditingDataSolicitacao ? (
+            <CellInputDate
+              valorInicial={m.data_solicitacao}
+              onSave={(val) => salvarDataSolicitacaoMaterial(m.id, val)}
+              onCancel={() => setEditandoMaterial({ id: null, campo: null })}
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer justify-center"
+              onClick={() =>
+                setEditandoMaterial({ id: m.id, campo: "data_solicitacao" })
+              }
+            >
+              <div>{formatarDataBR(m.data_solicitacao)}</div>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="ml-[4px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+              />
+            </div>
+          )}
+        </div>,
         <div
           className="flex items-center justify-center gap-2"
           key={`venc-${m.id}`}
@@ -213,7 +268,10 @@ export function useObrasDetalheTableData({
             </div>
           )}
         </div>,
-        <div className="flex justify-center px-1 py-0.5" key={`del-mat-${m.id}`}>
+        <div
+          className="flex justify-center px-1 py-0.5"
+          key={`del-mat-${m.id}`}
+        >
           <button
             onClick={() => handleDeleteMaterial(m.id)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-300/50 bg-rose-500/12 text-rose-700 shadow-sm hover:bg-rose-500/20 cursor-pointer transition-colors"
@@ -235,10 +293,278 @@ export function useObrasDetalheTableData({
     salvarValorMaterial,
     salvarFornecedorMaterial,
     salvarDataVencimentoMaterial,
+    salvarDataSolicitacaoMaterial,
     handleDeleteMaterial,
     buscaMateriais,
     sortConfig,
     setEditandoMaterial,
+  ]);
+
+  const dadosLocacoes = useMemo(() => {
+    if (!obra?.locacoes?.length) return [];
+    let lista = [...obra.locacoes];
+
+    if (buscaLocacoes) {
+      const termo = buscaLocacoes.toLowerCase();
+      lista = lista.filter(
+        (l) =>
+          l.equipamento?.toLowerCase().includes(termo) ||
+          l.solicitante?.toLowerCase().includes(termo) ||
+          l.tipo_periodo?.toLowerCase().includes(termo),
+      );
+    }
+
+    lista.sort((a, b) => {
+      const valA = a.validacao || 0;
+      const valB = b.validacao || 0;
+      if (valA !== valB) return valA - valB;
+      return desempatePorId(a, b);
+    });
+
+    return lista.map((l) => {
+      let tipoPeriodo = "—";
+      if (l.periodo === 1) {
+        if (l.tipo_periodo === "Mensal") {
+          tipoPeriodo = "Mês";
+        } else if (l.tipo_periodo === "Semanal") {
+          tipoPeriodo = "Semana";
+        } else if (l.tipo_periodo === "Diário") {
+          tipoPeriodo = "Dia";
+        } else if (l.tipo_periodo === "Anual") {
+          tipoPeriodo = "Ano";
+        }
+      } else {
+        if (l.tipo_periodo === "Mensal") {
+          tipoPeriodo = "Meses";
+        } else if (l.tipo_periodo === "Semanal") {
+          tipoPeriodo = "Semanas";
+        } else if (l.tipo_periodo === "Diário") {
+          tipoPeriodo = "Dias";
+        } else if (l.tipo_periodo === "Anual") {
+          tipoPeriodo = "Anos";
+        }
+      }
+
+      const isEditingFornecedorLocacao =
+        editandoLocacao.id === l.id && editandoLocacao.campo === "fornecedor";
+      const quantidadeLabel = `${l.quantidade} un.`;
+      const isEditingValor =
+        editandoLocacao.id === l.id && editandoLocacao.campo === "valor";
+      const isEditingDataColeta =
+        editandoLocacao.id === l.id && editandoLocacao.campo === "data_coleta";
+      const isEditingSolicitante =
+        editandoLocacao.id === l.id && editandoLocacao.campo === "solicitante";
+      const periodoLabel = `${l.periodo} ${tipoPeriodo || "—"}`;
+      const dataDevolucaoCalc =
+        calcularDataDevolucao(l.data_coleta, l.periodo, l.tipo_periodo) ||
+        l.data_vencimento;
+      const isValidadoLoc = l.validacao === 1;
+      const isPagoLoc =
+        (l.status_financeiro || "").toLowerCase() === "pago";
+      const valorTotalClassLoc = isPagoLoc
+        ? "font-bold text-emerald-700"
+        : "text-text-primary";
+
+      return [
+        // Validação (checkbox para enviar ao extrato — mesma lógica de MdO)
+        <label
+          className="flex items-center justify-center"
+          key={`cb-loc-${l.id}`}
+          title={
+            isValidadoLoc
+              ? "Locação já enviada ao extrato"
+              : "Enviar para o extrato"
+          }
+        >
+          <input
+            type="checkbox"
+            checked={isValidadoLoc}
+            disabled={isValidadoLoc}
+            onChange={() => handleValidarLocacao(l)}
+            className="h-[15px] w-[15px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer disabled:opacity-50"
+          />
+        </label>,
+
+        // Nome do equipamento
+        <div key={`eq-${l.id}`}>{l.equipamento}</div>,
+
+        // Quantidade
+        quantidadeLabel,
+
+        // Período Formatado em periodo e tipo periodo
+        periodoLabel,
+
+        // Solicitante (editável)
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`sol-loc-${l.id}`}
+        >
+          {isEditingSolicitante ? (
+            <CellSelectSolicitante
+              valorInicial={l.solicitante}
+              nomeCliente={obra?.clientes}
+              onSave={(novo) => salvarSolicitanteLocacao(l.id, novo)}
+              onCancel={() => setEditandoLocacao({ id: null, campo: null })}
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer justify-center"
+              onClick={() =>
+                setEditandoLocacao({ id: l.id, campo: "solicitante" })
+              }
+            >
+              <div className="uppercase">{l.solicitante || "—"}</div>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="ml-[4px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+              />
+            </div>
+          )}
+        </div>,
+
+        // Fornecedor
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`forn-${l.id}`}
+        >
+          {isEditingFornecedorLocacao ? (
+            <CellSelectFornecedor
+              valorInicialId={l.fornecedor_id}
+              onSave={(novoId) => salvarFornecedorLocacao(l.id, novoId)}
+              onCancel={() => setEditandoLocacao({ id: null, campo: null })}
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer justify-center"
+              onClick={() =>
+                setEditandoLocacao({ id: l.id, campo: "fornecedor" })
+              }
+            >
+              <div className="uppercase text-[13px]">{l.fornecedor || "—"}</div>
+            </div>
+          )}
+        </div>,
+
+        // Valor Unitario
+        `R$ ${formatarMoeda(l.valor / l.quantidade || 0)}`,
+
+        // Valor Total (cor indica status financeiro: verde = pago)
+        <div
+          className="flex items-center justify-center gap-2"
+          title={
+            isPagoLoc ? "Locação paga" : "Locação aguardando pagamento"
+          }
+        >
+          {isEditingValor ? (
+            <CellInputNumber
+              valorInicial={l.valor || 0}
+              onSave={(val) => salvarValorLocacao(l.id, val)}
+              onCancel={() => setEditandoLocacao({ id: null, campo: null })}
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => setEditandoLocacao({ id: l.id, campo: "valor" })}
+            >
+              <span className={`tabular-nums ${valorTotalClassLoc}`}>
+                R$ {formatarMoeda(l.valor || 0)}
+              </span>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="ml-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+              />
+            </div>
+          )}
+        </div>,
+
+        // Status
+        <select
+          key={`status-loc-${l.id}`}
+          value={l.status || "Solicitado"}
+          onChange={(e) => handleStatusChangeLocacao(l.id, e.target.value)}
+          className={`w-full max-w-[13rem] cursor-pointer appearance-none rounded-full border-0 px-3 py-1.5 text-center text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-9 sm:w-fit ${getCorStatusMaterial(l.status || "Solicitado")}`}
+        >
+          <option value="Solicitado">Solicitado</option>
+          <option value="Em cotação">Em cotação</option>
+          <option value="Aprovado">Aprovado</option>
+          <option value="Aguardando entrega">Aguardando entrega</option>
+          <option value="Entregue">Entregue</option>
+        </select>,
+
+        // Data de coleta
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`cole-loc-${l.id}`}
+        >
+          {isEditingDataColeta ? (
+            <CellInputDate
+              valorInicial={l.data_coleta}
+              onSave={(val) => salvarDataColetaLocacao(l.id, val)}
+              onCancel={() => setEditandoLocacao({ id: null, campo: null })}
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer justify-center"
+              onClick={() =>
+                setEditandoLocacao({ id: l.id, campo: "data_coleta" })
+              }
+            >
+              <div>{formatarDataBR(l.data_coleta)}</div>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="ml-[4px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+              />
+            </div>
+          )}
+        </div>,
+
+        // Data de devolução (calculada a partir de data_coleta + período)
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`venc-loc-${l.id}`}
+          title="Calculada automaticamente a partir da data de coleta e do período"
+        >
+          <div className="text-text-primary">
+            {formatarDataBR(dataDevolucaoCalc)}
+          </div>
+        </div>,
+        <div
+          className="flex justify-center px-1 py-0.5"
+          key={`del-loc-${l.id}`}
+        >
+          <button
+            type="button"
+            onClick={() => handleDeleteLocacao(l.id)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-300/50 bg-rose-500/12 text-rose-700 shadow-sm hover:bg-rose-500/20 cursor-pointer transition-colors"
+          >
+            <img
+              width="18"
+              height="18"
+              src="https://img.icons8.com/material-outlined/24/FA5252/trash.png"
+              alt="delete"
+            />
+          </button>
+        </div>,
+      ];
+    });
+  }, [
+    obra,
+    buscaLocacoes,
+    editandoLocacao,
+    handleStatusChangeLocacao,
+    salvarValorLocacao,
+    salvarSolicitanteLocacao,
+    salvarDataColetaLocacao,
+    handleDeleteLocacao,
+    handleValidarLocacao,
+    setEditandoLocacao,
+    salvarFornecedorLocacao,
   ]);
 
   const dadosMaoDeObra = useMemo(() => {
@@ -455,11 +781,7 @@ export function useObrasDetalheTableData({
 
   const listaExtratoFiltrada = useMemo(
     () =>
-      filtrarExtratoLista(
-        obra?.relatorioExtrato,
-        buscaExtrato,
-        filtroExtrato,
-      ),
+      filtrarExtratoLista(obra?.relatorioExtrato, buscaExtrato, filtroExtrato),
     [obra?.relatorioExtrato, buscaExtrato, filtroExtrato],
   );
 
@@ -509,8 +831,10 @@ export function useObrasDetalheTableData({
           "Aguardando pagamento": 0,
           Pago: 1,
         };
-        valorA = ordemStatus[a.status_financeiro || "Aguardando pagamento"] ?? 99;
-        valorB = ordemStatus[b.status_financeiro || "Aguardando pagamento"] ?? 99;
+        valorA =
+          ordemStatus[a.status_financeiro || "Aguardando pagamento"] ?? 99;
+        valorB =
+          ordemStatus[b.status_financeiro || "Aguardando pagamento"] ?? 99;
       } else if (sortField === "tipo") {
         valorA = (a.tipo || "").toLowerCase();
         valorB = (b.tipo || "").toLowerCase();
@@ -533,12 +857,7 @@ export function useObrasDetalheTableData({
     });
 
     return itensComFornecedorPrestador;
-  }, [
-    obra,
-    listaExtratoFiltrada,
-    sortField,
-    sortDirection,
-  ]);
+  }, [obra, listaExtratoFiltrada, sortField, sortDirection]);
 
   const totaisExtratoSelecionados = useMemo(() => {
     let materiais = 0;
@@ -681,6 +1000,7 @@ export function useObrasDetalheTableData({
 
   return {
     dadosMateriais,
+    dadosLocacoes,
     dadosMaoDeObra,
     dadosRelatorioExtrato,
     headerExtrato,

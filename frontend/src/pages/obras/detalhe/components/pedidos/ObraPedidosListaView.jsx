@@ -75,7 +75,7 @@ export default function ObraPedidosListaView({
               onBuscaChange={setBusca}
               status={filtroStatus}
               onStatusChange={setFiltroStatus}
-              placeholderBusca="Buscar por material ou nº do pedido…"
+              placeholderBusca="Buscar por nº do pedido, material ou solicitante…"
             />
           ) : null}
           {user ? (

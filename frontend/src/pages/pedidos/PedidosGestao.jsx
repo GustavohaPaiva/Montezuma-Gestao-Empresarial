@@ -62,7 +62,7 @@ export default function PedidosGestao() {
       key="filtro-busca-pedidos"
       value={busca}
       onChange={(e) => setBusca(e.target.value)}
-      placeholder="Buscar por obra, material ou solicitante…"
+      placeholder="Buscar por obra, nº do pedido, material ou solicitante…"
     />,
     <BaseSelect
       key="filtro-status-pedidos"

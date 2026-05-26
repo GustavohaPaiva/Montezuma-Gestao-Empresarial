@@ -5,6 +5,7 @@ import ButtonDefault from "../gerais/ButtonDefault";
 import { formatarDataBR } from "../../pages/obras/detalhe/utils/formatters";
 import {
   formatarQuantidadePedido,
+  normalizarNomeMaterial,
   validarItemPedido,
 } from "../../utils/pedidosUtils";
 import {
@@ -17,9 +18,7 @@ import {
 
 function CampoForm({ label, children, className = "" }) {
   return (
-    <label
-      className={`flex flex-col gap-1.5 ${className}`.trim()}
-    >
+    <label className={`flex flex-col gap-1.5 ${className}`.trim()}>
       <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">
         {label}
       </span>
@@ -113,66 +112,69 @@ export default function PedidoFormComposer({
     <div className="flex flex-col gap-6">
       <section className="rounded-2xl border border-border-primary/35 bg-[#FAFAFA] p-4 sm:p-5">
         <div className={`${pedidoSecaoToolbarClass} mb-4 lg:items-start`}>
-          <div className="min-w-0 shrink-0 lg:max-w-[11rem]">
-            <h4 className="text-sm font-bold text-text-primary">
-              Adicionar material
-            </h4>
-            <p className="mt-1 text-xs text-text-muted">
-              Preencha os campos e clique em &quot;Adicionar à lista&quot;.
-            </p>
-          </div>
-
-          <div className="min-w-0 flex-1">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-          <CampoForm label="Material" className="md:col-span-12">
-            <input
-              type="text"
-              value={material}
-              onChange={(e) => setMaterial(e.target.value)}
-              placeholder="Ex.: Cimento CP II 50kg"
-              className={inputPremium}
-            />
-          </CampoForm>
-          <CampoForm label="Quantidade" className="md:col-span-3">
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={quantidade}
-              onChange={(e) => setQuantidade(e.target.value)}
-              placeholder="120"
-              className={inputPremium}
-            />
-          </CampoForm>
-          <CampoForm label="Un." className="md:col-span-3">
-            <select
-              value={unidade}
-              onChange={(e) => setUnidade(e.target.value)}
-              className={selectPremium}
-            >
-              {UNIDADES_MEDIDA_PEDIDO.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
-          </CampoForm>
-          <CampoForm label="Data de entrega" className="md:col-span-6">
-            <input
-              type="date"
-              value={dataEntrega}
-              onChange={(e) => setDataEntrega(e.target.value)}
-              className={inputPremium}
-            />
-          </CampoForm>
+          <div className="w-full">
+            <div className="min-w-0 shrink-0 mb-4">
+              <h4 className="text-xl font-bold text-text-primary">
+                Adicionar material
+              </h4>
+              <p className=" text-xs text-text-muted">
+                Preencha os campos e clique em &quot;Adicionar à lista&quot;.
+              </p>
             </div>
 
-            <div className="mt-4 flex justify-end">
+            <div className="min-w-0 flex-1">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+                <CampoForm label="Material" className="md:col-span-12">
+                  <input
+                    type="text"
+                    value={material}
+                    onChange={(e) =>
+                      setMaterial(normalizarNomeMaterial(e.target.value))
+                    }
+                    placeholder="Ex.: Cimento CP II 50kg"
+                    className={inputPremium}
+                  />
+                </CampoForm>
+                <CampoForm label="Quantidade" className="md:col-span-3">
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={quantidade}
+                    onChange={(e) => setQuantidade(e.target.value)}
+                    placeholder="120"
+                    className={inputPremium}
+                  />
+                </CampoForm>
+                <CampoForm label="Un." className="md:col-span-3">
+                  <select
+                    value={unidade}
+                    onChange={(e) => setUnidade(e.target.value)}
+                    className={selectPremium}
+                  >
+                    {UNIDADES_MEDIDA_PEDIDO.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
+                    ))}
+                  </select>
+                </CampoForm>
+                <CampoForm label="Data de entrega" className="md:col-span-6">
+                  <input
+                    type="date"
+                    value={dataEntrega}
+                    onChange={(e) => setDataEntrega(e.target.value)}
+                    className={inputPremium}
+                  />
+                </CampoForm>
+              </div>
+            </div>
+            <div className="mt-4 w-full flex justify-end">
               <ButtonDefault
                 type="button"
                 onClick={adicionarMaterial}
                 disabled={!itemValido}
-                className={`${btnOutlinePremium} !w-full sm:!min-w-[200px] sm:!w-auto`}
+                className={`${btnAccentPremium} !w-full sm:!min-w-[200px]`}
               >
                 <span className="inline-flex items-center gap-2">
                   <Plus className="h-4 w-4 shrink-0" />
@@ -200,7 +202,9 @@ export default function PedidoFormComposer({
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-text-primary">{item.material}</p>
+                  <p className="font-semibold text-text-primary">
+                    {item.material}
+                  </p>
                   <p className="mt-1 text-xs text-text-muted">
                     {formatarQuantidadePedido(item.quantidade)} {item.unidade} ·
                     Entrega {formatarDataBR(item.data_entrega)}
@@ -236,7 +240,7 @@ export default function PedidoFormComposer({
             type="button"
             onClick={onCancel}
             disabled={submitting}
-            className={`${btnOutlinePremium} sm:!w-auto`}
+            className={`${btnOutlinePremium} sm:!w-full`}
           >
             Cancelar
           </ButtonDefault>
@@ -245,7 +249,7 @@ export default function PedidoFormComposer({
           type="button"
           onClick={handleLancar}
           disabled={submitting || itens.length === 0}
-          className={`${btnAccentPremium} !w-full sm:!min-w-[200px]`}
+          className={`${btnAccentPremium} sm:!w-full`}
         >
           <span className="inline-flex items-center gap-2">
             <Send className="h-4 w-4 shrink-0" />
