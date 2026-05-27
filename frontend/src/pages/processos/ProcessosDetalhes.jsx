@@ -17,6 +17,8 @@ import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { api } from "../../services/api";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import FichaClientePDF from "../../documents/FichaClientePDF";
+import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
+import { gerarDocumentosPrefeituraPdf } from "../../utils/documentosPrefeituraPdf";
 import {
   formatClienteCampo,
   formatClienteRecord,
@@ -39,7 +41,7 @@ export default function ProcessosDetalhes() {
   const [processo, setProcesso] = useState(null);
   const [editando, setEditando] = useState(null);
   const [valorEdicao, setValorEdicao] = useState("");
-  const [gerandoPDF, setGerandoPDF] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
   useEffect(() => {
@@ -155,39 +157,37 @@ export default function ProcessosDetalhes() {
     }));
   };
 
-  const handleGerarFichaPDF = async () => {
+  const handleGerarFichaPDF = () => {
     if (!processo?.id || !processo?.escritorio_id) return;
-    const novaAba = window.open("", "_blank");
-    setGerandoPDF(true);
-    try {
-      const dados = formatClienteRecord(
-        await api.getClienteById(processo.id, {
-          allowedEscritorioIds: [processo.escritorio_id],
-        }),
-      );
-      if (!dados) {
-        throw new Error("Cliente não encontrado ou fora do escritório atual.");
-      }
-      const blob = await pdf(<FichaClientePDF cliente={dados} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      if (novaAba && !novaAba.closed) {
-        novaAba.location.href = url;
-      } else {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `Ficha_Cliente_${nomeArquivoSeguro(dados.nome)}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch (e) {
-      console.error("[ProcessosDetalhes] gerar PDF:", e);
-      if (novaAba && !novaAba.closed) novaAba.close();
-      alert(e?.message || "Não foi possível gerar a ficha.");
-    } finally {
-      setGerandoPDF(false);
-    }
+    const dataHoje = new Date().toISOString().slice(0, 10);
+    setPdfPreview({
+      titulo: "Ficha do Cliente",
+      nomeFallback: `Ficha_Cliente_${nomeArquivoSeguro(processo.nome)}.pdf`,
+      gerador: async () => {
+        const dados = formatClienteRecord(
+          await api.getClienteById(processo.id, {
+            allowedEscritorioIds: [processo.escritorio_id],
+          }),
+        );
+        if (!dados) {
+          throw new Error("Cliente não encontrado ou fora do escritório atual.");
+        }
+        const blob = await pdf(<FichaClientePDF cliente={dados} />).toBlob();
+        return {
+          blob,
+          nomePadrao: `Montezuma_Ficha-Cliente_${nomeArquivoSeguro(dados.nome)}_${dataHoje}.pdf`,
+        };
+      },
+    });
+  };
+
+  const handleVerDocumentosPrefeitura = () => {
+    if (!processo?.id) return;
+    setPdfPreview({
+      titulo: "Documentos para a Prefeitura",
+      nomeFallback: "documentos_prefeitura.pdf",
+      gerador: () => gerarDocumentosPrefeituraPdf(processo.id),
+    });
   };
 
   const handleSalvarInformacoes = async () => {
@@ -498,21 +498,16 @@ export default function ProcessosDetalhes() {
             <ButtonDefault
               type="button"
               onClick={handleGerarFichaPDF}
-              disabled={gerandoPDF}
               aria-label="Gerar ficha do cliente em PDF"
               className="h-auto min-h-[44px] cursor-pointer gap-2 rounded-xl border-gray-200 px-4 py-2.5 text-sm shadow-sm"
             >
-              {gerandoPDF ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                <FileText className="h-4 w-4" aria-hidden />
-              )}
-              {gerandoPDF ? "Gerando…" : "Gerar Ficha"}
+              <FileText className="h-4 w-4" aria-hidden />
+              Gerar Ficha
             </ButtonDefault>
 
             <ButtonDefault
               type="button"
-              onClick={() => navigate(`/documentos/${id}`)}
+              onClick={handleVerDocumentosPrefeitura}
               className="h-auto min-h-[44px] cursor-pointer rounded-xl px-4 py-2.5 text-sm shadow-sm"
             >
               Ver Documentos
@@ -1530,6 +1525,13 @@ export default function ProcessosDetalhes() {
           </div>
         </div>
       </div>
+      <PdfPreviewModal
+        isOpen={Boolean(pdfPreview)}
+        onClose={() => setPdfPreview(null)}
+        titulo={pdfPreview?.titulo}
+        gerador={pdfPreview?.gerador}
+        nomeFallback={pdfPreview?.nomeFallback}
+      />
     </div>
   );
 }

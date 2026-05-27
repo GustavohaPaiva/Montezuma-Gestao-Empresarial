@@ -895,7 +895,11 @@ export function useObrasDetalheTableData({
         <div className="uppercase">{item.descricao}</div>,
         <div className="uppercase">{item.tipo}</div>,
         <div className="uppercase">{item.fornecedor_prestador}</div>,
-        item.quantidade,
+        <div className="tabular-nums" key={`qtd-ext-${item.id}`}>
+          {item.quantidade != null && item.quantidade !== ""
+            ? String(item.quantidade)
+            : "—"}
+        </div>,
         <div
           className="flex items-center justify-center gap-2"
           key={`val-ext-${item.id}`}

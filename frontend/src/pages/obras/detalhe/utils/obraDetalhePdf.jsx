@@ -62,6 +62,14 @@ async function blobERetorno(doc, nomePadrao) {
   return { blob, nomePadrao };
 }
 
+/** Chips compactos (mesmo estilo Cliente/Local): itens + valor total. */
+function resumoItensETotal(quantidade, valorFormatado, labelTotal = "Total") {
+  return [
+    { label: "Itens", value: String(quantidade) },
+    { label: labelTotal, value: valorFormatado },
+  ];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Mão de Obra (Geral) — SEM "V. Cobrado" no PDF
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,11 +95,6 @@ export async function gerarPdfRelatorioMaoDeObraGeral(
     (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
     0,
   );
-  const totalPago = lista.reduce(
-    (acc, m) => acc + (parseFloat(m.valor_pago) || 0),
-    0,
-  );
-  const totalSaldo = totalOrcado - totalPago;
 
   const colunas = [
     { key: "servico", label: "Serviço", width: "22%" },
@@ -124,25 +127,6 @@ export async function gerarPdfRelatorioMaoDeObraGeral(
     ];
   });
 
-  const resumo = [
-    { label: "Itens", value: String(lista.length) },
-    {
-      label: "Total Orçado",
-      value: `R$ ${formatarMoeda(totalOrcado)}`,
-      tone: "destaque",
-    },
-    {
-      label: "Total Pago",
-      value: `R$ ${formatarMoeda(totalPago)}`,
-      tone: "success",
-    },
-    {
-      label: "Saldo a Pagar",
-      value: `R$ ${formatarMoeda(totalSaldo)}`,
-      tone: totalSaldo > 0 ? "warning" : "destaque",
-    },
-  ];
-
   const titulo = "Relatório de Mão de Obra";
   const nomePadrao = nomeFormalRelatorio("Relatorio-de-Mao-de-Obra", obra);
 
@@ -151,25 +135,17 @@ export async function gerarPdfRelatorioMaoDeObraGeral(
       titulo={titulo}
       referencia={`MDO · ${hojeISO()}`}
       obra={obraParaPdf(obra)}
-      resumo={resumo}
+      resumo={resumoItensETotal(
+        lista.length,
+        `R$ ${formatarMoeda(totalOrcado)}`,
+        "Total Orçado",
+      )}
       colunas={colunas}
       linhas={linhas}
       totalDestaque={{
         label: "Total Orçado",
         value: `R$ ${formatarMoeda(totalOrcado)}`,
       }}
-      totais={[
-        {
-          label: "Pago",
-          value: `R$ ${formatarMoeda(totalPago)}`,
-          tone: "success",
-        },
-        {
-          label: "Saldo a Pagar",
-          value: `R$ ${formatarMoeda(totalSaldo)}`,
-          tone: totalSaldo > 0 ? "warning" : null,
-        },
-      ]}
     />
   );
 
@@ -199,11 +175,6 @@ export async function gerarPdfRelatorioPorPrestador(
     (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
     0,
   );
-  const totalPago = filtrados.reduce(
-    (acc, m) => acc + (parseFloat(m.valor_pago) || 0),
-    0,
-  );
-  const totalSaldo = totalOrcado - totalPago;
 
   const colunas = [
     { key: "servico", label: "Serviço", width: "30%" },
@@ -233,25 +204,6 @@ export async function gerarPdfRelatorioPorPrestador(
     ];
   });
 
-  const resumo = [
-    { label: "Itens", value: String(filtrados.length) },
-    {
-      label: "Total Orçado",
-      value: `R$ ${formatarMoeda(totalOrcado)}`,
-      tone: "destaque",
-    },
-    {
-      label: "Total Pago",
-      value: `R$ ${formatarMoeda(totalPago)}`,
-      tone: "success",
-    },
-    {
-      label: "Saldo Geral",
-      value: `R$ ${formatarMoeda(totalSaldo)}`,
-      tone: totalSaldo > 0 ? "warning" : "destaque",
-    },
-  ];
-
   const titulo = `Mão de Obra · ${prestador}`;
   const nomePadrao = nomeFormalRelatorio(
     "Relatorio-de-Mao-de-Obra",
@@ -265,25 +217,17 @@ export async function gerarPdfRelatorioPorPrestador(
       referencia={`MDO · Prestador · ${hojeISO()}`}
       obra={obraParaPdf(obra)}
       info={[{ label: "Prestador", value: prestador }]}
-      resumo={resumo}
+      resumo={resumoItensETotal(
+        filtrados.length,
+        `R$ ${formatarMoeda(totalOrcado)}`,
+        "Total Orçado",
+      )}
       colunas={colunas}
       linhas={linhas}
       totalDestaque={{
         label: "Total Orçado",
         value: `R$ ${formatarMoeda(totalOrcado)}`,
       }}
-      totais={[
-        {
-          label: "Pago",
-          value: `R$ ${formatarMoeda(totalPago)}`,
-          tone: "success",
-        },
-        {
-          label: "Saldo Geral",
-          value: `R$ ${formatarMoeda(totalSaldo)}`,
-          tone: totalSaldo > 0 ? "warning" : null,
-        },
-      ]}
     />
   );
 
@@ -322,12 +266,6 @@ export async function gerarPdfRelatorioMateriais(
     (acc, m) => acc + (parseFloat(m.valor) || 0),
     0,
   );
-  const totalPago = lista.reduce((acc, m) => {
-    const pago = (m.status_financeiro || "").toLowerCase() === "pago";
-    return acc + (pago ? parseFloat(m.valor) || 0 : 0);
-  }, 0);
-  const totalPendente = totalGeral - totalPago;
-
   const colunas = [
     { key: "material", label: "Material", width: "28%" },
     { key: "qtd", label: "Qtd.", width: "9%" },
@@ -357,25 +295,6 @@ export async function gerarPdfRelatorioMateriais(
     ];
   });
 
-  const resumo = [
-    { label: "Itens", value: String(lista.length) },
-    {
-      label: "Total Lançado",
-      value: `R$ ${formatarMoeda(totalGeral)}`,
-      tone: "destaque",
-    },
-    {
-      label: "Pago",
-      value: `R$ ${formatarMoeda(totalPago)}`,
-      tone: "success",
-    },
-    {
-      label: "Pendente",
-      value: `R$ ${formatarMoeda(totalPendente)}`,
-      tone: "warning",
-    },
-  ];
-
   const titulo = "Relatório de Materiais";
   const nomePadrao = nomeFormalRelatorio("Relatorio-de-Materiais", obra);
 
@@ -384,25 +303,17 @@ export async function gerarPdfRelatorioMateriais(
       titulo={titulo}
       referencia={`MAT · ${hojeISO()}`}
       obra={obraParaPdf(obra)}
-      resumo={resumo}
+      resumo={resumoItensETotal(
+        lista.length,
+        `R$ ${formatarMoeda(totalGeral)}`,
+        "Total Lançado",
+      )}
       colunas={colunas}
       linhas={linhas}
       totalDestaque={{
         label: "Total Lançado",
         value: `R$ ${formatarMoeda(totalGeral)}`,
       }}
-      totais={[
-        {
-          label: "Pago",
-          value: `R$ ${formatarMoeda(totalPago)}`,
-          tone: "success",
-        },
-        {
-          label: "Pendente",
-          value: `R$ ${formatarMoeda(totalPendente)}`,
-          tone: "warning",
-        },
-      ]}
     />
   );
 
@@ -442,12 +353,6 @@ export async function gerarPdfRelatorioLocacoes(
     (acc, l) => acc + (parseFloat(l.valor) || 0),
     0,
   );
-  const totalPago = lista.reduce((acc, l) => {
-    const pago = (l.status_financeiro || "").toLowerCase() === "pago";
-    return acc + (pago ? parseFloat(l.valor) || 0 : 0);
-  }, 0);
-  const totalPendente = totalGeral - totalPago;
-
   const colunas = [
     { key: "equip", label: "Equipamento", width: "26%" },
     { key: "qtd", label: "Qtd.", width: "8%" },
@@ -479,25 +384,6 @@ export async function gerarPdfRelatorioLocacoes(
     ];
   });
 
-  const resumo = [
-    { label: "Itens", value: String(lista.length) },
-    {
-      label: "Total Lançado",
-      value: `R$ ${formatarMoeda(totalGeral)}`,
-      tone: "destaque",
-    },
-    {
-      label: "Pago",
-      value: `R$ ${formatarMoeda(totalPago)}`,
-      tone: "success",
-    },
-    {
-      label: "Pendente",
-      value: `R$ ${formatarMoeda(totalPendente)}`,
-      tone: "warning",
-    },
-  ];
-
   const titulo = "Relatório de Locações";
   const nomePadrao = nomeFormalRelatorio("Relatorio-de-Locacoes", obra);
 
@@ -506,25 +392,17 @@ export async function gerarPdfRelatorioLocacoes(
       titulo={titulo}
       referencia={`LOC · ${hojeISO()}`}
       obra={obraParaPdf(obra)}
-      resumo={resumo}
+      resumo={resumoItensETotal(
+        lista.length,
+        `R$ ${formatarMoeda(totalGeral)}`,
+        "Total Lançado",
+      )}
       colunas={colunas}
       linhas={linhas}
       totalDestaque={{
         label: "Total Lançado",
         value: `R$ ${formatarMoeda(totalGeral)}`,
       }}
-      totais={[
-        {
-          label: "Pago",
-          value: `R$ ${formatarMoeda(totalPago)}`,
-          tone: "success",
-        },
-        {
-          label: "Pendente",
-          value: `R$ ${formatarMoeda(totalPendente)}`,
-          tone: "warning",
-        },
-      ]}
     />
   );
 
@@ -548,25 +426,26 @@ export async function gerarPdfExtrato(
   }
 
   const soma = itens.reduce((acc, i) => acc + (parseFloat(i.valor) || 0), 0);
-  const somaPago = itens.reduce((acc, i) => {
-    const pago = (i.status_financeiro || "").toLowerCase() === "pago";
-    return acc + (pago ? parseFloat(i.valor) || 0 : 0);
-  }, 0);
-  const somaPendente = soma - somaPago;
 
   const colunas = [
-    { key: "desc", label: "Descrição", width: "34%" },
-    { key: "tipo", label: "Tipo", width: "16%" },
+    { key: "desc", label: "Descrição", width: "28%" },
+    { key: "tipo", label: "Tipo", width: "14%" },
+    { key: "qtd", label: "Qtd.", width: "10%" },
     { key: "data", label: "Data", width: "14%" },
     { key: "valor", label: "Valor", width: "18%" },
-    { key: "pgto", label: "Pagamento", width: "18%" },
+    { key: "pgto", label: "Pagamento", width: "16%" },
   ];
 
   const linhas = itens.map((i) => {
     const pago = (i.status_financeiro || "").toLowerCase() === "pago";
+    const qtd =
+      i.quantidade != null && i.quantidade !== ""
+        ? String(i.quantidade)
+        : "—";
     return [
       i.descricao || "—",
       i.tipo || "—",
+      qtd,
       formatarDataBR(i.data),
       pago
         ? { text: `R$ ${formatarMoeda(i.valor)}`, tone: "success" }
@@ -579,25 +458,6 @@ export async function gerarPdfExtrato(
     ];
   });
 
-  const resumo = [
-    { label: "Itens", value: String(itens.length) },
-    {
-      label: "Total do Extrato",
-      value: `R$ ${formatarMoeda(soma)}`,
-      tone: "destaque",
-    },
-    {
-      label: "Pago",
-      value: `R$ ${formatarMoeda(somaPago)}`,
-      tone: "success",
-    },
-    {
-      label: "Pendente",
-      value: `R$ ${formatarMoeda(somaPendente)}`,
-      tone: "warning",
-    },
-  ];
-
   const titulo = "Extrato Financeiro";
   const nomePadrao = nomeFormalRelatorio("Extrato-Financeiro", obra);
 
@@ -606,25 +466,17 @@ export async function gerarPdfExtrato(
       titulo={titulo}
       referencia={`EXT · ${hojeISO()}`}
       obra={obraParaPdf(obra)}
-      resumo={resumo}
+      resumo={resumoItensETotal(
+        itens.length,
+        `R$ ${formatarMoeda(soma)}`,
+        "Total do Extrato",
+      )}
       colunas={colunas}
       linhas={linhas}
       totalDestaque={{
         label: "Total do Extrato",
         value: `R$ ${formatarMoeda(soma)}`,
       }}
-      totais={[
-        {
-          label: "Pago",
-          value: `R$ ${formatarMoeda(somaPago)}`,
-          tone: "success",
-        },
-        {
-          label: "Pendente",
-          value: `R$ ${formatarMoeda(somaPendente)}`,
-          tone: "warning",
-        },
-      ]}
     />
   );
 

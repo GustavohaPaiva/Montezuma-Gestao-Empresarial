@@ -163,14 +163,7 @@ export default function App() {
                 </PageTransition>
               }
             />
-            <Route
-              path="/documentos/:id"
-              element={
-                <PageTransition>
-                  <DocumentosProcesso />
-                </PageTransition>
-              }
-            />
+            <Route path="/documentos/:id" element={<DocumentosProcesso />} />
             <Route
               path="/financeiro"
               element={

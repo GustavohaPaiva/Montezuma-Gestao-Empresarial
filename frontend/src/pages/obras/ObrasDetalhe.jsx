@@ -34,6 +34,7 @@ import {
   gerarPdfRelatorioPorPrestador,
 } from "./detalhe/utils/obraDetalhePdf.jsx";
 import FeedbackModal from "../../components/gerais/FeedbackModal";
+import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import BaseModal from "../../components/gerais/BaseModal";
 import BaseButton from "../../components/gerais/BaseButton";
 import { useAuth } from "../../contexts/AuthContext";
@@ -57,6 +58,7 @@ export default function ObrasDetalhe() {
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
   const [modalRelatorioPrestadorOpen, setModalRelatorioPrestadorOpen] =
     useState(false);
+  const [pdfPreview, setPdfPreview] = useState(null);
 
   const [feedback, setFeedback] = useState({
     open: false,
@@ -665,71 +667,12 @@ export default function ObrasDetalhe() {
     [fetchDados, setObra],
   );
 
-  const abrirPdfEmNovaAba = async (gerador, fallbackNome) => {
-    const novaAba = window.open("", "_blank");
-    try {
-      const resultado = await gerador();
-      const blob = resultado?.blob ?? resultado;
-      if (!blob) throw new Error("PDF vazio.");
-      const url = URL.createObjectURL(blob);
-      const nomeArquivo =
-        resultado?.nomePadrao || fallbackNome || "documento.pdf";
-
-      if (novaAba && !novaAba.closed) {
-        // Renderiza uma página com toolbar (download com nome correto) + visualizador
-        // do PDF. Resolve o bug de o download vir com UUID quando o usuário usa
-        // "Salvar como..." direto do visualizador do navegador.
-        const safeNome = String(nomeArquivo).replace(/"/g, "&quot;");
-        novaAba.document.open();
-        novaAba.document.write(
-          `<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <title>${safeNome}</title>
-  <style>
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; background: #1f2937; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: #111827; color: #f9fafb; border-bottom: 1px solid #374151; gap: 12px; }
-    .topbar .titulo { font-size: 13px; font-weight: 600; letter-spacing: 0.2px; opacity: 0.95; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .topbar .acoes { display: flex; gap: 8px; flex-shrink: 0; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
-    .btn-primary { background: #DC3B0B; color: #ffffff; }
-    .btn-primary:hover { background: #c53108; }
-    .btn-ghost { background: transparent; color: #f9fafb; border-color: #4b5563; }
-    .btn-ghost:hover { background: #374151; }
-    iframe { display: block; width: 100%; height: calc(100% - 49px); border: 0; background: #4b5563; }
-  </style>
-</head>
-<body>
-  <div class="topbar">
-    <div class="titulo">${safeNome}</div>
-    <div class="acoes">
-      <a class="btn btn-ghost" href="${url}" target="_blank" rel="noopener">Abrir em nova aba</a>
-      <a class="btn btn-primary" href="${url}" download="${safeNome}">Baixar PDF</a>
-    </div>
-  </div>
-  <iframe src="${url}#toolbar=1&navpanes=0" title="${safeNome}"></iframe>
-</body>
-</html>`,
-        );
-        novaAba.document.close();
-      } else {
-        // Fallback: pop-up bloqueado → dispara download direto com nome correto.
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = nomeArquivo;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch (e) {
-      console.error("[ObrasDetalhe] gerar PDF:", e);
-      if (novaAba && !novaAba.closed) novaAba.close();
-      showFeedback(e?.message || "Não foi possível gerar o PDF.");
-    }
-  };
+  const abrirPdfPreview = useCallback(
+    ({ titulo, gerador, nomeFallback = "documento.pdf" }) => {
+      setPdfPreview({ titulo, gerador, nomeFallback });
+    },
+    [],
+  );
 
   const handleGerarRelatorioPorPrestador = (prestador) => {
     const lista = obra?.maoDeObra?.filter(
@@ -740,21 +683,23 @@ export default function ObrasDetalhe() {
       return;
     }
     setModalRelatorioPrestadorOpen(false);
-    abrirPdfEmNovaAba(
-      () =>
+    abrirPdfPreview({
+      titulo: `Mão de Obra · ${prestador}`,
+      gerador: () =>
         gerarPdfRelatorioPorPrestador(obra, prestador, { retornarBlob: true }),
-      `Relatorio_${prestador}.pdf`,
-    );
+      nomeFallback: `Relatorio_${prestador}.pdf`,
+    });
   };
 
   const handleGerarRelatorioMaoDeObraGeral = () => {
-    abrirPdfEmNovaAba(
-      () =>
+    abrirPdfPreview({
+      titulo: "Relatório de Mão de Obra",
+      gerador: () =>
         gerarPdfRelatorioMaoDeObraGeral(obra, buscaMaoDeObra, {
           retornarBlob: true,
         }),
-      "Relatorio_Mao_De_Obra_Geral.pdf",
-    );
+      nomeFallback: "Relatorio_Mao_De_Obra_Geral.pdf",
+    });
   };
 
   const handleGerarRelatorioMateriais = () => {
@@ -763,13 +708,14 @@ export default function ObrasDetalhe() {
       showFeedback("Nenhum material lançado nesta obra.", "info");
       return;
     }
-    abrirPdfEmNovaAba(
-      () =>
+    abrirPdfPreview({
+      titulo: "Relatório de Materiais",
+      gerador: () =>
         gerarPdfRelatorioMateriais(obra, buscaMateriais, {
           retornarBlob: true,
         }),
-      "Relatorio_Materiais.pdf",
-    );
+      nomeFallback: "Relatorio_Materiais.pdf",
+    });
   };
 
   const handleGerarRelatorioLocacoes = () => {
@@ -778,13 +724,14 @@ export default function ObrasDetalhe() {
       showFeedback("Nenhuma locação lançada nesta obra.", "info");
       return;
     }
-    abrirPdfEmNovaAba(
-      () =>
+    abrirPdfPreview({
+      titulo: "Relatório de Locações",
+      gerador: () =>
         gerarPdfRelatorioLocacoes(obra, buscaLocacoes, {
           retornarBlob: true,
         }),
-      "Relatorio_Locacoes.pdf",
-    );
+      nomeFallback: "Relatorio_Locacoes.pdf",
+    });
   };
 
   const handleStatusFinanceiroChange = useCallback(
@@ -882,10 +829,11 @@ export default function ObrasDetalhe() {
       showFeedback("Nenhum item selecionado para o extrato.", "info");
       return;
     }
-    abrirPdfEmNovaAba(
-      () => gerarPdfExtrato(obra, { retornarBlob: true }),
-      "Extrato.pdf",
-    );
+    abrirPdfPreview({
+      titulo: "Extrato Financeiro",
+      gerador: () => gerarPdfExtrato(obra, { retornarBlob: true }),
+      nomeFallback: "Extrato.pdf",
+    });
   };
 
   const formatarDataHoraBR = (dataString) => {
@@ -1726,6 +1674,13 @@ export default function ObrasDetalhe() {
         onClose={() => setModalRelatorioPrestadorOpen(false)}
         onGenerate={handleGerarRelatorioPorPrestador}
         prestadoresDisponiveis={prestadoresUnicos}
+      />
+      <PdfPreviewModal
+        isOpen={Boolean(pdfPreview)}
+        onClose={() => setPdfPreview(null)}
+        titulo={pdfPreview?.titulo}
+        gerador={pdfPreview?.gerador}
+        nomeFallback={pdfPreview?.nomeFallback}
       />
       <FeedbackModal
         isOpen={feedback.open}

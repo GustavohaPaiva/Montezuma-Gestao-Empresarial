@@ -130,48 +130,6 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     color: COR_TEXTO,
   },
-  // ─── Resumo (KPIs) ──────────────────────────────────────────────────────
-  resumoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 14,
-  },
-  resumoCard: {
-    flexGrow: 1,
-    flexBasis: "23%",
-    padding: 10,
-    borderRadius: 6,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 0.6,
-    borderColor: COR_DIVISOR,
-    alignItems: "center",
-  },
-  resumoCardLabel: {
-    fontSize: 7,
-    color: COR_MUTED,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  resumoCardValue: {
-    fontSize: 12,
-    fontFamily: "Helvetica-Bold",
-    color: COR_TEXTO,
-    textAlign: "center",
-  },
-  resumoCardDestaque: {
-    color: COR_PRIMARIA,
-  },
-  resumoCardSucesso: {
-    color: COR_SUCESSO,
-    backgroundColor: COR_SUCESSO_SUAVE,
-  },
-  resumoCardAlerta: {
-    color: COR_ALERTA,
-    backgroundColor: COR_ALERTA_SUAVE,
-  },
   // ─── Tabela ─────────────────────────────────────────────────────────────
   table: {
     borderWidth: 0.7,
@@ -265,63 +223,28 @@ const styles = StyleSheet.create({
     color: COR_MUTED,
     fontSize: 9,
   },
-  // ─── Destaque final (TOTAL GERAL) ───────────────────────────────────────
-  totalCard: {
-    marginTop: 18,
-    padding: 14,
-    borderRadius: 6,
-    backgroundColor: COR_PRIMARIA,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  totalCardLabel: {
-    fontSize: 9,
-    color: "#FDE8DE",
-    textTransform: "uppercase",
-    letterSpacing: 0.7,
-    fontFamily: "Helvetica-Bold",
-  },
-  totalCardValue: {
-    fontSize: 18,
-    color: "#FFFFFF",
-    fontFamily: "Helvetica-Bold",
-    letterSpacing: 0.3,
-  },
-  // Linha de sub-totais (Pago/Pendente etc.) ao lado/abaixo do total grande
-  totaisLinha: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
+  // ─── Total final (rodapé minimalista) ─────────────────────────────────────
+  totalBar: {
     marginTop: 10,
-  },
-  totaisChip: {
-    flexGrow: 1,
-    flexBasis: "30%",
-    padding: 8,
-    borderRadius: 4,
-    backgroundColor: COR_FUNDO,
-    borderWidth: 0.6,
-    borderColor: COR_DIVISOR,
+    flexDirection: "row",
+    justifyContent: "flex-end",
     alignItems: "center",
+    gap: 10,
+    paddingTop: 8,
+    borderTopWidth: 0.6,
+    borderTopColor: COR_DIVISOR,
   },
-  totaisChipLabel: {
-    fontSize: 7,
+  totalBarLabel: {
+    fontSize: 7.5,
     color: COR_MUTED,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  totaisChipValue: {
-    fontSize: 10.5,
     fontFamily: "Helvetica-Bold",
-    color: COR_TEXTO,
   },
-  totaisChipSuccess: {
-    color: COR_SUCESSO,
-  },
-  totaisChipWarning: {
-    color: COR_ALERTA,
+  totalBarValue: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: COR_PRIMARIA,
   },
   // ─── Rodapé ─────────────────────────────────────────────────────────────
   footer: {
@@ -379,46 +302,11 @@ function pillStyle(tone) {
   }
 }
 
-function totaisChipTone(tone) {
-  if (tone === "success") return styles.totaisChipSuccess;
-  if (tone === "warning") return styles.totaisChipWarning;
-  return null;
-}
-
 function InfoChip({ label, value }) {
   return (
     <View style={styles.infoChip}>
       <Text style={styles.infoChipLabel}>{label}</Text>
       <Text style={styles.infoChipValue}>{value || "—"}</Text>
-    </View>
-  );
-}
-
-function ResumoCard({ label, value, tone }) {
-  const toneStyle =
-    tone === "success"
-      ? styles.resumoCardSucesso
-      : tone === "warning"
-        ? styles.resumoCardAlerta
-        : tone === "destaque"
-          ? styles.resumoCardDestaque
-          : null;
-  return (
-    <View
-      style={[
-        styles.resumoCard,
-        tone === "success" || tone === "warning" ? toneStyle : null,
-      ]}
-    >
-      <Text style={styles.resumoCardLabel}>{label}</Text>
-      <Text
-        style={[
-          styles.resumoCardValue,
-          tone === "destaque" ? toneStyle : null,
-        ]}
-      >
-        {value}
-      </Text>
     </View>
   );
 }
@@ -476,7 +364,6 @@ export default function RelatorioObraPDF({
   colunas,
   linhas = [],
   totalDestaque,
-  totais = [],
 }) {
   const dataEmissao = new Date().toISOString();
 
@@ -527,19 +414,23 @@ export default function RelatorioObraPDF({
                 ))}
               </View>
             ) : null}
+            {resumo.length > 0 ? (
+              <View style={styles.infoRow}>
+                {resumo.map((r, idx) => (
+                  <InfoChip key={idx} label={r.label} value={r.value} />
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
 
-        {resumo.length > 0 ? (
-          <View style={styles.resumoGrid}>
-            {resumo.map((r, idx) => (
-              <ResumoCard
-                key={idx}
-                label={r.label}
-                value={r.value}
-                tone={r.tone}
-              />
-            ))}
+        {!obra && resumo.length > 0 ? (
+          <View style={[styles.section, { marginBottom: 10 }]}>
+            <View style={styles.infoRow}>
+              {resumo.map((r, idx) => (
+                <InfoChip key={idx} label={r.label} value={r.value} />
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -581,26 +472,11 @@ export default function RelatorioObraPDF({
         </View>
 
         {totalDestaque ? (
-          <View style={styles.totalCard} wrap={false}>
-            <Text style={styles.totalCardLabel}>
+          <View style={styles.totalBar} wrap={false}>
+            <Text style={styles.totalBarLabel}>
               {totalDestaque.label || "Total Geral"}
             </Text>
-            <Text style={styles.totalCardValue}>{totalDestaque.value}</Text>
-          </View>
-        ) : null}
-
-        {totais.length > 0 ? (
-          <View style={styles.totaisLinha} wrap={false}>
-            {totais.map((t, idx) => (
-              <View key={idx} style={styles.totaisChip}>
-                <Text style={styles.totaisChipLabel}>{t.label}</Text>
-                <Text
-                  style={[styles.totaisChipValue, totaisChipTone(t.tone)]}
-                >
-                  {t.value}
-                </Text>
-              </View>
-            ))}
+            <Text style={styles.totalBarValue}>{totalDestaque.value}</Text>
           </View>
         ) : null}
 
