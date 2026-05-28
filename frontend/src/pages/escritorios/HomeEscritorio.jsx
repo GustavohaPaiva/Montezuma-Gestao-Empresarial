@@ -51,6 +51,13 @@ const ACESSOS_RAPIDOS = [
     Icon: FileSpreadsheet,
   },
   {
+    id: "projecoes",
+    titulo: "Projeções",
+    descricao: "Propostas comerciais detalhadas",
+    path: "projecoes",
+    Icon: TrendingUp,
+  },
+  {
     id: "tarefas",
     titulo: "Tarefas",
     descricao: "Tarefas do escritório",

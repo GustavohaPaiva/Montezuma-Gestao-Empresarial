@@ -5,6 +5,18 @@ import {
   normalizarMateriaisLista,
   validarItemPedido,
 } from "../utils/pedidosUtils";
+import {
+  calcularValoresPorTipo,
+  normalizarItensProjecao,
+} from "../utils/projecaoUtils";
+
+function projecaoPayloadComValoresDerivados(payload) {
+  const itens = normalizarItensProjecao(
+    payload?.itens != null ? payload.itens : [],
+  );
+  const valores = calcularValoresPorTipo(itens);
+  return { itens, ...valores };
+}
 
 function normalizeCnpjNif(val) {
   if (val === undefined || val === null) return null;
@@ -2789,6 +2801,87 @@ export const api = {
       .from("cronograma_eventos")
       .delete()
       .eq("id", id);
+    if (error) throw error;
+  },
+
+  // ─── Projeções comerciais (Montezuma) ───────────────────────────────────────
+  getProjecoes: async () => {
+    const { data, error } = await supabase
+      .from("projecoes")
+      .select("*")
+      .order("data_proposta", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  getProjecaoById: async (id) => {
+    if (!id) return null;
+    const { data, error } = await supabase
+      .from("projecoes")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  createProjecao: async (payload) => {
+    const derivados = projecaoPayloadComValoresDerivados(payload);
+    const row = omitUndefined({
+      nome: payload.nome?.trim(),
+      cliente_nome: payload.cliente_nome?.trim() || null,
+      contato: payload.contato?.trim() || null,
+      endereco_obra: payload.endereco_obra?.trim() || null,
+      descricao: payload.descricao?.trim() || null,
+      status: payload.status || "Rascunho",
+      data_proposta: payload.data_proposta || new Date().toISOString().slice(0, 10),
+      valor_documentacao: derivados.valor_documentacao,
+      valor_projeto: derivados.valor_projeto,
+      valor_obra: derivados.valor_obra,
+      itens: derivados.itens,
+      observacoes: payload.observacoes?.trim() || null,
+    });
+    if (!row.nome) throw new Error("Nome da projeção é obrigatório.");
+    const { data, error } = await supabase
+      .from("projecoes")
+      .insert([row])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  updateProjecao: async (id, dados) => {
+    if (!id) throw new Error("ID da projeção é obrigatório.");
+    const derivados =
+      dados.itens != null ? projecaoPayloadComValoresDerivados(dados) : null;
+    const limpo = omitUndefined({
+      nome: dados.nome?.trim(),
+      cliente_nome: dados.cliente_nome?.trim(),
+      contato: dados.contato?.trim(),
+      endereco_obra: dados.endereco_obra?.trim(),
+      descricao: dados.descricao?.trim(),
+      status: dados.status,
+      data_proposta: dados.data_proposta,
+      valor_documentacao: derivados?.valor_documentacao,
+      valor_projeto: derivados?.valor_projeto,
+      valor_obra: derivados?.valor_obra,
+      itens: derivados?.itens,
+      observacoes: dados.observacoes?.trim(),
+    });
+    const { data, error } = await supabase
+      .from("projecoes")
+      .update(limpo)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  deleteProjecao: async (id) => {
+    if (!id) throw new Error("ID da projeção é obrigatório.");
+    const { error } = await supabase.from("projecoes").delete().eq("id", id);
     if (error) throw error;
   },
 };

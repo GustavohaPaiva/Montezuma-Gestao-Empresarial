@@ -1,5 +1,6 @@
 import React from "react";
 import { Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
+import { formatClienteParaDocumentos } from "../utils/clienteFormatters";
 
 Font.register({
   family: "Helvetica",

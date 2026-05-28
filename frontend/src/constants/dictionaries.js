@@ -6,6 +6,7 @@ export const homeDictionary = {
     financeiro: "Financeiro",
     fornecedores: "Fornecedores",
     prestadores: "Prestadores",
+    projecoes: "Projeções",
   },
   modalFoto: {
     title: "Foto de Perfil",

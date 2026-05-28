@@ -29,6 +29,8 @@ import ClientesEscritorio from "./pages/escritorios/ClientesEscritorio";
 import OrcamentoEscritorio from "./pages/escritorios/OrcamentoEscritorio";
 import FinanceiroEscritorio from "./pages/escritorios/FinanceiroEscritorio";
 import AgendaEscritorio from "./pages/escritorios/AgendaEscritorio";
+import Projecoes from "./pages/projecoes/Projecoes";
+import ProjecaoDetalhe from "./pages/projecoes/ProjecaoDetalhe";
 
 import "./index.css";
 
@@ -83,6 +85,22 @@ export default function App() {
               element={
                 <PageTransition>
                   <PedidoObraDetalhe />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/projecoes"
+              element={
+                <PageTransition>
+                  <Projecoes />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/projecoes/:id"
+              element={
+                <PageTransition>
+                  <ProjecaoDetalhe />
                 </PageTransition>
               }
             />

@@ -5,7 +5,6 @@ import ButtonDefault from "../gerais/ButtonDefault";
 import { formatarDataBR } from "../../pages/obras/detalhe/utils/formatters";
 import {
   formatarQuantidadePedido,
-  normalizarNomeMaterial,
   validarItemPedido,
 } from "../../utils/pedidosUtils";
 import {
@@ -128,9 +127,7 @@ export default function PedidoFormComposer({
                   <input
                     type="text"
                     value={material}
-                    onChange={(e) =>
-                      setMaterial(normalizarNomeMaterial(e.target.value))
-                    }
+                    onChange={(e) => setMaterial(e.target.value)}
                     placeholder="Ex.: Cimento CP II 50kg"
                     className={inputPremium}
                   />

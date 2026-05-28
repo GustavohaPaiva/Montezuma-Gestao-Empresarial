@@ -79,6 +79,13 @@ export default function Home() {
       path: "/pedidos",
       gestorPedidos: true,
     },
+    {
+      id: 8,
+      titulo: homeDictionary.modulos.projecoes,
+      imagem: "https://img.icons8.com/ios/125/line-chart.png",
+      path: "/projecoes",
+      roles: ["gestor_master", "diretoria", "suporte_ti"],
+    },
   ];
 
   const modulosPermitidos = modulos

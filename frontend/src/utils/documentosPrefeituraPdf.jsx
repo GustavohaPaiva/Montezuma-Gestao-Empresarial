@@ -7,7 +7,7 @@ import DeclaracaoCUBLayout from "../documents/DeclaracaoCUBLayout";
 import DeclaracaoHabiteseLayout from "../documents/DeclaracaoHabiteseLayout";
 import DeclaracaoMovimentacaoSoloLayout from "../documents/DeclaracaoMovimentacaoSoloLayout";
 import GerenciamentoResiduosLayout from "../documents/GerenciamentoResiduosLayout";
-import { formatClienteRecord } from "./clienteFormatters";
+import { formatClienteParaDocumentos } from "./clienteFormatters";
 
 function slugifyNomeCliente(nome) {
   return String(nome || "Cliente")
@@ -31,7 +31,7 @@ export async function gerarDocumentosPrefeituraPdf(clienteId) {
     throw new Error("Cliente não encontrado ou sem permissão de acesso.");
   }
 
-  const cliente = formatClienteRecord(raw);
+  const cliente = formatClienteParaDocumentos(raw);
 
   const blob = await pdf(
     <Document title={`Documentos — ${cliente.nome || "Cliente"}`}>
