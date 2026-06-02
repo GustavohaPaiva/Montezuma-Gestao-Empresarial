@@ -11,6 +11,7 @@ import {
   calcularTotalProjecao,
   formatarDataProjecao,
   formatarMoedaProjecao,
+  formatarPeriodoProjecao,
   labelTipoProjecaoItem,
   normalizarItensProjecao,
   sincronizarProjecaoComItens,
@@ -292,19 +293,20 @@ export default function ProjecaoComercialPDF({ projecao = {} }) {
             <Text style={styles.sectionTitle}>Lançamentos</Text>
             <View style={styles.table}>
               <View style={styles.tableHead}>
-                <Text style={[styles.tableHeadCell, { width: "18%" }]}>
+                <Text style={[styles.tableHeadCell, { width: "14%" }]}>
                   Tipo
                 </Text>
-                <Text style={[styles.tableHeadCell, { width: "32%" }]}>
+                <Text style={[styles.tableHeadCell, { width: "26%" }]}>
                   Descrição
                 </Text>
-                <Text style={[styles.tableHeadCell, { width: "12%" }]}>
-                  Qtd.
+                <Text style={[styles.tableHeadCell, { width: "22%" }]}>
+                  Período
                 </Text>
-                <Text style={[styles.tableHeadCell, { width: "18%" }]}>
+                <Text style={[styles.tableHeadCell, { width: "8%" }]}>Qtd.</Text>
+                <Text style={[styles.tableHeadCell, { width: "15%" }]}>
                   V. Unit.
                 </Text>
-                <Text style={[styles.tableHeadCell, { width: "20%" }]}>
+                <Text style={[styles.tableHeadCell, { width: "15%" }]}>
                   Total
                 </Text>
               </View>
@@ -316,19 +318,22 @@ export default function ProjecaoComercialPDF({ projecao = {} }) {
                     idx % 2 === 1 ? styles.tableRowAlt : null,
                   ]}
                 >
-                  <Text style={[styles.tableCellLeft, { width: "18%" }]}>
+                  <Text style={[styles.tableCellLeft, { width: "14%" }]}>
                     {labelTipoProjecaoItem(item.tipo)}
                   </Text>
-                  <Text style={[styles.tableCellLeft, { width: "32%" }]}>
+                  <Text style={[styles.tableCellLeft, { width: "26%" }]}>
                     {item.descricao}
                   </Text>
-                  <Text style={[styles.tableCell, { width: "12%" }]}>
+                  <Text style={[styles.tableCell, { width: "22%" }]}>
+                    {formatarPeriodoProjecao(item.data_inicio, item.data_fim)}
+                  </Text>
+                  <Text style={[styles.tableCell, { width: "8%" }]}>
                     {String(item.quantidade)}
                   </Text>
-                  <Text style={[styles.tableCell, { width: "18%" }]}>
+                  <Text style={[styles.tableCell, { width: "15%" }]}>
                     R$ {formatarMoedaProjecao(item.valor_unitario)}
                   </Text>
-                  <Text style={[styles.tableCell, { width: "20%" }]}>
+                  <Text style={[styles.tableCell, { width: "15%" }]}>
                     R$ {formatarMoedaProjecao(item.valor_total)}
                   </Text>
                 </View>

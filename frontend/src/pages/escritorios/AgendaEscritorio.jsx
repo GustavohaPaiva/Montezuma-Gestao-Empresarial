@@ -113,6 +113,33 @@ function horaBR(iso) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
+const MAX_CHIPS_POR_DIA = 3;
+
+function combinarDiaComHorarioDoCompromisso(diaAlvo, dataHoraIso) {
+  const orig = new Date(dataHoraIso);
+  if (Number.isNaN(orig.getTime())) return null;
+  const novo = new Date(
+    diaAlvo.getFullYear(),
+    diaAlvo.getMonth(),
+    diaAlvo.getDate(),
+    orig.getHours(),
+    orig.getMinutes(),
+    0,
+    0,
+  );
+  if (Number.isNaN(novo.getTime())) return null;
+  return novo.toISOString();
+}
+
+function bordaEsquerdaTipo(tipo) {
+  const t = normalizarTipo(tipo).toLowerCase();
+  if (t.includes("reuni")) return "border-l-esc-tipo-reuniao";
+  if (t === "visita") return "border-l-esc-tipo-visita";
+  if (t.includes("comprar") || t.includes("material"))
+    return "border-l-esc-tipo-comprar";
+  return "border-l-esc-tipo-outro";
+}
+
 export default function AgendaEscritorio() {
   const navigate = useNavigate();
   const escritorioId = useEscritorioIdFromPath();
@@ -139,6 +166,9 @@ export default function AgendaEscritorio() {
   const [escopoEdicao, setEscopoEdicao] = useState("evento");
   const [acaoId, setAcaoId] = useState(null);
   const [acaoRecorrencia, setAcaoRecorrencia] = useState(null);
+  const [arrastandoId, setArrastandoId] = useState(null);
+  const [diaSobreDrop, setDiaSobreDrop] = useState(null);
+  const [movendoId, setMovendoId] = useState(null);
   const [miniCalAberto, setMiniCalAberto] = useState(false);
   const [miniCalAno, setMiniCalAno] = useState(() => new Date().getFullYear());
   const miniCalRef = useRef(null);
@@ -310,6 +340,89 @@ export default function AgendaEscritorio() {
       return;
     }
     await excluirSomenteItem(item);
+  };
+
+  const moverCompromissoParaDia = useCallback(
+    async (item, diaDestino) => {
+      if (!item?.id || !diaDestino) return;
+      const origem = new Date(item.data_hora);
+      if (Number.isNaN(origem.getTime())) return;
+      if (mesmaData(origem, diaDestino)) return;
+
+      const novaDataHora = combinarDiaComHorarioDoCompromisso(
+        diaDestino,
+        item.data_hora,
+      );
+      if (!novaDataHora) return;
+
+      setMovendoId(item.id);
+      const anterior = item.data_hora;
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === item.id ? { ...it, data_hora: novaDataHora } : it,
+        ),
+      );
+
+      try {
+        await api.updateCompromisso(
+          item.id,
+          { data_hora: novaDataHora },
+          escritorioId,
+        );
+        const destino = new Date(diaDestino);
+        destino.setHours(0, 0, 0, 0);
+        setDiaSelecionado(destino);
+        if (destino.getMonth() !== mesVisivel.getMonth()) {
+          setMesVisivel(startOfMonth(destino));
+        }
+      } catch (e) {
+        console.error("[AgendaEscritorio] mover:", e);
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === item.id ? { ...it, data_hora: anterior } : it,
+          ),
+        );
+      } finally {
+        setMovendoId(null);
+      }
+    },
+    [escritorioId, mesVisivel],
+  );
+
+  const iniciarArraste = (e, item) => {
+    if (movendoId) {
+      e.preventDefault();
+      return;
+    }
+    e.stopPropagation();
+    setArrastandoId(item.id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(item.id));
+    if (e.dataTransfer.setDragImage && e.currentTarget instanceof HTMLElement) {
+      e.dataTransfer.setDragImage(e.currentTarget, 8, 12);
+    }
+  };
+
+  const finalizarArraste = () => {
+    setArrastandoId(null);
+    setDiaSobreDrop(null);
+  };
+
+  const soltarNoDia = async (e, diaDestino) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDiaSobreDrop(null);
+    setArrastandoId(null);
+
+    const rawId = e.dataTransfer.getData("text/plain");
+    if (!rawId) return;
+    const item = items.find((it) => String(it.id) === rawId);
+    if (!item) return;
+
+    const origem = new Date(item.data_hora);
+    if (mesmaData(origem, diaDestino)) return;
+
+    await moverCompromissoParaDia(item, diaDestino);
   };
 
   const executarAcaoRecorrencia = async (escopo) => {
@@ -590,37 +703,62 @@ export default function AgendaEscritorio() {
                     const isOutro = d.getMonth() !== mesVisivel.getMonth();
                     const isHoje = mesmaData(d, hoje);
                     const isSel = mesmaData(d, diaSelecionado);
+                    const isDropAlvo = diaSobreDrop === key && Boolean(arrastandoId);
                     const lista = porDia.get(key) || [];
-                    const dotTipos = Array.from(
-                      new Set(lista.map((it) => it.tipo || "Outro")),
-                    ).slice(0, 4);
+                    const visiveis = lista.slice(0, MAX_CHIPS_POR_DIA);
+                    const restantes = lista.length - visiveis.length;
+
+                    const selecionarDia = () => {
+                      setDiaSelecionado(d);
+                      if (d.getMonth() !== mesVisivel.getMonth()) {
+                        setMesVisivel(startOfMonth(d));
+                      }
+                    };
 
                     return (
-                      <button
+                      <div
                         key={key}
-                        type="button"
-                        onClick={() => {
-                          setDiaSelecionado(d);
-                          if (d.getMonth() !== mesVisivel.getMonth()) {
-                            setMesVisivel(startOfMonth(d));
+                        role="button"
+                        tabIndex={0}
+                        onClick={selecionarDia}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            selecionarDia();
                           }
                         }}
                         onDoubleClick={() => {
-                          setDiaSelecionado(d);
-                          if (d.getMonth() !== mesVisivel.getMonth()) {
-                            setMesVisivel(startOfMonth(d));
-                          }
+                          selecionarDia();
                           setCompromissoEdicao(null);
                           setModalAberto(true);
                         }}
-                        className={`group relative flex h-16 flex-col items-start justify-between rounded-lg border p-1.5 text-left transition-all sm:h-20 ${
-                          isSel
-                            ? "border-esc-destaque/60 bg-esc-destaque/10 shadow-[0_0_20px_-10px_var(--color-esc-destaque)]"
-                            : "border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]"
+                        onDragOver={(e) => {
+                          if (!arrastandoId) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          setDiaSobreDrop(key);
+                        }}
+                        onDragLeave={(e) => {
+                          if (
+                            e.currentTarget.contains(e.relatedTarget)
+                          ) {
+                            return;
+                          }
+                          setDiaSobreDrop((atual) =>
+                            atual === key ? null : atual,
+                          );
+                        }}
+                        onDrop={(e) => void soltarNoDia(e, d)}
+                        className={`group relative flex min-h-[5.75rem] flex-col rounded-lg border p-1 text-left transition-all sm:min-h-[6.75rem] sm:p-1.5 ${
+                          isDropAlvo
+                            ? "border-esc-destaque/70 bg-esc-destaque/15 ring-1 ring-esc-destaque/40"
+                            : isSel
+                              ? "border-esc-destaque/60 bg-esc-destaque/10 shadow-[0_0_20px_-10px_var(--color-esc-destaque)]"
+                              : "border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]"
                         } ${isOutro ? "opacity-40" : ""}`}
                       >
                         <span
-                          className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold transition-colors ${
+                          className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-colors sm:h-6 sm:w-6 sm:text-[11px] ${
                             isHoje
                               ? "border border-esc-destaque text-esc-destaque"
                               : isSel
@@ -630,23 +768,52 @@ export default function AgendaEscritorio() {
                         >
                           {d.getDate()}
                         </span>
-                        {lista.length > 0 ? (
-                          <span className="flex items-center gap-0.5">
-                            {dotTipos.map((t) => (
-                              <span
-                                key={t}
-                                className={`inline-block h-1.5 w-1.5 rounded-full ${corDoTipo(t)}`}
-                                title={t}
-                              />
-                            ))}
-                            {lista.length > dotTipos.length ? (
-                              <span className="ml-0.5 text-[9px] font-bold text-esc-muted">
-                                +{lista.length - dotTipos.length}
-                              </span>
-                            ) : null}
-                          </span>
-                        ) : null}
-                      </button>
+
+                        <div className="mt-0.5 flex min-h-0 w-full flex-1 flex-col gap-0.5 overflow-hidden">
+                          {visiveis.map((item) => {
+                            const arrastando = arrastandoId === item.id;
+                            const movendo = movendoId === item.id;
+                            return (
+                              <div
+                                key={item.id}
+                                draggable={!movendoId}
+                                onDragStart={(e) => iniciarArraste(e, item)}
+                                onDragEnd={finalizarArraste}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  selecionarDia();
+                                }}
+                                title={`${horaBR(item.data_hora)} — ${item.titulo}`}
+                                className={`flex min-w-0 cursor-grab items-center gap-1 rounded border border-white/10 border-l-[3px] bg-white/[0.07] px-1 py-0.5 text-left active:cursor-grabbing ${bordaEsquerdaTipo(
+                                  item.tipo,
+                                )} ${
+                                  arrastando || movendo
+                                    ? "opacity-40"
+                                    : "hover:bg-white/12"
+                                }`}
+                              >
+                                <span className="shrink-0 text-[8px] font-bold tabular-nums text-esc-muted sm:text-[9px]">
+                                  {horaBR(item.data_hora)}
+                                </span>
+                                <span className="min-w-0 flex-1 truncate text-[9px] font-semibold leading-tight text-esc-text sm:text-[10px]">
+                                  {item.titulo}
+                                </span>
+                                {movendo ? (
+                                  <Loader2
+                                    className="h-2.5 w-2.5 shrink-0 animate-spin text-esc-muted"
+                                    aria-hidden
+                                  />
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                          {restantes > 0 ? (
+                            <span className="truncate px-0.5 text-[8px] font-semibold text-esc-muted sm:text-[9px]">
+                              +{restantes} mais
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -655,6 +822,10 @@ export default function AgendaEscritorio() {
                 <p className="mt-3 text-[11px] text-rose-300/80">{erro}</p>
               ) : null}
               <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/5 pt-3 text-[11px] text-esc-muted">
+                <span className="w-full text-[10px] text-esc-muted/90 sm:w-auto">
+                  Arraste um compromisso para outro dia para remarcar (o horário
+                  é mantido).
+                </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-esc-tipo-reuniao" />
                   Reunião

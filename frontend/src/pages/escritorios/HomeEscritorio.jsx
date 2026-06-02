@@ -50,13 +50,7 @@ const ACESSOS_RAPIDOS = [
     path: "orcamentos",
     Icon: FileSpreadsheet,
   },
-  {
-    id: "projecoes",
-    titulo: "Projeções",
-    descricao: "Propostas comerciais detalhadas",
-    path: "projecoes",
-    Icon: TrendingUp,
-  },
+
   {
     id: "tarefas",
     titulo: "Tarefas",

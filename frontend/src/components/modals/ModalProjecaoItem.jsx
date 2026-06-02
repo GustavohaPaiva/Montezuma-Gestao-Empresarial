@@ -18,6 +18,8 @@ function criarItemVazio() {
     quantidade: 1,
     valor_unitario: 0,
     valor_total: 0,
+    data_inicio: "",
+    data_fim: "",
   };
 }
 
@@ -32,6 +34,8 @@ export default function ModalProjecaoItem({
   const [descricao, setDescricao] = useState("");
   const [quantidade, setQuantidade] = useState("1");
   const [valorUnitario, setValorUnitario] = useState("0");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -40,12 +44,16 @@ export default function ModalProjecaoItem({
       setDescricao(itemEdicao.descricao ?? "");
       setQuantidade(String(itemEdicao.quantidade ?? 1));
       setValorUnitario(String(itemEdicao.valor_unitario ?? 0));
+      setDataInicio(itemEdicao.data_inicio ?? "");
+      setDataFim(itemEdicao.data_fim ?? "");
     } else {
       const vazio = criarItemVazio();
       setTipo(vazio.tipo);
       setDescricao("");
       setQuantidade("1");
       setValorUnitario("0");
+      setDataInicio("");
+      setDataFim("");
     }
   }, [isOpen, itemEdicao]);
 
@@ -66,6 +74,10 @@ export default function ModalProjecaoItem({
       alert("A quantidade deve ser maior que zero.");
       return;
     }
+    if (dataInicio && dataFim && dataFim < dataInicio) {
+      alert("A data de fim não pode ser anterior à data de início.");
+      return;
+    }
     onSave({
       id: itemEdicao?.id || criarItemVazio().id,
       tipo,
@@ -73,6 +85,8 @@ export default function ModalProjecaoItem({
       quantidade: qtd,
       valor_unitario: unit,
       valor_total: qtd * unit,
+      data_inicio: dataInicio || null,
+      data_fim: dataFim || null,
     });
   };
 
@@ -120,6 +134,25 @@ export default function ModalProjecaoItem({
               step="0.01"
               value={valorUnitario}
               onChange={(e) => setValorUnitario(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelCampoClass}>Data de início</label>
+            <BaseInput
+              type="date"
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelCampoClass}>Data de fim</label>
+            <BaseInput
+              type="date"
+              min={dataInicio || undefined}
+              value={dataFim}
+              onChange={(e) => setDataFim(e.target.value)}
             />
           </div>
         </div>

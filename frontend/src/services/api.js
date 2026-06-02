@@ -9,6 +9,10 @@ import {
   calcularValoresPorTipo,
   normalizarItensProjecao,
 } from "../utils/projecaoUtils";
+import {
+  calcularTotalValoresProposta,
+  normalizarPropostaDados,
+} from "../utils/orcamentoPropostaUtils";
 
 function projecaoPayloadComValoresDerivados(payload) {
   const itens = normalizarItensProjecao(
@@ -399,6 +403,60 @@ export const api = {
       .order("data", { ascending: false });
     if (error) throw error;
     return data;
+  },
+
+  getOrcamentoById: async (id, escritorioId) => {
+    if (!id || !escritorioId) return null;
+    const { data, error } = await supabase
+      .from("orcamentos")
+      .select("*")
+      .eq("id", id)
+      .eq("escritorio_id", escritorioId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  ensureNumeroPropostaOrcamento: async (id, escritorioId) => {
+    if (!id || !escritorioId) {
+      throw new Error("id e escritorio_id obrigatórios");
+    }
+    const atual = await api.getOrcamentoById(id, escritorioId);
+    if (!atual) throw new Error("Orçamento não encontrado.");
+    if (atual.numero_proposta) return atual;
+
+    const ref = atual.data || atual.created_at || new Date().toISOString();
+    const ano = new Date(ref).getFullYear();
+    const inicioAno = `${ano}-01-01T00:00:00.000Z`;
+    const fimAno = `${ano}-12-31T23:59:59.999Z`;
+
+    const { data: ultimo, error: errUltimo } = await supabase
+      .from("orcamentos")
+      .select("numero_proposta")
+      .eq("escritorio_id", escritorioId)
+      .gte("data", inicioAno)
+      .lte("data", fimAno)
+      .not("numero_proposta", "is", null)
+      .order("numero_proposta", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (errUltimo) throw errUltimo;
+
+    const proximo = (ultimo?.numero_proposta || 0) + 1;
+    return api.updateOrcamento(id, { numero_proposta: proximo }, escritorioId);
+  },
+
+  updatePropostaOrcamento: async (id, propostaDados, escritorioId) => {
+    if (!id || !escritorioId) {
+      throw new Error("id e escritorio_id obrigatórios em updatePropostaOrcamento");
+    }
+    const norm = normalizarPropostaDados(propostaDados);
+    const total = calcularTotalValoresProposta(norm.valores);
+    return api.updateOrcamento(
+      id,
+      { proposta_dados: norm, valor: total },
+      escritorioId,
+    );
   },
 
   createOrcamento: async (novoOrcamento) => {

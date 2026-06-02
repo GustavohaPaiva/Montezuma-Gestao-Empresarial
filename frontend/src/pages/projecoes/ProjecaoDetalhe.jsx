@@ -410,11 +410,13 @@ export default function ProjecaoDetalhe() {
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-border-primary/30">
-                <table className="w-full min-w-[720px] text-left text-sm">
+                <table className="w-full min-w-[900px] text-center text-sm">
                   <thead>
                     <tr className={projecaoTabelaHeadClass}>
                       <th className="w-36 px-3 py-2.5 font-semibold">Tipo</th>
                       <th className="px-3 py-2.5 font-semibold">Descrição</th>
+                      <th className="w-32 px-3 py-2.5 font-semibold">Início</th>
+                      <th className="w-32 px-3 py-2.5 font-semibold">Fim</th>
                       <th className="w-24 px-3 py-2.5 font-semibold">Qtd.</th>
                       <th className="w-32 px-3 py-2.5 font-semibold">
                         V. unit.
@@ -440,6 +442,12 @@ export default function ProjecaoDetalhe() {
                         </td>
                         <td className="px-3 py-2 text-text-primary">
                           {item.descricao || "—"}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap tabular-nums text-text-primary">
+                          {formatarDataProjecao(item.data_inicio)}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap tabular-nums text-text-primary">
+                          {formatarDataProjecao(item.data_fim)}
                         </td>
                         <td className="px-3 py-2 tabular-nums text-text-primary">
                           {item.quantidade}

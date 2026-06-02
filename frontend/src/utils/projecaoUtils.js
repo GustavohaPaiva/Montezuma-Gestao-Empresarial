@@ -53,6 +53,23 @@ export function formatarDataProjecao(dataString) {
   return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
+/** Normaliza uma data de item para "YYYY-MM-DD" ou null. */
+export function normalizarDataItemProjecao(valor) {
+  if (!valor) return null;
+  const s = String(valor).trim();
+  return s ? s.slice(0, 10) : null;
+}
+
+/** Formata o período (início–fim) de um item para exibição. */
+export function formatarPeriodoProjecao(dataInicio, dataFim) {
+  const i = dataInicio ? formatarDataProjecao(dataInicio) : null;
+  const f = dataFim ? formatarDataProjecao(dataFim) : null;
+  if (i && f) return `${i} – ${f}`;
+  if (i) return `Início ${i}`;
+  if (f) return `Até ${f}`;
+  return "—";
+}
+
 export function normalizarItensProjecao(itens) {
   if (!Array.isArray(itens)) return [];
   return itens.map((item, idx) => {
@@ -69,6 +86,8 @@ export function normalizarItensProjecao(itens) {
       quantidade,
       valor_unitario: valorUnitario,
       valor_total: valorTotal,
+      data_inicio: normalizarDataItemProjecao(item?.data_inicio),
+      data_fim: normalizarDataItemProjecao(item?.data_fim),
     };
   });
 }

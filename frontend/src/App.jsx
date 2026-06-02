@@ -27,10 +27,13 @@ import HomeEscritorio from "./pages/escritorios/HomeEscritorio";
 import TarefasEscritorio from "./pages/escritorios/TarefasEscritorio";
 import ClientesEscritorio from "./pages/escritorios/ClientesEscritorio";
 import OrcamentoEscritorio from "./pages/escritorios/OrcamentoEscritorio";
+import OrcamentoDetalhe from "./pages/escritorios/OrcamentoDetalhe";
 import FinanceiroEscritorio from "./pages/escritorios/FinanceiroEscritorio";
 import AgendaEscritorio from "./pages/escritorios/AgendaEscritorio";
 import Projecoes from "./pages/projecoes/Projecoes";
 import ProjecaoDetalhe from "./pages/projecoes/ProjecaoDetalhe";
+// GAMBIARRA TESTE PROPOSTA VK — remover esta linha junto com a rota abaixo
+import TesteProvaVK from "./pages/escritorios/TesteProvaVK";
 
 import "./index.css";
 
@@ -39,6 +42,9 @@ export default function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          {/* GAMBIARRA TESTE PROPOSTA VK — rota pública de teste, remover quando não precisar mais */}
+          <Route path="/teste-proposta-vk" element={<TesteProvaVK />} />
+
           <Route
             path="/login"
             element={
@@ -246,6 +252,14 @@ export default function App() {
                 element={
                   <PageTransition>
                     <OrcamentoEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="orcamentos/:orcamentoId"
+                element={
+                  <PageTransition>
+                    <OrcamentoDetalhe />
                   </PageTransition>
                 }
               />

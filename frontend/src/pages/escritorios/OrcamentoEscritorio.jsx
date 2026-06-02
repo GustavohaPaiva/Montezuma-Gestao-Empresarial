@@ -239,7 +239,8 @@ export default function OrcamentoEscritorio() {
   }
 
   async function handleStatusOrcamento(orcamento, novoStatus) {
-    if (!orcamento?.id || orcamento.escritorio_id !== currentEscritorioId) return;
+    if (!orcamento?.id || orcamento.escritorio_id !== currentEscritorioId)
+      return;
     if ((orcamento.status || "") === novoStatus) return;
     try {
       await api.updateOrcamento(
@@ -351,7 +352,7 @@ export default function OrcamentoEscritorio() {
 
       <button
         type="button"
-        onClick={() => navigate(-1)}
+        onClick={() => navigate("/escritorio/vogelkop/")}
         className="mb-2 mt-4 flex cursor-pointer items-center gap-2 text-esc-muted transition-colors hover:text-esc-destaque"
       >
         <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
@@ -536,25 +537,53 @@ export default function OrcamentoEscritorio() {
             {linhas.map((o) => (
               <li
                 key={o.id}
-                className="flex flex-col gap-3 p-4 transition-colors hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between"
+                className={`flex flex-col gap-3 p-4 transition-colors sm:flex-row sm:items-center sm:justify-between ${
+                  currentEscritorioId === ID_VOGELKOP
+                    ? "cursor-pointer hover:bg-white/[0.04]"
+                    : "hover:bg-white/[0.02]"
+                }`}
+                onClick={
+                  currentEscritorioId === ID_VOGELKOP
+                    ? () => navigate(`/escritorio/vogelkop/orcamentos/${o.id}`)
+                    : undefined
+                }
+                onKeyDown={
+                  currentEscritorioId === ID_VOGELKOP
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          navigate(`/escritorio/vogelkop/orcamentos/${o.id}`);
+                        }
+                      }
+                    : undefined
+                }
+                role={
+                  currentEscritorioId === ID_VOGELKOP ? "button" : undefined
+                }
+                tabIndex={currentEscritorioId === ID_VOGELKOP ? 0 : undefined}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold text-esc-text">
                       {o.nome || "—"}
                     </p>
-                    <StatusSelectBadge
-                      value={o.status || "Em andamento"}
-                      options={STATUS_ORCAMENTO_OPCOES}
-                      variant="orcamento"
-                      onChange={(novo) => handleStatusOrcamento(o, novo)}
-                    />
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <StatusSelectBadge
+                        value={o.status || "Em andamento"}
+                        options={STATUS_ORCAMENTO_OPCOES}
+                        variant="orcamento"
+                        onChange={(novo) => handleStatusOrcamento(o, novo)}
+                      />
+                    </span>
                   </div>
                   <p className="mt-1 text-xs text-esc-muted">
                     {formatarDataBR(o.data || o.created_at)}
                   </p>
                 </div>
-                <div className="flex shrink-0 flex-row justify-between items-center gap-3 sm:flex-col sm:items-end sm:gap-2">
+                <div
+                  className="flex shrink-0 flex-row items-center justify-between gap-3 sm:flex-col sm:items-end sm:gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <p className="text-lg font-bold tabular-nums text-esc-text sm:text-right">
                     R$ {formatarMoeda(o.valor)}
                   </p>
