@@ -52,6 +52,7 @@ export default function OrcamentoDetalhe() {
   const navigate = useNavigate();
   const escritorioId = useEscritorioIdFromPath();
   const isVogelkop = escritorioId === ID_VOGELKOP;
+  const temaClasse = isVogelkop ? "theme-vogelkop" : "theme-ybyoca";
 
   const [orcamento, setOrcamento] = useState(null);
   const [proposta, setProposta] = useState(() => normalizarPropostaDados({}));
@@ -424,7 +425,7 @@ export default function OrcamentoDetalhe() {
         textoInicial={proposta.descricao}
         onClose={() => setAssistenteAberto(false)}
         onAplicar={(texto) => atualizarProposta({ descricao: texto })}
-        temaClasse="theme-vogelkop"
+        temaClasse={temaClasse}
       />
 
       <PdfPreviewModal
@@ -432,6 +433,7 @@ export default function OrcamentoDetalhe() {
         onClose={() => setPdfPreview(false)}
         titulo="Proposta VogelKop"
         nomeFallback="proposta_vogelkop.pdf"
+        temaClasse={temaClasse}
         gerador={() =>
           gerarPdfOrcamentoVogelKop({
             ...orcamento,

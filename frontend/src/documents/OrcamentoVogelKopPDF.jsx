@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   bodyCenter: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 1.6,
     color: COR_TEXTO,
     textAlign: "left",
@@ -229,14 +229,14 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
   pagamentoTitulo: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: "bold",
     color: COR_SECAO,
     textAlign: "center",
     marginBottom: 6,
   },
   pagamentoLinha: {
-    fontSize: 11.5,
+    fontSize: 11,
     lineHeight: 1.6,
     color: COR_TEXTO,
   },
