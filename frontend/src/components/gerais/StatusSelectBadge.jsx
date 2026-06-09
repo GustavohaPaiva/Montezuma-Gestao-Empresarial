@@ -41,15 +41,19 @@ function classesCliente(status) {
 }
 
 function classesOrcamento(status) {
-  const s = (status || "").trim().toLowerCase();
+  const s = (status || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
   const base = BASE_BADGE;
   if (!s)
     return `${base} border-esc-border bg-esc-bg/70 text-esc-muted focus:ring-esc-destaque/25`;
   if (s.includes("andamento"))
     return `${base} border-orange-400/45 bg-black/50 text-orange-400 focus:ring-orange-400/30`;
-  if (s.includes("não fechado") || s.includes("nao fechado"))
+  if (s.includes("nao fechado"))
     return `${base} border-red-400/45 bg-black/50 text-red-400 focus:ring-red-400/30`;
-  if (s.includes("fechado"))
+  if (s === "fechado")
     return `${base} border-green-400/45 bg-black/50 text-green-400 focus:ring-green-400/30`;
   return `${base} border-esc-destaque/45 bg-black/50 text-esc-destaque focus:ring-esc-destaque/25`;
 }

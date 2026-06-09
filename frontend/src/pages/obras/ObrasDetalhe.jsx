@@ -38,7 +38,17 @@ import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import BaseModal from "../../components/gerais/BaseModal";
 import BaseButton from "../../components/gerais/BaseButton";
 import { useAuth } from "../../contexts/AuthContext";
-import { Hammer, Loader2, MessageSquareText, Send } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  FileText,
+  Hammer,
+  Loader2,
+  MessageSquareText,
+  Package,
+  Send,
+} from "lucide-react";
+import BaseCard from "../../components/cards/BaseCard";
 
 export default function ObrasDetalhe() {
   const { id } = useParams();
@@ -167,9 +177,7 @@ export default function ObrasDetalhe() {
   const handleDeleteMaterial = useCallback(
     (materialId) => {
       const idStr = String(materialId);
-      const alvo = (obra?.materiais || []).find(
-        (m) => String(m.id) === idStr,
-      );
+      const alvo = (obra?.materiais || []).find((m) => String(m.id) === idStr);
       setMaterialParaExcluir(alvo ?? { id: materialId, nome: "" });
     },
     [obra],
@@ -464,12 +472,8 @@ export default function ObrasDetalhe() {
   const handleDeleteLocacao = useCallback(
     (locacaoId) => {
       const idStr = String(locacaoId);
-      const alvo = (obra?.locacoes || []).find(
-        (l) => String(l.id) === idStr,
-      );
-      setLocacaoParaExcluir(
-        alvo ?? { id: locacaoId, equipamento: "" },
-      );
+      const alvo = (obra?.locacoes || []).find((l) => String(l.id) === idStr);
+      setLocacaoParaExcluir(alvo ?? { id: locacaoId, equipamento: "" });
     },
     [obra],
   );
@@ -509,9 +513,7 @@ export default function ObrasDetalhe() {
   const handleDeleteMaoDeObra = useCallback(
     (mdoId) => {
       const idStr = String(mdoId);
-      const alvo = (obra?.maoDeObra || []).find(
-        (m) => String(m.id) === idStr,
-      );
+      const alvo = (obra?.maoDeObra || []).find((m) => String(m.id) === idStr);
       setMaoDeObraParaExcluir(
         alvo ?? { id: mdoId, profissional: "", tipo: "" },
       );
@@ -1218,7 +1220,27 @@ export default function ObrasDetalhe() {
             <CronogramaObra
               etapas={obra?.etapas_selecionadas || []}
               obraId={id}
+              obra={obra}
               showLancarButton
+              showRelatorioButton
+              abrirPdfPreview={abrirPdfPreview}
+              obraInfo={{
+                cliente:
+                  obra?.clientes?.nome ||
+                  (typeof obra?.cliente === "string"
+                    ? obra.cliente
+                    : obra?.cliente?.nome) ||
+                  "—",
+                local: obra?.local || "—",
+                endereco:
+                  [
+                    obra?.clientes?.rua_obra || obra?.clientes?.rua,
+                    obra?.clientes?.numero_obra,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || undefined,
+                tipoObra: isReforma ? "Reforma" : "Obra nova",
+              }}
             />
           </div>
         )}
@@ -1560,43 +1582,54 @@ export default function ObrasDetalhe() {
                     colunas={headerExtrato}
                     dados={dadosRelatorioExtrato}
                   />
-                  <div className="flex w-full flex-col gap-4">
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <div className={totalBarClass}>
-                        <span className="text-text-muted">
-                          Total no extrato:
-                        </span>
-                        <span className="font-bold tabular-nums text-text-primary">
-                          R$ {formatarMoeda(totais.totalExtrato)}
-                        </span>
+                  <div className="flex w-full flex-col gap-5">
+                    <div>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                        Visão geral do extrato
+                      </p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                        <BaseCard
+                          variant="metric"
+                          title="Total no extrato"
+                          value={`R$ ${formatarMoeda(totais.totalExtrato)}`}
+                          colorTheme="indigo"
+                          icon={<FileText className="h-5 w-5" />}
+                        />
+                        <BaseCard
+                          variant="metric"
+                          title="Total pago"
+                          value={`R$ ${formatarMoeda(totais.totalPago)}`}
+                          colorTheme="emerald"
+                          icon={<CheckCircle2 className="h-5 w-5" />}
+                        />
                       </div>
-                      <div className={totalBarClass}>
-                        <span className="text-text-muted">
-                          Materiais selecionados:
-                        </span>
-                        <span className="font-bold tabular-nums text-text-primary">
-                          R${" "}
-                          {formatarMoeda(totaisExtratoSelecionados.materiais)}
-                        </span>
-                      </div>
-                      <div className={totalBarClass}>
-                        <span className="text-text-muted">
-                          Mão de obra selecionada:
-                        </span>
-                        <span className="font-bold tabular-nums text-text-primary">
-                          R${" "}
-                          {formatarMoeda(totaisExtratoSelecionados.maoDeObra)}
-                        </span>
-                      </div>
-                      <div
-                        className={`${totalBarClass} border-accent-primary/25 bg-accent-primary/[0.06] ring-accent-primary/15`}
-                      >
-                        <span className="text-text-muted">
-                          Todos selecionados:
-                        </span>
-                        <span className="font-bold tabular-nums text-accent-primary">
-                          R$ {formatarMoeda(totaisExtratoSelecionados.todos)}
-                        </span>
+                    </div>
+                    <div>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                        Selecionados para o pedido
+                      </p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+                        <BaseCard
+                          variant="metric"
+                          title="Materiais"
+                          value={`R$ ${formatarMoeda(totaisExtratoSelecionados.materiais)}`}
+                          colorTheme="purple"
+                          icon={<Package className="h-5 w-5" />}
+                        />
+                        <BaseCard
+                          variant="metric"
+                          title="Mão de obra"
+                          value={`R$ ${formatarMoeda(totaisExtratoSelecionados.maoDeObra)}`}
+                          colorTheme="amber"
+                          icon={<Hammer className="h-5 w-5" />}
+                        />
+                        <BaseCard
+                          variant="metric"
+                          title="Total selecionado"
+                          value={`R$ ${formatarMoeda(totaisExtratoSelecionados.todos)}`}
+                          colorTheme="primary"
+                          icon={<ClipboardList className="h-5 w-5" />}
+                        />
                       </div>
                     </div>
                     <ButtonDefault

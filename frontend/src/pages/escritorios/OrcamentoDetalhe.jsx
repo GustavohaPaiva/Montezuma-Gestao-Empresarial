@@ -24,6 +24,7 @@ import { STATUS_ORCAMENTO_OPCOES } from "../../components/gerais/statusSelectOpt
 import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import {
   CHAVES_VALORES,
+  MAX_CARACTERES_COMPLEMENTARES_OUTROS,
   MAX_LINHAS_DESCRICAO,
   SECOES_PROPOSTA,
   calcularTotalValoresProposta,
@@ -171,10 +172,16 @@ export default function OrcamentoDetalhe() {
 
   const toggleCheckbox = (secaoId, opcao) => {
     setProposta((prev) => {
-      const next = normalizarPropostaDados({
-        ...prev,
-        [secaoId]: toggleOpcaoLista(prev[secaoId], opcao),
-      });
+      const novaLista = toggleOpcaoLista(prev[secaoId], opcao);
+      const patch = { [secaoId]: novaLista };
+      if (
+        secaoId === "complementares" &&
+        opcao === "Outros" &&
+        !novaLista.includes("Outros")
+      ) {
+        patch.complementares_outros = "";
+      }
+      const next = normalizarPropostaDados({ ...prev, ...patch });
       agendarSalvar(next);
       return next;
     });
@@ -352,6 +359,29 @@ export default function OrcamentoDetalhe() {
                   );
                 })}
               </div>
+              {sec.id === "complementares" &&
+              (proposta.complementares || []).includes("Outros") ? (
+                <div className="mt-4">
+                  <label className={orcLabelCampoClass}>
+                    Especifique o complementar (Outros)
+                  </label>
+                  <input
+                    type="text"
+                    value={proposta.complementares_outros || ""}
+                    maxLength={MAX_CARACTERES_COMPLEMENTARES_OUTROS}
+                    onChange={(e) =>
+                      atualizarProposta({
+                        complementares_outros: e.target.value,
+                      })
+                    }
+                    placeholder="Ex.: Projeto de paisagismo, acústica…"
+                    className={orcInputClass}
+                  />
+                  <p className="mt-1 text-[11px] text-esc-muted">
+                    Este texto aparece no escopo e no orçamento do PDF.
+                  </p>
+                </div>
+              ) : null}
             </OrcamentoSecaoPainel>
           );
         })}

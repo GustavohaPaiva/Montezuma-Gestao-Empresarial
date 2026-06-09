@@ -44,7 +44,7 @@ export default function DescricaoAssistenteModal({
     setAviso("");
     try {
       const resultado = await melhorarTextoPortugues(rascunho);
-      setSugerido(limitarLinhasDescricao(resultado.sugerido));
+      setSugerido(resultado.sugerido || "");
       setAviso(resultado.aviso || "");
       setModelo(resultado.modelo || "");
       setModo("revisar");

@@ -8,6 +8,7 @@ export function useObraFinancialSummary(obra) {
         maoDeObra: 0,
         locacoes: 0,
         totalExtrato: 0,
+        totalPago: 0,
       };
     return {
       materiais: (obra.materiais || []).reduce(
@@ -24,6 +25,12 @@ export function useObraFinancialSummary(obra) {
       ),
       totalExtrato: (obra.relatorioExtrato || []).reduce(
         (acc, item) => acc + (parseFloat(item.valor) || 0),
+        0,
+      ),
+      totalPago: (obra.relatorioExtrato || []).reduce(
+        (acc, item) =>
+          acc +
+          (item.status_financeiro === "Pago" ? parseFloat(item.valor) || 0 : 0),
         0,
       ),
     };

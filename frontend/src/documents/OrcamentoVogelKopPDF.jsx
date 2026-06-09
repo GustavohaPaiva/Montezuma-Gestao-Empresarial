@@ -13,6 +13,7 @@ import {
   ARQUITETO_INFO,
   ESCOPO_RENDER_INTRO,
   ESCOPO_TECNICO_INTRO,
+  ESCOPO_COMPLEMENTAR_INTRO,
   INTRO_PROPOSTA,
   INVESTIMENTO_INTRO,
   ORCAMENTO_ITENS_FIXOS,
@@ -31,6 +32,7 @@ import {
   formatarCodigoPropostaVK,
   formatarInfoGeraisCabecalho,
   formatarMoedaBRL,
+  listaComplementaresExibicao,
   normalizarPropostaDados,
 } from "../utils/orcamentoPropostaUtils";
 
@@ -41,6 +43,7 @@ const COR_TEXTO = "#5C544B";
 const COR_ESCURO = "#3F382F";
 
 const A4_ALTURA = 841.89;
+const A4_LARGURA = 595.28;
 
 const CAPA_LINHA_PROPOSTA_TOP = A4_ALTURA * 0.2438;
 const CAPA_ANO_TOP = A4_ALTURA * 0.955;
@@ -51,11 +54,12 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: COR_TEXTO,
     backgroundColor: COR_FUNDO,
+    paddingTop: 82,
+    paddingHorizontal: 48,
+    paddingBottom: 40,
   },
   conteudo: {
-    paddingHorizontal: 48,
-    paddingTop: 82,
-    paddingBottom: 40,
+    flexGrow: 1,
   },
   coverPage: {
     backgroundColor: COR_FUNDO,
@@ -64,8 +68,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    width: "100%",
-    height: "100%",
+    width: A4_LARGURA,
+    height: A4_ALTURA,
+    objectFit: "cover",
   },
   coverCodeText: {
     position: "absolute",
@@ -95,8 +100,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    width: "100%",
-    height: "100%",
+    width: A4_LARGURA,
+    height: A4_ALTURA,
+    objectFit: "cover",
   },
   headerTitulo: {
     position: "absolute",
@@ -159,28 +165,34 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COR_SECAO,
     textAlign: "center",
-    marginTop: 20,
-    marginBottom: 14,
+    marginTop: 16,
+    marginBottom: 10,
+  },
+  escopoItemTituloPrimeiro: {
+    marginTop: 0,
   },
   escopoParagrafo: {
     fontSize: 13,
-    lineHeight: 1.6,
+    lineHeight: 1.55,
     color: COR_TEXTO,
-    marginBottom: 12,
+    marginBottom: 10,
+    textAlign: "left",
   },
   escopoParagrafoObs: {
     color: COR_SECAO,
     fontSize: 13,
-    lineHeight: 1.6,
+    lineHeight: 1.55,
+    marginTop: 4,
   },
   escopoParagrafoObsText: {
     fontWeight: "bold",
   },
   escopoLinha: {
     fontSize: 13,
-    lineHeight: 1.6,
+    lineHeight: 1.55,
     color: COR_TEXTO,
-    marginBottom: 6,
+    marginBottom: 5,
+    textAlign: "left",
   },
 
   orcSecaoTitulo: {
@@ -188,8 +200,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COR_SECAO,
     textAlign: "center",
-    marginTop: 20,
-    marginBottom: 9,
   },
   orcItemTitulo: {
     fontSize: 12.5,
@@ -225,7 +235,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COR_SECAO,
     textAlign: "center",
-    marginTop: 16,
     marginBottom: 7,
   },
   pagamentoTitulo: {
@@ -278,7 +287,38 @@ function FundoPagina() {
 }
 
 function CabecalhoInterno({ titulo }) {
-  return <Text style={styles.headerTitulo}>{titulo}</Text>;
+  return (
+    <Text style={styles.headerTitulo} fixed>
+      {titulo}
+    </Text>
+  );
+}
+
+/** Seção do escopo — numerada só quando visível. */
+function SecaoEscopo({ titulo, primeiro, children }) {
+  return (
+    <View wrap={false} minPresenceAhead={120}>
+      <Text
+        style={
+          primeiro
+            ? [styles.escopoItemTitulo, styles.escopoItemTituloPrimeiro]
+            : styles.escopoItemTitulo
+        }
+      >
+        {titulo}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+function LinhaEscopo({ children }) {
+  return (
+    <Text style={styles.escopoLinha}>
+      <Text style={styles.bulletCenterText}> • </Text>
+      {children}
+    </Text>
+  );
 }
 
 function linhasPdf(itens, mapaRotulos) {
@@ -311,30 +351,93 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
     orcamento?.numero_proposta,
     dataRef,
   );
-  const infoGerais = formatarInfoGeraisCabecalho(
-    orcamento?.numero_proposta,
-    dataRef,
-  );
+  const infoGerais = formatarInfoGeraisCabecalho(dataRef);
   const total = calcularTotalValoresProposta(proposta.valores);
 
   const linhasTecnico = linhasPdf(proposta.tecnico, ROTULO_TECNICO_PDF);
   const linhasRender = linhasPdf(proposta.renderizacoes, ROTULO_RENDER_PDF);
 
-  // Itens selecionados por categoria (descrição = lista desses itens).
   const itensTecnico = proposta.tecnico.map((i) => ROTULO_TECNICO_PDF[i] || i);
   const itensRender = proposta.renderizacoes.map(
     (i) => ROTULO_RENDER_PDF[i] || i,
   );
-  const itensComplementares = proposta.complementares;
+  const itensComplementares = listaComplementaresExibicao(
+    proposta.complementares,
+    proposta.complementares_outros,
+  );
   const itensTramites = proposta.tramites;
 
-  const temComplementares =
-    proposta.complementares.length > 0 ||
-    (parseFloat(proposta.valores.complementares) || 0) > 0;
+  const temTecnico = proposta.tecnico.length > 0;
+  const temComplementares = proposta.complementares.length > 0;
+  const temRenderizacoes = proposta.renderizacoes.length > 0;
+  const temObjeto = proposta.descricao?.trim()?.length > 0;
 
   const objetoTexto =
     proposta.descricao?.trim() ||
     "Objeto conforme briefing acordado com o cliente.";
+
+  const secoesEscopo = [];
+
+  if (temTecnico) {
+    secoesEscopo.push({
+      key: "tecnico",
+      titulo: `${secoesEscopo.length + 1}. Projeto Técnico Arquitetônico Legal:`,
+      content: (
+        <>
+          <Text style={styles.escopoParagrafo}>{ESCOPO_TECNICO_INTRO}</Text>
+          {linhasTecnico.map((linha) => (
+            <LinhaEscopo key={linha}>{linha}</LinhaEscopo>
+          ))}
+        </>
+      ),
+    });
+  }
+
+  if (temComplementares) {
+    secoesEscopo.push({
+      key: "complementares",
+      titulo: `${secoesEscopo.length + 1}. Projetos complementares:`,
+      content: (
+        <>
+          <Text style={styles.escopoParagrafo}>
+            {ESCOPO_COMPLEMENTAR_INTRO}
+          </Text>
+          {itensComplementares.map((item) => (
+            <LinhaEscopo key={item}>{item};</LinhaEscopo>
+          ))}
+          <Text style={styles.escopoParagrafoObs}>
+            <Text style={styles.escopoParagrafoObsText}>Obs.: </Text>
+            Projetos complementares são executados por parceiros e orçados
+            separadamente.
+          </Text>
+        </>
+      ),
+    });
+  }
+
+  if (temRenderizacoes) {
+    secoesEscopo.push({
+      key: "render",
+      titulo: `${secoesEscopo.length + 1}. Modelagem 3D e Renderizações:`,
+      content: (
+        <>
+          <Text style={styles.escopoParagrafo}>{ESCOPO_RENDER_INTRO}</Text>
+          <Text style={styles.escopoLinha}>Imagens renderizadas:</Text>
+          {linhasRender.map((linha) => (
+            <LinhaEscopo key={linha}>{linha}</LinhaEscopo>
+          ))}
+        </>
+      ),
+    });
+  }
+
+  if (temObjeto) {
+    secoesEscopo.push({
+      key: "objeto",
+      titulo: `${secoesEscopo.length + 1}. Objeto da Proposta:`,
+      content: <Text style={styles.descricaoDestaque}>{objetoTexto}</Text>,
+    });
+  }
 
   return (
     <Document title={`PROPOSTA VK - ${codigoVK}`}>
@@ -360,7 +463,7 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
             {"\n"}
             {ARQUITETO_INFO.nome}
             {"\n"}
-            CPF: {ARQUITETO_INFO.cpf} CAU: {ARQUITETO_INFO.cau}
+            CNPJ: {ARQUITETO_INFO.cnpj} CAU: {ARQUITETO_INFO.cau}
             {"\n"}
             Endereço: {ARQUITETO_INFO.endereco}
             {"\n"}
@@ -386,54 +489,23 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
       </Page>
 
       {/* Escopo dos serviços */}
-      <Page size="A4" style={styles.page}>
-        <FundoPagina />
-        <CabecalhoInterno titulo="ESCOPO DOS SERVIÇOS" />
-        <View style={styles.conteudo}>
-          <Text style={styles.escopoItemTitulo}>
-            1. Projeto Técnico Arquitetônico Legal:
-          </Text>
-          <Text style={styles.escopoParagrafo}>{ESCOPO_TECNICO_INTRO}</Text>
-          {linhasTecnico.map((linha) => (
-            <Text key={linha} style={styles.escopoLinha}>
-              {linha}
-            </Text>
-          ))}
-
-          <Text style={styles.escopoItemTitulo}>
-            2. Projetos complementares:
-          </Text>
-          {temComplementares ? (
-            proposta.complementares.map((item) => (
-              <Text key={item} style={styles.escopoLinha}>
-                {item};
-              </Text>
-            ))
-          ) : (
-            <Text style={styles.escopoParagrafo}>
-              Não está incluso nessa proposta.
-            </Text>
-          )}
-          <Text style={styles.escopoParagrafoObs}>
-            <Text style={styles.escopoParagrafoObsText}>Obs.: </Text> Projetos
-            complementares são executados por parceiros e orçados separadamente.
-          </Text>
-
-          <Text style={styles.escopoItemTitulo}>
-            3. Modelagem 3D e Renderizações:
-          </Text>
-          <Text style={styles.escopoParagrafo}>{ESCOPO_RENDER_INTRO}</Text>
-          <Text style={styles.escopoLinha}>- Imagens renderizadas:</Text>
-          {linhasRender.map((linha) => (
-            <Text key={linha} style={styles.escopoLinha}>
-              {linha}
-            </Text>
-          ))}
-
-          <Text style={styles.escopoItemTitulo}>4. Objeto da Proposta:</Text>
-          <Text style={styles.descricaoDestaque}>{objetoTexto}</Text>
-        </View>
-      </Page>
+      {secoesEscopo.length > 0 && (
+        <Page size="A4" style={styles.page} wrap>
+          <FundoPagina />
+          <CabecalhoInterno titulo="ESCOPO DOS SERVIÇOS" />
+          <View style={styles.conteudo}>
+            {secoesEscopo.map((sec, idx) => (
+              <SecaoEscopo
+                key={sec.key}
+                titulo={sec.titulo}
+                primeiro={idx === 0}
+              >
+                {sec.content}
+              </SecaoEscopo>
+            ))}
+          </View>
+        </Page>
+      )}
 
       {/* Investimento geral */}
       <Page size="A4" style={styles.page}>

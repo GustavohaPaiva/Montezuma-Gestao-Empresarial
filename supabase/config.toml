@@ -1,0 +1,4 @@
+# Chave sb_publishable_... não é JWT; sem isto a plataforma rejeita com INVALID_JWT
+# antes do código da função correr. Ver: https://supabase.com/docs/guides/functions/auth
+[functions.melhorar-texto-proposta]
+verify_jwt = false

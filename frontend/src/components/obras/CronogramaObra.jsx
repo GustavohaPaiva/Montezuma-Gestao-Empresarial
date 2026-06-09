@@ -6,11 +6,13 @@ import {
   useState,
   forwardRef,
 } from "react";
-import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Trash2 } from "lucide-react";
 import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import BaseModal from "../gerais/BaseModal";
 import FeedbackModal from "../gerais/FeedbackModal";
+import { gerarPdfRelatorioCronograma } from "../../pages/obras/detalhe/utils/obraDetalhePdf";
+import { montarDadosRelatorioCronograma } from "../../utils/cronogramaRelatorioPdfData";
 
 function toISODateLocal(d) {
   const y = d.getFullYear();
@@ -255,8 +257,179 @@ function rotuloBarraEtapa(papel, nome) {
   return n;
 }
 
+const DIAS_SEMANA_CRONO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function GradeCronogramaMensal({
+  cells,
+  m,
+  eventosPorDia,
+  etapasComRangeMensal,
+  diasSemana,
+  onDayClick,
+  exportMode = false,
+}) {
+  const minH = exportMode ? "min-h-[54px]" : "min-h-[100px] sm:min-h-[112px]";
+  const dayNum = exportMode
+    ? "text-[11px] font-bold text-slate-800"
+    : "text-xs font-bold text-slate-800 sm:text-sm";
+  const barExtra = exportMode
+    ? "!px-0.5 !py-0.5 !text-[6px] !leading-tight"
+    : "";
+
+  return (
+    <>
+      <div
+        className={[
+          "mb-0 grid grid-cols-7 overflow-hidden rounded-t-xl border border-b-0 shadow-sm",
+          exportMode
+            ? "rounded-t-lg border-[#c2410c] bg-[#DC3B0B] text-white"
+            : "border-slate-200/80 bg-accent-primary text-white",
+        ].join(" ")}
+      >
+        {diasSemana.map((nome) => (
+          <div
+            key={nome}
+            className={[
+              "border-r px-0.5 py-2.5 text-center last:border-r-0 sm:py-3",
+              exportMode ? "border-[#c2410c]" : "border-accent-primary-600",
+            ].join(" ")}
+          >
+            <span
+              className={[
+                "block font-bold uppercase leading-tight tracking-wider",
+                exportMode ? "text-[9px] py-2" : "text-[10px] sm:text-xs",
+              ].join(" ")}
+            >
+              {nome}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 grid-rows-5 gap-px rounded-b-xl border border-slate-200/80 bg-slate-200/60 p-px sm:gap-0.5">
+        {cells.map((dayIso) => {
+          const d = parseISODate(dayIso);
+          const inMonth = d.getMonth() === m;
+          const hoje = toISODateLocal(new Date()) === dayIso;
+          const listEv = eventosPorDia.get(dayIso) || [];
+          const barrasEtapas = etapasComRangeMensal
+            .map((er) => {
+              const c = classificarDiaNaEtapa(dayIso, er.etapa, er.range);
+              if (c.papel === "fora") return null;
+              return {
+                papel: c.papel,
+                etapa: er.etapa,
+                vis: er.vis,
+              };
+            })
+            .filter(Boolean);
+
+          const cellClass = [
+            "flex flex-col overflow-hidden rounded-md border border-slate-200/50 bg-white p-0 text-left",
+            minH,
+            exportMode
+              ? ""
+              : "mt-2 transition hover:bg-slate-50/80 sm:rounded-lg",
+            !inMonth
+              ? exportMode
+                ? "bg-slate-100 text-slate-400"
+                : "bg-slate-50/90 opacity-50"
+              : "",
+            hoje
+              ? exportMode
+                ? "z-[1] ring-2 ring-[#DC3B0B]/50 ring-offset-0"
+                : "z-[1] ring-2 ring-accent-primary/50 ring-offset-0"
+              : "shadow-sm",
+          ].join(" ");
+
+          const inner = (
+            <>
+              <div
+                className={[
+                  "flex shrink-0 items-center justify-end border-b border-slate-200/80 px-1.5 py-0.5 sm:px-2 sm:py-1",
+                  hoje
+                    ? exportMode
+                      ? "bg-[#fff1eb] font-bold text-[#DC3B0B]"
+                      : "bg-orange-50 font-bold text-accent-primary"
+                    : inMonth
+                      ? "bg-slate-50"
+                      : "bg-slate-100/60",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "tabular-nums",
+                    hoje ? "text-sm font-bold sm:text-base" : dayNum,
+                  ].join(" ")}
+                >
+                  {d.getDate()}
+                </span>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col items-stretch justify-center gap-1 px-0.5 py-1 sm:px-1 sm:py-1.5">
+                {barrasEtapas.map((M, i) => (
+                  <span
+                    key={`${M.etapa.nome}-${M.papel}-${i}`}
+                    className={[
+                      M.vis.barSolid,
+                      barExtra,
+                      "max-w-full truncate",
+                    ].join(" ")}
+                    title={M.etapa.nome}
+                  >
+                    {rotuloBarraEtapa(M.papel, M.etapa.nome)}
+                  </span>
+                ))}
+                {listEv.map((ev) => (
+                  <span
+                    key={ev.id}
+                    className={[
+                      "max-w-full min-w-0 truncate",
+                      corParaBarraEvento(ev.cor),
+                      barExtra,
+                    ].join(" ")}
+                    title={ev.titulo}
+                  >
+                    {ev.titulo}
+                  </span>
+                ))}
+              </div>
+            </>
+          );
+
+          if (onDayClick) {
+            return (
+              <button
+                key={dayIso}
+                type="button"
+                onClick={() => onDayClick(dayIso)}
+                className={cellClass}
+              >
+                {inner}
+              </button>
+            );
+          }
+
+          return (
+            <div key={dayIso} className={cellClass}>
+              {inner}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 const CronogramaObra = forwardRef(function CronogramaObra(
-  { etapas = [], obraId, showLancarButton = true },
+  {
+    etapas = [],
+    obraId,
+    obra = null,
+    showLancarButton = true,
+    showRelatorioButton = false,
+    nomeObra = "",
+    obraInfo = null,
+    abrirPdfPreview,
+  },
   ref,
 ) {
   const { user } = useAuth();
@@ -386,6 +559,15 @@ const CronogramaObra = forwardRef(function CronogramaObra(
     () => buildEtapasComRange(gridStartIso, gridEndIso),
     [buildEtapasComRange, gridStartIso, gridEndIso],
   );
+
+  const infoObraRelatorio = useMemo(() => {
+    if (obraInfo) return obraInfo;
+    if (String(nomeObra || "").trim()) {
+      return { cliente: nomeObra, local: nomeObra };
+    }
+    return {};
+  }, [nomeObra, obraInfo]);
+
   const etapasComRangeSemanal = useMemo(
     () => buildEtapasComRange(weekStartIso, weekEndIso),
     [buildEtapasComRange, weekStartIso, weekEndIso],
@@ -512,9 +694,8 @@ const CronogramaObra = forwardRef(function CronogramaObra(
       return d;
     });
   };
-  const goTodayWeek = () => setWeekStart(startOfWeekSun(new Date()));
 
-  const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const diasSemana = DIAS_SEMANA_CRONO;
 
   const formatarDiaPt = (iso) =>
     new Intl.DateTimeFormat("pt-BR", {
@@ -522,9 +703,54 @@ const CronogramaObra = forwardRef(function CronogramaObra(
       month: "short",
     }).format(parseISODate(iso));
 
+  const handleGerarRelatorioCronograma = useCallback(() => {
+    if (loading) return;
+    if (typeof abrirPdfPreview !== "function") {
+      showFeedback(
+        "Visualização de relatório indisponível nesta tela.",
+        "error",
+      );
+      return;
+    }
+
+    const dados = montarDadosRelatorioCronograma({
+      y,
+      m,
+      monthLabel,
+      cells,
+      gridStartIso,
+      gridEndIso,
+      etapas,
+      eventos,
+      obraInfo: infoObraRelatorio,
+      diasSemana: DIAS_SEMANA_CRONO,
+    });
+
+    abrirPdfPreview({
+      titulo: "Relatório de Cronograma",
+      gerador: () =>
+        gerarPdfRelatorioCronograma(obra, dados, { retornarBlob: true }),
+      nomeFallback: "Relatorio_Cronograma.pdf",
+    });
+  }, [
+    abrirPdfPreview,
+    cells,
+    etapas,
+    eventos,
+    gridEndIso,
+    gridStartIso,
+    infoObraRelatorio,
+    loading,
+    m,
+    monthLabel,
+    obra,
+    showFeedback,
+    y,
+  ]);
+
   return (
-    <section className="w-full mx-auto mb-4 rounded-2xl border border-border-primary/50 bg-surface-alt p-3 shadow-sm ring-1 ring-slate-200/40 sm:mb-6 sm:p-5 md:p-6">
-      <div className="mb-4 flex flex-col gap-4 border-b border-slate-200/50 pb-4 md:flex-row md:items-start md:justify-between">
+    <section className="relative w-full mx-auto mb-4 rounded-2xl border border-border-primary/50 bg-surface-alt p-3 shadow-sm ring-1 ring-slate-200/40 sm:mb-6 sm:p-5 md:p-6">
+      <div className="mb-4 space-y-4 border-b border-slate-200/50 pb-4">
         <div className="min-w-0">
           <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-[22px]">
             Cronograma da obra
@@ -533,67 +759,101 @@ const CronogramaObra = forwardRef(function CronogramaObra(
             Etapas e eventos no mesmo calendário.
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[360px]">
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
-            <div className="hidden w-full items-center justify-end gap-2 md:flex md:w-auto">
-              <button
-                type="button"
-                onClick={prevMonth}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-800 shadow-sm transition hover:bg-slate-50"
-                aria-label="Mês anterior"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="min-w-[160px] text-center text-sm font-semibold capitalize tracking-tight text-slate-800">
-                {monthLabel}
-              </span>
-              <button
-                type="button"
-                onClick={nextMonth}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-800 shadow-sm transition hover:bg-slate-50"
-                aria-label="Próximo mês"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end md:hidden">
-              <button
-                type="button"
-                onClick={prevWeek}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-800 shadow-sm"
-                aria-label="Semana anterior"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="min-w-[180px] text-center text-xs font-semibold tracking-tight text-slate-800">
-                {formatarDiaPt(weekStartIso)} – {formatarDiaPt(weekEndIso)}
-              </span>
-              <button
-                type="button"
-                onClick={nextWeek}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-800 shadow-sm"
-                aria-label="Próxima semana"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={goTodayWeek}
-                className="rounded-lg border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-sm"
-              >
-                Hoje
-              </button>
-            </div>
+
+        <div className="hidden items-center justify-between gap-3 rounded-xl border border-slate-200/70 bg-white p-2.5 shadow-sm md:flex lg:flex-row">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-800 shadow-sm transition hover:bg-slate-50"
+              aria-label="Mês anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="min-w-[168px] px-2 text-center text-sm font-semibold capitalize tracking-tight text-slate-800">
+              {monthLabel}
+            </span>
+            <button
+              type="button"
+              onClick={nextMonth}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-800 shadow-sm transition hover:bg-slate-50"
+              aria-label="Próximo mês"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
-          {showLancarButton && (
-            <div className="flex w-full md:justify-end">
-              <button
-                type="button"
-                onClick={abrirLancamento}
-                className="w-full min-w-[248px] rounded-lg border border-accent-primary bg-accent-primary px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-sm transition hover:bg-accent-primary-dark md:w-auto"
-              >
-                Lançar no Cronograma
-              </button>
+
+          {(showRelatorioButton || showLancarButton) && (
+            <div className="flex shrink-0 items-center gap-2">
+              {showRelatorioButton && (
+                <button
+                  type="button"
+                  onClick={handleGerarRelatorioCronograma}
+                  disabled={loading}
+                  className="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200/80 bg-white px-4 text-sm font-semibold tracking-tight text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <FileText className="h-4 w-4 shrink-0" />
+                  Relatório do mês
+                </button>
+              )}
+              {showLancarButton && (
+                <button
+                  type="button"
+                  onClick={abrirLancamento}
+                  className="flex h-10 items-center justify-center rounded-lg border border-accent-primary bg-accent-primary px-4 text-sm font-semibold tracking-tight text-white shadow-sm transition hover:bg-accent-primary-dark"
+                >
+                  Lançar no Cronograma
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2.5 lg:hidden">
+          <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-slate-200/70 bg-white p-2.5 shadow-sm">
+            <button
+              type="button"
+              onClick={prevWeek}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-800 shadow-sm"
+              aria-label="Semana anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="min-w-[180px] text-center text-xs font-semibold tracking-tight text-slate-800">
+              {formatarDiaPt(weekStartIso)} – {formatarDiaPt(weekEndIso)}
+            </span>
+            <button
+              type="button"
+              onClick={nextWeek}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-800 shadow-sm"
+              aria-label="Próxima semana"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {(showRelatorioButton || showLancarButton) && (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {showRelatorioButton && (
+                <button
+                  type="button"
+                  onClick={handleGerarRelatorioCronograma}
+                  disabled={loading}
+                  className="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200/80 bg-white px-4 text-sm font-semibold tracking-tight text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <FileText className="h-4 w-4 shrink-0" />
+                  Relatório do mês
+                </button>
+              )}
+              {showLancarButton && (
+                <button
+                  type="button"
+                  onClick={abrirLancamento}
+                  className="flex h-10 items-center justify-center rounded-lg border border-accent-primary bg-accent-primary px-4 text-sm font-semibold tracking-tight text-white shadow-sm transition hover:bg-accent-primary-dark"
+                >
+                  Lançar no Cronograma
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -603,101 +863,14 @@ const CronogramaObra = forwardRef(function CronogramaObra(
 
       {!loading && (
         <div className="hidden overflow-hidden rounded-2xl border border-border-primary/40 bg-white p-1.5 shadow-md shadow-slate-300/30 ring-1 ring-slate-200/50 sm:p-2 md:block">
-          {/* Cabeçalho separado: destaque e colado à grelha de dias (evita “salto” visual) */}
-          <div className="mb-0 grid grid-cols-7 overflow-hidden rounded-t-xl border border-b-0 border-slate-200/80 bg-accent-primary text-white shadow-sm">
-            {diasSemana.map((nome) => (
-              <div
-                key={nome}
-                className="border-r border-accent-primary-600 px-0.5 py-2.5 text-center last:border-r-0 sm:py-3"
-              >
-                <span className="block text-[10px] font-bold uppercase leading-tight tracking-wider sm:text-xs">
-                  {nome}
-                </span>
-              </div>
-            ))}
-          </div>
-          {/* 5 semanas x 7 colunas; domingo = primeira coluna */}
-          <div className="grid grid-cols-7 grid-rows-5 gap-px rounded-b-xl border border-slate-200/80 bg-slate-200/60 p-px sm:gap-0.5">
-            {cells.map((dayIso) => {
-              const d = parseISODate(dayIso);
-              const inMonth = d.getMonth() === m;
-              const hoje = toISODateLocal(new Date()) === dayIso;
-              const listEv = eventosPorDia.get(dayIso) || [];
-              const barrasEtapas = etapasComRangeMensal
-                .map((er) => {
-                  const c = classificarDiaNaEtapa(dayIso, er.etapa, er.range);
-                  if (c.papel === "fora") return null;
-                  return {
-                    papel: c.papel,
-                    etapa: er.etapa,
-                    vis: er.vis,
-                  };
-                })
-                .filter(Boolean);
-
-              return (
-                <button
-                  key={dayIso}
-                  type="button"
-                  onClick={() => setModalDia(dayIso)}
-                  className={[
-                    "flex min-h-[100px] mt-2 flex-col overflow-hidden rounded-md border border-slate-200/50 bg-white p-0 text-left transition hover:bg-slate-50/80 sm:min-h-[112px] sm:rounded-lg",
-                    !inMonth ? "bg-slate-50/90 opacity-50" : "",
-                    hoje
-                      ? "z-[1] ring-2 ring-accent-primary/50 ring-offset-0"
-                      : "shadow-sm",
-                  ].join(" ")}
-                >
-                  <div
-                    className={[
-                      "flex shrink-0 items-center justify-end border-b border-slate-200/80 px-1.5 py-0.5 sm:px-2 sm:py-1",
-                      hoje
-                        ? "bg-orange-50 font-bold text-accent-primary"
-                        : inMonth
-                          ? "bg-slate-50"
-                          : "bg-slate-100/60",
-                    ].join(" ")}
-                  >
-                    <span
-                      className={[
-                        "tabular-nums",
-                        hoje
-                          ? "text-sm font-bold sm:text-base"
-                          : "text-xs font-bold text-slate-800 sm:text-sm",
-                      ].join(" ")}
-                    >
-                      {d.getDate()}
-                    </span>
-                  </div>
-                  <div className="flex min-h-0 flex-1 flex-col items-stretch justify-center gap-1 px-0.5 py-1 sm:px-1 sm:py-1.5">
-                    {barrasEtapas.map((M, i) => (
-                      <span
-                        key={`${M.etapa.nome}-${M.papel}-${i}`}
-                        className={[M.vis.barSolid, "max-w-full truncate"].join(
-                          " ",
-                        )}
-                        title={M.etapa.nome}
-                      >
-                        {rotuloBarraEtapa(M.papel, M.etapa.nome)}
-                      </span>
-                    ))}
-                    {listEv.map((ev) => (
-                      <span
-                        key={ev.id}
-                        className={[
-                          "max-w-full min-w-0 truncate",
-                          corParaBarraEvento(ev.cor),
-                        ].join(" ")}
-                        title={ev.titulo}
-                      >
-                        {ev.titulo}
-                      </span>
-                    ))}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          <GradeCronogramaMensal
+            cells={cells}
+            m={m}
+            eventosPorDia={eventosPorDia}
+            etapasComRangeMensal={etapasComRangeMensal}
+            diasSemana={diasSemana}
+            onDayClick={setModalDia}
+          />
         </div>
       )}
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Download,
   ExternalLink,
+  FileImage,
   FileText,
   Loader2,
   X,
@@ -37,6 +38,7 @@ export default function PdfPreviewModal({
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState(null);
   const [baixando, setBaixando] = useState(false);
+  const [modoImagem, setModoImagem] = useState(false);
 
   const limparUrl = useCallback(() => {
     setPdfUrl((prev) => {
@@ -50,6 +52,7 @@ export default function PdfPreviewModal({
       limparUrl();
       setErro(null);
       setCarregando(false);
+      setModoImagem(false);
       return undefined;
     }
 
@@ -64,10 +67,14 @@ export default function PdfPreviewModal({
         if (cancelado) return;
         const blob = resultado?.blob ?? resultado;
         if (!blob || !(blob instanceof Blob)) {
-          throw new Error("Não foi possível gerar o PDF.");
+          throw new Error("Não foi possível gerar o documento.");
         }
         const nome = resultado?.nomePadrao || nomeFallback;
         setNomeArquivo(nome);
+        setModoImagem(
+          blob.type.startsWith("image/") ||
+            /\.(png|jpe?g|webp|gif)$/i.test(nome),
+        );
         setPdfUrl(URL.createObjectURL(blob));
       } catch (e) {
         if (!cancelado) {
@@ -97,7 +104,18 @@ export default function PdfPreviewModal({
     try {
       const res = await fetch(pdfUrl);
       const blob = await res.blob();
-      await baixarPdfBlob(blob, nomeArquivo);
+      if (modoImagem) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = nomeArquivo;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      } else {
+        await baixarPdfBlob(blob, nomeArquivo);
+      }
     } catch (e) {
       console.error("[PdfPreviewModal] download:", e);
     } finally {
@@ -149,8 +167,8 @@ export default function PdfPreviewModal({
     : "relative min-h-0 flex-1 bg-gradient-to-b from-[#F4F4F5] to-[#E4E4E7] p-3 sm:p-4";
 
   const loadingOverlayClass = temaEscritorio
-    ? "absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-esc-bg/90"
-    : "absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#F4F4F5]/90";
+    ? "absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-esc-bg"
+    : "absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#F4F4F5]";
 
   const loaderClass = temaEscritorio
     ? "h-10 w-10 animate-spin text-esc-destaque"
@@ -179,7 +197,11 @@ export default function PdfPreviewModal({
         <header className={headerClass}>
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className={iconWrapClass}>
-              <FileText className="h-5 w-5" aria-hidden />
+              {modoImagem ? (
+                <FileImage className="h-5 w-5" aria-hidden />
+              ) : (
+                <FileText className="h-5 w-5" aria-hidden />
+              )}
             </div>
             <div className="min-w-0">
               <h2 className={titleClass}>{titulo}</h2>
@@ -213,7 +235,11 @@ export default function PdfPreviewModal({
               }
               className={btnPrimaryClass}
             >
-              {baixando ? "Salvando…" : "Baixar PDF"}
+              {baixando
+                ? "Salvando…"
+                : modoImagem
+                  ? "Baixar imagem"
+                  : "Baixar PDF"}
             </BaseButton>
             <button
               type="button"
@@ -255,7 +281,27 @@ export default function PdfPreviewModal({
             </div>
           )}
 
-          {pdfUrl && !erro && (
+          {pdfUrl && !erro && modoImagem && (
+            <div className="flex h-full min-h-0 flex-col overflow-auto py-4 sm:py-6">
+              <div
+                className={[
+                  "mx-auto w-full shadow-lg ring-1 ring-black/[0.06]",
+                  temaEscritorio ? "bg-white ring-esc-destaque/10" : "bg-white",
+                ].join(" ")}
+                style={{
+                  aspectRatio: "210 / 297",
+                }}
+              >
+                <img
+                  src={pdfUrl}
+                  alt={titulo}
+                  className="block h-full w-full object-contain object-top"
+                />
+              </div>
+            </div>
+          )}
+
+          {pdfUrl && !erro && !modoImagem && (
             <iframe
               src={`${pdfUrl}#toolbar=1&navpanes=0`}
               title={titulo}

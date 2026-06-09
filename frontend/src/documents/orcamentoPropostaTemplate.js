@@ -21,7 +21,7 @@ export const SOBRE_ESCRITORIO = {
 export const ARQUITETO_INFO = {
   titulo: "ARQUITETO:",
   nome: "Leonardo Silva Oliveira",
-  cpf: "123.826.456-52",
+  cnpj: "55.265.345/0001-69",
   cau: "262276-9",
   endereco: "Rua Islândia, n° 12, Uberaba MG.",
   email: "arquiteturavogelkop@gmail.com",
@@ -31,8 +31,24 @@ export const ARQUITETO_INFO = {
 export const ESCOPO_TECNICO_INTRO =
   "Desenvolvimento do projeto arquitetônico completo, conforme normas vigentes, destinado à aprovação na Prefeitura de Uberaba e à Caixa Econômica Federal.";
 
+/** Versões curtas para caber o escopo em uma página A4 no PDF. */
+export const ESCOPO_TECNICO_INTRO_PDF =
+  "Projeto arquitetônico completo para aprovação na Prefeitura de Uberaba e Caixa Econômica Federal.";
+
+export const ESCOPO_COMPLEMENTAR_INTRO =
+  "Projetos técnicos complementares que garantem a compatibilização, segurança e correta execução da obra.";
+
+export const ESCOPO_COMPLEMENTAR_INTRO_PDF =
+  "Projetos complementares para compatibilização, segurança e execução da obra.";
+
 export const ESCOPO_RENDER_INTRO =
   "A modelagem 3D renderizada é uma ferramenta de representação avançada que traduz o projeto arquitetônico em imagens realistas, permitindo uma leitura clara de volumes, materiais, iluminação e proporções.";
+
+export const ESCOPO_RENDER_INTRO_PDF =
+  "Modelagem 3D renderizada para visualização de volumes, materiais e proporções.";
+
+export const ESCOPO_COMPLEMENTAR_OBS_PDF =
+  "Obs.: executados por parceiros, orçados separadamente.";
 
 export const INVESTIMENTO_INTRO = [
   "O investimento no projeto representa mais do que a elaboração de documentos técnicos: é a garantia de um processo bem planejado, seguro e alinhado às normas, reduzindo riscos, retrabalhos e incertezas ao longo da obra.",

@@ -45,24 +45,29 @@ const inputBarClass =
 const inputDateBarClass =
   "w-full min-w-0 rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 py-2.5 text-sm text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
 
-function orcamentoEstaFechado(status) {
-  const s = (status || "").trim().toLowerCase();
-  return s === "fechado" || s.includes("fechado");
-}
-
-function orcamentoEmAndamento(status) {
-  const s = (status || "").trim().toLowerCase();
-  return s.includes("andamento");
+function statusOrcamentoNorm(status) {
+  return String(status ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function orcamentoNaoFechado(status) {
-  const s = (status || "").trim().toLowerCase();
-  return (
-    s === "não fechado" ||
-    s === "nao fechado" ||
-    s.includes("não fechado") ||
-    s.includes("nao fechado")
-  );
+  const s = statusOrcamentoNorm(status);
+  return s === "nao fechado" || s.includes("nao fechado");
+}
+
+function orcamentoEstaFechado(status) {
+  if (orcamentoNaoFechado(status)) return false;
+  const s = statusOrcamentoNorm(status);
+  return s === "fechado";
+}
+
+function orcamentoEmAndamento(status) {
+  if (orcamentoNaoFechado(status) || orcamentoEstaFechado(status)) return false;
+  const s = statusOrcamentoNorm(status);
+  return s.includes("andamento");
 }
 
 function pesoStatusOrcamento(status) {
@@ -181,12 +186,12 @@ export default function OrcamentoEscritorio() {
     let qtdPendente = 0;
     for (const o of linhas) {
       const v = parseFloat(o.valor) || 0;
-      if (orcamentoEstaFechado(o.status)) {
-        totalFechado += v;
-        qtdFechado += 1;
-      } else if (orcamentoNaoFechado(o.status)) {
+      if (orcamentoNaoFechado(o.status)) {
         totalNaoFechado += v;
         qtdNaoFechado += 1;
+      } else if (orcamentoEstaFechado(o.status)) {
+        totalFechado += v;
+        qtdFechado += 1;
       } else {
         totalPendente += v;
         qtdPendente += 1;

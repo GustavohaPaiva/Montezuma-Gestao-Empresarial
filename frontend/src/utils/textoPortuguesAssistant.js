@@ -1,16 +1,35 @@
 import { supabase } from "../services/supabase";
-import { MAX_LINHAS_DESCRICAO, limitarLinhasDescricao } from "./orcamentoPropostaUtils";
+import {
+  MAX_LINHAS_DESCRICAO,
+  limitarLinhasDescricao,
+  precisaAjusteSugestaoIA,
+  removerFinalIncompleto,
+  textoExcedeLinhasDescricao,
+} from "./orcamentoPropostaUtils";
 
 const GEMINI_MODEL =
-  import.meta.env.VITE_GEMINI_MODEL?.trim() || "gemini-2.0-flash";
+  import.meta.env.VITE_GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+
+function limparTextoGemini(raw) {
+  return String(raw ?? "")
+    .replace(/^["'`]+|["'`]+$/g, "")
+    .replace(/\r\n/g, "\n")
+    .trim();
+}
 
 function montarPromptGemini(texto, maxLinhas) {
   return `Você é redator de propostas comerciais de um escritório de arquitetura no Brasil.
 
 Reescreva o texto abaixo em português brasileiro formal, claro e profissional.
 Corrija gramática, ortografia e pontuação. Melhore a fluidez sem mudar o sentido nem inventar informações.
-Use tom adequado a proposta comercial (objectivo e cordial).
-O resultado deve ter no máximo ${maxLinhas} linhas (use quebras de linha naturais se ajudarem a legibilidade).
+Use tom adequado a proposta comercial (objetivo e cordial).
+
+Regras obrigatórias:
+- Máximo ${maxLinhas} linhas (quebras de linha só entre frases completas).
+- Cada linha deve ser uma frase completa terminada em . ! ou ?
+- A última linha DEVE fechar o texto com pontuação final — nunca pare no meio de palavra ou frase.
+- Se o conteúdo for longo, resuma reescrevendo de forma mais concisa; não truncar nem cortar.
+
 Não use markdown, títulos, bullets, aspas envolvendo o texto inteiro nem explicações.
 Retorne APENAS o texto final reescrito.
 
@@ -20,20 +39,36 @@ ${texto}
 """`;
 }
 
-async function chamarGeminiDireto(texto, maxLinhas) {
+function montarPromptAjuste(texto, maxLinhas) {
+  return `Você é redator de propostas comerciais de arquitetura no Brasil.
+
+Ajuste o texto abaixo para caber em no máximo ${maxLinhas} linhas.
+Mantenha tom formal e todas as informações essenciais.
+Cada linha = frase completa (. ! ?). A última linha deve encerrar o texto com ponto final.
+Nunca interrompa palavras ou frases no meio — se precisar encurtar, resuma com outras palavras.
+
+Retorne APENAS o texto ajustado.
+
+Texto:
+"""
+${texto}
+"""`;
+}
+
+async function chamarGeminiDiretoPrompt(prompt) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
   if (!apiKey) return null;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: montarPromptGemini(texto, maxLinhas) }] }],
+      contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.35,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 2048,
       },
     }),
   });
@@ -46,10 +81,32 @@ async function chamarGeminiDireto(texto, maxLinhas) {
   const json = await res.json();
   const raw = json?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!raw?.trim()) throw new Error("Gemini não retornou texto.");
+  return limparTextoGemini(raw);
+}
 
-  return limitarLinhasDescricao(
-    String(raw).replace(/^["'`]+|["'`]+$/g, "").trim(),
-  );
+async function finalizarSugestaoIA(textoBruto, maxLinhas, gerarPrompt) {
+  let texto = limparTextoGemini(textoBruto);
+
+  if (precisaAjusteSugestaoIA(texto, maxLinhas)) {
+    const ajustado = await gerarPrompt(montarPromptAjuste(texto, maxLinhas));
+    if (ajustado) texto = limparTextoGemini(ajustado);
+  }
+
+  texto = removerFinalIncompleto(texto);
+
+  if (textoExcedeLinhasDescricao(texto, maxLinhas)) {
+    const resumido = await gerarPrompt(montarPromptAjuste(texto, maxLinhas));
+    if (resumido) texto = removerFinalIncompleto(limparTextoGemini(resumido));
+  }
+
+  return texto;
+}
+
+async function chamarGeminiDireto(texto, maxLinhas) {
+  const gerar = (prompt) => chamarGeminiDiretoPrompt(prompt);
+  const bruto = await gerar(montarPromptGemini(texto, maxLinhas));
+  if (!bruto) return null;
+  return finalizarSugestaoIA(bruto, maxLinhas, gerar);
 }
 
 async function chamarGeminiEdgeFunction(texto, maxLinhas) {
@@ -62,7 +119,7 @@ async function chamarGeminiEdgeFunction(texto, maxLinhas) {
   if (data?.erro) throw new Error(data.erro);
 
   return {
-    sugerido: limitarLinhasDescricao(data?.sugerido ?? ""),
+    sugerido: removerFinalIncompleto(data?.sugerido ?? ""),
     origem: data?.origem || "gemini",
     modelo: data?.modelo || GEMINI_MODEL,
     aviso:
@@ -82,11 +139,8 @@ function limpezaBasicaLocal(texto) {
 }
 
 /**
- * Melhora texto com IA generativa (Gemini — tier gratuito).
- * Ordem: Edge Function Supabase → Gemini direto (VITE_GEMINI_API_KEY) → limpeza local.
- *
- * @param {string} texto
- * @returns {Promise<{ sugerido: string, origem: string, modelo?: string, aviso?: string }>}
+ * Melhora texto com IA generativa (Gemini).
+ * Ordem: Edge Function Supabase → Gemini direto → limpeza local.
  */
 export async function melhorarTextoPortugues(texto) {
   const original = String(texto ?? "").trim();

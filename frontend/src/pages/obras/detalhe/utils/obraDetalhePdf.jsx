@@ -1,5 +1,6 @@
 import { pdf } from "@react-pdf/renderer";
 import RelatorioObraPDF from "../../../../documents/RelatorioObraPDF";
+import RelatorioCronogramaPDF from "../../../../documents/RelatorioCronogramaPDF";
 import { formatarDataBR, formatarMoeda } from "./formatters";
 
 /**
@@ -479,6 +480,32 @@ export async function gerarPdfExtrato(
       }}
     />
   );
+
+  return blobERetorno(doc, nomePadrao);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cronograma da obra
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function gerarPdfRelatorioCronograma(
+  obra,
+  dadosCronograma,
+  // eslint-disable-next-line no-unused-vars
+  _opts = {},
+) {
+  if (!dadosCronograma) {
+    throw new Error("Dados do cronograma indisponíveis.");
+  }
+
+  const sufixo = dadosCronograma.referenciaSlug || dadosCronograma.referencia;
+  const nomePadrao = nomeFormalRelatorio(
+    "Relatorio-de-Cronograma",
+    obra,
+    sufixo,
+  );
+
+  const doc = <RelatorioCronogramaPDF dados={dadosCronograma} />;
 
   return blobERetorno(doc, nomePadrao);
 }

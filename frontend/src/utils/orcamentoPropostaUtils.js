@@ -37,6 +37,7 @@ export const CHAVES_VALORES = [
 ];
 
 export const MAX_LINHAS_DESCRICAO = 10;
+export const MAX_CARACTERES_COMPLEMENTARES_OUTROS = 120;
 
 const CHAVES_LISTA = ["tecnico", "tramites", "complementares", "renderizacoes"];
 
@@ -68,14 +69,40 @@ export function normalizarPropostaDados(raw) {
     .split("\n")
     .slice(0, MAX_LINHAS_DESCRICAO)
     .join("\n");
+  const complementares = normalizarLista(
+    src.complementares,
+    OPCOES_COMPLEMENTARES,
+  );
+  const complementares_outros = String(src.complementares_outros ?? "")
+    .trim()
+    .slice(0, MAX_CARACTERES_COMPLEMENTARES_OUTROS);
+
   return {
     tecnico: normalizarLista(src.tecnico, OPCOES_TECNICO),
     tramites: normalizarLista(src.tramites, OPCOES_TRAMITES),
-    complementares: normalizarLista(src.complementares, OPCOES_COMPLEMENTARES),
+    complementares,
+    complementares_outros: complementares.includes("Outros")
+      ? complementares_outros
+      : "",
     renderizacoes: normalizarLista(src.renderizacoes, OPCOES_RENDERIZACOES),
     valores: normalizarValores(src.valores),
     descricao,
   };
+}
+
+/** Rótulo exibido no PDF/UI quando a opção é "Outros" com texto livre. */
+export function rotuloComplementar(item, outrosTexto) {
+  if (item === "Outros") {
+    const t = String(outrosTexto ?? "").trim();
+    return t || "Outros";
+  }
+  return item;
+}
+
+export function listaComplementaresExibicao(complementares, outrosTexto) {
+  return normalizarLista(complementares, OPCOES_COMPLEMENTARES).map((item) =>
+    rotuloComplementar(item, outrosTexto),
+  );
 }
 
 export function calcularTotalValoresProposta(valores) {
@@ -120,14 +147,14 @@ export function formatarCodigoPropostaVK(numero, dataReferencia) {
   return `${String(numero).padStart(2, "0")}${ano}`;
 }
 
-/** Cabeçalho INFO GERAIS - 26|05 - 2026 */
-export function formatarInfoGeraisCabecalho(numero, dataReferencia) {
+/** Cabeçalho INFO GERAIS — dia|mês - ano a partir da coluna `data` do orçamento. */
+export function formatarInfoGeraisCabecalho(dataReferencia) {
   const d = dataReferencia ? new Date(dataReferencia) : new Date();
   if (Number.isNaN(d.getTime())) return "INFO GERAIS";
+  const dd = String(d.getUTCDate()).padStart(2, "0");
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   const yyyy = d.getUTCFullYear();
-  const num = String(numero).padStart(2, "0") ?? "—";
-  return `INFO GERAIS - ${num}|${mm} - ${yyyy}`;
+  return `INFO GERAIS - ${dd}|${mm} - ${yyyy}`;
 }
 
 export function limitarLinhasDescricao(texto) {
@@ -136,6 +163,50 @@ export function limitarLinhasDescricao(texto) {
     .split("\n")
     .slice(0, MAX_LINHAS_DESCRICAO)
     .join("\n");
+}
+
+/** Linha termina frase completa (não cortada). */
+function linhaTerminaFrase(linha) {
+  const t = String(linha ?? "").trim();
+  if (!t) return true;
+  return /[.!?…]["')\]]*$/.test(t);
+}
+
+export function textoTerminaFraseCompleta(texto) {
+  const linhas = String(texto ?? "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (!linhas.length) return true;
+  return linhaTerminaFrase(linhas[linhas.length - 1]);
+}
+
+export function textoExcedeLinhasDescricao(
+  texto,
+  maxLinhas = MAX_LINHAS_DESCRICAO,
+) {
+  return contarLinhasDescricao(texto) > maxLinhas;
+}
+
+export function precisaAjusteSugestaoIA(
+  texto,
+  maxLinhas = MAX_LINHAS_DESCRICAO,
+) {
+  const t = String(texto ?? "").trim();
+  if (!t) return false;
+  return (
+    textoExcedeLinhasDescricao(t, maxLinhas) || !textoTerminaFraseCompleta(t)
+  );
+}
+
+/** Remove linha final cortada no meio (sem pontuação de fim). */
+export function removerFinalIncompleto(texto) {
+  const linhas = String(texto ?? "").replace(/\r\n/g, "\n").split("\n");
+  while (linhas.length > 0 && !linhaTerminaFrase(linhas[linhas.length - 1])) {
+    linhas.pop();
+  }
+  return linhas.join("\n").trim();
 }
 
 export function contarLinhasDescricao(texto) {

@@ -953,6 +953,9 @@ export default function ObraCliente() {
                   etapas={obra?.etapas_selecionadas || []}
                   obraId={id}
                   showLancarButton={false}
+                  nomeObra={
+                    obra?.clientes?.nome || obra?.cliente || obra?.local || ""
+                  }
                 />
               </div>
             ) : null}
