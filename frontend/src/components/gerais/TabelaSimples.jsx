@@ -56,7 +56,7 @@ export default function TabelaSimples({
                       ? "bg-[#F4F4F5] text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted shadow-[0_1px_0_0_rgba(0,0,0,0.06)] backdrop-blur-sm sm:text-xs"
                       : processoDetalhe
                         ? "border-b border-gray-100 bg-white text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 sm:text-xs"
-                        : "bg-[#eeedf0] text-center text-[14px] font-semibold uppercase text-[#71717A]"
+                        : "bg-bg-primary text-center text-[14px] font-semibold uppercase text-[#71717A]"
               }
             >
               {colunas.map((col, i) => (
@@ -77,7 +77,7 @@ export default function TabelaSimples({
                             ? compact
                               ? "whitespace-nowrap bg-white px-3 py-2.5 text-center text-gray-600"
                               : "whitespace-nowrap bg-white px-4 py-3.5 text-center text-gray-600 sm:py-4"
-                            : "bg-[#eeedf0] p-[12px] text-center"
+                            : "bg-bg-primary p-[12px] text-center"
                   }
                 >
                   {col}

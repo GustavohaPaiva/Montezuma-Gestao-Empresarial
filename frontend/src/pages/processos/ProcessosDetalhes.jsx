@@ -472,7 +472,7 @@ export default function ProcessosDetalhes() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#EEEDF0] via-[#EDEDEF] to-[#E6E5E8] pb-12">
+    <div className="min-h-screen bg-bg-primary pb-12">
       <header className="w-full border-b border-gray-200/90 bg-bg-primary shadow-sm backdrop-blur-md">
         <div className="mx-auto flex w-full flex-col gap-4 px-[5%] py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">

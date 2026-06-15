@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg-primary: #eeedf0;
+  --color-bg-primary: #fafafa;
   --color-surface: #ffffff;
   --color-surface-alt: #f8f9fa;
   --color-surface-muted: #f7f7f8;
@@ -90,6 +90,12 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    background-color: var(--color-bg-primary);
+  }
+
   .theme-ybyoca {
     --esc-bg: #0a0a0a;
     --esc-card: #171717;

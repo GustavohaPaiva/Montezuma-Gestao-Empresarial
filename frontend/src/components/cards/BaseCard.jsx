@@ -71,6 +71,7 @@ export default function BaseCard({
   title,
   value,
   icon,
+  hint,
   status,
   /** React node no lugar do badge de status (ex.: select editável). */
   statusElement,
@@ -240,6 +241,9 @@ export default function BaseCard({
               <p className="text-2xl font-semibold text-text-primary tracking-tight">
                 {value}
               </p>
+            ) : null}
+            {hint ? (
+              <p className="text-xs leading-snug text-text-muted">{hint}</p>
             ) : null}
           </div>
           {icon ? (

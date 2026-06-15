@@ -1,5 +1,11 @@
 import { supabase } from "./supabase";
 import {
+  ID_MONTEZUMA,
+  ID_VOGELKOP,
+  ID_YBYOCA,
+} from "../constants/escritorios";
+import { STATUS as TAREFA_STATUS } from "../pages/tarefas/tarefasHelpers";
+import {
   enriquecerNumerosPedidos,
   normalizarNomeMaterial,
   normalizarMateriaisLista,
@@ -2941,5 +2947,94 @@ export const api = {
     if (!id) throw new Error("ID da projeção é obrigatório.");
     const { error } = await supabase.from("projecoes").delete().eq("id", id);
     if (error) throw error;
+  },
+
+  getHomeDashboardCounts: async () => {
+    const daqui2 = new Date();
+    daqui2.setDate(daqui2.getDate() + 2);
+    const daqui2Str = daqui2.toISOString().slice(0, 10);
+
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth() + 1;
+    const mesStr = String(mesAtual).padStart(2, "0");
+    const primeiroDiaMes = `${anoAtual}-${mesStr}-01`;
+    const ultimoDiaMes = new Date(anoAtual, mesAtual, 0).getDate();
+    const fimMes = `${anoAtual}-${mesStr}-${String(ultimoDiaMes).padStart(2, "0")}`;
+
+    const [
+      obrasRows,
+      processosRows,
+      pendenciasEntradas,
+      pendenciasSaida,
+      tarefas,
+    ] = await Promise.all([
+      supabase.from("obras").select("status").eq("active", true),
+      supabase
+        .from("clientes")
+        .select("status")
+        .in("escritorio_id", [ID_VOGELKOP, ID_YBYOCA])
+        .in("status", ["Prefeitura", "Caixa", "Cartorio", "Obra"]),
+      supabase
+        .from("entradas")
+        .select("id", { count: "exact", head: true })
+        .eq("escritorio_id", ID_MONTEZUMA)
+        .eq("validacao", 0)
+        .gte("data", primeiroDiaMes)
+        .lte("data", fimMes),
+      supabase
+        .from("saida")
+        .select("id", { count: "exact", head: true })
+        .eq("escritorio_id", ID_MONTEZUMA)
+        .eq("validacao", 0)
+        .gte("data", primeiroDiaMes)
+        .lte("data", fimMes),
+      supabase
+        .from("tarefas")
+        .select("id", { count: "exact", head: true })
+        .neq("status", TAREFA_STATUS.concluida)
+        .or(`prioridade.eq.Alta,data_conclusao.lte.${daqui2Str}`),
+    ]);
+
+    if (obrasRows.error) throw obrasRows.error;
+    if (processosRows.error) throw processosRows.error;
+    if (pendenciasEntradas.error) throw pendenciasEntradas.error;
+    if (pendenciasSaida.error) throw pendenciasSaida.error;
+    if (tarefas.error) throw tarefas.error;
+
+    const obrasLista = obrasRows.data ?? [];
+    const processosLista = processosRows.data ?? [];
+    const pendenciasEntradasCount = pendenciasEntradas.count ?? 0;
+    const pendenciasSaidaCount = pendenciasSaida.count ?? 0;
+
+    const processosPorStatus = processosLista.reduce(
+      (acc, item) => {
+        acc[item.status] = (acc[item.status] ?? 0) + 1;
+        return acc;
+      },
+      { Prefeitura: 0, Caixa: 0, Cartorio: 0, Obra: 0 },
+    );
+
+    return {
+      obrasAtivas: obrasLista.length,
+      obrasEmAndamento: obrasLista.filter((o) => o.status === "Em andamento")
+        .length,
+      obrasAguardando: obrasLista.filter(
+        (o) => o.status === "Aguardando iniciação",
+      ).length,
+      processos: processosLista.length,
+      processosPrefeitura: processosPorStatus.Prefeitura,
+      processosCaixa: processosPorStatus.Caixa,
+      processosCartorio: processosPorStatus.Cartorio,
+      processosObra: processosPorStatus.Obra,
+      pendencias: pendenciasEntradasCount + pendenciasSaidaCount,
+      pendenciasEntradas: pendenciasEntradasCount,
+      pendenciasSaida: pendenciasSaidaCount,
+      mesReferencia: hoje.toLocaleDateString("pt-BR", {
+        month: "short",
+        year: "numeric",
+      }),
+      tarefas: tarefas.count ?? 0,
+    };
   },
 };

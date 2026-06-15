@@ -522,7 +522,7 @@ export default function ObraCliente() {
 
   if (carregando) {
     return (
-      <div className="flex justify-center items-center h-screen bg-[#EEEDF0]">
+      <div className="flex justify-center items-center h-screen bg-bg-primary">
         <span className="font-bold text-[#71717A] flex items-center gap-2">
           <Hourglass className="w-5 h-5 animate-spin text-[#DC3B0B]" />
           Carregando dados...
@@ -533,7 +533,7 @@ export default function ObraCliente() {
 
   if (isSomenteProcessos && !processo) {
     return (
-      <div className="flex justify-center items-center h-screen bg-[#EEEDF0]">
+      <div className="flex justify-center items-center h-screen bg-bg-primary">
         <span className="font-bold text-[#71717A]">
           Processo não encontrado.
         </span>
@@ -543,7 +543,7 @@ export default function ObraCliente() {
 
   if (!isSomenteProcessos && !obra) {
     return (
-      <div className="flex justify-center items-center h-screen bg-[#EEEDF0]">
+      <div className="flex justify-center items-center h-screen bg-bg-primary">
         <span className="font-bold text-[#71717A]">Obra não encontrada.</span>
       </div>
     );
@@ -564,7 +564,7 @@ export default function ObraCliente() {
     ["diretoria", "secretaria", "suporte_ti"].includes(user.tipo);
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-[#EEEDF0]">
+    <div className="flex flex-col items-center min-h-screen bg-bg-primary">
       <input
         type="file"
         ref={fileInputRef}
@@ -601,7 +601,7 @@ export default function ObraCliente() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingFoto}
-                className="w-full py-3 px-4 bg-[#EEEDF0] text-[#464C54] font-bold rounded-lg border border-[#DBDADE] hover:bg-gray-200 transition-colors mb-6 flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-white text-[#464C54] font-bold rounded-lg border border-[#DBDADE] hover:bg-gray-100 transition-colors mb-6 flex items-center justify-center gap-2"
               >
                 <Camera className="w-5 h-5" />
                 {selectedFile ? "Trocar Imagem" : "Escolher Imagem"}
