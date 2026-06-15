@@ -133,6 +133,58 @@ export const homeFooterClass =
 export const homeKpiWrapClass =
   "transition-all duration-200 hover:-translate-y-0.5 hover:drop-shadow-[0_8px_20px_rgba(220,59,11,0.08)]";
 
+export const homeWeeklyAgendaClass = "mb-6";
+
+export const homeWeeklyAgendaPanelClass =
+  "relative w-full overflow-hidden rounded-2xl border border-accent-primary/15 bg-gradient-to-br from-white via-white to-accent-primary/[0.06] p-4 shadow-[0_10px_40px_-10px_rgba(220,59,11,0.14)] ring-1 ring-slate-900/5 md:p-6";
+
+export const homeWeeklyAgendaTrackClass =
+  "relative z-10 grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2 sm:gap-2 lg:flex lg:items-stretch lg:gap-2 xl:gap-2.5";
+
+export const homeWeeklyDayColumnClass =
+  "group relative flex min-h-0 w-full flex-col self-stretch overflow-hidden rounded-xl border border-border-primary/30 bg-white/90 p-2.5 shadow-sm ring-1 ring-slate-900/5 backdrop-blur-sm transition-all duration-200 lg:min-w-0 lg:flex-1 lg:p-2 lg:hover:-translate-y-0.5 lg:hover:shadow-md";
+
+export const homeWeeklyDayColumnActiveClass =
+  "border-accent-primary/40 bg-gradient-to-br from-white to-accent-primary/[0.09] shadow-[0_8px_20px_-8px_rgba(220,59,11,0.2)] ring-2 ring-accent-primary/30 lg:flex-[1.65]";
+
+export const homeWeeklyDayTopBarClass = "absolute inset-x-0 top-0 h-0.5 shrink-0";
+
+export const homeWeeklyDayHeaderClass =
+  "flex w-full shrink-0 items-center justify-between gap-2 pb-1.5";
+
+export const homeWeeklyDayLabelClass =
+  "text-xs font-bold tracking-tight text-text-primary";
+
+export const homeWeeklyDayLabelActiveClass =
+  "text-sm font-extrabold text-accent-primary xl:text-base";
+
+export const homeWeeklyTodayBadgeClass =
+  "inline-flex shrink-0 rounded-full border border-accent-primary/25 bg-accent-primary/12 px-1.5 py-px text-[9px] font-bold uppercase tracking-[0.1em] text-accent-primary";
+
+export const homeWeeklyTodayBadgeActiveClass =
+  "px-2 py-0.5 text-[10px] xl:text-[11px]";
+
+export const homeWeeklyTaskListClass =
+  "flex min-h-0 flex-1 flex-col gap-1 border-t border-border-primary/20 pt-1.5";
+
+export const homeWeeklyTaskChipClass =
+  "flex shrink-0 items-center gap-1 rounded-md border border-border-primary/20 bg-gradient-to-r from-white to-slate-50/80 px-1.5 py-1 text-[10px] leading-tight text-text-primary transition-colors duration-150 group-hover:border-border-primary/30";
+
+export const homeWeeklyTaskListSpacerClass = "mt-auto min-h-0 flex-1 shrink";
+
+export const homeWeeklyTaskChipActiveClass =
+  "gap-1.5 px-2 py-1 text-xs leading-snug xl:text-sm";
+
+export const homeWeeklyTaskIconWrapClass =
+  "inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded bg-accent-primary/8 text-accent-primary/80";
+
+export const homeWeeklyTaskIconWrapActiveClass =
+  "h-5 w-5 rounded-md xl:h-[1.375rem] xl:w-[1.375rem]";
+
+export const homeWeeklyTaskIconClass = "h-2.5 w-2.5";
+
+export const homeWeeklyTaskIconActiveClass = "h-3.5 w-3.5";
+
 export function getSaudacao() {
   const hour = new Date().getHours();
   if (hour < 12) return homeDictionary.greeting.bomDia;
@@ -181,30 +233,13 @@ export function buildProcessosKpiHint(counts, dictionary) {
   return partes.length > 0 ? partes.join(" · ") : kpiHints.processosEmpty;
 }
 
-export function buildHomeKpiHint(key, counts, dictionary) {
-  const { kpiHints } = dictionary.dashboard;
-
-  switch (key) {
-    case "obrasAtivas":
-      return formatKpiHint(kpiHints.obrasAtivas, {
-        emAndamento: counts?.obrasEmAndamento ?? 0,
-        aguardando: counts?.obrasAguardando ?? 0,
-      });
-    case "processos":
-      return buildProcessosKpiHint(counts, dictionary);
-    case "pendencias":
-      return formatKpiHint(kpiHints.pendencias, {
-        entradas: counts?.pendenciasEntradas ?? 0,
-        saidas: counts?.pendenciasSaida ?? 0,
-        mesReferencia: counts?.mesReferencia ?? "",
-      });
-    case "tarefas":
-      return kpiHints.tarefas;
-    default:
-      return "";
-  }
-}
-
 export function userVeDashboard(tipo) {
   return tipo === "diretoria" || tipo === "gestor_master";
+}
+
+/** Índice 0–5 para Seg–Sáb; -1 para domingo (fora da rotina). */
+export function getDiaSemanaAgendaIndex(date = new Date()) {
+  const jsDay = date.getDay();
+  if (jsDay === 0) return -1;
+  return jsDay - 1;
 }

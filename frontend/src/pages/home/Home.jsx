@@ -10,10 +10,12 @@ import {
   homePageInnerClass,
   getSaudacao,
   getPerfilLabel,
+  userVeDashboard,
 } from "./homeUi";
 import HomeBackground from "./components/HomeBackground";
 import Navbar from "../../components/navbar/Navbar";
 import HomeWelcome from "./components/HomeWelcome";
+import HomeWeeklyAgenda from "./components/HomeWeeklyAgenda";
 import HomeDashboardStrip from "./components/HomeDashboardStrip";
 import HomeModuleGrid from "./components/HomeModuleGrid";
 import HomeProfilePhotoModal from "./components/HomeProfilePhotoModal";
@@ -32,6 +34,7 @@ export default function Home() {
 
   const modulosPermitidos = getModulosPermitidos(user);
   const { counts, loading, visible: dashboardVisible } = useHomeDashboard(user);
+  const veAgendaEDashboard = userVeDashboard(user?.tipo);
 
   const nomeUsuario =
     user?.nome ||
@@ -134,6 +137,7 @@ export default function Home() {
           nomeUsuario={nomeUsuario}
           saudacao={getSaudacao()}
         />
+        {veAgendaEDashboard ? <HomeWeeklyAgenda /> : null}
         {dashboardVisible ? (
           <HomeDashboardStrip counts={counts} loading={loading} />
         ) : null}

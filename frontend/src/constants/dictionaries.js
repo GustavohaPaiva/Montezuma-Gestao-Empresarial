@@ -90,6 +90,11 @@ export const homeDictionary = {
     modulesAvailable: "módulos disponíveis",
     fullAccess: "Perfil com acesso completo",
   },
+  weeklyAgenda: {
+    sectionLabel: "Rotina semanal",
+    sectionTitle: "O que fazer esta semana",
+    todayBadge: "Hoje",
+  },
   dashboard: {
     sectionTitle: "Resumo rápido",
     updatedLabel: "Atualizado agora",
@@ -99,12 +104,6 @@ export const homeDictionary = {
       processos: "Processos em andamento",
       pendencias: "Pendências financeiras",
       tarefas: "Tarefas urgentes",
-    },
-    kpiHints: {
-      obrasAtivas: "{emAndamento} em andamento · {aguardando} aguardando iniciação",
-      processosEmpty: "Nenhum processo em trâmite",
-      pendencias: "{entradas} entradas · {saidas} saídas · {mesReferencia}",
-      tarefas: "Alta prioridade ou vencimento em até 2 dias",
     },
     kpiStatusLabels: {
       Prefeitura: "Prefeitura",

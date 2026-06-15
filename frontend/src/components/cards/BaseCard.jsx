@@ -141,6 +141,49 @@ export default function BaseCard({
     );
   }
 
+  if (variant === "metricCompact") {
+    return (
+      <WrapperTag
+        {...interactiveProps}
+        className={joinClasses(
+          "group relative h-full w-full overflow-hidden rounded-2xl bg-white px-4 py-2.5 text-left tracking-tight ring-1 ring-slate-900/5 shadow-sm transition-all duration-200",
+          isInteractive && "cursor-pointer hover:shadow-md",
+        )}
+      >
+        <span
+          className={joinClasses("absolute inset-x-0 top-0 h-1", palette.topBar)}
+        />
+        <div className="flex items-center gap-2.5 pt-1">
+          {icon ? (
+            <span
+              className={joinClasses(
+                "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                palette.softBg,
+                palette.strongText,
+              )}
+            >
+              {icon}
+            </span>
+          ) : null}
+          {title ? (
+            <p
+              className="min-w-0 flex-1 truncate text-xs font-medium text-text-muted tracking-tight md:text-sm"
+              title={typeof title === "string" ? title : undefined}
+            >
+              {title}
+            </p>
+          ) : null}
+          {value !== undefined && value !== null ? (
+            <p className="shrink-0 text-lg font-semibold text-text-primary tracking-tight">
+              {value}
+            </p>
+          ) : null}
+        </div>
+        {children ? <div className="mt-2">{children}</div> : null}
+      </WrapperTag>
+    );
+  }
+
   if (variant === "entity") {
     return (
       <WrapperTag
