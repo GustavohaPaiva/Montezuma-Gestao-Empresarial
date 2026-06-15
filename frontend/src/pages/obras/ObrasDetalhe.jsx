@@ -1465,11 +1465,21 @@ export default function ObrasDetalhe() {
                         </ButtonDefault>
                       </div>
                     )}
-                    <div className={totalBarClass}>
-                      <span className="text-text-muted">Total lançado:</span>
-                      <span className="font-bold tabular-nums text-text-primary">
-                        R$ {formatarMoeda(totais.maoDeObra)}
-                      </span>
+                    <div
+                      className={`flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center`}
+                    >
+                      <div className={totalBarClass}>
+                        <span className="text-text-muted">Total orçado:</span>
+                        <span className="font-bold tabular-nums text-text-primary">
+                          R$ {formatarMoeda(totais.maoDeObra)}
+                        </span>
+                      </div>
+                      <div className={totalBarClass}>
+                        <span className="text-text-muted">Total cobrado:</span>
+                        <span className="font-bold tabular-nums text-emerald-700">
+                          R$ {formatarMoeda(totais.maoDeObraCobrado)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

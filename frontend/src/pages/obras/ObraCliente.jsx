@@ -489,7 +489,7 @@ export default function ObraCliente() {
         0,
       ),
       maoDeObra: (obra.maoDeObra || []).reduce(
-        (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
+        (acc, m) => acc + (parseFloat(m.valor_cobrado) || 0),
         0,
       ),
       extrato: (obra.relatorioExtrato || []).reduce(
