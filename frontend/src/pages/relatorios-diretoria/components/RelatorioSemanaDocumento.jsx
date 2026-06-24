@@ -1,0 +1,110 @@
+import { CalendarDays, CheckCircle2, MapPin, User } from "lucide-react";
+import {
+  isSemanaAtual,
+  labelSemanaFromInicio,
+  montarBlocosRelatorioCorrico,
+} from "../relatoriosDiretoriaUtils";
+import {
+  relatorioDocumentoHeaderClass,
+  relatorioDocumentoMetaChipClass,
+  relatorioDocumentoMetaChipLabelClass,
+  relatorioDocumentoMetaChipValueClass,
+  relatorioDocumentoMetaGridClass,
+  relatorioDocumentoRodapeClass,
+  relatorioDocumentoShellClass,
+  relatorioPeriodoTopBarClass,
+  relatorioSecaoAccentLineClass,
+  relatorioSecaoLabelAccentClass,
+  relatorioSecaoTituloClass,
+} from "../relatoriosDiretoriaUi";
+import RelatorioSemanaCorpoCorrido from "./RelatorioSemanaCorpoCorrido";
+
+function MetaChip({ icon: Icon, label, value }) {
+  return (
+    <div className={relatorioDocumentoMetaChipClass}>
+      <p
+        className={`${relatorioDocumentoMetaChipLabelClass} flex items-center gap-1`}
+      >
+        {Icon ? <Icon className="h-3 w-3 text-accent-primary" /> : null}
+        {label}
+      </p>
+      <p className={relatorioDocumentoMetaChipValueClass}>{value || "—"}</p>
+    </div>
+  );
+}
+
+export default function RelatorioSemanaDocumento({
+  obra,
+  semanaInicio,
+  consolidado,
+  ultimaAtualizacao,
+}) {
+  const label = labelSemanaFromInicio(semanaInicio);
+  const nomeCliente = obra?.clientes?.nome || obra?.cliente || "—";
+  const local = obra?.local || "—";
+  const semanaAtual = isSemanaAtual(semanaInicio);
+  const blocos = montarBlocosRelatorioCorrico(consolidado);
+
+  const dataEmissao = new Date().toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <article className={relatorioDocumentoShellClass}>
+      <span className={relatorioPeriodoTopBarClass} aria-hidden />
+
+      <header className={relatorioDocumentoHeaderClass}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <span className={relatorioSecaoLabelAccentClass}>Relatório</span>
+            <h2
+              className={`${relatorioSecaoTituloClass} mt-1 text-lg sm:text-xl`}
+            >
+              Relatório Semanal
+            </h2>
+            <div className={relatorioSecaoAccentLineClass} aria-hidden />
+            <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-text-primary">
+              <CalendarDays className="h-4 w-4 text-accent-primary" />
+              {label}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {semanaAtual ? (
+              <span className="inline-flex rounded-full border border-accent-primary/25 bg-accent-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent-primary">
+                Semana atual
+              </span>
+            ) : null}
+            {consolidado.completo ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                <CheckCircle2 className="h-3 w-3" />
+                Completo
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className={relatorioDocumentoMetaGridClass}>
+          <MetaChip icon={User} label="Cliente" value={nomeCliente} />
+          <MetaChip icon={MapPin} label="Local" value={local} />
+          <MetaChip label="Período" value={label} />
+          <MetaChip
+            label="Última atualização"
+            value={ultimaAtualizacao || "Sem lançamentos"}
+          />
+        </div>
+      </header>
+
+      <RelatorioSemanaCorpoCorrido blocos={blocos} />
+
+      <footer className={relatorioDocumentoRodapeClass}>
+        Emitido em {dataEmissao}
+        {ultimaAtualizacao ? ` · Última atualização: ${ultimaAtualizacao}` : ""}
+      </footer>
+    </article>
+  );
+}

@@ -6,17 +6,20 @@ export const STATUS_PROJECAO_OPCOES = [
   "Recusada",
 ];
 
-/** Tipos de lançamento — valores das etapas vêm da soma dos itens por tipo. */
 export const TIPO_PROJECAO_ITEM = {
   DOCUMENTACAO: "documentacao",
   PROJETO: "projeto",
   OBRA: "obra",
+  MAO_DE_OBRA: "mao_de_obra",
+  MATERIAIS: "materiais",
 };
 
 export const TIPO_PROJECAO_OPCOES = [
   { value: TIPO_PROJECAO_ITEM.DOCUMENTACAO, label: "Documentação" },
   { value: TIPO_PROJECAO_ITEM.PROJETO, label: "Projeto" },
   { value: TIPO_PROJECAO_ITEM.OBRA, label: "Obra" },
+  { value: TIPO_PROJECAO_ITEM.MAO_DE_OBRA, label: "Mão de Obra" },
+  { value: TIPO_PROJECAO_ITEM.MATERIAIS, label: "Materiais" },
 ];
 
 function normalizarTipoItem(tipo) {
@@ -28,6 +31,10 @@ function normalizarTipoItem(tipo) {
   if (t === "documentacao") return TIPO_PROJECAO_ITEM.DOCUMENTACAO;
   if (t === "projeto") return TIPO_PROJECAO_ITEM.PROJETO;
   if (t === "obra") return TIPO_PROJECAO_ITEM.OBRA;
+  if (t === "mao_de_obra" || t === "mao de obra")
+    return TIPO_PROJECAO_ITEM.MAO_DE_OBRA;
+  if (t === "materiais" || t === "material")
+    return TIPO_PROJECAO_ITEM.MATERIAIS;
   return TIPO_PROJECAO_ITEM.DOCUMENTACAO;
 }
 
@@ -53,14 +60,12 @@ export function formatarDataProjecao(dataString) {
   return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
-/** Normaliza uma data de item para "YYYY-MM-DD" ou null. */
 export function normalizarDataItemProjecao(valor) {
   if (!valor) return null;
   const s = String(valor).trim();
   return s ? s.slice(0, 10) : null;
 }
 
-/** Formata o período (início–fim) de um item para exibição. */
 export function formatarPeriodoProjecao(dataInicio, dataFim) {
   const i = dataInicio ? formatarDataProjecao(dataInicio) : null;
   const f = dataFim ? formatarDataProjecao(dataFim) : null;
@@ -93,7 +98,9 @@ export function normalizarItensProjecao(itens) {
 }
 
 export function labelTipoProjecaoItem(tipo) {
-  const opt = TIPO_PROJECAO_OPCOES.find((o) => o.value === normalizarTipoItem(tipo));
+  const opt = TIPO_PROJECAO_OPCOES.find(
+    (o) => o.value === normalizarTipoItem(tipo),
+  );
   return opt?.label || "Documentação";
 }
 
@@ -104,12 +111,19 @@ export function calcularValorPorTipo(itens, tipo) {
     .reduce((acc, i) => acc + (parseFloat(i.valor_total) || 0), 0);
 }
 
-/** Totais por etapa derivados exclusivamente dos lançamentos. */
 export function calcularValoresPorTipo(itens) {
   return {
-    valor_documentacao: calcularValorPorTipo(itens, TIPO_PROJECAO_ITEM.DOCUMENTACAO),
+    valor_documentacao: calcularValorPorTipo(
+      itens,
+      TIPO_PROJECAO_ITEM.DOCUMENTACAO,
+    ),
     valor_projeto: calcularValorPorTipo(itens, TIPO_PROJECAO_ITEM.PROJETO),
     valor_obra: calcularValorPorTipo(itens, TIPO_PROJECAO_ITEM.OBRA),
+    valor_mao_de_obra: calcularValorPorTipo(
+      itens,
+      TIPO_PROJECAO_ITEM.MAO_DE_OBRA,
+    ),
+    valor_materiais: calcularValorPorTipo(itens, TIPO_PROJECAO_ITEM.MATERIAIS),
   };
 }
 
@@ -139,7 +153,9 @@ export function calcularTotalProjecao(projecao) {
   const doc = parseFloat(projecao.valor_documentacao) || 0;
   const proj = parseFloat(projecao.valor_projeto) || 0;
   const obra = parseFloat(projecao.valor_obra) || 0;
-  return doc + proj + obra;
+  const maoDeObra = parseFloat(projecao.valor_mao_de_obra) || 0;
+  const materiais = parseFloat(projecao.valor_materiais) || 0;
+  return doc + proj + obra + maoDeObra + materiais;
 }
 
 export function statusProjecaoBadgeClass(status) {

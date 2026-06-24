@@ -7,6 +7,7 @@ import {
   Users,
   ShoppingCart,
   LineChart,
+  ClipboardList,
 } from "lucide-react";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import { homeDictionary } from "../../constants/dictionaries";
@@ -52,7 +53,7 @@ export const MODULOS_HOME = [
     statKey: "obrasAtivas",
     Icon: HardHat,
     path: "/obras",
-    roles: ["gestor_master", "diretoria", "suporte_ti"],
+    roles: ["gestor_master", "diretoria", "secretaria", "suporte_ti"],
   },
   {
     id: 4,
@@ -110,6 +111,17 @@ export const MODULOS_HOME = [
     Icon: LineChart,
     path: "/projecoes",
     roles: ["gestor_master", "diretoria", "suporte_ti"],
+  },
+  {
+    id: 9,
+    titulo: m.relatoriosDiretoria,
+    descricao: d.relatoriosDiretoria,
+    categoria: c.analise,
+    destaques: dest.relatoriosDiretoria,
+    colorTheme: "pink",
+    Icon: ClipboardList,
+    path: "/relatorios-diretoria",
+    roles: ["gestor_master", "diretoria"],
   },
 ];
 

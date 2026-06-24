@@ -222,6 +222,8 @@ export default function ProjecaoComercialPDF({ projecao = {} }) {
     { label: "Documentação", valor: p.valor_documentacao },
     { label: "Projeto", valor: p.valor_projeto },
     { label: "Obra", valor: p.valor_obra },
+    { label: "Mão de Obra", valor: p.valor_mao_de_obra },
+    { label: "Materiais", valor: p.valor_materiais },
   ].filter((e) => valorEtapaPositivo(e.valor));
 
   const temIdentificacao =

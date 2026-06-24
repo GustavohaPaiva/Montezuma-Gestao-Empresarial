@@ -34,12 +34,12 @@ export default function BaseButton({
       {...props}
       disabled={computedDisabled}
       className={joinClasses(
-        "inline-flex items-center justify-center gap-2 rounded-2xl font-medium tracking-tight ring-1 ring-slate-900/5 transition-all duration-200",
+        "inline-flex items-center cursor-pointer justify-center gap-2 rounded-2xl font-medium tracking-tight ring-1 ring-slate-900/5 transition-all duration-200",
         VARIANT_STYLES[variant] || VARIANT_STYLES.primary,
         SIZE_STYLES[size] || SIZE_STYLES.md,
         fullWidth && "w-full",
         computedDisabled && "cursor-not-allowed opacity-60",
-        className
+        className,
       )}
     >
       {isLoading ? (

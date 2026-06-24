@@ -6,7 +6,9 @@ import {
   Download,
   FileSpreadsheet,
   Hammer,
+  HardHat,
   MapPin,
+  Package,
   Pencil,
   Plus,
   ScrollText,
@@ -39,7 +41,7 @@ import {
   projecaoDetalheHeaderClass,
   projecaoDetalheIconClass,
   projecaoSecaoClass,
-  projecaoGrid4Class,
+  projecaoGrid3Class,
   projecaoTabelaHeadClass,
   textareaCampoClass,
   valorSomenteLeituraClass,
@@ -97,6 +99,8 @@ export default function ProjecaoDetalhe() {
         valor_documentacao: valoresPorTipo.valor_documentacao,
         valor_projeto: valoresPorTipo.valor_projeto,
         valor_obra: valoresPorTipo.valor_obra,
+        valor_mao_de_obra: valoresPorTipo.valor_mao_de_obra,
+        valor_materiais: valoresPorTipo.valor_materiais,
       }),
     [itens, valoresPorTipo],
   );
@@ -330,7 +334,7 @@ export default function ProjecaoDetalhe() {
             </div>
           </article>
 
-          <div className={projecaoGrid4Class}>
+          <div className={projecaoGrid3Class}>
             <ProjecaoSecaoPainel
               titulo="Documentação"
               descricao="Soma dos itens do tipo Documentação"
@@ -364,6 +368,30 @@ export default function ProjecaoDetalhe() {
               <label className={labelCampoClass}>Valor (R$)</label>
               <div className={valorSomenteLeituraClass}>
                 {formatarMoedaBRL(valoresPorTipo.valor_obra)}
+              </div>
+            </ProjecaoSecaoPainel>
+
+            <ProjecaoSecaoPainel
+              titulo="Mão de Obra"
+              descricao="Soma dos itens do tipo Mão de Obra"
+              icon={<HardHat className="h-5 w-5" />}
+              iconTheme="indigo"
+            >
+              <label className={labelCampoClass}>Valor (R$)</label>
+              <div className={valorSomenteLeituraClass}>
+                {formatarMoedaBRL(valoresPorTipo.valor_mao_de_obra)}
+              </div>
+            </ProjecaoSecaoPainel>
+
+            <ProjecaoSecaoPainel
+              titulo="Materiais"
+              descricao="Soma dos itens do tipo Materiais"
+              icon={<Package className="h-5 w-5" />}
+              iconTheme="purple"
+            >
+              <label className={labelCampoClass}>Valor (R$)</label>
+              <div className={valorSomenteLeituraClass}>
+                {formatarMoedaBRL(valoresPorTipo.valor_materiais)}
               </div>
             </ProjecaoSecaoPainel>
 

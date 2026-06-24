@@ -32,6 +32,11 @@ import FinanceiroEscritorio from "./pages/escritorios/FinanceiroEscritorio";
 import AgendaEscritorio from "./pages/escritorios/AgendaEscritorio";
 import Projecoes from "./pages/projecoes/Projecoes";
 import ProjecaoDetalhe from "./pages/projecoes/ProjecaoDetalhe";
+import RelatoriosDiretoria from "./pages/relatorios-diretoria/RelatoriosDiretoria";
+import RelatorioObraDetalhe from "./pages/relatorios-diretoria/RelatorioObraDetalhe";
+import RelatorioObraLancamento from "./pages/relatorios-diretoria/RelatorioObraLancamento";
+import RelatorioFinanceiroSemana from "./pages/relatorios-diretoria/RelatorioFinanceiroSemana";
+import RelatorioSemanaDetalhe from "./pages/relatorios-diretoria/RelatorioSemanaDetalhe";
 // GAMBIARRA TESTE PROPOSTA VK — remover esta linha junto com a rota abaixo
 import TesteProvaVK from "./pages/escritorios/TesteProvaVK";
 
@@ -66,7 +71,12 @@ export default function App() {
           <Route
             element={
               <RotaProtegida
-                allowedTypes={["diretoria", "suporte_ti", "encarregado"]}
+                allowedTypes={[
+                  "diretoria",
+                  "suporte_ti",
+                  "encarregado",
+                  "secretaria",
+                ]}
               />
             }
           >
@@ -209,6 +219,53 @@ export default function App() {
               element={
                 <PageTransition>
                   <PedidoGestaoDetalhe />
+                </PageTransition>
+              }
+            />
+          </Route>
+
+          <Route
+            element={
+              <RotaProtegida allowedTypes={["gestor_master", "diretoria"]} />
+            }
+          >
+            <Route
+              path="/relatorios-diretoria"
+              element={
+                <PageTransition>
+                  <RelatoriosDiretoria />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/relatorios-diretoria/:obraId/semana/:semanaRef/obra"
+              element={
+                <PageTransition>
+                  <RelatorioObraLancamento />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/relatorios-diretoria/:obraId/semana/:semanaRef/financeiro"
+              element={
+                <PageTransition>
+                  <RelatorioFinanceiroSemana />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/relatorios-diretoria/:obraId/semana/:semanaRef"
+              element={
+                <PageTransition>
+                  <RelatorioSemanaDetalhe />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/relatorios-diretoria/:obraId"
+              element={
+                <PageTransition>
+                  <RelatorioObraDetalhe />
                 </PageTransition>
               }
             />

@@ -9,7 +9,33 @@ const corsHeaders = {
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL")?.trim() || "gemini-2.5-flash";
 
-function montarPrompt(texto: string, maxLinhas: number) {
+function montarPrompt(
+  texto: string,
+  maxLinhas: number,
+  contexto: string = "proposta",
+) {
+  if (contexto === "relatorio_obra") {
+    return `Você é redator de relatórios semanais de obras de construção civil no Brasil.
+
+Reescreva o texto abaixo em português brasileiro claro, objetivo e profissional.
+Corrija gramática, ortografia e pontuação. Melhore a fluidez sem mudar o sentido nem inventar informações.
+Use tom adequado a relatório de acompanhamento de obra (direto e informativo).
+
+Regras obrigatórias:
+- Máximo ${maxLinhas} linhas (quebras de linha só entre frases completas).
+- Cada linha deve ser uma frase completa terminada em . ! ou ?
+- A última linha DEVE fechar o texto com pontuação final — nunca pare no meio de palavra ou frase.
+- Se o conteúdo for longo, resuma reescrevendo de forma mais concisa; não truncar nem cortar.
+
+Não use markdown, títulos, bullets, aspas envolvendo o texto inteiro nem explicações.
+Retorne APENAS o texto final reescrito.
+
+Texto original:
+"""
+${texto}
+"""`;
+  }
+
   return `Você é redator de propostas comerciais de um escritório de arquitetura no Brasil.
 
 Reescreva o texto abaixo em português brasileiro formal, claro e profissional.
@@ -31,8 +57,17 @@ ${texto}
 """`;
 }
 
-function montarPromptAjuste(texto: string, maxLinhas: number) {
-  return `Você é redator de propostas comerciais de arquitetura no Brasil.
+function montarPromptAjuste(
+  texto: string,
+  maxLinhas: number,
+  contexto: string = "proposta",
+) {
+  const papel =
+    contexto === "relatorio_obra"
+      ? "relatórios de obras de construção civil"
+      : "propostas comerciais de arquitetura";
+
+  return `Você é redator de ${papel} no Brasil.
 
 Ajuste o texto abaixo para caber em no máximo ${maxLinhas} linhas.
 Mantenha tom formal e todas as informações essenciais.
@@ -109,18 +144,25 @@ async function finalizarSugestao(
   apiKey: string,
   textoBruto: string,
   maxLinhas: number,
+  contexto: string = "proposta",
 ) {
   let texto = limparTextoGemini(textoBruto);
 
   if (precisaAjuste(texto, maxLinhas)) {
-    texto = await gerarComGemini(apiKey, montarPromptAjuste(texto, maxLinhas));
+    texto = await gerarComGemini(
+      apiKey,
+      montarPromptAjuste(texto, maxLinhas, contexto),
+    );
   }
 
   texto = removerFinalIncompleto(texto);
 
   if (contarLinhas(texto) > maxLinhas) {
     texto = removerFinalIncompleto(
-      await gerarComGemini(apiKey, montarPromptAjuste(texto, maxLinhas)),
+      await gerarComGemini(
+        apiKey,
+        montarPromptAjuste(texto, maxLinhas, contexto),
+      ),
     );
   }
 
@@ -133,7 +175,7 @@ serve(async (req) => {
   }
 
   try {
-    const { texto, maxLinhas = 10 } = await req.json();
+    const { texto, maxLinhas = 10, contexto = "proposta" } = await req.json();
     const original = String(texto ?? "").trim();
     if (!original) {
       return new Response(JSON.stringify({ erro: "Texto vazio." }), {
@@ -156,8 +198,16 @@ serve(async (req) => {
     }
 
     const max = Math.min(Math.max(Number(maxLinhas) || 10, 1), 20);
-    const bruto = await gerarComGemini(apiKey, montarPrompt(original, max));
-    const sugerido = await finalizarSugestao(apiKey, bruto, max);
+    const bruto = await gerarComGemini(
+      apiKey,
+      montarPrompt(original, max, String(contexto)),
+    );
+    const sugerido = await finalizarSugestao(
+      apiKey,
+      bruto,
+      max,
+      String(contexto),
+    );
 
     return new Response(
       JSON.stringify({

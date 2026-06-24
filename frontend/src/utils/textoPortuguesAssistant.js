@@ -17,7 +17,29 @@ function limparTextoGemini(raw) {
     .trim();
 }
 
-function montarPromptGemini(texto, maxLinhas) {
+function montarPromptGemini(texto, maxLinhas, contexto = "proposta") {
+  if (contexto === "relatorio_obra") {
+    return `Você é redator de relatórios semanais de obras de construção civil no Brasil.
+
+Reescreva o texto abaixo em português brasileiro claro, objetivo e profissional.
+Corrija gramática, ortografia e pontuação. Melhore a fluidez sem mudar o sentido nem inventar informações.
+Use tom adequado a relatório de acompanhamento de obra (direto e informativo).
+
+Regras obrigatórias:
+- Máximo ${maxLinhas} linhas (quebras de linha só entre frases completas).
+- Cada linha deve ser uma frase completa terminada em . ! ou ?
+- A última linha DEVE fechar o texto com pontuação final — nunca pare no meio de palavra ou frase.
+- Se o conteúdo for longo, resuma reescrevendo de forma mais concisa; não truncar nem cortar.
+
+Não use markdown, títulos, bullets, aspas envolvendo o texto inteiro nem explicações.
+Retorne APENAS o texto final reescrito.
+
+Texto original:
+"""
+${texto}
+"""`;
+  }
+
   return `Você é redator de propostas comerciais de um escritório de arquitetura no Brasil.
 
 Reescreva o texto abaixo em português brasileiro formal, claro e profissional.
@@ -39,8 +61,13 @@ ${texto}
 """`;
 }
 
-function montarPromptAjuste(texto, maxLinhas) {
-  return `Você é redator de propostas comerciais de arquitetura no Brasil.
+function montarPromptAjuste(texto, maxLinhas, contexto = "proposta") {
+  const papel =
+    contexto === "relatorio_obra"
+      ? "relatórios de obras de construção civil"
+      : "propostas comerciais de arquitetura";
+
+  return `Você é redator de ${papel} no Brasil.
 
 Ajuste o texto abaixo para caber em no máximo ${maxLinhas} linhas.
 Mantenha tom formal e todas as informações essenciais.
@@ -84,35 +111,39 @@ async function chamarGeminiDiretoPrompt(prompt) {
   return limparTextoGemini(raw);
 }
 
-async function finalizarSugestaoIA(textoBruto, maxLinhas, gerarPrompt) {
+async function finalizarSugestaoIA(textoBruto, maxLinhas, gerarPrompt, contexto) {
   let texto = limparTextoGemini(textoBruto);
 
   if (precisaAjusteSugestaoIA(texto, maxLinhas)) {
-    const ajustado = await gerarPrompt(montarPromptAjuste(texto, maxLinhas));
+    const ajustado = await gerarPrompt(
+      montarPromptAjuste(texto, maxLinhas, contexto),
+    );
     if (ajustado) texto = limparTextoGemini(ajustado);
   }
 
   texto = removerFinalIncompleto(texto);
 
   if (textoExcedeLinhasDescricao(texto, maxLinhas)) {
-    const resumido = await gerarPrompt(montarPromptAjuste(texto, maxLinhas));
+    const resumido = await gerarPrompt(
+      montarPromptAjuste(texto, maxLinhas, contexto),
+    );
     if (resumido) texto = removerFinalIncompleto(limparTextoGemini(resumido));
   }
 
   return texto;
 }
 
-async function chamarGeminiDireto(texto, maxLinhas) {
+async function chamarGeminiDireto(texto, maxLinhas, contexto) {
   const gerar = (prompt) => chamarGeminiDiretoPrompt(prompt);
-  const bruto = await gerar(montarPromptGemini(texto, maxLinhas));
+  const bruto = await gerar(montarPromptGemini(texto, maxLinhas, contexto));
   if (!bruto) return null;
-  return finalizarSugestaoIA(bruto, maxLinhas, gerar);
+  return finalizarSugestaoIA(bruto, maxLinhas, gerar, contexto);
 }
 
-async function chamarGeminiEdgeFunction(texto, maxLinhas) {
+async function chamarGeminiEdgeFunction(texto, maxLinhas, contexto) {
   const { data, error } = await supabase.functions.invoke(
     "melhorar-texto-proposta",
-    { body: { texto, maxLinhas } },
+    { body: { texto, maxLinhas, contexto } },
   );
 
   if (error) throw error;
@@ -142,22 +173,25 @@ function limpezaBasicaLocal(texto) {
  * Melhora texto com IA generativa (Gemini).
  * Ordem: Edge Function Supabase → Gemini direto → limpeza local.
  */
-export async function melhorarTextoPortugues(texto) {
+export async function melhorarTextoPortugues(
+  texto,
+  { contexto = "proposta", maxLinhas = MAX_LINHAS_DESCRICAO } = {},
+) {
   const original = String(texto ?? "").trim();
   if (!original) {
     return { sugerido: "", origem: "nenhuma" };
   }
 
-  const maxLinhas = MAX_LINHAS_DESCRICAO;
+  const max = maxLinhas;
 
   try {
-    const viaEdge = await chamarGeminiEdgeFunction(original, maxLinhas);
+    const viaEdge = await chamarGeminiEdgeFunction(original, max, contexto);
     if (viaEdge.sugerido) return viaEdge;
   } catch (edgeErr) {
     console.warn("[melhorarTexto] Edge Function:", edgeErr);
 
     try {
-      const direto = await chamarGeminiDireto(original, maxLinhas);
+      const direto = await chamarGeminiDireto(original, max, contexto);
       if (direto) {
         return {
           sugerido: direto,

@@ -124,24 +124,27 @@ export default function ObrasDetalhe() {
   };
 
   const isEncarregado = user?.tipo === "encarregado";
+  const isSecretaria = user?.tipo === "secretaria";
   const secoesPermitidas = useMemo(
     () =>
-      isEncarregado
-        ? [
-            { id: "diario_historico", label: "Diário e histórico" },
-            { id: "pedidos", label: "Pedidos" },
-            { id: "relatorios", label: "Relatórios" },
-            { id: "cronograma", label: "Cronograma" },
-          ]
-        : [
-            { id: "diario_historico", label: "Diário e histórico" },
-            { id: "pedidos", label: "Pedidos" },
-            { id: "relatorios", label: "Relatórios" },
-            { id: "resumo", label: "Resumo" },
-            { id: "cronograma", label: "Cronograma" },
-            { id: "etapas", label: "Etapas" },
-          ],
-    [isEncarregado],
+      isSecretaria
+        ? [{ id: "relatorios", label: "Extrato financeiro" }]
+        : isEncarregado
+          ? [
+              { id: "diario_historico", label: "Diário e histórico" },
+              { id: "pedidos", label: "Pedidos" },
+              { id: "relatorios", label: "Relatórios" },
+              { id: "cronograma", label: "Cronograma" },
+            ]
+          : [
+              { id: "diario_historico", label: "Diário e histórico" },
+              { id: "pedidos", label: "Pedidos" },
+              { id: "relatorios", label: "Relatórios" },
+              { id: "resumo", label: "Resumo" },
+              { id: "cronograma", label: "Cronograma" },
+              { id: "etapas", label: "Etapas" },
+            ],
+    [isEncarregado, isSecretaria],
   );
 
   // Checagem se o projeto é de reforma (para injetar "Demolição")
@@ -150,22 +153,28 @@ export default function ObrasDetalhe() {
     obra?.cliente?.tipo?.toLowerCase() === "reforma";
 
   useEffect(() => {
-    const secaoPadrao = "diario_historico";
+    const secaoPadrao = isSecretaria ? "relatorios" : "diario_historico";
     const permitida = secoesPermitidas.some((aba) => aba.id === secaoObra);
     if (!permitida) setSecaoObra(secaoPadrao);
-  }, [isEncarregado, secaoObra, secoesPermitidas]);
+  }, [isEncarregado, isSecretaria, secaoObra, secoesPermitidas]);
 
   useEffect(() => {
-    if (location.state?.secao === "pedidos") {
-      setSecaoObra("pedidos");
+    if (isSecretaria) {
+      setSecaoObra("relatorios");
+      setSubRelatorio("extrato");
+      return;
     }
-  }, [location.state?.secao]);
-
-  useEffect(() => {
     if (isEncarregado) {
       setSubRelatorio("mao");
     }
-  }, [isEncarregado]);
+  }, [isEncarregado, isSecretaria]);
+
+  useEffect(() => {
+    if (isSecretaria) return;
+    if (location.state?.secao === "pedidos") {
+      setSecaoObra("pedidos");
+    }
+  }, [location.state?.secao, isSecretaria]);
 
   const handleSortMateriais = (campo) => {
     setSortConfig((prev) => ({
@@ -941,6 +950,8 @@ export default function ObrasDetalhe() {
     handleStatusFinanceiroChange,
     handleCheckAllExtrato,
     handleSortExtrato,
+    somenteValidados: isSecretaria,
+    extratoSomenteLeitura: isSecretaria,
   });
 
   if (!obra)
@@ -1012,6 +1023,7 @@ export default function ObrasDetalhe() {
         isReforma={isReforma}
         isMobile={isMobile}
         isEncarregado={isEncarregado}
+        isSecretaria={isSecretaria}
         onNovoMaterial={() => setModalMateriaisOpen(true)}
         onNovaMaoDeObra={() => setModalMaoDeObraOpen(true)}
       />
@@ -1032,7 +1044,9 @@ export default function ObrasDetalhe() {
                   onClick={() => {
                     setSecaoObra(aba.id);
                     if (aba.id === "relatorios") {
-                      setSubRelatorio(isEncarregado ? "mao" : "materiais");
+                      setSubRelatorio(
+                        isSecretaria ? "extrato" : isEncarregado ? "mao" : "materiais",
+                      );
                     }
                     if (aba.id === "diario_historico") {
                       setSubDiarioHistorico("diario");
@@ -1247,7 +1261,7 @@ export default function ObrasDetalhe() {
 
         {secaoObra === "relatorios" && (
           <div className="mb-4 w-full">
-            {!isEncarregado && (
+            {!isEncarregado && !isSecretaria && (
               <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
                 {[
                   {
@@ -1298,7 +1312,7 @@ export default function ObrasDetalhe() {
                     </button>
                   );
                 })}
-              </div>
+              </div>  
             )}
 
             {subRelatorio === "materiais" && !isEncarregado && (
@@ -1553,20 +1567,18 @@ export default function ObrasDetalhe() {
               </div>
             )}
 
-            {subRelatorio === "extrato" && !isEncarregado && (
+            {(subRelatorio === "extrato" && !isEncarregado) || isSecretaria ? (
               <div>
                 <div
                   className={`${reportCardShell} mt-3 flex flex-col items-stretch gap-5 text-left sm:mt-4 sm:gap-6`}
                 >
                   <div
-                    className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
+                    className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-row flex-wrap items-center justify-between"}`}
                   >
-                    <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
+                    <h1 className="shrink-0 text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
                       Extrato
                     </h1>
-                    <div
-                      className={`flex w-auto min-w-0 flex-col gap-3 lg:flex-row lg:items-center`}
-                    >
+                    <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
                       <input
                         type="text"
                         placeholder="Buscar no extrato..."
@@ -1592,66 +1604,75 @@ export default function ObrasDetalhe() {
                     colunas={headerExtrato}
                     dados={dadosRelatorioExtrato}
                   />
-                  <div className="flex w-full flex-col gap-5">
-                    <div>
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
-                        Visão geral do extrato
-                      </p>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                        <BaseCard
-                          variant="metric"
-                          title="Total no extrato"
-                          value={`R$ ${formatarMoeda(totais.totalExtrato)}`}
-                          colorTheme="indigo"
-                          icon={<FileText className="h-5 w-5" />}
-                        />
-                        <BaseCard
-                          variant="metric"
-                          title="Total pago"
-                          value={`R$ ${formatarMoeda(totais.totalPago)}`}
-                          colorTheme="emerald"
-                          icon={<CheckCircle2 className="h-5 w-5" />}
-                        />
+                  {!isSecretaria ? (
+                    <div className="flex w-full flex-col gap-5">
+                      <div>
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                          Visão geral do extrato
+                        </p>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                          <BaseCard
+                            variant="metric"
+                            title="Total no extrato"
+                            value={`R$ ${formatarMoeda(totais.totalExtrato)}`}
+                            colorTheme="indigo"
+                            icon={<FileText className="h-5 w-5" />}
+                          />
+                          <BaseCard
+                            variant="metric"
+                            title="Total pago"
+                            value={`R$ ${formatarMoeda(totais.totalPago)}`}
+                            colorTheme="emerald"
+                            icon={<CheckCircle2 className="h-5 w-5" />}
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
-                        Selecionados para o pedido
-                      </p>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-                        <BaseCard
-                          variant="metric"
-                          title="Materiais"
-                          value={`R$ ${formatarMoeda(totaisExtratoSelecionados.materiais)}`}
-                          colorTheme="purple"
-                          icon={<Package className="h-5 w-5" />}
-                        />
-                        <BaseCard
-                          variant="metric"
-                          title="Mão de obra"
-                          value={`R$ ${formatarMoeda(totaisExtratoSelecionados.maoDeObra)}`}
-                          colorTheme="amber"
-                          icon={<Hammer className="h-5 w-5" />}
-                        />
-                        <BaseCard
-                          variant="metric"
-                          title="Total selecionado"
-                          value={`R$ ${formatarMoeda(totaisExtratoSelecionados.todos)}`}
-                          colorTheme="primary"
-                          icon={<ClipboardList className="h-5 w-5" />}
-                        />
+                      <div>
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                          Selecionados para o pedido
+                        </p>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+                          <BaseCard
+                            variant="metric"
+                            title="Materiais"
+                            value={`R$ ${formatarMoeda(totaisExtratoSelecionados.materiais)}`}
+                            colorTheme="purple"
+                            icon={<Package className="h-5 w-5" />}
+                          />
+                          <BaseCard
+                            variant="metric"
+                            title="Mão de obra"
+                            value={`R$ ${formatarMoeda(totaisExtratoSelecionados.maoDeObra)}`}
+                            colorTheme="amber"
+                            icon={<Hammer className="h-5 w-5" />}
+                          />
+                          <BaseCard
+                            variant="metric"
+                            title="Total selecionado"
+                            value={`R$ ${formatarMoeda(totaisExtratoSelecionados.todos)}`}
+                            colorTheme="primary"
+                            icon={<ClipboardList className="h-5 w-5" />}
+                          />
+                        </div>
                       </div>
+                      <ButtonDefault
+                        onClick={handleGerarPDFExtrato}
+                        className={`${btnAccentPremium} !w-full`}
+                      >
+                        Gerar pedido
+                      </ButtonDefault>
                     </div>
+                  ) : (
                     <ButtonDefault
                       onClick={handleGerarPDFExtrato}
                       className={`${btnAccentPremium} !w-full`}
                     >
                       Gerar pedido
                     </ButtonDefault>
-                  </div>
+                  )}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         )}
 

@@ -18,9 +18,13 @@ export function filtrarExtratoLista(
   relatorioExtrato,
   buscaExtrato,
   filtroExtrato,
+  somenteValidados = false,
 ) {
   if (!relatorioExtrato?.length) return [];
   let lista = [...relatorioExtrato];
+  if (somenteValidados) {
+    lista = lista.filter((item) => item.validacao === 1);
+  }
   if (buscaExtrato) {
     const termo = buscaExtrato.toLowerCase();
     lista = lista.filter((item) =>
@@ -77,6 +81,8 @@ export function useObrasDetalheTableData({
   handleStatusFinanceiroChange,
   handleCheckAllExtrato,
   handleSortExtrato,
+  somenteValidados = false,
+  extratoSomenteLeitura = false,
 }) {
   const dadosMateriais = useMemo(() => {
     if (!obra || !obra.materiais) return [];
@@ -781,8 +787,13 @@ export function useObrasDetalheTableData({
 
   const listaExtratoFiltrada = useMemo(
     () =>
-      filtrarExtratoLista(obra?.relatorioExtrato, buscaExtrato, filtroExtrato),
-    [obra?.relatorioExtrato, buscaExtrato, filtroExtrato],
+      filtrarExtratoLista(
+        obra?.relatorioExtrato,
+        buscaExtrato,
+        filtroExtrato,
+        somenteValidados,
+      ),
+    [obra?.relatorioExtrato, buscaExtrato, filtroExtrato, somenteValidados],
   );
 
   const listaExtratoProcessada = useMemo(() => {
@@ -879,19 +890,27 @@ export function useObrasDetalheTableData({
     return listaExtratoProcessada.map((item) => {
       const isEditing = editandoId === item.id;
       const isSelected = item.validacao === 1;
+      const statusFinanceiro = item.status_financeiro || "Aguardando pagamento";
 
-      return [
-        <label
-          className="flex items-center justify-center"
-          key={`cb-ext-${item.id}`}
-        >
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => handleCheckExtrato(item)}
-            className="h-[18px] w-[18px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer"
-          />
-        </label>,
+      const linha = [];
+
+      if (!extratoSomenteLeitura) {
+        linha.push(
+          <label
+            className="flex items-center justify-center"
+            key={`cb-ext-${item.id}`}
+          >
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => handleCheckExtrato(item)}
+              className="h-[18px] w-[18px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer"
+            />
+          </label>,
+        );
+      }
+
+      linha.push(
         <div className="uppercase">{item.descricao}</div>,
         <div className="uppercase">{item.tipo}</div>,
         <div className="uppercase">{item.fornecedor_prestador}</div>,
@@ -900,48 +919,72 @@ export function useObrasDetalheTableData({
             ? String(item.quantidade)
             : "—"}
         </div>,
-        <div
-          className="flex items-center justify-center gap-2"
-          key={`val-ext-${item.id}`}
-        >
-          {isEditing ? (
-            <CellInputNumber
-              valorInicial={item.valor || 0}
-              onSave={(val) => salvarValorExtrato(item.id, val)}
-              onCancel={() => setEditandoId(null)}
-            />
-          ) : (
-            <div
-              className="flex items-center gap-2 group cursor-pointer"
-              onClick={() => setEditandoId(item.id)}
-            >
-              <span>R$ {formatarMoeda(item.valor)}</span>
-              <img
-                width="15"
-                src="https://img.icons8.com/ios/50/edit--v1.png"
-                alt="edit"
-                className="ml-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+      );
+
+      if (extratoSomenteLeitura) {
+        linha.push(
+          <div className="tabular-nums" key={`val-ext-${item.id}`}>
+            R$ {formatarMoeda(item.valor)}
+          </div>,
+          <span
+            key={`status-fin-${item.id}`}
+            className={`inline-flex w-fit max-w-[13rem] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
+              statusFinanceiro === "Pago"
+                ? "bg-emerald-500/18 text-emerald-900 ring-emerald-500/35"
+                : "bg-amber-500/18 text-amber-950 ring-amber-400/35"
+            }`}
+          >
+            {statusFinanceiro}
+          </span>,
+        );
+      } else {
+        linha.push(
+          <div
+            className="flex items-center justify-center gap-2"
+            key={`val-ext-${item.id}`}
+          >
+            {isEditing ? (
+              <CellInputNumber
+                valorInicial={item.valor || 0}
+                onSave={(val) => salvarValorExtrato(item.id, val)}
+                onCancel={() => setEditandoId(null)}
               />
-            </div>
-          )}
-        </div>,
-        <select
-          key={`status-fin-${item.id}`}
-          value={item.status_financeiro || "Aguardando pagamento"}
-          onChange={(e) =>
-            handleStatusFinanceiroChange(item.id, e.target.value)
-          }
-          className={`w-full max-w-[11rem] cursor-pointer appearance-none rounded-full border-0 px-2 py-1 text-center text-xs font-semibold shadow-sm ring-1 transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-8 sm:max-w-[13rem] sm:w-fit sm:px-3 sm:text-sm ${
-            item.status_financeiro === "Pago"
-              ? "bg-emerald-500/18 text-emerald-900 ring-emerald-500/35"
-              : "bg-amber-500/18 text-amber-950 ring-amber-400/35"
-          }`}
-        >
-          <option value="Aguardando pagamento">Aguardando pagamento</option>
-          <option value="Pago">Pago</option>
-        </select>,
-        formatarDataBR(item.data),
-      ];
+            ) : (
+              <div
+                className="flex items-center gap-2 group cursor-pointer"
+                onClick={() => setEditandoId(item.id)}
+              >
+                <span>R$ {formatarMoeda(item.valor)}</span>
+                <img
+                  width="15"
+                  src="https://img.icons8.com/ios/50/edit--v1.png"
+                  alt="edit"
+                  className="ml-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                />
+              </div>
+            )}
+          </div>,
+          <select
+            key={`status-fin-${item.id}`}
+            value={statusFinanceiro}
+            onChange={(e) =>
+              handleStatusFinanceiroChange(item.id, e.target.value)
+            }
+            className={`w-full max-w-[11rem] cursor-pointer appearance-none rounded-full border-0 px-2 py-1 text-center text-xs font-semibold shadow-sm ring-1 transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-8 sm:max-w-[13rem] sm:w-fit sm:px-3 sm:text-sm ${
+              statusFinanceiro === "Pago"
+                ? "bg-emerald-500/18 text-emerald-900 ring-emerald-500/35"
+                : "bg-amber-500/18 text-amber-950 ring-amber-400/35"
+            }`}
+          >
+            <option value="Aguardando pagamento">Aguardando pagamento</option>
+            <option value="Pago">Pago</option>
+          </select>,
+        );
+      }
+
+      linha.push(formatarDataBR(item.data));
+
+      return linha;
     });
   }, [
     listaExtratoProcessada,
@@ -950,6 +993,7 @@ export function useObrasDetalheTableData({
     handleCheckExtrato,
     handleStatusFinanceiroChange,
     setEditandoId,
+    extratoSomenteLeitura,
   ]);
 
   const headerExtrato = useMemo(() => {
@@ -963,14 +1007,18 @@ export function useObrasDetalheTableData({
     };
 
     return [
-      <label className="flex items-center justify-center" key="header-cb">
-        <input
-          type="checkbox"
-          checked={todosSelecionados}
-          onChange={(e) => handleCheckAllExtrato(e.target.checked)}
-          className="h-[18px] w-[18px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer"
-        />
-      </label>,
+      ...(extratoSomenteLeitura
+        ? []
+        : [
+            <label className="flex items-center justify-center" key="header-cb">
+              <input
+                type="checkbox"
+                checked={todosSelecionados}
+                onChange={(e) => handleCheckAllExtrato(e.target.checked)}
+                className="h-[18px] w-[18px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer"
+              />
+            </label>,
+          ]),
       "Descrição",
       <span
         className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
@@ -1000,6 +1048,7 @@ export function useObrasDetalheTableData({
     handleSortExtrato,
     sortField,
     sortDirection,
+    extratoSomenteLeitura,
   ]);
 
   return {

@@ -20,6 +20,7 @@ export const homeDictionary = {
     prestadores: "Prestadores",
     pedidos: "Pedidos",
     projecoes: "Projeções",
+    relatoriosDiretoria: "Relatórios",
     categorias: {
       escritorio: "Escritório",
       administrativo: "Administrativo",
@@ -46,6 +47,8 @@ export const homeDictionary = {
         "Crie e acompanhe pedidos de compra, aprovações e entregas com rastreabilidade total.",
       projecoes:
         "Analise cenários financeiros, projeções de receita e indicadores estratégicos do negócio.",
+      relatoriosDiretoria:
+        "Lance e acompanhe relatórios semanais por obra — execução, financeiro e compras — com visão consolidada.",
     },
     destaques: {
       meuEscritorio: ["Agenda", "Reuniões", "Visitas"],
@@ -56,6 +59,7 @@ export const homeDictionary = {
       prestadores: ["Equipes", "Serviços", "Vínculos"],
       pedidos: ["Compras", "Aprovações", "Entregas"],
       projecoes: ["Cenários", "Indicadores", "Relatórios"],
+      relatoriosDiretoria: ["Semanal", "Por obra", "Consolidado"],
     },
     card: {
       acessar: "Acessar módulo",

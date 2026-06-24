@@ -50,6 +50,10 @@ export const projecaoTabelaHeadClass =
 export const projecaoGrid4Class =
   "grid grid-cols-1 gap-4 min-[500px]:grid-cols-2 lg:grid-cols-4";
 
+/** Até 3 elementos por linha (1 mobile, 2 tablet, 3 desktop). */
+export const projecaoGrid3Class =
+  "grid grid-cols-1 gap-4 min-[500px]:grid-cols-2 lg:grid-cols-3";
+
 /** Botão primário na Navbar — mesmo padrão de Obras / Fornecedores. */
 export const navbarAcaoPrimariaClass =
   "bg-accent-primary text-white hover:opacity-90 shadow-sm disabled:cursor-not-allowed disabled:opacity-60 h-10 px-4";

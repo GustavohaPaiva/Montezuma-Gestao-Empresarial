@@ -6,6 +6,7 @@ export default function ObraDetalheHeader({
   isReforma,
   isMobile,
   isEncarregado,
+  isSecretaria,
   onNovoMaterial,
   onNovaMaoDeObra,
 }) {
@@ -58,7 +59,7 @@ export default function ObraDetalheHeader({
         </div>
 
         <div className={`${acoesClasse} shrink-0 md:w-auto`}>
-          {!isEncarregado && onNovoMaterial ? (
+          {!isEncarregado && !isSecretaria && onNovoMaterial ? (
             <button
               type="button"
               onClick={onNovoMaterial}
@@ -68,7 +69,7 @@ export default function ObraDetalheHeader({
               Novo material
             </button>
           ) : null}
-          {onNovaMaoDeObra ? (
+          {!isSecretaria && onNovaMaoDeObra ? (
             <button
               type="button"
               onClick={onNovaMaoDeObra}
