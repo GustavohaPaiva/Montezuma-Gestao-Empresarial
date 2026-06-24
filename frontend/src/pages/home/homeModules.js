@@ -3,11 +3,9 @@ import {
   FolderOpen,
   HardHat,
   Wallet,
-  Truck,
-  Users,
+  Handshake,
   ShoppingCart,
   LineChart,
-  ClipboardList,
 } from "lucide-react";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import { homeDictionary } from "../../constants/dictionaries";
@@ -69,24 +67,13 @@ export const MODULOS_HOME = [
   },
   {
     id: 5,
-    titulo: m.fornecedores,
-    descricao: d.fornecedores,
+    titulo: m.suprimentosServicos,
+    descricao: d.suprimentosServicos,
     categoria: c.cadastro,
-    destaques: dest.fornecedores,
+    destaques: dest.suprimentosServicos,
     colorTheme: "emerald",
-    Icon: Truck,
-    path: "/fornecedores",
-    roles: ["gestor_master", "diretoria", "suporte_ti"],
-  },
-  {
-    id: 6,
-    titulo: m.prestadores,
-    descricao: d.prestadores,
-    categoria: c.cadastro,
-    destaques: dest.prestadores,
-    colorTheme: "pink",
-    Icon: Users,
-    path: "/prestadores",
+    Icon: Handshake,
+    path: "/suprimentos-servicos",
     roles: ["gestor_master", "diretoria", "suporte_ti"],
   },
   {
@@ -111,17 +98,6 @@ export const MODULOS_HOME = [
     Icon: LineChart,
     path: "/projecoes",
     roles: ["gestor_master", "diretoria", "suporte_ti"],
-  },
-  {
-    id: 9,
-    titulo: m.relatoriosDiretoria,
-    descricao: d.relatoriosDiretoria,
-    categoria: c.analise,
-    destaques: dest.relatoriosDiretoria,
-    colorTheme: "pink",
-    Icon: ClipboardList,
-    path: "/relatorios-diretoria",
-    roles: ["gestor_master", "diretoria"],
   },
 ];
 

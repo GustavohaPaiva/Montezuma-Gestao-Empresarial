@@ -18,9 +18,9 @@ export const homeDictionary = {
     financeiro: "Financeiro",
     fornecedores: "Fornecedores",
     prestadores: "Prestadores",
+    suprimentosServicos: "Suprimentos e Serviços",
     pedidos: "Pedidos",
     projecoes: "Projeções",
-    relatoriosDiretoria: "Relatórios",
     categorias: {
       escritorio: "Escritório",
       administrativo: "Administrativo",
@@ -36,30 +36,30 @@ export const homeDictionary = {
       processos:
         "Gerencie clientes, documentos e licitações com histórico completo e acompanhamento de status.",
       obras:
-        "Controle cronogramas, etapas construtivas e pedidos vinculados a cada obra em execução.",
+        "Selecione uma obra para acessar detalhes operacionais, cronogramas e relatórios semanais.",
       financeiro:
         "Registre entradas e saídas, acompanhe pendências e mantenha a saúde financeira da operação.",
       fornecedores:
         "Cadastre fornecedores, consulte histórico de compras e centralize dados de parceiros.",
       prestadores:
         "Organize equipes terceirizadas, serviços contratados e vínculos com obras e processos.",
+      suprimentosServicos:
+        "Centralize fornecedores de materiais e prestadores de serviço em um único ponto de acesso.",
       pedidos:
         "Crie e acompanhe pedidos de compra, aprovações e entregas com rastreabilidade total.",
       projecoes:
         "Analise cenários financeiros, projeções de receita e indicadores estratégicos do negócio.",
-      relatoriosDiretoria:
-        "Lance e acompanhe relatórios semanais por obra — execução, financeiro e compras — com visão consolidada.",
     },
     destaques: {
       meuEscritorio: ["Agenda", "Reuniões", "Visitas"],
       processos: ["Clientes", "Documentos", "Licitações"],
-      obras: ["Cronogramas", "Etapas", "Pedidos"],
+      obras: ["Cronogramas", "Etapas", "Relatórios"],
       financeiro: ["Entradas", "Saídas", "Pendências"],
       fornecedores: ["Cadastro", "Histórico", "Parceiros"],
       prestadores: ["Equipes", "Serviços", "Vínculos"],
+      suprimentosServicos: ["Fornecedores", "Prestadores", "Cadastro"],
       pedidos: ["Compras", "Aprovações", "Entregas"],
       projecoes: ["Cenários", "Indicadores", "Relatórios"],
-      relatoriosDiretoria: ["Semanal", "Por obra", "Consolidado"],
     },
     card: {
       acessar: "Acessar módulo",
@@ -117,6 +117,37 @@ export const homeDictionary = {
     },
   },
   footer: "Montezuma · Sistema de Gestão Empresarial",
+  moduleHub: {
+    acessosLabel: "Navegação",
+    acessosTitulo: "O que deseja acessar?",
+  },
+  suprimentosServicosHub: {
+    eyebrow: "Cadastro",
+    subtitulo:
+      "Gerencie parceiros de materiais e equipes de serviço em um só lugar.",
+    fornecedoresDescricao: "Cadastro e histórico de fornecedores de materiais.",
+    prestadoresDescricao:
+      "Equipes terceirizadas e serviços vinculados às obras.",
+    metricFornecedores: "Fornecedores",
+    metricPrestadores: "Prestadores",
+  },
+  obraHub: {
+    eyebrow: "Centro da obra",
+    acessoDetalhes: "Detalhes da Obra",
+    acessoDetalhesDescricao:
+      "Cronograma, etapas construtivas, pedidos e financeiro da obra.",
+    acessoRelatorios: "Relatórios Semanais",
+    acessoRelatoriosDescricao:
+      "Lançamentos semanais de execução, financeiro e compras.",
+    metricFinanceiro: "Financeiro",
+    metricEtapas: "Etapas concluídas",
+    metricPedidos: "Pedidos",
+    metricRelatorios: "Relatórios no mês",
+    financeiroPago: "Pago",
+    financeiroPendente: "Pendente",
+    loadingTitulo: "Carregando obra",
+    loadingDescricao: "Buscando dados e indicadores desta obra…",
+  },
 };
 
 export const obrasDictionary = {

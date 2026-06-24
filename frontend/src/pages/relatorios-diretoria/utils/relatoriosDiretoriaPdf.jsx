@@ -1,9 +1,12 @@
 import { pdf } from "@react-pdf/renderer";
+import RelatorioDiretoriaFinanceiroPDF from "../../../documents/RelatorioDiretoriaFinanceiroPDF";
 import RelatorioDiretoriaObraPDF from "../../../documents/RelatorioDiretoriaObraPDF";
+import RelatorioDiretoriaSemanalPDF from "../../../documents/RelatorioDiretoriaSemanalPDF";
 import {
-  TOPICOS_RELATORIO_OBRA,
   formatarPrazoObra,
   labelSemanaFromInicio,
+  montarBlocosRelatorioCorrico,
+  TOPICOS_RELATORIO_OBRA,
   ordenarItensObra,
   serializarConteudoObra,
 } from "../relatoriosDiretoriaUtils";
@@ -69,6 +72,87 @@ export async function gerarPdfRelatorioDiretoriaObra(
       obra={obraPdf}
       semanaLabel={semanaLabel}
       topicos={topicosPdf}
+    />
+  );
+
+  const blob = await pdf(doc).toBlob();
+  return { blob, nomePadrao };
+}
+
+function montarBlocosPdfSemanal(consolidado) {
+  const blocos = montarBlocosRelatorioCorrico(consolidado);
+  const obraBlocos = blocos.filter((b) => b.tipo === "itens");
+  const demais = blocos.filter((b) => b.tipo !== "itens");
+  const resultado = [];
+
+  if (obraBlocos.length > 0) {
+    resultado.push({
+      tipo: "obra",
+      id: "obra",
+      titulo: "Obra",
+      topicos: obraBlocos.map((bloco) => ({
+        id: bloco.id,
+        label: bloco.titulo,
+        itens: bloco.itens.map((item) => ({
+          id: item.id,
+          texto: item.texto,
+          prazoLabel: formatarPrazoObra(item.prazo),
+        })),
+      })),
+    });
+  }
+
+  return [...resultado, ...demais];
+}
+
+/**
+ * Gera PDF do relatório financeiro semanal.
+ * @returns {Promise<{ blob: Blob, nomePadrao: string }>}
+ */
+export async function gerarPdfRelatorioDiretoriaFinanceiro(
+  obra,
+  { semanaInicio, resumo } = {},
+) {
+  const obraPdf = obraParaPdf(obra);
+  const semanaLabel = labelSemanaFromInicio(semanaInicio);
+  const obraSlug = slugify(obraPdf?.local || obraPdf?.cliente || "obra");
+  const semanaSlug = slugify(semanaInicio || semanaLabel);
+  const nomePadrao = `Montezuma_Relatorio-Financeiro_Semana-${semanaSlug}_Obra-${obraSlug}_${hojeISO()}.pdf`;
+
+  const doc = (
+    <RelatorioDiretoriaFinanceiroPDF
+      obra={obraPdf}
+      semanaLabel={semanaLabel}
+      resumo={resumo}
+    />
+  );
+
+  const blob = await pdf(doc).toBlob();
+  return { blob, nomePadrao };
+}
+
+/**
+ * Gera PDF do relatório semanal consolidado (geral).
+ * @returns {Promise<{ blob: Blob, nomePadrao: string }>}
+ */
+export async function gerarPdfRelatorioDiretoriaSemanal(
+  obra,
+  { semanaInicio, consolidado, ultimaAtualizacao } = {},
+) {
+  const obraPdf = obraParaPdf(obra);
+  const semanaLabel = labelSemanaFromInicio(semanaInicio);
+  const blocos = montarBlocosPdfSemanal(consolidado);
+  const obraSlug = slugify(obraPdf?.local || obraPdf?.cliente || "obra");
+  const semanaSlug = slugify(semanaInicio || semanaLabel);
+  const nomePadrao = `Montezuma_Relatorio-Semanal_Semana-${semanaSlug}_Obra-${obraSlug}_${hojeISO()}.pdf`;
+
+  const doc = (
+    <RelatorioDiretoriaSemanalPDF
+      obra={obraPdf}
+      semanaLabel={semanaLabel}
+      blocos={blocos}
+      ultimaAtualizacao={ultimaAtualizacao}
+      completo={consolidado?.completo}
     />
   );
 

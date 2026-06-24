@@ -30,6 +30,30 @@ export const homeKpiGridClass =
 export const homeModuleGridClass =
   "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
 
+/**
+ * Classe de grid dos KPIs/resumo que se adapta à quantidade de cards (1–4),
+ * preenchendo a linha de forma equilibrada em vez de deixar colunas vazias.
+ */
+export function getKpiGridClass(count) {
+  const base = "grid gap-4 md:gap-6";
+  if (count <= 1) return `${base} grid-cols-1`;
+  if (count === 2) return `${base} grid-cols-2`;
+  if (count === 3) return `${base} grid-cols-2 sm:grid-cols-3`;
+  return `${base} grid-cols-2 md:grid-cols-4`;
+}
+
+/**
+ * Classe de grid dos cards de acesso que se adapta à quantidade (1–4),
+ * evitando itens "órfãos" numa segunda linha ou espaço vazio à direita.
+ */
+export function getModuleGridClass(count) {
+  const base = "grid gap-4";
+  if (count <= 1) return `${base} grid-cols-1 sm:max-w-md`;
+  if (count === 2) return `${base} grid-cols-1 sm:grid-cols-2 lg:max-w-3xl`;
+  if (count === 3) return `${base} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`;
+  return `${base} grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`;
+}
+
 export const HOME_MODULE_THEMES = {
   primary: {
     topBar: "bg-accent-primary",

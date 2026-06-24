@@ -155,7 +155,7 @@ export default function RelatorioObraDetalhe() {
     <div className="flex min-h-screen w-full flex-col items-center overflow-x-hidden bg-[#FAFAFA] pb-10">
       <RelatorioDetalheHeader
         obra={obra}
-        onVoltar={() => navigate("/relatorios-diretoria")}
+        onVoltar={() => navigate(`/obras/${obraId}`)}
         subtitulo="Relatórios semanais"
         acoes={
           <MenuNovoLancamento

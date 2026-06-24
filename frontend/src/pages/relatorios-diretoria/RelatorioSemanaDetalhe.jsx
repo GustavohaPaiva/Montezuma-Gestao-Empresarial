@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { FileText, Wallet } from "lucide-react";
+import { FileDown, FileText, Wallet } from "lucide-react";
 import LoadingPainel from "../../components/gerais/LoadingPainel";
+import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import { api } from "../../services/api";
 import MenuNovoLancamento from "./components/MenuNovoLancamento";
 import ModalLancamentoRelatorio from "./components/ModalLancamentoRelatorio";
@@ -19,6 +20,7 @@ import {
   rotaRelatorioFinanceiro,
 } from "./relatoriosDiretoriaUtils";
 import { relatorioNavbarAcaoClass } from "./relatoriosDiretoriaUi";
+import { gerarPdfRelatorioDiretoriaSemanal } from "./utils/relatoriosDiretoriaPdf";
 
 export default function RelatorioSemanaDetalhe() {
   const { obraId, semanaRef: semanaInicioParam } = useParams();
@@ -46,6 +48,7 @@ export default function RelatorioSemanaDetalhe() {
   const [lancamentoEdicao, setLancamentoEdicao] = useState(null);
   const [salvando, setSalvando] = useState(false);
   const [menuNovaAberto, setMenuNovaAberto] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState(null);
 
   const carregar = useCallback(async () => {
     if (!obraId || !semanaInicio) return;
@@ -152,6 +155,19 @@ export default function RelatorioSemanaDetalhe() {
     }
   };
 
+  const handleGerarPdf = () => {
+    setPdfPreview({
+      titulo: "Relatório Semanal",
+      nomeFallback: "Relatorio_Semanal.pdf",
+      gerador: () =>
+        gerarPdfRelatorioDiretoriaSemanal(obra, {
+          semanaInicio,
+          consolidado,
+          ultimaAtualizacao,
+        }),
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#FAFAFA] px-[5%] py-12">
@@ -172,6 +188,14 @@ export default function RelatorioSemanaDetalhe() {
         subtitulo={subtituloSemana}
         acoes={
           <>
+            <button
+              type="button"
+              onClick={handleGerarPdf}
+              className={relatorioNavbarAcaoClass}
+            >
+              <FileDown className="h-4 w-4" strokeWidth={2} />
+              Gerar PDF
+            </button>
             <button
               type="button"
               onClick={() => abrirLancamento("financeiro")}
@@ -217,6 +241,14 @@ export default function RelatorioSemanaDetalhe() {
         periodo={{ ano, mes }}
         lancamentoExistente={lancamentoEdicao}
         semanaInicial={semanaInicio}
+      />
+
+      <PdfPreviewModal
+        isOpen={Boolean(pdfPreview)}
+        onClose={() => setPdfPreview(null)}
+        titulo={pdfPreview?.titulo}
+        gerador={pdfPreview?.gerador}
+        nomeFallback={pdfPreview?.nomeFallback}
       />
     </div>
   );

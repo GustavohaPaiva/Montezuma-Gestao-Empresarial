@@ -107,6 +107,16 @@ export default function Obras() {
   const { obras, setObras, carregando, showElements, reloadObras } =
     useObrasList();
   const isEncarregado = user?.tipo === "encarregado";
+  const usaHubObra =
+    user?.tipo === "diretoria" || user?.tipo === "gestor_master";
+
+  const navegarParaObra = (obraId) => {
+    if (usaHubObra) {
+      navigate(`/obras/${obraId}`);
+      return;
+    }
+    navigate(`/obrasD/${obraId}`);
+  };
 
   const handleStatusObra = async (obra, novoStatus) => {
     if (!obra?.id || (obra.status || "") === novoStatus) return;
@@ -450,7 +460,7 @@ export default function Obras() {
                         ]),
                   ]}
                   colorTheme={statusTheme(obra.status)}
-                  onClick={() => navigate(`/obrasD/${obra.id}`)}
+                  onClick={() => navegarParaObra(obra.id)}
                 >
                   {!isEncarregado ? (
                     <div

@@ -58,7 +58,7 @@ export const relatorioNavbarAcaoClass =
   "inline-flex h-10 items-center gap-2 rounded-2xl bg-accent-primary px-4 text-sm font-medium text-white shadow-sm transition hover:opacity-90";
 
 export const relatorioHeaderBotaoPrimarioClass =
-  "inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-accent-primary/25 bg-accent-primary px-3 text-xs font-semibold text-white shadow-sm shadow-accent-primary/20 transition-all hover:bg-accent-primary-dark hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent-primary/35 focus:ring-offset-1 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[140px]";
+  "inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-2xl border border-accent-primary/25 bg-accent-primary px-3 text-xs font-semibold text-white shadow-sm shadow-accent-primary/20 transition-all hover:bg-accent-primary-dark hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent-primary/35 focus:ring-offset-1 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[140px]";
 
 export const modalidadeCardBaseClass =
   "w-full rounded-2xl border-2 border-l-4 bg-white p-4 text-left shadow-sm ring-1 ring-slate-900/[0.04] transition hover:-translate-y-0.5 hover:shadow-md sm:p-5";
@@ -177,8 +177,7 @@ export const relatorioDocumentoSecaoHeaderClass =
 export const relatorioDocumentoRodapeClass =
   "border-t border-border-primary/10 bg-[#FAFAFA]/50 px-5 py-3 text-center text-xs text-text-muted sm:px-6";
 
-export const relatorioCorridoCorpoClass =
-  "mx-auto max-w-3xl px-6 py-8 sm:px-8 sm:py-10";
+export const relatorioCorridoCorpoClass = relatorioDocumentoCorpoClass;
 
 export const relatorioCorridoBlocoClass = "mb-8 last:mb-0";
 

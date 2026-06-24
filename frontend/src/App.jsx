@@ -4,6 +4,7 @@ import RotaProtegida from "./services/RotaProtegida";
 import PageTransition from "./components/gerais/PageTransition";
 
 import Obras from "./pages/obras/Obras";
+import ObraHub from "./pages/obras/ObraHub";
 import ObrasDetalhe from "./pages/obras/ObrasDetalhe";
 import PedidoObraDetalhe from "./pages/obras/detalhe/PedidoObraDetalhe";
 import PedidosGestao from "./pages/pedidos/PedidosGestao";
@@ -18,6 +19,7 @@ import ProcessosDetalhes from "./pages/processos/ProcessosDetalhes";
 import DocumentosProcesso from "./pages/processos/DocumentosProcesso";
 import Fornecedores from "./pages/fornecedores/Fornecedores";
 import FornecedorDetalhes from "./pages/fornecedores/FornecedorDetalhes";
+import SuprimentosServicos from "./pages/suprimentos-servicos/SuprimentosServicos";
 import Prestadores from "./pages/prestadores/prestadores";
 import PrestadorDetalhes from "./pages/prestadores/PrestadorDetalhes";
 import TarefasGlobalDock from "./pages/tarefas/TarefasGlobalDock";
@@ -32,7 +34,6 @@ import FinanceiroEscritorio from "./pages/escritorios/FinanceiroEscritorio";
 import AgendaEscritorio from "./pages/escritorios/AgendaEscritorio";
 import Projecoes from "./pages/projecoes/Projecoes";
 import ProjecaoDetalhe from "./pages/projecoes/ProjecaoDetalhe";
-import RelatoriosDiretoria from "./pages/relatorios-diretoria/RelatoriosDiretoria";
 import RelatorioObraDetalhe from "./pages/relatorios-diretoria/RelatorioObraDetalhe";
 import RelatorioObraLancamento from "./pages/relatorios-diretoria/RelatorioObraLancamento";
 import RelatorioFinanceiroSemana from "./pages/relatorios-diretoria/RelatorioFinanceiroSemana";
@@ -127,6 +128,14 @@ export default function App() {
               <RotaProtegida allowedTypes={["diretoria", "suporte_ti"]} />
             }
           >
+            <Route
+              path="/suprimentos-servicos"
+              element={
+                <PageTransition>
+                  <SuprimentosServicos />
+                </PageTransition>
+              }
+            />
             <Route
               path="/fornecedores/:id"
               element={
@@ -225,18 +234,23 @@ export default function App() {
           </Route>
 
           <Route
+            element={<RotaProtegida allowedTypes={["diretoria"]} />}
+          >
+            <Route
+              path="/obras/:id"
+              element={
+                <PageTransition>
+                  <ObraHub />
+                </PageTransition>
+              }
+            />
+          </Route>
+
+          <Route
             element={
               <RotaProtegida allowedTypes={["gestor_master", "diretoria"]} />
             }
           >
-            <Route
-              path="/relatorios-diretoria"
-              element={
-                <PageTransition>
-                  <RelatoriosDiretoria />
-                </PageTransition>
-              }
-            />
             <Route
               path="/relatorios-diretoria/:obraId/semana/:semanaRef/obra"
               element={

@@ -1,9 +1,5 @@
 import { supabase } from "./supabase";
-import {
-  ID_MONTEZUMA,
-  ID_VOGELKOP,
-  ID_YBYOCA,
-} from "../constants/escritorios";
+import { ID_MONTEZUMA, ID_VOGELKOP, ID_YBYOCA } from "../constants/escritorios";
 import { STATUS as TAREFA_STATUS } from "../pages/tarefas/tarefasHelpers";
 import {
   enriquecerNumerosPedidos,
@@ -15,7 +11,10 @@ import {
   calcularValoresPorTipo,
   normalizarItensProjecao,
 } from "../utils/projecaoUtils";
-import { semanasDoMes, chaveSemanaLancamento } from "../pages/relatorios-diretoria/relatoriosDiretoriaUtils";
+import {
+  semanasDoMes,
+  chaveSemanaLancamento,
+} from "../pages/relatorios-diretoria/relatoriosDiretoriaUtils";
 import {
   calcularTotalValoresProposta,
   normalizarPropostaDados,
@@ -455,7 +454,9 @@ export const api = {
 
   updatePropostaOrcamento: async (id, propostaDados, escritorioId) => {
     if (!id || !escritorioId) {
-      throw new Error("id e escritorio_id obrigatórios em updatePropostaOrcamento");
+      throw new Error(
+        "id e escritorio_id obrigatórios em updatePropostaOrcamento",
+      );
     }
     const norm = normalizarPropostaDados(propostaDados);
     const total = calcularTotalValoresProposta(norm.valores);
@@ -2181,12 +2182,9 @@ export const api = {
   /**
    * Histórico da obra. Login do cliente não usa Supabase Auth (sessão anon),
    * então não usamos RPC com auth.uid(); leitura depende de RLS (incl. policy para anon).
-   * @param {boolean} [_isClienteView] — mantido por compatibilidade; ignorado.
+   * Segundo argumento (ex.: `{ isClienteView }`) é ignorado — mantido só por compatibilidade.
    */
-  getObraHistorico: async (
-    obraId,
-    { isClienteView: _isClienteView = false } = {},
-  ) => {
+  getObraHistorico: async (obraId) => {
     const oid = normalizeObraIdForHistorico(obraId);
     if (oid == null) return [];
 
@@ -2899,7 +2897,8 @@ export const api = {
       endereco_obra: payload.endereco_obra?.trim() || null,
       descricao: payload.descricao?.trim() || null,
       status: payload.status || "Rascunho",
-      data_proposta: payload.data_proposta || new Date().toISOString().slice(0, 10),
+      data_proposta:
+        payload.data_proposta || new Date().toISOString().slice(0, 10),
       valor_documentacao: derivados.valor_documentacao,
       valor_projeto: derivados.valor_projeto,
       valor_obra: derivados.valor_obra,
@@ -2970,7 +2969,11 @@ export const api = {
       pendenciasSaida,
       tarefas,
     ] = await Promise.all([
-      supabase.from("obras").select("status").eq("active", true),
+      supabase
+        .from("obras")
+        .select("status")
+        .eq("active", true)
+        .eq("status", "Em andamento"),
       supabase
         .from("clientes")
         .select("status")
@@ -3058,7 +3061,8 @@ export const api = {
       .eq("id", obraId)
       .maybeSingle();
     if (error) throw error;
-    if (!data) throw new Error("Obra não encontrada ou sem permissão de acesso.");
+    if (!data)
+      throw new Error("Obra não encontrada ou sem permissão de acesso.");
     return data;
   },
 
@@ -3076,7 +3080,8 @@ export const api = {
       .eq("id", obraId)
       .maybeSingle();
     if (error) throw error;
-    if (!data) throw new Error("Obra não encontrada ou sem permissão de acesso.");
+    if (!data)
+      throw new Error("Obra não encontrada ou sem permissão de acesso.");
     return {
       ...data,
       materiais: normalizarMateriaisLista(data.materiais),
@@ -3222,9 +3227,7 @@ export const api = {
     if (!modalidade) throw new Error("Modalidade é obrigatória.");
 
     const inicio =
-      semana_inicio != null
-        ? String(semana_inicio).slice(0, 10)
-        : null;
+      semana_inicio != null ? String(semana_inicio).slice(0, 10) : null;
 
     if (!inicio && (ano == null || mes == null || semana_ref == null)) {
       throw new Error("Período e semana são obrigatórios.");
@@ -3248,7 +3251,7 @@ export const api = {
         const idx = semanasDoMes(anoSalvar, mesSalvar).findIndex(
           (s) => s.inicio === inicio,
         );
-        semanaRefSalvar = idx >= 0 ? idx + 1 : semana_ref ?? 1;
+        semanaRefSalvar = idx >= 0 ? idx + 1 : (semana_ref ?? 1);
       }
     }
 

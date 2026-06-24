@@ -7,17 +7,26 @@ import {
   relatorioItemLeituraClass,
   relatorioItemListaClass,
   relatorioObraItemPrazoChipClass,
+  relatorioTopicoSecaoClass,
   relatorioTopicoStackClass,
   relatorioTopicoTituloTextoClass,
 } from "../relatoriosDiretoriaUi";
 
-export default function RelatorioObraConsolidadoView({ topicos }) {
+export default function RelatorioObraConsolidadoView({
+  topicos,
+  layout = "stack",
+}) {
+  const containerClass =
+    layout === "grid"
+      ? "grid gap-6 lg:grid-cols-2"
+      : relatorioTopicoStackClass;
+
   return (
-    <div className={relatorioTopicoStackClass}>
+    <div className={containerClass}>
       {TOPICOS_RELATORIO_OBRA.map((topico) => {
         const itens = ordenarItensObra(topicos?.[topico.id] || []);
-        return (
-          <section key={topico.id}>
+        const conteudo = (
+          <>
             <div className="mb-3 flex items-baseline justify-between gap-2 border-b border-border-primary/15 pb-2">
               <h4 className={relatorioTopicoTituloTextoClass}>{topico.label}</h4>
               <span className="shrink-0 text-[11px] text-text-muted">
@@ -47,6 +56,20 @@ export default function RelatorioObraConsolidadoView({ topicos }) {
                 ))}
               </ul>
             )}
+          </>
+        );
+
+        if (layout === "grid") {
+          return (
+            <section key={topico.id} className={`${relatorioTopicoSecaoClass} p-4 sm:p-5`}>
+              {conteudo}
+            </section>
+          );
+        }
+
+        return (
+          <section key={topico.id}>
+            {conteudo}
           </section>
         );
       })}

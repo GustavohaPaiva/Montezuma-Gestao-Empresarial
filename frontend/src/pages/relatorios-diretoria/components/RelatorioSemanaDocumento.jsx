@@ -2,9 +2,9 @@ import { CalendarDays, CheckCircle2, MapPin, User } from "lucide-react";
 import {
   isSemanaAtual,
   labelSemanaFromInicio,
-  montarBlocosRelatorioCorrico,
 } from "../relatoriosDiretoriaUtils";
 import {
+  relatorioCorridoCorpoClass,
   relatorioDocumentoHeaderClass,
   relatorioDocumentoMetaChipClass,
   relatorioDocumentoMetaChipLabelClass,
@@ -43,7 +43,6 @@ export default function RelatorioSemanaDocumento({
   const nomeCliente = obra?.clientes?.nome || obra?.cliente || "—";
   const local = obra?.local || "—";
   const semanaAtual = isSemanaAtual(semanaInicio);
-  const blocos = montarBlocosRelatorioCorrico(consolidado);
 
   const dataEmissao = new Date().toLocaleString("pt-BR", {
     day: "2-digit",
@@ -99,7 +98,9 @@ export default function RelatorioSemanaDocumento({
         </div>
       </header>
 
-      <RelatorioSemanaCorpoCorrido blocos={blocos} />
+      <div className={relatorioCorridoCorpoClass}>
+        <RelatorioSemanaCorpoCorrido consolidado={consolidado} />
+      </div>
 
       <footer className={relatorioDocumentoRodapeClass}>
         Emitido em {dataEmissao}

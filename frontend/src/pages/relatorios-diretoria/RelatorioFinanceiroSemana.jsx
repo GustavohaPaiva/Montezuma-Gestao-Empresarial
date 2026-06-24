@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Wallet } from "lucide-react";
+import { FileDown, Wallet } from "lucide-react";
 import LoadingPainel from "../../components/gerais/LoadingPainel";
+import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import RelatorioDetalheHeader from "./components/RelatorioDetalheHeader";
 import RelatorioFinanceiroDetalhes from "./components/RelatorioFinanceiroDetalhes";
 import RelatorioFinanceiroGraficos from "./components/RelatorioFinanceiroGraficos";
@@ -16,6 +18,8 @@ import {
   periodoAtual,
   rotaRelatorioFinanceiro,
 } from "./relatoriosDiretoriaUtils";
+import { relatorioNavbarAcaoClass } from "./relatoriosDiretoriaUi";
+import { gerarPdfRelatorioDiretoriaFinanceiro } from "./utils/relatoriosDiretoriaPdf";
 
 export default function RelatorioFinanceiroSemana() {
   const { obraId, semanaRef: semanaInicioParam } = useParams();
@@ -38,6 +42,8 @@ export default function RelatorioFinanceiroSemana() {
     obraId,
     semanaInicio,
   );
+
+  const [pdfPreview, setPdfPreview] = useState(null);
 
   const voltarDestino = () => {
     if (origem === "obra") {
@@ -72,12 +78,36 @@ export default function RelatorioFinanceiroSemana() {
 
   const temDados = financeiroSemanaTemDados(resumo);
 
+  const handleGerarPdf = () => {
+    setPdfPreview({
+      titulo: "Relatório Financeiro",
+      nomeFallback: "Relatorio_Financeiro.pdf",
+      gerador: () =>
+        gerarPdfRelatorioDiretoriaFinanceiro(obra, {
+          semanaInicio,
+          resumo,
+        }),
+    });
+  };
+
   return (
     <div className="flex min-h-screen w-full flex-col items-center overflow-x-hidden bg-[#FAFAFA] pb-10">
       <RelatorioDetalheHeader
         obra={obra}
         onVoltar={() => navigate(voltarDestino())}
         subtitulo={subtituloBase}
+        acoes={
+          temDados ? (
+            <button
+              type="button"
+              onClick={handleGerarPdf}
+              className={relatorioNavbarAcaoClass}
+            >
+              <FileDown className="h-4 w-4" strokeWidth={2} />
+              Gerar PDF
+            </button>
+          ) : null
+        }
       />
 
       <main className="w-full px-[5%] pt-4">
@@ -112,6 +142,14 @@ export default function RelatorioFinanceiroSemana() {
           </>
         )}
       </main>
+
+      <PdfPreviewModal
+        isOpen={Boolean(pdfPreview)}
+        onClose={() => setPdfPreview(null)}
+        titulo={pdfPreview?.titulo}
+        gerador={pdfPreview?.gerador}
+        nomeFallback={pdfPreview?.nomeFallback}
+      />
     </div>
   );
 }
