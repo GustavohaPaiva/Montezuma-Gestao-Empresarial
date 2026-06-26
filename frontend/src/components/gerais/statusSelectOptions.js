@@ -18,3 +18,11 @@ export const STATUS_OBRA_OPCOES = [
   "Em andamento",
   "Concluída",
 ];
+
+export const STATUS_MATERIAL_OPCOES = [
+  "Solicitado",
+  "Em cotação",
+  "Aprovado",
+  "Aguardando entrega",
+  "Entregue",
+];

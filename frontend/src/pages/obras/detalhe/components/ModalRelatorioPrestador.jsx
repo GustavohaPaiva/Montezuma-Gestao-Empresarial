@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import ButtonDefault from "../../../../components/gerais/ButtonDefault";
+import BaseSelect from "../../../../components/gerais/BaseSelect";
 import ModalPortal from "../../../../components/gerais/ModalPortal";
 
 export default function ModalRelatorioPrestador({
@@ -33,18 +34,18 @@ export default function ModalRelatorioPrestador({
             <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
               Selecione o prestador
             </label>
-            <select
+            <BaseSelect
+              searchable
               value={selecionado}
               onChange={(e) => setSelecionado(e.target.value)}
-              className="h-12 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-base text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
-            >
-              <option value="">Selecione...</option>
-              {prestadoresDisponiveis.map((p) => (
-                <option key={p} value={p}>
-                  {p.toUpperCase()}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "Selecione..." },
+                ...prestadoresDisponiveis.map((p) => ({
+                  value: p,
+                  label: p.toUpperCase(),
+                })),
+              ]}
+            />
             <ButtonDefault
               onClick={() => {
                 onGenerate(selecionado);

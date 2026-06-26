@@ -320,6 +320,7 @@ export default function OrcamentoDetalhe() {
             value={orcamento.status || "Em andamento"}
             options={STATUS_ORCAMENTO_OPCOES}
             variant="orcamento"
+            selectVariant="escritorio"
             onChange={mudarStatus}
           />
         </div>

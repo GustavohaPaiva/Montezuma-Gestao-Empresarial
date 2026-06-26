@@ -5,6 +5,11 @@ import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import { useAuth } from "../../contexts/AuthContext";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ModalPortal from "../../components/gerais/ModalPortal";
+import BaseSelect from "../../components/gerais/BaseSelect";
+import {
+  filtrarMaoDeObraLista,
+  filtrarMateriaisLista,
+} from "./detalhe/utils/relatorioFiltrosUtils";
 import logo from "../../assets/logos/logo sem fundo.png";
 import Etapas from "../../components/gerais/ObraEtapas";
 import CronogramaObra from "../../components/obras/CronogramaObra";
@@ -149,6 +154,12 @@ export default function ObraCliente() {
 
   const [buscaMateriais, setBuscaMateriais] = useState("");
   const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
+  const [filtroFornecedorId, setFiltroFornecedorId] = useState("");
+  const [filtroPrestadorId, setFiltroPrestadorId] = useState("");
+  const [listaFornecedores, setListaFornecedores] = useState([]);
+  const [listaPrestadores, setListaPrestadores] = useState([]);
+  const [carregandoFornecedores, setCarregandoFornecedores] = useState(false);
+  const [carregandoPrestadores, setCarregandoPrestadores] = useState(false);
   const [buscaExtrato, setBuscaExtrato] = useState("");
   const [filtroExtrato, setFiltroExtrato] = useState("Tudo");
   const [secaoCliente, setSecaoCliente] = useState("resumo");
@@ -203,6 +214,27 @@ export default function ObraCliente() {
 
     carregarDados();
   }, [id, isSomenteProcessos, user]);
+
+  useEffect(() => {
+    const carregarListasFiltro = async () => {
+      setCarregandoFornecedores(true);
+      setCarregandoPrestadores(true);
+      try {
+        const [fornecedores, prestadores] = await Promise.all([
+          api.getFornecedoresSimples(),
+          api.getPrestadoresSimples(),
+        ]);
+        setListaFornecedores(fornecedores || []);
+        setListaPrestadores(prestadores || []);
+      } catch (error) {
+        console.error("Erro ao carregar listas de filtro:", error);
+      } finally {
+        setCarregandoFornecedores(false);
+        setCarregandoPrestadores(false);
+      }
+    };
+    carregarListasFiltro();
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -361,14 +393,17 @@ export default function ObraCliente() {
     ];
   }, [processo]);
 
+  const listaMateriaisFiltrada = useMemo(() => {
+    if (!obra?.materiais) return [];
+    return filtrarMateriaisLista(obra.materiais, {
+      busca: buscaMateriais,
+      fornecedorId: filtroFornecedorId,
+    });
+  }, [obra?.materiais, buscaMateriais, filtroFornecedorId]);
+
   const dadosMateriais = useMemo(() => {
     if (!obra || !obra.materiais) return [];
-    let lista = [...obra.materiais];
-    if (buscaMateriais) {
-      lista = lista.filter((m) =>
-        m.material?.toLowerCase().includes(buscaMateriais.toLowerCase()),
-      );
-    }
+    let lista = [...listaMateriaisFiltrada];
     const ordemStatus = {
       Solicitado: 1,
       "Em cotação": 2,
@@ -404,19 +439,19 @@ export default function ObraCliente() {
         formatarDataBR(m.data_solicitacao),
       ];
     });
-  }, [obra, buscaMateriais]);
+  }, [obra, listaMateriaisFiltrada]);
+
+  const listaMaoDeObraFiltrada = useMemo(() => {
+    if (!obra?.maoDeObra) return [];
+    return filtrarMaoDeObraLista(obra.maoDeObra, {
+      busca: buscaMaoDeObra,
+      prestadorId: filtroPrestadorId,
+    });
+  }, [obra?.maoDeObra, buscaMaoDeObra, filtroPrestadorId]);
 
   const dadosMaoDeObra = useMemo(() => {
     if (!obra || !obra.maoDeObra) return [];
-    let lista = [...obra.maoDeObra];
-    if (buscaMaoDeObra) {
-      const term = buscaMaoDeObra.toLowerCase();
-      lista = lista.filter(
-        (m) =>
-          m.tipo?.toLowerCase().includes(term) ||
-          m.profissional?.toLowerCase().includes(term),
-      );
-    }
+    let lista = [...listaMaoDeObraFiltrada];
     lista.sort(
       (a, b) => (a.validacao === 1 ? 1 : 0) - (b.validacao === 1 ? 1 : 0),
     );
@@ -439,7 +474,7 @@ export default function ObraCliente() {
       `R$ ${formatarMoeda(m.valor_cobrado || 0)}`,
       formatarDataBR(m.data_solicitacao),
     ]);
-  }, [obra, buscaMaoDeObra]);
+  }, [obra, listaMaoDeObraFiltrada]);
 
   const dadosExtrato = useMemo(() => {
     if (!obra || !obra.relatorioExtrato) return [];
@@ -484,11 +519,11 @@ export default function ObraCliente() {
   const totais = useMemo(() => {
     if (!obra) return { materiais: 0, maoDeObra: 0, extrato: 0 };
     return {
-      materiais: (obra.materiais || []).reduce(
+      materiais: listaMateriaisFiltrada.reduce(
         (acc, m) => acc + (parseFloat(m.valor) || 0),
         0,
       ),
-      maoDeObra: (obra.maoDeObra || []).reduce(
+      maoDeObra: listaMaoDeObraFiltrada.reduce(
         (acc, m) => acc + (parseFloat(m.valor_cobrado) || 0),
         0,
       ),
@@ -497,7 +532,7 @@ export default function ObraCliente() {
         0,
       ),
     };
-  }, [obra]);
+  }, [obra, listaMateriaisFiltrada, listaMaoDeObraFiltrada]);
 
   const carregarHistorico = useCallback(async () => {
     if (!id) return;
@@ -839,18 +874,20 @@ export default function ObraCliente() {
                         </p>
                         {podeEditarModalidade ? (
                           <div className="mt-2">
-                            <select
+                            <BaseSelect
+                              searchable={false}
                               aria-label="Modalidade do projeto"
                               value={modalidadeSlug}
                               disabled={salvandoModalidade}
                               onChange={(e) =>
                                 salvarModalidadeObra(e.target.value)
                               }
-                              className="w-full max-w-sm rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm focus:border-[#DC3B0B]/40 focus:outline-none focus:ring-2 focus:ring-[#DC3B0B]/20 disabled:opacity-60"
-                            >
-                              <option value="empreitada">Empreitada</option>
-                              <option value="gestao">Gestão</option>
-                            </select>
+                              className="w-full max-w-sm"
+                              options={[
+                                { value: "empreitada", label: "Empreitada" },
+                                { value: "gestao", label: "Gestão" },
+                              ]}
+                            />
                             <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
                               Em Gestão, relatórios ficam disponíveis nesta
                               tela.
@@ -1031,6 +1068,26 @@ export default function ObraCliente() {
                           onChange={(e) => setBuscaMateriais(e.target.value)}
                           className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
                         />
+                        <BaseSelect
+                          searchable
+                          loading={carregandoFornecedores}
+                          value={filtroFornecedorId}
+                          onChange={(e) => setFiltroFornecedorId(e.target.value)}
+                          wrapperClassName="w-full md:w-[220px]"
+                          className="h-[40px] w-full"
+                          options={[
+                            {
+                              value: "",
+                              label: carregandoFornecedores
+                                ? "Carregando..."
+                                : "Todos os fornecedores",
+                            },
+                            ...listaFornecedores.map((f) => ({
+                              value: String(f.id),
+                              label: f.nome,
+                            })),
+                          ]}
+                        />
                         <div className="h-[40px] justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center w-full whitespace-nowrap bg-gray-50">
                           Total Lançado:{" "}
                           <span className="font-bold ml-1 text-green-700">
@@ -1073,6 +1130,26 @@ export default function ObraCliente() {
                           onChange={(e) => setBuscaMaoDeObra(e.target.value)}
                           className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
                         />
+                        <BaseSelect
+                          searchable
+                          loading={carregandoPrestadores}
+                          value={filtroPrestadorId}
+                          onChange={(e) => setFiltroPrestadorId(e.target.value)}
+                          wrapperClassName="w-full md:w-[220px]"
+                          className="h-[40px] w-full"
+                          options={[
+                            {
+                              value: "",
+                              label: carregandoPrestadores
+                                ? "Carregando..."
+                                : "Todos os prestadores",
+                            },
+                            ...listaPrestadores.map((p) => ({
+                              value: String(p.id),
+                              label: p.nome,
+                            })),
+                          ]}
+                        />
                         <div className="h-[40px] w-full justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
                           Total Lançado:{" "}
                           <span className="font-bold ml-1 text-green-700">
@@ -1104,15 +1181,17 @@ export default function ObraCliente() {
                         Extrato Geral
                       </h2>
                       <div className="flex flex-col lg:flex-row gap-3 items-center">
-                        <select
+                        <BaseSelect
+                          searchable={false}
                           value={filtroExtrato}
                           onChange={(e) => setFiltroExtrato(e.target.value)}
-                          className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none bg-white cursor-pointer"
-                        >
-                          <option value="Tudo">Todos</option>
-                          <option value="Materiais">Materiais</option>
-                          <option value="Mão de Obra">Mão de Obra</option>
-                        </select>
+                          className="h-[40px] w-full lg:w-auto"
+                          options={[
+                            { value: "Tudo", label: "Todos" },
+                            { value: "Materiais", label: "Materiais" },
+                            { value: "Mão de Obra", label: "Mão de Obra" },
+                          ]}
+                        />
                         <input
                           type="text"
                           placeholder="Buscar no extrato..."

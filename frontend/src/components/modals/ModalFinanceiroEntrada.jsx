@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import BaseSelect from "../gerais/BaseSelect";
 import ModalPortal from "../gerais/ModalPortal";
 import { ID_MONTEZUMA } from "../../constants/escritorios";
+import {
+  FORMA_PAGAMENTO_OPCOES,
+  PARCELAS_OPCOES,
+} from "../../constants/financeiroSelectOptions";
 
 const initialForm = () => ({
   descricao: "",
@@ -77,19 +82,23 @@ export default function ModalFinanceiroEntrada({
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Escritório
               </label>
-              <select
+              <BaseSelect
+                searchable={false}
                 disabled={escritorioSelectDisabled}
-                className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25 disabled:cursor-not-allowed disabled:opacity-70"
                 value={escritorioLan}
                 onChange={(e) => setEscritorioLan(e.target.value)}
-              >
-                <option value="Montezuma">Montezuma</option>
-                {!isSecretaria && (
-                  <option value="proprio">
-                    {escritorioProprioNome || "Meu escritório"}
-                  </option>
-                )}
-              </select>
+                options={[
+                  { value: "Montezuma", label: "Montezuma" },
+                  ...(!isSecretaria
+                    ? [
+                        {
+                          value: "proprio",
+                          label: escritorioProprioNome || "Meu escritório",
+                        },
+                      ]
+                    : []),
+                ]}
+              />
             </div>
 
             <div className="flex flex-col gap-[5px]">
@@ -143,18 +152,14 @@ export default function ModalFinanceiroEntrada({
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Forma de Pagamento
               </label>
-              <select
-                className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
+              <BaseSelect
+                searchable={false}
                 value={formData.formaPagamento}
                 onChange={(e) =>
                   setFormData({ ...formData, formaPagamento: e.target.value })
                 }
-              >
-                <option value="Á vista">Á vista</option>
-                <option value="Debito">Débito</option>
-                <option value="Crédito">Crédito</option>
-                <option value="Parcelado">Parcelado</option>
-              </select>
+                options={FORMA_PAGAMENTO_OPCOES}
+              />
             </div>
 
             {formData.formaPagamento === "Parcelado" && (
@@ -162,19 +167,14 @@ export default function ModalFinanceiroEntrada({
                 <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   Quantidade de Parcelas
                 </label>
-                <select
-                  className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
+                <BaseSelect
+                  searchable={false}
                   value={formData.parcelas}
                   onChange={(e) =>
                     setFormData({ ...formData, parcelas: e.target.value })
                   }
-                >
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i + 1} value={`${i + 1}X`}>
-                      {i + 1}X
-                    </option>
-                  ))}
-                </select>
+                  options={PARCELAS_OPCOES}
+                />
               </div>
             )}
 

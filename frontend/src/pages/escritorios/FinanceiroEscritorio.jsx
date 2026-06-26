@@ -5,6 +5,7 @@ import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ModalEntradaEscritorio from "../../components/modals/ModalEntradaEscritorio";
 import ModalSaidaEscritorio from "../../components/modals/ModalSaidaEscritorio";
 import ModalPortal from "../../components/gerais/ModalPortal";
+import BaseSelect from "../../components/gerais/BaseSelect";
 import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -744,12 +745,14 @@ export default function FinanceiroEscritorio() {
             </p>
           </div>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-            <select
+            <BaseSelect
+              searchable={false}
+              variant="escritorioBar"
+              wrapperClassName="w-full sm:w-auto sm:min-w-[220px]"
+              className="h-10 w-full"
               value={mesSelecionado}
               onChange={(e) => setMesSelecionado(e.target.value)}
-              className="h-10 w-full rounded-lg border border-white/10 bg-black/40 px-3 text-sm font-semibold text-esc-text shadow-sm sm:w-auto focus:border-esc-destaque focus:ring-1 focus:ring-esc-destaque focus:outline-none"
-            >
-              {[
+              options={[
                 "01",
                 "02",
                 "03",
@@ -762,14 +765,14 @@ export default function FinanceiroEscritorio() {
                 "10",
                 "11",
                 "12",
-              ].map((m) => (
-                <option key={m} value={m} className="bg-esc-bg text-esc-text">
-                  {new Date(2000, parseInt(m) - 1).toLocaleString("pt-BR", {
-                    month: "long",
-                  })}
-                </option>
-              ))}
-            </select>
+              ].map((m) => ({
+                value: m,
+                label: new Date(2000, parseInt(m, 10) - 1).toLocaleString(
+                  "pt-BR",
+                  { month: "long" }
+                ),
+              }))}
+            />
           </div>
         </div>
       </header>

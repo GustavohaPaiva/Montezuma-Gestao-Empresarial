@@ -1,3 +1,6 @@
+import BaseSelect from "./BaseSelect";
+import { getCorStatusMaterial } from "../../pages/obras/detalhe/utils/formatters";
+
 const join = (...c) => c.filter(Boolean).join(" ");
 
 const TEXTO_CENTRO =
@@ -13,7 +16,7 @@ const BASE_BADGE = join(
 );
 
 const BASE_PROCESSO = join(
-  "box-border inline-block w-auto cursor-pointer appearance-none rounded-xl border",
+  "box-border block w-full cursor-pointer appearance-none rounded-xl border",
   "px-3 py-2 pr-7 text-sm font-semibold leading-snug shadow-none",
   TEXTO_CENTRO,
   "outline-none transition focus:ring-2",
@@ -21,9 +24,15 @@ const BASE_PROCESSO = join(
   "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%2710%27 fill=%27none%27 stroke=%27%2364748b%27 stroke-width=%272%27%3E%3Cpath d=%27m2 4 3 3 3-3%27/%3E%3C/svg%3E')]",
 );
 
+const BASE_MATERIAL = join(
+  "inline-block w-full max-w-[13rem] cursor-pointer rounded-full border-0 px-3 py-1.5 text-center text-sm font-semibold sm:h-9 sm:w-fit",
+  "outline-none transition focus:outline-none focus:ring-2 focus:ring-accent-primary/30",
+);
+
 function classesCliente(status) {
   const s = (status || "").trim().toLowerCase();
-  const base = BASE_BADGE;  if (!s)
+  const base = BASE_BADGE;
+  if (!s)
     return `${base} border-esc-border bg-esc-bg/70 text-esc-muted focus:ring-esc-destaque/25`;
   if (s.includes("finaliz"))
     return `${base} border-status-concluida-text/45 bg-black/50 text-status-concluida-text focus:ring-status-concluida-text/30`;
@@ -87,30 +96,27 @@ function classesProcesso(status) {
   return `${base} border-slate-200 bg-white text-text-primary focus:border-accent-primary/40 focus:ring-accent-primary/15`;
 }
 
+function classesMaterial(status) {
+  return `${BASE_MATERIAL} ${getCorStatusMaterial(status || "Solicitado")}`;
+}
+
 const CLASS_BY_VARIANT = {
   cliente: classesCliente,
   orcamento: classesOrcamento,
   obra: classesObra,
   processo: classesProcesso,
+  material: classesMaterial,
 };
 
 /**
- * Select de status com aparência de badge — clique abre opções, seleção dispara onChange.
- * @param {{
- *   value: string,
- *   options: string[],
- *   onChange: (novoStatus: string) => void,
- *   variant?: 'cliente' | 'orcamento' | 'obra' | 'processo',
- *   disabled?: boolean,
- *   id?: string,
- *   className?: string,
- * }} props
+ * Select de status com aparência de badge — usa dropdown customizado do BaseSelect.
  */
 export default function StatusSelectBadge({
   value,
   options,
   onChange,
   variant = "cliente",
+  selectVariant = "default",
   disabled = false,
   id,
   className = "",
@@ -123,26 +129,31 @@ export default function StatusSelectBadge({
   };
 
   return (
-    <select
+    <BaseSelect
       id={id}
+      variant={selectVariant}
+      searchable={false}
+      hideChevron
+      optionsCentered
+      wrapperClassName={
+        variant === "material"
+          ? "inline-block w-full max-w-[13rem] sm:w-fit"
+          : variant === "processo"
+            ? "block w-full min-w-[9.5rem]"
+            : "inline-block w-auto max-w-full"
+      }
+      triggerClassName={join(getClasses(atual), className)}
       value={atual}
       disabled={disabled}
       onClick={pararPropagacao}
       onMouseDown={pararPropagacao}
-      onKeyDown={pararPropagacao}
       onChange={(e) => {
         pararPropagacao(e);
         const novo = e.target.value;
         if (novo !== atual) onChange(novo);
       }}
-      className={join(getClasses(atual), className)}
       aria-label="Alterar status"
-    >
-      {options.map((opt) => (
-        <option key={opt} value={opt} className="text-center">
-          {opt}
-        </option>
-      ))}
-    </select>
+      options={options.map((opt) => ({ value: opt, label: opt }))}
+    />
   );
 }

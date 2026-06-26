@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BaseSelect from "../../../../components/gerais/BaseSelect";
 import { api } from "../../../../services/api";
 
 export default function CellSelectFornecedor({
@@ -26,21 +27,34 @@ export default function CellSelectFornecedor({
 
   return (
     <div className="flex items-center gap-1">
-      <select
+      <BaseSelect
+        size="compact"
+        searchable
+        autoFocus
+        loading={loading}
         value={val}
         onChange={(e) => setVal(e.target.value)}
-        className="w-[120px] rounded-xl border border-border-primary/55 bg-white p-1.5 text-[13px] uppercase transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 disabled:opacity-50"
         disabled={loading}
-        autoFocus
-      >
-        <option value="">{loading ? "Carregando..." : "Selecione..."}</option>
-        {lista.map((f) => (
-          <option key={f.id} value={f.id}>
-            {f.nome}
-          </option>
-        ))}
-      </select>
+        className="w-[120px]"
+        onCreateOption={async (nome) => {
+          const novo = await api.createFornecedor({ nome, ativo: true });
+          setLista((prev) =>
+            [...prev, novo].sort((a, b) =>
+              (a.nome || "").localeCompare(b.nome || ""),
+            ),
+          );
+          return String(novo.id);
+        }}
+        options={[
+          { value: "", label: loading ? "Carregando..." : "Selecione..." },
+          ...lista.map((f) => ({
+            value: String(f.id),
+            label: f.nome,
+          })),
+        ]}
+      />
       <button
+        type="button"
         onClick={() => onSave(val)}
         disabled={loading || !val}
         className="cursor-pointer border-none bg-transparent flex-shrink-0 disabled:opacity-50"
@@ -52,6 +66,7 @@ export default function CellSelectFornecedor({
         />
       </button>
       <button
+        type="button"
         onClick={onCancel}
         className="cursor-pointer border-none bg-transparent flex-shrink-0"
       >

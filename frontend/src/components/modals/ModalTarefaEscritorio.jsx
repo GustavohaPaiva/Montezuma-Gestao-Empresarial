@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Calendar, Loader2, X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
+import BaseSelect from "../gerais/BaseSelect";
 import { ID_VOGELKOP } from "../../constants/escritorios";
 import { api } from "../../services/api";
 import {
@@ -415,23 +416,16 @@ export default function ModalTarefaEscritorio({
                   <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                     Prioridade
                   </label>
-                  <select
-                    className={`${FIELD_CLASS} mt-2`}
+                  <BaseSelect
+                    searchable={false}
+                    variant="escritorio"
+                    className="mt-2"
                     value={form.prioridade}
                     onChange={(e) =>
                       setForm({ ...form, prioridade: e.target.value })
                     }
-                  >
-                    {PRIORIDADES.map((p) => (
-                      <option
-                        key={p}
-                        value={p}
-                        className="bg-esc-bg text-esc-text"
-                      >
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                    options={PRIORIDADES.map((p) => ({ value: p, label: p }))}
+                  />
                 </div>
               </div>
               <div>
@@ -656,31 +650,29 @@ export default function ModalTarefaEscritorio({
                       <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                         Prioridade
                       </label>
-                      <select
-                        className={`${FIELD_CLASS} mt-2`}
+                      <BaseSelect
+                        searchable={false}
+                        variant="escritorio"
+                        className="mt-2"
                         value={form.prioridade}
                         onChange={(e) =>
                           setForm({ ...form, prioridade: e.target.value })
                         }
-                      >
-                        {PRIORIDADES.map((p) => (
-                          <option
-                            key={p}
-                            value={p}
-                            className="bg-esc-bg text-esc-text"
-                          >
-                            {p}
-                          </option>
-                        ))}
-                      </select>
+                        options={PRIORIDADES.map((p) => ({
+                          value: p,
+                          label: p,
+                        }))}
+                      />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                       Gestor
                     </label>
-                    <select
-                      className={`${FIELD_CLASS} mt-2`}
+                    <BaseSelect
+                      searchable
+                      variant="escritorio"
+                      className="mt-2"
                       value={form.gestor_id || ""}
                       disabled={!podeEditarResponsaveis}
                       onChange={(e) =>
@@ -689,20 +681,14 @@ export default function ModalTarefaEscritorio({
                           gestor_id: e.target.value ? e.target.value : null,
                         })
                       }
-                    >
-                      <option value="" className="bg-esc-bg text-esc-text">
-                        Sem gestor
-                      </option>
-                      {equipe.map((u) => (
-                        <option
-                          key={String(u.id)}
-                          value={String(u.id)}
-                          className="bg-esc-bg text-esc-text"
-                        >
-                          {u.nome || "—"}
-                        </option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: "", label: "Sem gestor" },
+                        ...equipe.map((u) => ({
+                          value: String(u.id),
+                          label: u.nome || "—",
+                        })),
+                      ]}
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">

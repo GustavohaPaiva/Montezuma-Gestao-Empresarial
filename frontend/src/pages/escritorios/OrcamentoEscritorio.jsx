@@ -17,6 +17,7 @@ import {
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalOrcamentoEscritorio from "../../components/modals/ModalOrcamentoEscritorio";
 import StatusSelectBadge from "../../components/gerais/StatusSelectBadge";
+import BaseSelect from "../../components/gerais/BaseSelect";
 import { STATUS_ORCAMENTO_OPCOES } from "../../components/gerais/statusSelectOptions";
 
 const formatarDataBR = (dataString) => {
@@ -404,17 +405,13 @@ export default function OrcamentoEscritorio() {
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-esc-muted">
               Status
             </label>
-            <select
+            <BaseSelect
+              searchable={false}
+              variant="escritorioBar"
               value={filtroStatusEfetivo}
               onChange={(e) => setFiltroStatus(e.target.value)}
-              className={inputBarClass}
-            >
-              {statusOpcoes.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              options={statusOpcoes.map((s) => ({ value: s, label: s }))}
+            />
           </div>
           <div className="flex w-full shrink-0 flex-col gap-2 sm:flex-row sm:gap-2 lg:w-auto lg:max-w-[min(100%,21rem)]">
             <div className="min-w-0 sm:min-w-[8.5rem] w-full">
@@ -577,6 +574,7 @@ export default function OrcamentoEscritorio() {
                         value={o.status || "Em andamento"}
                         options={STATUS_ORCAMENTO_OPCOES}
                         variant="orcamento"
+                        selectVariant="escritorio"
                         onChange={(novo) => handleStatusOrcamento(o, novo)}
                       />
                     </span>

@@ -106,6 +106,7 @@ export default function ModalLancamentoRelatorio({
               Semana do calendário
             </label>
             <BaseSelect
+              searchable={false}
               value={String(semanaInicio)}
               onChange={(e) => setSemanaInicio(e.target.value)}
               options={opcoes}

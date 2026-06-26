@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import BaseSelect from "../gerais/BaseSelect";
 import ModalPortal from "../gerais/ModalPortal";
 import { api } from "../../services/api";
 
@@ -124,7 +125,9 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Classe do Serviço
               </label>
-              <select
+              <BaseSelect
+                searchable
+                loading={loadingClasses}
                 value={formData.classe_id}
                 onChange={(e) =>
                   setFormData({
@@ -133,46 +136,70 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
                     prestador_id: "",
                   })
                 }
-                className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
-              >
-                <option value="">
-                  {loadingClasses
-                    ? "Carregando classes..."
-                    : "Selecione uma classe..."}
-                </option>
-                {classes?.map((classe) => (
-                  <option key={classe.id} value={classe.id}>
-                    {classe.nome}
-                  </option>
-                ))}
-              </select>
+                onCreateOption={async (nome) => {
+                  const nova = await api.createClassePrestador({ nome });
+                  setClasses((prev) =>
+                    [...prev, nova].sort((a, b) =>
+                      (a.nome || "").localeCompare(b.nome || ""),
+                    ),
+                  );
+                  return String(nova.id);
+                }}
+                options={[
+                  {
+                    value: "",
+                    label: loadingClasses
+                      ? "Carregando classes..."
+                      : "Selecione uma classe...",
+                  },
+                  ...(classes?.map((classe) => ({
+                    value: String(classe.id),
+                    label: classe.nome,
+                  })) ?? []),
+                ]}
+              />
             </div>
 
             <div className="flex flex-col gap-[5px]">
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Prestador
               </label>
-              <select
+              <BaseSelect
+                searchable
+                loading={loadingPrestadores}
                 value={formData.prestador_id}
                 onChange={(e) =>
                   setFormData({ ...formData, prestador_id: e.target.value })
                 }
                 disabled={!formData.classe_id || loadingPrestadores}
-                className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25 disabled:opacity-60"
-              >
-                <option value="">
-                  {!formData.classe_id
-                    ? "Selecione uma classe primeiro..."
-                    : loadingPrestadores
-                      ? "Carregando prestadores..."
-                      : "Selecione um prestador..."}
-                </option>
-                {prestadores?.map((opcao) => (
-                  <option key={opcao.id} value={opcao.id}>
-                    {opcao.nome}
-                  </option>
-                ))}
-              </select>
+                onCreateOption={async (nome) => {
+                  const novo = await api.createPrestador({
+                    nome,
+                    ativo: true,
+                    classe_ids: [Number(formData.classe_id)],
+                  });
+                  setPrestadores((prev) =>
+                    [...prev, { id: novo.id, nome: novo.nome }].sort((a, b) =>
+                      (a.nome || "").localeCompare(b.nome || ""),
+                    ),
+                  );
+                  return String(novo.id);
+                }}
+                options={[
+                  {
+                    value: "",
+                    label: !formData.classe_id
+                      ? "Selecione uma classe primeiro..."
+                      : loadingPrestadores
+                        ? "Carregando prestadores..."
+                        : "Selecione um prestador...",
+                  },
+                  ...(prestadores?.map((opcao) => ({
+                    value: String(opcao.id),
+                    label: opcao.nome,
+                  })) ?? []),
+                ]}
+              />
             </div>
 
             <div className="flex flex-col gap-[5px]">

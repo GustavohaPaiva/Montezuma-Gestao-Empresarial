@@ -4,9 +4,8 @@ import { api } from "../../services/api";
 import { UNIDADES_MEDIDA_PEDIDO } from "../../constants/pedidos";
 import { formatarMoeda } from "../../pages/obras/detalhe/utils/formatters";
 import { normalizarNomeMaterial } from "../../utils/pedidosUtils";
+import BaseSelect from "../gerais/BaseSelect";
 import { inputTabelaGestao, selectTabelaGestao } from "./pedidosUi";
-
-const selectCellClass = `${selectTabelaGestao} bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 fill=%27none%27 stroke=%27%2394a3b8%27 stroke-width=%272%27%3E%3Cpath d=%27m3 5 3 3 3-3%27/%3E%3C/svg%3E')]`;
 
 function dataInputValue(raw) {
   if (!raw) return "";
@@ -155,7 +154,9 @@ export default function PedidoItensTableGestao({
                   />
                 </td>
                 <td className="px-3 py-2 align-middle">
-                  <select
+                  <BaseSelect
+                    size="compact"
+                    searchable={false}
                     value={item.unidade || "Un."}
                     disabled={!item.id}
                     onChange={(e) => {
@@ -163,14 +164,12 @@ export default function PedidoItensTableGestao({
                       atualizarLinha(item.id, { unidade: val });
                       salvarCampo(item.id, { unidade: val });
                     }}
-                    className={`${selectCellClass} max-w-[5.5rem] mx-auto`}
-                  >
-                    {UNIDADES_MEDIDA_PEDIDO.map((u) => (
-                      <option key={u} value={u}>
-                        {u}
-                      </option>
-                    ))}
-                  </select>
+                    className={`${selectTabelaGestao} max-w-[5.5rem] mx-auto`}
+                    options={UNIDADES_MEDIDA_PEDIDO.map((u) => ({
+                      value: u,
+                      label: u,
+                    }))}
+                  />
                 </td>
                 <td className="px-3 py-2 align-middle">
                   <input
@@ -186,7 +185,9 @@ export default function PedidoItensTableGestao({
                   />
                 </td>
                 <td className="px-3 py-2 align-middle">
-                  <select
+                  <BaseSelect
+                    size="compact"
+                    searchable
                     value={item.fornecedor_id ?? ""}
                     disabled={!item.id}
                     onChange={(e) => {
@@ -194,15 +195,15 @@ export default function PedidoItensTableGestao({
                       atualizarLinha(item.id, { fornecedor_id: val });
                       salvarCampo(item.id, { fornecedor_id: val });
                     }}
-                    className={selectCellClass}
-                  >
-                    <option value="">—</option>
-                    {fornecedores.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.nome}
-                      </option>
-                    ))}
-                  </select>
+                    className={selectTabelaGestao}
+                    options={[
+                      { value: "", label: "—" },
+                      ...fornecedores.map((f) => ({
+                        value: String(f.id),
+                        label: f.nome,
+                      })),
+                    ]}
+                  />
                 </td>
                 <td className="px-3 py-2 align-middle">
                   <div className="relative mx-auto flex max-w-[6.5rem] items-center justify-center">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Send, Trash2 } from "lucide-react";
 import { UNIDADES_MEDIDA_PEDIDO } from "../../constants/pedidos";
 import ButtonDefault from "../gerais/ButtonDefault";
+import BaseSelect from "../gerais/BaseSelect";
 import { formatarDataBR } from "../../pages/obras/detalhe/utils/formatters";
 import {
   formatarQuantidadePedido,
@@ -144,17 +145,16 @@ export default function PedidoFormComposer({
                   />
                 </CampoForm>
                 <CampoForm label="Un." className="md:col-span-3">
-                  <select
+                  <BaseSelect
+                    searchable={false}
                     value={unidade}
                     onChange={(e) => setUnidade(e.target.value)}
                     className={selectPremium}
-                  >
-                    {UNIDADES_MEDIDA_PEDIDO.map((u) => (
-                      <option key={u} value={u}>
-                        {u}
-                      </option>
-                    ))}
-                  </select>
+                    options={UNIDADES_MEDIDA_PEDIDO.map((u) => ({
+                      value: u,
+                      label: u,
+                    }))}
+                  />
                 </CampoForm>
                 <CampoForm label="Data de entrega" className="md:col-span-6">
                   <input

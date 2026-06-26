@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
+import StatusSelectBadge from "../gerais/StatusSelectBadge";
+import { STATUS_ORCAMENTO_OPCOES } from "../gerais/statusSelectOptions";
 import { ID_VOGELKOP } from "../../constants/escritorios";
-
-const STATUS_OPTIONS = ["Em andamento", "Não fechado", "Fechado"];
 
 export default function ModalOrcamentoEscritorio({
   isOpen,
@@ -122,17 +122,13 @@ export default function ModalOrcamentoEscritorio({
               <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                 Status
               </label>
-              <select
-                className={fieldClass}
+              <StatusSelectBadge
+                variant="orcamento"
+                selectVariant="escritorio"
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s} className="bg-esc-bg text-esc-text">
-                    {s}
-                  </option>
-                ))}
-              </select>
+                onChange={setStatus}
+                options={STATUS_ORCAMENTO_OPCOES}
+              />
             </div>
           </div>
 

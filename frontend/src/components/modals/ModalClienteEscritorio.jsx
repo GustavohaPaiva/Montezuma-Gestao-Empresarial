@@ -1,16 +1,11 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
+import BaseSelect from "../gerais/BaseSelect";
 import { ID_VOGELKOP } from "../../constants/escritorios";
-
-const STATUS_OPTIONS = [
-  "Produção",
-  "Prefeitura",
-  "Caixa",
-  "Cartorio",
-  "Obra",
-  "Finalizado",
-];
+import { PAGAMENTO_CLIENTE_OPCOES } from "../../constants/financeiroSelectOptions";
+import StatusSelectBadge from "../gerais/StatusSelectBadge";
+import { STATUS_CLIENTE_OPCOES } from "../gerais/statusSelectOptions";
 
 const TIPO_PROJETO_OPTIONS = ["Residencial", "Reforma", "Comercial"];
 
@@ -132,72 +127,45 @@ export default function ModalClienteEscritorio({
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Tipo do Projeto
                 </label>
-                <select
+                <BaseSelect
+                  searchable={false}
+                  variant="escritorio"
                   name="tipo"
-                  className={fieldClass}
                   value={form.tipo}
                   onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-                >
-                  {TIPO_PROJETO_OPTIONS.map((opt) => (
-                    <option
-                      key={opt}
-                      value={opt}
-                      className="bg-esc-bg text-esc-text"
-                    >
-                      {opt}
-                    </option>
-                  ))}
-                </select>
+                  options={TIPO_PROJETO_OPTIONS.map((opt) => ({
+                    value: opt,
+                    label: opt,
+                  }))}
+                />
               </div>
 
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Status
                 </label>
-                <select
-                  className={fieldClass}
+                <StatusSelectBadge
+                  variant="cliente"
+                  selectVariant="escritorio"
                   value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option
-                      key={s}
-                      value={s}
-                      className="bg-esc-bg text-esc-text"
-                    >
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(novo) => setForm({ ...form, status: novo })}
+                  options={STATUS_CLIENTE_OPCOES}
+                />
               </div>
 
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Pagamento
                 </label>
-                <select
-                  className={fieldClass}
+                <BaseSelect
+                  searchable={false}
+                  variant="escritorio"
                   value={form.pagamento}
                   onChange={(e) =>
                     setForm({ ...form, pagamento: e.target.value })
                   }
-                >
-                  <option value="Á vista" className="bg-esc-bg text-esc-text">
-                    Á vista
-                  </option>
-                  <option value="Parcelado" className="bg-esc-bg text-esc-text">
-                    Parcelado
-                  </option>
-                  <option value="Cartão" className="bg-esc-bg text-esc-text">
-                    Cartão
-                  </option>
-                  <option
-                    value="À combinar"
-                    className="bg-esc-bg text-esc-text"
-                  >
-                    À combinar
-                  </option>
-                </select>
+                  options={PAGAMENTO_CLIENTE_OPCOES}
+                />
               </div>
 
               <div className="flex flex-col gap-2">

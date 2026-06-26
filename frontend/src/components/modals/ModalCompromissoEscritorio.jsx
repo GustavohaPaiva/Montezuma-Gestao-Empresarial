@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { addMonths, addYears, addDays } from "date-fns";
 import ModalPortal from "../gerais/ModalPortal";
+import BaseSelect from "../gerais/BaseSelect";
 import { ID_VOGELKOP } from "../../constants/escritorios";
 import { api } from "../../services/api";
 
@@ -36,7 +37,7 @@ function normalizarTipo(raw) {
 const fieldClass =
   "w-full rounded-xl border border-gray-600/55 bg-esc-bg/75 px-4 py-3 text-sm text-gray-200 shadow-inner transition-all duration-300 placeholder:text-esc-muted/45 focus:border-[var(--esc-destaque)] focus:bg-esc-bg focus:outline-none focus:ring-1 focus:ring-[var(--esc-destaque)] disabled:cursor-not-allowed disabled:opacity-50";
 
-const selectClass = `${fieldClass} cursor-pointer`;
+const selectClass = `${fieldClass} cursor-pointer pr-9`;
 
 const fieldRecCompact =
   "w-full rounded-lg border border-gray-600/45 bg-esc-bg/65 px-2 py-1 text-sm text-gray-200 shadow-inner transition-all duration-300 focus:border-[var(--esc-destaque)] focus:bg-esc-bg/80 focus:outline-none focus:ring-1 focus:ring-[var(--esc-destaque)]";
@@ -481,24 +482,17 @@ export default function ModalCompromissoEscritorio({
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Tipo
                 </label>
-                <select
-                  className={selectClass}
+                <BaseSelect
+                  searchable={false}
+                  variant="escritorio"
+                  triggerClassName={selectClass}
                   value={tipo}
                   onChange={(e) => {
                     setTipo(e.target.value);
                     if (e.target.value !== "Outro") setTipoCustom("");
                   }}
-                >
-                  {TIPOS_PADRAO.map((t) => (
-                    <option
-                      key={t}
-                      value={t}
-                      className="bg-esc-bg text-esc-text"
-                    >
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                  options={TIPOS_PADRAO.map((t) => ({ value: t, label: t }))}
+                />
                 {tipo === "Outro" ? (
                   <input
                     type="text"
@@ -514,21 +508,14 @@ export default function ModalCompromissoEscritorio({
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Status
                 </label>
-                <select
-                  className={selectClass}
+                <BaseSelect
+                  searchable={false}
+                  variant="escritorio"
+                  triggerClassName={selectClass}
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                >
-                  {STATUS.map((s) => (
-                    <option
-                      key={s}
-                      value={s}
-                      className="bg-esc-bg text-esc-text"
-                    >
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                  options={STATUS.map((s) => ({ value: s, label: s }))}
+                />
               </div>
             </div>
 
@@ -618,23 +605,19 @@ export default function ModalCompromissoEscritorio({
                           <label className="text-xs font-medium text-esc-muted">
                             Frequência
                           </label>
-                          <select
-                            className={selectRecCompact}
+                          <BaseSelect
+                            size="compact"
+                            searchable={false}
+                            variant="escritorio"
                             value={frequenciaRecorrencia}
                             onChange={(e) =>
                               setFrequenciaRecorrencia(e.target.value)
                             }
-                          >
-                            {RECORRENCIAS.map((freq) => (
-                              <option
-                                key={freq}
-                                value={freq}
-                                className="bg-esc-bg text-esc-text"
-                              >
-                                {freq}
-                              </option>
-                            ))}
-                          </select>
+                            options={RECORRENCIAS.map((freq) => ({
+                              value: freq,
+                              label: freq,
+                            }))}
+                          />
                         </div>
                         <div className="flex min-w-0 flex-col gap-1">
                           <label className="text-xs font-medium text-esc-muted">

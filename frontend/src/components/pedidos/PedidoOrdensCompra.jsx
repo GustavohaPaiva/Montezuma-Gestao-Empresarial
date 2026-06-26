@@ -19,6 +19,7 @@ import { formatarQuantidadePedido } from "../../utils/pedidosUtils";
 import { gerarPdfOrdemCompra } from "../../utils/pedidosOrdemCompraPdf";
 import { abrirPdfEmNovaAba } from "../../utils/pdfPreview";
 import ButtonDefault from "../gerais/ButtonDefault";
+import BaseSelect from "../gerais/BaseSelect";
 import PedidoSecaoPainel from "./PedidoSecaoPainel";
 import {
   btnAccentPremium,
@@ -274,32 +275,32 @@ export default function PedidoOrdensCompra({
               <span className={pedidoSubpainelTituloClass}>
                 Emitente no documento
               </span>
-              <select
+              <BaseSelect
+                searchable={false}
                 value={emitente}
                 onChange={(e) => setEmitente(e.target.value)}
                 className={selectPremium}
-              >
-                {opcoesEmitente.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+                options={opcoesEmitente.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                }))}
+              />
             </label>
             <label className="flex flex-col gap-1.5">
               <span className={pedidoSubpainelTituloClass}>Fornecedor</span>
-              <select
+              <BaseSelect
+                searchable
                 value={fornecedorId}
                 onChange={(e) => setFornecedorId(e.target.value)}
                 className={selectPremium}
-              >
-                <option value="">— Selecionar fornecedor —</option>
-                {fornecedores.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.nome}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: "— Selecionar fornecedor —" },
+                  ...fornecedores.map((f) => ({
+                    value: String(f.id),
+                    label: f.nome,
+                  })),
+                ]}
+              />
             </label>
           </div>
 
@@ -384,40 +385,40 @@ export default function PedidoOrdensCompra({
               <div className="grid grid-cols-1 gap-3 border-t border-border-primary/20 pt-4 sm:grid-cols-2">
                 <label className="flex min-w-0 flex-col gap-1.5">
                   <span className={pedidoSubpainelTituloClass}>Fornecedor</span>
-                  <select
+                  <BaseSelect
+                    searchable
                     value={fornecedorDoGrupo(grupo)}
                     disabled={salvandoGrupoId === grupo.id}
                     onChange={(e) =>
                       handleFornecedorGrupo(grupo.id, e.target.value)
                     }
                     className={selectPremium}
-                  >
-                    <option value="">— Selecionar fornecedor —</option>
-                    {fornecedores.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.nome}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "— Selecionar fornecedor —" },
+                      ...fornecedores.map((f) => ({
+                        value: String(f.id),
+                        label: f.nome,
+                      })),
+                    ]}
+                  />
                 </label>
                 <label className="flex min-w-0 flex-col gap-1.5">
                   <span className={pedidoSubpainelTituloClass}>
                     Status da ordem
                   </span>
-                  <select
+                  <BaseSelect
+                    searchable={false}
                     value={grupo.status || "Pendente"}
                     disabled={salvandoGrupoId === grupo.id}
                     onChange={(e) =>
                       handleStatusGrupo(grupo.id, e.target.value)
                     }
                     className={selectPremium}
-                  >
-                    {STATUS_GRUPO_COMPRA_OPCOES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    options={STATUS_GRUPO_COMPRA_OPCOES.map((s) => ({
+                      value: s,
+                      label: s,
+                    }))}
+                  />
                 </label>
               </div>
 

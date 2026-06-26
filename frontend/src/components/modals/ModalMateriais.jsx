@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import BaseSelect from "../gerais/BaseSelect";
 import ModalPortal from "../gerais/ModalPortal";
 import { api } from "../../services/api";
 
@@ -113,23 +114,34 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Fornecedor
               </label>
-              <select
+              <BaseSelect
+                searchable
+                loading={carregandoFornecedores}
                 value={fornecedorId}
                 onChange={(e) => setFornecedorId(e.target.value)}
                 disabled={carregandoFornecedores}
-                className="h-11 w-full cursor-pointer rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25 disabled:opacity-50"
-              >
-                <option value="">
-                  {carregandoFornecedores
-                    ? "Carregando..."
-                    : "Selecione um fornecedor"}
-                </option>
-                {listaFornecedores.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.nome}
-                  </option>
-                ))}
-              </select>
+                onCreateOption={async (nome) => {
+                  const novo = await api.createFornecedor({ nome, ativo: true });
+                  setListaFornecedores((prev) =>
+                    [...prev, novo].sort((a, b) =>
+                      (a.nome || "").localeCompare(b.nome || ""),
+                    ),
+                  );
+                  return String(novo.id);
+                }}
+                options={[
+                  {
+                    value: "",
+                    label: carregandoFornecedores
+                      ? "Carregando..."
+                      : "Selecione um fornecedor",
+                  },
+                  ...listaFornecedores.map((f) => ({
+                    value: String(f.id),
+                    label: f.nome,
+                  })),
+                ]}
+              />
             </div>
 
             <div className="flex w-full gap-3">
@@ -149,17 +161,15 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
                 <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   Un.
                 </label>
-                <select
+                <BaseSelect
+                  searchable={false}
                   value={unidade}
                   onChange={(e) => setUnidade(e.target.value)}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
-                >
-                  {listaUnidades.map((un) => (
-                    <option key={un} value={un}>
-                      {un}
-                    </option>
-                  ))}
-                </select>
+                  options={listaUnidades.map((un) => ({
+                    value: un,
+                    label: un,
+                  }))}
+                />
               </div>
             </div>
 

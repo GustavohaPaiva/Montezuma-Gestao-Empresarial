@@ -589,6 +589,7 @@ export default function PrestadorDetalhes() {
               </label>
               <BaseSelect
                 id="prestador-add-classe"
+                searchable
                 value={classeSelecionada}
                 onChange={(e) => setClasseSelecionada(e.target.value)}
                 placeholder="Selecione uma classe"

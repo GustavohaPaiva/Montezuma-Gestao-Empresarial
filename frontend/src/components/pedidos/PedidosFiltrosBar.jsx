@@ -36,6 +36,7 @@ export default function PedidosFiltrosBar({
         aria-label="Pesquisar pedidos"
       />
       <BaseSelect
+        searchable={false}
         value={status}
         onChange={(e) => onStatusChange(e.target.value)}
         options={OPCOES_STATUS}

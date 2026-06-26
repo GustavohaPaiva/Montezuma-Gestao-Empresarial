@@ -190,6 +190,7 @@ export default function Processos() {
     />,
     <BaseSelect
       key="filtro-status-processos"
+      searchable={false}
       value={filtroStatus}
       onChange={(event) => setFiltroStatus(event.target.value)}
       options={[

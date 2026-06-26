@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../../components/navbar/Navbar";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
+import BaseSelect from "../../components/gerais/BaseSelect";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../services/supabase";
@@ -915,17 +916,19 @@ export default function ListaTarefas({
               <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                 Status
               </label>
-              <select
+              <BaseSelect
+                searchable={false}
                 value={filtroStatus}
                 onChange={(e) => setFiltroStatus(e.target.value)}
                 className={SELECT_STATUS_CLASS}
-              >
-                <option value="todos">Todos</option>
-                <option value={STATUS.pendente}>{STATUS.pendente}</option>
-                <option value={STATUS.emAndamento}>{STATUS.emAndamento}</option>
-                <option value={STATUS.aguardando}>{STATUS.aguardando}</option>
-                <option value={STATUS.concluida}>{STATUS.concluida}</option>
-              </select>
+                options={[
+                  { value: "todos", label: "Todos" },
+                  { value: STATUS.pendente, label: STATUS.pendente },
+                  { value: STATUS.emAndamento, label: STATUS.emAndamento },
+                  { value: STATUS.aguardando, label: STATUS.aguardando },
+                  { value: STATUS.concluida, label: STATUS.concluida },
+                ]}
+              />
             </div>
             <div className="rounded-xl border border-border-primary/35 bg-[#FAFAFA] p-2.5 shadow-sm">
               <div className="mb-2 flex items-center justify-between gap-2">
@@ -1418,19 +1421,14 @@ export default function ListaTarefas({
                     <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500">
                       Prioridade
                     </label>
-                    <select
-                      className="h-12 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] px-3 text-sm text-gray-800 shadow-sm transition-all focus:border-accent-primary/35 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+                    <BaseSelect
+                      searchable={false}
                       value={form.prioridade}
                       onChange={(e) =>
                         setForm((f) => ({ ...f, prioridade: e.target.value }))
                       }
-                    >
-                      {PRIORIDADES.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
+                      options={PRIORIDADES.map((p) => ({ value: p, label: p }))}
+                    />
                   </div>
                 </div>
                 <div>

@@ -1,4 +1,9 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -21,11 +26,17 @@ import {
 } from "./detalhe/hooks/useObrasDetalheTableData";
 import ObraDetalheHeader from "./detalhe/components/ObraDetalheHeader";
 import ObraDetalheResumoFinanceiro from "./detalhe/components/ObraDetalheResumoFinanceiro";
+import ObraDetalheLotesPagamento from "./detalhe/components/ObraDetalheLotesPagamento";
 import ModalRelatorioPrestador from "./detalhe/components/ModalRelatorioPrestador";
 import {
   calcularDataDevolucao,
   formatarMoeda,
 } from "./detalhe/utils/formatters";
+import {
+  getExtratoIdsEmLotesAbertos,
+  isExtratoPago,
+  labelsExtratoFinanceiro,
+} from "./detalhe/utils/lotesPagamentoUtils";
 import {
   gerarPdfExtrato,
   gerarPdfRelatorioLocacoes,
@@ -37,6 +48,7 @@ import FeedbackModal from "../../components/gerais/FeedbackModal";
 import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import BaseModal from "../../components/gerais/BaseModal";
 import BaseButton from "../../components/gerais/BaseButton";
+import BaseSelect from "../../components/gerais/BaseSelect";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   CheckCircle2,
@@ -54,6 +66,7 @@ export default function ObrasDetalhe() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const isMobile = useIsMobile(768);
   const { obra, setObra, fetchDados } = useObraById(id);
@@ -69,6 +82,9 @@ export default function ObrasDetalhe() {
   const [modalRelatorioPrestadorOpen, setModalRelatorioPrestadorOpen] =
     useState(false);
   const [pdfPreview, setPdfPreview] = useState(null);
+  const [processandoLoteId, setProcessandoLoteId] = useState(null);
+  const [processandoLoteItemId, setProcessandoLoteItemId] = useState(null);
+  const [confirmacaoLote, setConfirmacaoLote] = useState(null);
 
   const [feedback, setFeedback] = useState({
     open: false,
@@ -88,6 +104,12 @@ export default function ObrasDetalhe() {
 
   const [buscaMateriais, setBuscaMateriais] = useState("");
   const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
+  const [filtroFornecedorId, setFiltroFornecedorId] = useState("");
+  const [filtroPrestadorId, setFiltroPrestadorId] = useState("");
+  const [listaFornecedores, setListaFornecedores] = useState([]);
+  const [listaPrestadores, setListaPrestadores] = useState([]);
+  const [carregandoFornecedores, setCarregandoFornecedores] = useState(false);
+  const [carregandoPrestadores, setCarregandoPrestadores] = useState(false);
   const [buscaLocacoes, setBuscaLocacoes] = useState("");
   const [buscaExtrato, setBuscaExtrato] = useState("");
   const [sortField, setSortField] = useState("status_financeiro");
@@ -175,6 +197,34 @@ export default function ObrasDetalhe() {
       setSecaoObra("pedidos");
     }
   }, [location.state?.secao, isSecretaria]);
+
+  useEffect(() => {
+    const secao = searchParams.get("secao");
+    const sub = searchParams.get("sub");
+    if (secao) setSecaoObra(secao);
+    if (sub) setSubRelatorio(sub);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const carregarListasFiltro = async () => {
+      setCarregandoFornecedores(true);
+      setCarregandoPrestadores(true);
+      try {
+        const [fornecedores, prestadores] = await Promise.all([
+          api.getFornecedoresSimples(),
+          api.getPrestadoresSimples(),
+        ]);
+        setListaFornecedores(fornecedores || []);
+        setListaPrestadores(prestadores || []);
+      } catch (error) {
+        console.error("Erro ao carregar listas de filtro:", error);
+      } finally {
+        setCarregandoFornecedores(false);
+        setCarregandoPrestadores(false);
+      }
+    };
+    carregarListasFiltro();
+  }, []);
 
   const handleSortMateriais = (campo) => {
     setSortConfig((prev) => ({
@@ -706,9 +756,11 @@ export default function ObrasDetalhe() {
     abrirPdfPreview({
       titulo: "Relatório de Mão de Obra",
       gerador: () =>
-        gerarPdfRelatorioMaoDeObraGeral(obra, buscaMaoDeObra, {
-          retornarBlob: true,
-        }),
+        gerarPdfRelatorioMaoDeObraGeral(
+          obra,
+          { busca: buscaMaoDeObra, prestadorId: filtroPrestadorId },
+          { retornarBlob: true },
+        ),
       nomeFallback: "Relatorio_Mao_De_Obra_Geral.pdf",
     });
   };
@@ -722,9 +774,11 @@ export default function ObrasDetalhe() {
     abrirPdfPreview({
       titulo: "Relatório de Materiais",
       gerador: () =>
-        gerarPdfRelatorioMateriais(obra, buscaMateriais, {
-          retornarBlob: true,
-        }),
+        gerarPdfRelatorioMateriais(
+          obra,
+          { busca: buscaMateriais, fornecedorId: filtroFornecedorId },
+          { retornarBlob: true },
+        ),
       nomeFallback: "Relatorio_Materiais.pdf",
     });
   };
@@ -747,21 +801,36 @@ export default function ObrasDetalhe() {
 
   const handleStatusFinanceiroChange = useCallback(
     async (extratoId, novoStatus) => {
+      const virouPago = isExtratoPago(novoStatus);
       setObra((prev) => ({
         ...prev,
         relatorioExtrato: prev.relatorioExtrato.map((i) =>
-          i.id === extratoId ? { ...i, status_financeiro: novoStatus } : i,
+          i.id === extratoId
+            ? {
+                ...i,
+                status_financeiro: novoStatus,
+                ...(virouPago ? { validacao: 0 } : {}),
+              }
+            : i,
         ),
       }));
       try {
         await api.updateExtratoStatusFinanceiro(extratoId, novoStatus);
+
+        const lotesAfetados = (obra?.lotesPagamento || []).filter((lote) =>
+          (lote.itens || []).some((item) => item.extrato_id === extratoId),
+        );
+        for (const lote of lotesAfetados) {
+          await api.recalcularStatusLote(lote.id);
+        }
+
         await fetchDados();
       } catch (err) {
         console.error("Erro ao mudar status financeiro do extrato:", err);
         fetchDados();
       }
     },
-    [fetchDados, setObra],
+    [fetchDados, setObra, obra?.lotesPagamento],
   );
 
   const salvarValorExtrato = useCallback(
@@ -788,6 +857,13 @@ export default function ObrasDetalhe() {
   const handleCheckExtrato = useCallback(
     async (item) => {
       const novoStatus = item.validacao === 1 ? 0 : 1;
+      if (novoStatus === 1) {
+        if (isExtratoPago(item.status_financeiro)) return;
+        const emLoteAberto = getExtratoIdsEmLotesAbertos(
+          obra?.lotesPagamento,
+        ).has(item.id);
+        if (emLoteAberto) return;
+      }
       setObra((prev) => ({
         ...prev,
         relatorioExtrato: prev.relatorioExtrato.map((i) =>
@@ -802,7 +878,7 @@ export default function ObrasDetalhe() {
         fetchDados();
       }
     },
-    [fetchDados, setObra],
+    [fetchDados, setObra, obra?.lotesPagamento],
   );
 
   const handleCheckAllExtrato = useCallback(
@@ -813,7 +889,20 @@ export default function ObrasDetalhe() {
         buscaExtrato,
         filtroExtrato,
       );
-      const ids = lista.map((i) => i.id);
+      const extratoIdsAbertos = getExtratoIdsEmLotesAbertos(
+        obra?.lotesPagamento,
+      );
+      const ids = lista
+        .filter((item) => {
+          if (isChecked) {
+            return (
+              !isExtratoPago(item.status_financeiro) &&
+              !extratoIdsAbertos.has(item.id)
+            );
+          }
+          return true;
+        })
+        .map((i) => i.id);
       if (ids.length === 0) return;
 
       setObra((prev) => ({
@@ -830,22 +919,159 @@ export default function ObrasDetalhe() {
         fetchDados();
       }
     },
-    [obra?.relatorioExtrato, buscaExtrato, filtroExtrato, fetchDados, setObra],
+    [
+      obra?.relatorioExtrato,
+      obra?.lotesPagamento,
+      buscaExtrato,
+      filtroExtrato,
+      fetchDados,
+      setObra,
+    ],
   );
 
-  const handleGerarPDFExtrato = () => {
+  const handleGerarLotePagamento = async () => {
     const itens =
       obra?.relatorioExtrato?.filter((i) => i.validacao === 1) || [];
     if (itens.length === 0) {
-      showFeedback("Nenhum item selecionado para o extrato.", "info");
+      showFeedback(
+        labelsExtratoFinanceiro.nenhumItemSelecionadoExtrato,
+        "info",
+      );
+      return;
+    }
+
+    const extratoIds = itens.map((i) => i.id);
+    const extratoIdsAbertos = getExtratoIdsEmLotesAbertos(obra?.lotesPagamento);
+
+    if (itens.some((item) => isExtratoPago(item.status_financeiro))) {
+      showFeedback("Remova itens já pagos da seleção.", "info");
+      return;
+    }
+    if (itens.some((item) => extratoIdsAbertos.has(item.id))) {
+      showFeedback(labelsExtratoFinanceiro.itensEmOutroExtratoAberto, "info");
+      return;
+    }
+
+    abrirPdfPreview({
+      titulo: "Extrato Financeiro",
+      gerador: () => gerarPdfExtrato(obra, { extratoIds, retornarBlob: true }),
+      nomeFallback: "Extrato.pdf",
+    });
+
+    try {
+      const lote = await api.createLotePagamento(obra.id, extratoIds);
+      await api.updateExtratoValidacaoInIds(extratoIds, 0);
+      await fetchDados();
+      showFeedback(
+        labelsExtratoFinanceiro.extratoCriadoComSucesso(lote.numero),
+        "success",
+      );
+    } catch (err) {
+      console.error("Erro ao criar lote de pagamento:", err);
+      showFeedback(
+        err.message || labelsExtratoFinanceiro.erroCriarExtratoPagamento,
+      );
+    }
+  };
+
+  const executarAcaoLote = async () => {
+    const { lote, acao, loteItem } = confirmacaoLote || {};
+    if (!lote || !acao) return;
+
+    if (acao === "remover" && loteItem) {
+      setProcessandoLoteItemId(loteItem.id);
+    } else {
+      setProcessandoLoteId(lote.id);
+    }
+
+    try {
+      if (acao === "pagar") {
+        await api.marcarLoteComoPago(lote.id);
+        showFeedback(
+          labelsExtratoFinanceiro.extratoMarcadoComoPago(lote.numero),
+          "success",
+        );
+      } else if (acao === "reabrir") {
+        await api.reabrirLote(lote.id);
+        showFeedback(
+          labelsExtratoFinanceiro.extratoReaberto(lote.numero),
+          "success",
+        );
+      } else if (acao === "remover" && loteItem) {
+        await api.removerItemDoLote(loteItem.id);
+        showFeedback(labelsExtratoFinanceiro.itemRemovidoDoExtrato, "success");
+      }
+      await fetchDados();
+    } catch (err) {
+      console.error("Erro na ação do lote:", err);
+      showFeedback(err.message || labelsExtratoFinanceiro.erroProcessarExtrato);
+    } finally {
+      setProcessandoLoteId(null);
+      setProcessandoLoteItemId(null);
+      setConfirmacaoLote(null);
+    }
+  };
+
+  const handleStatusItemLote = async (lote, item, novoStatus) => {
+    setProcessandoLoteItemId(item.id);
+    try {
+      await handleStatusFinanceiroChange(item.extrato_id, novoStatus);
+    } finally {
+      setProcessandoLoteItemId(null);
+    }
+  };
+
+  const handleRemoverItemLote = (lote, item) => {
+    const extrato = obra?.relatorioExtrato?.find(
+      (row) => row.id === item.extrato_id,
+    );
+    setConfirmacaoLote({
+      titulo: labelsExtratoFinanceiro.removerDoExtrato,
+      mensagem: labelsExtratoFinanceiro.confirmarRemoverItemExtrato(
+        extrato?.descricao || "este item",
+        lote.numero,
+      ),
+      acao: "remover",
+      lote,
+      loteItem: item,
+    });
+  };
+
+  const handleMarcarLotePago = (lote) => {
+    setConfirmacaoLote({
+      titulo: labelsExtratoFinanceiro.confirmarMarcarExtratoPago,
+      mensagem: labelsExtratoFinanceiro.confirmarPagamentoExtrato(
+        lote.numero,
+        formatarMoeda(lote.total),
+      ),
+      acao: "pagar",
+      lote,
+    });
+  };
+
+  const handleReabrirLote = (lote) => {
+    setConfirmacaoLote({
+      titulo: labelsExtratoFinanceiro.confirmarReabrirExtrato,
+      mensagem: labelsExtratoFinanceiro.confirmarReabrirExtratoMsg(lote.numero),
+      acao: "reabrir",
+      lote,
+    });
+  };
+
+  const handleGerarPdfLote = (lote) => {
+    const extratoIds = (lote.itens || []).map((item) => item.extrato_id);
+    if (!extratoIds.length) {
+      showFeedback(labelsExtratoFinanceiro.extratoSemItensPdf, "info");
       return;
     }
     abrirPdfPreview({
-      titulo: "Extrato Financeiro",
-      gerador: () => gerarPdfExtrato(obra, { retornarBlob: true }),
-      nomeFallback: "Extrato.pdf",
+      titulo: labelsExtratoFinanceiro.numero(lote.numero),
+      gerador: () => gerarPdfExtrato(obra, { extratoIds, retornarBlob: true }),
+      nomeFallback: labelsExtratoFinanceiro.nomePdf(lote.numero),
     });
   };
+
+  const handleGerarPDFExtrato = handleGerarLotePagamento;
 
   const formatarDataHoraBR = (dataString) => {
     if (!dataString) return "-";
@@ -910,9 +1136,12 @@ export default function ObrasDetalhe() {
     dadosRelatorioExtrato,
     headerExtrato,
     totaisExtratoSelecionados,
+    totaisMateriaisFiltrados,
+    totaisMaoDeObraFiltrados,
   } = useObrasDetalheTableData({
     obra,
     buscaMateriais,
+    filtroFornecedorId,
     sortConfig,
     editandoMaterial,
     setEditandoMaterial,
@@ -932,6 +1161,7 @@ export default function ObrasDetalhe() {
     handleDeleteLocacao,
     handleValidarLocacao,
     buscaMaoDeObra,
+    filtroPrestadorId,
     sortConfigMdo,
     editandoMaoDeObra,
     setEditandoMaoDeObra,
@@ -1045,7 +1275,11 @@ export default function ObrasDetalhe() {
                     setSecaoObra(aba.id);
                     if (aba.id === "relatorios") {
                       setSubRelatorio(
-                        isSecretaria ? "extrato" : isEncarregado ? "mao" : "materiais",
+                        isSecretaria
+                          ? "extrato"
+                          : isEncarregado
+                            ? "mao"
+                            : "materiais",
                       );
                     }
                     if (aba.id === "diario_historico") {
@@ -1312,7 +1546,7 @@ export default function ObrasDetalhe() {
                     </button>
                   );
                 })}
-              </div>  
+              </div>
             )}
 
             {subRelatorio === "materiais" && !isEncarregado && (
@@ -1334,7 +1568,27 @@ export default function ObrasDetalhe() {
                         placeholder="Buscar por material ou fornecedor..."
                         value={buscaMateriais}
                         onChange={(e) => setBuscaMateriais(e.target.value)}
-                        className={`${inputPremium} lg:max-w-[400px] lg:min-w-0 lg:flex-1`}
+                        className={`${inputPremium} lg:max-w-[250px] lg:min-w-0 lg:flex-1`}
+                      />
+                      <BaseSelect
+                        searchable
+                        loading={carregandoFornecedores}
+                        value={filtroFornecedorId}
+                        onChange={(e) => setFiltroFornecedorId(e.target.value)}
+                        wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[220px]"
+                        className={`${selectPremium} w-full`}
+                        options={[
+                          {
+                            value: "",
+                            label: carregandoFornecedores
+                              ? "Carregando..."
+                              : "Todos os fornecedores",
+                          },
+                          ...listaFornecedores.map((f) => ({
+                            value: String(f.id),
+                            label: f.nome,
+                          })),
+                        ]}
                       />
                       <ButtonDefault
                         type="button"
@@ -1391,7 +1645,7 @@ export default function ObrasDetalhe() {
                     <div className={totalBarClass}>
                       <span className="text-text-muted">Total lançado:</span>
                       <span className="font-bold tabular-nums text-text-primary">
-                        R$ {formatarMoeda(totais.materiais)}
+                        R$ {formatarMoeda(totaisMateriaisFiltrados)}
                       </span>
                     </div>
                   </div>
@@ -1418,7 +1672,27 @@ export default function ObrasDetalhe() {
                         placeholder="Buscar serviço ou prestador..."
                         value={buscaMaoDeObra}
                         onChange={(e) => setBuscaMaoDeObra(e.target.value)}
-                        className={`${inputPremium} lg:max-w-[400px] lg:min-w-0 lg:flex-1`}
+                        className={`${inputPremium} lg:max-w-[250px] lg:min-w-0 lg:flex-1`}
+                      />
+                      <BaseSelect
+                        searchable
+                        loading={carregandoPrestadores}
+                        value={filtroPrestadorId}
+                        onChange={(e) => setFiltroPrestadorId(e.target.value)}
+                        wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[220px]"
+                        className={`${selectPremium} w-full`}
+                        options={[
+                          {
+                            value: "",
+                            label: carregandoPrestadores
+                              ? "Carregando..."
+                              : "Todos os prestadores",
+                          },
+                          ...listaPrestadores.map((p) => ({
+                            value: String(p.id),
+                            label: p.nome,
+                          })),
+                        ]}
                       />
                       <ButtonDefault
                         type="button"
@@ -1485,13 +1759,13 @@ export default function ObrasDetalhe() {
                       <div className={totalBarClass}>
                         <span className="text-text-muted">Total orçado:</span>
                         <span className="font-bold tabular-nums text-text-primary">
-                          R$ {formatarMoeda(totais.maoDeObra)}
+                          R$ {formatarMoeda(totaisMaoDeObraFiltrados.orcado)}
                         </span>
                       </div>
                       <div className={totalBarClass}>
                         <span className="text-text-muted">Total cobrado:</span>
                         <span className="font-bold tabular-nums text-emerald-700">
-                          R$ {formatarMoeda(totais.maoDeObraCobrado)}
+                          R$ {formatarMoeda(totaisMaoDeObraFiltrados.cobrado)}
                         </span>
                       </div>
                     </div>
@@ -1518,7 +1792,7 @@ export default function ObrasDetalhe() {
                       placeholder="Buscar equipamento ou locatário..."
                       value={buscaLocacoes}
                       onChange={(e) => setBuscaLocacoes(e.target.value)}
-                      className={`${inputPremium} lg:max-w-[400px] lg:min-w-0 lg:flex-1`}
+                      className={`${inputPremium} lg:max-w-[250px] lg:min-w-0 lg:flex-1`}
                     />
                     <ButtonDefault
                       type="button"
@@ -1584,18 +1858,21 @@ export default function ObrasDetalhe() {
                         placeholder="Buscar no extrato..."
                         value={buscaExtrato}
                         onChange={(e) => setBuscaExtrato(e.target.value)}
-                        className={`${inputPremium} lg:max-w-[400px] lg:min-w-0 lg:flex-1`}
+                        className={`${inputPremium} lg:max-w-[250px] lg:min-w-0 lg:flex-1`}
                       />
-                      <select
+                      <BaseSelect
+                        searchable={false}
                         value={filtroExtrato}
                         onChange={(e) => setFiltroExtrato(e.target.value)}
-                        className={`${selectPremium} w-full lg:w-auto lg:min-w-[200px]`}
-                      >
-                        <option value="Tudo">Tudo</option>
-                        <option value="Materiais">Materiais</option>
-                        <option value="Mão de Obra">Mão de Obra</option>
-                        <option value="Locações">Locações</option>
-                      </select>
+                        wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
+                        className={`${selectPremium} w-full`}
+                        options={[
+                          { value: "Tudo", label: "Tudo" },
+                          { value: "Materiais", label: "Materiais" },
+                          { value: "Mão de Obra", label: "Mão de Obra" },
+                          { value: "Locações", label: "Locações" },
+                        ]}
+                      />
                     </div>
                   </div>
                   <TabelaSimples
@@ -1629,7 +1906,7 @@ export default function ObrasDetalhe() {
                       </div>
                       <div>
                         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
-                          Selecionados para o pedido
+                          {labelsExtratoFinanceiro.selecionadosParaExtrato}
                         </p>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                           <BaseCard
@@ -1659,16 +1936,40 @@ export default function ObrasDetalhe() {
                         onClick={handleGerarPDFExtrato}
                         className={`${btnAccentPremium} !w-full`}
                       >
-                        Gerar pedido
+                        {labelsExtratoFinanceiro.gerarExtratoPagamento}
                       </ButtonDefault>
+                      <div>
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                          {labelsExtratoFinanceiro.extratosDePagamento}
+                        </p>
+                        <ObraDetalheLotesPagamento
+                          lotes={obra?.lotesPagamento || []}
+                          relatorioExtrato={obra?.relatorioExtrato || []}
+                          somenteLeitura={isSecretaria}
+                          processandoId={processandoLoteId}
+                          processandoItemId={processandoLoteItemId}
+                          onMarcarPago={handleMarcarLotePago}
+                          onReabrir={handleReabrirLote}
+                          onGerarPdf={handleGerarPdfLote}
+                          onStatusItemChange={handleStatusItemLote}
+                          onRemoverItem={handleRemoverItemLote}
+                        />
+                      </div>
                     </div>
                   ) : (
-                    <ButtonDefault
-                      onClick={handleGerarPDFExtrato}
-                      className={`${btnAccentPremium} !w-full`}
-                    >
-                      Gerar pedido
-                    </ButtonDefault>
+                    <div className="flex w-full flex-col gap-5">
+                      <div>
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                          {labelsExtratoFinanceiro.extratosDePagamento}
+                        </p>
+                        <ObraDetalheLotesPagamento
+                          lotes={obra?.lotesPagamento || []}
+                          relatorioExtrato={obra?.relatorioExtrato || []}
+                          somenteLeitura
+                          onGerarPdf={handleGerarPdfLote}
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1752,6 +2053,31 @@ export default function ObrasDetalhe() {
         message={feedback.message}
         variant={feedback.variant}
       />
+      <BaseModal
+        isOpen={Boolean(confirmacaoLote)}
+        onClose={() => setConfirmacaoLote(null)}
+        title={confirmacaoLote?.titulo || "Confirmar"}
+        size="sm"
+      >
+        <p className="text-sm leading-relaxed text-text-muted">
+          {confirmacaoLote?.mensagem}
+        </p>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <BaseButton
+            variant="secondary"
+            onClick={() => setConfirmacaoLote(null)}
+            disabled={Boolean(processandoLoteId)}
+          >
+            Cancelar
+          </BaseButton>
+          <BaseButton
+            onClick={executarAcaoLote}
+            disabled={Boolean(processandoLoteId || processandoLoteItemId)}
+          >
+            Confirmar
+          </BaseButton>
+        </div>
+      </BaseModal>
       <BaseModal
         isOpen={Boolean(materialParaExcluir)}
         onClose={() => setMaterialParaExcluir(null)}

@@ -66,6 +66,7 @@ export default function PedidosGestao() {
     />,
     <BaseSelect
       key="filtro-status-pedidos"
+      searchable={false}
       value={filtroStatus}
       onChange={(e) => setFiltroStatus(e.target.value)}
       options={[

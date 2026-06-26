@@ -11,6 +11,7 @@ import {
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalClienteEscritorio from "../../components/modals/ModalClienteEscritorio";
 import StatusSelectBadge from "../../components/gerais/StatusSelectBadge";
+import BaseSelect from "../../components/gerais/BaseSelect";
 import { STATUS_CLIENTE_OPCOES } from "../../components/gerais/statusSelectOptions";
 
 const STATUS_FILTRO = [
@@ -366,17 +367,13 @@ export default function ClientesEscritorio() {
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-esc-muted">
               Status
             </label>
-            <select
+            <BaseSelect
+              searchable={false}
+              variant="escritorioBar"
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value)}
-              className={inputBarClass}
-            >
-              {STATUS_FILTRO.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              options={STATUS_FILTRO.map((s) => ({ value: s, label: s }))}
+            />
           </div>
           <div className="flex w-full shrink-0 flex-col gap-2 sm:flex-row sm:gap-2 lg:w-auto lg:max-w-[min(100%,21rem)]">
             <div className="min-w-0 sm:min-w-[8.5rem] w-full">
@@ -441,6 +438,7 @@ export default function ClientesEscritorio() {
                         value={c.status || "Produção"}
                         options={STATUS_CLIENTE_OPCOES}
                         variant="cliente"
+                        selectVariant="escritorio"
                         onChange={(novo) => handleStatusCliente(c, novo)}
                       />
                     </div>

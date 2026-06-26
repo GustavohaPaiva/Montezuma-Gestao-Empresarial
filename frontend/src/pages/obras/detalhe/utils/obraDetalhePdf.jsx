@@ -2,6 +2,10 @@ import { pdf } from "@react-pdf/renderer";
 import RelatorioObraPDF from "../../../../documents/RelatorioObraPDF";
 import RelatorioCronogramaPDF from "../../../../documents/RelatorioCronogramaPDF";
 import { formatarDataBR, formatarMoeda } from "./formatters";
+import {
+  filtrarMaoDeObraLista,
+  filtrarMateriaisLista,
+} from "./relatorioFiltrosUtils";
 
 /**
  * Todos os geradores devolvem `{ blob, nomePadrao }`.
@@ -77,20 +81,14 @@ function resumoItensETotal(quantidade, valorFormatado, labelTotal = "Total") {
 
 export async function gerarPdfRelatorioMaoDeObraGeral(
   obra,
-  buscaMaoDeObra,
+  filtros = {},
   // eslint-disable-next-line no-unused-vars
   opts = {},
 ) {
-  let lista = [...(obra?.maoDeObra || [])];
+  const { busca = "", prestadorId = "" } =
+    typeof filtros === "string" ? { busca: filtros } : filtros;
 
-  if (buscaMaoDeObra) {
-    const term = buscaMaoDeObra.toLowerCase();
-    lista = lista.filter(
-      (m) =>
-        m.tipo?.toLowerCase().includes(term) ||
-        m.profissional?.toLowerCase().includes(term),
-    );
-  }
+  let lista = filtrarMaoDeObraLista(obra?.maoDeObra, { busca, prestadorId });
 
   const totalOrcado = lista.reduce(
     (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
@@ -241,22 +239,16 @@ export async function gerarPdfRelatorioPorPrestador(
 
 export async function gerarPdfRelatorioMateriais(
   obra,
-  buscaMateriais,
+  filtros = {},
   // eslint-disable-next-line no-unused-vars
   opts = {},
 ) {
   if (!obra || !Array.isArray(obra.materiais)) return;
 
-  let lista = [...obra.materiais];
-  if (buscaMateriais) {
-    const termo = String(buscaMateriais).toLowerCase();
-    lista = lista.filter(
-      (m) =>
-        m.material?.toLowerCase().includes(termo) ||
-        m.fornecedores?.nome?.toLowerCase().includes(termo) ||
-        m.fornecedor?.toLowerCase().includes(termo),
-    );
-  }
+  const { busca = "", fornecedorId = "" } =
+    typeof filtros === "string" ? { busca: filtros } : filtros;
+
+  let lista = filtrarMateriaisLista(obra.materiais, { busca, fornecedorId });
 
   if (lista.length === 0) {
     alert("Nenhum material encontrado para o relatório.");
@@ -414,13 +406,16 @@ export async function gerarPdfRelatorioLocacoes(
 // Extrato — A4 portrait
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function gerarPdfExtrato(
-  obra,
-  // eslint-disable-next-line no-unused-vars
-  opts = {},
-) {
+export async function gerarPdfExtrato(obra, opts = {}) {
   if (!obra || !obra.relatorioExtrato) return;
-  const itens = obra.relatorioExtrato.filter((i) => i.validacao === 1);
+  const { extratoIds, retornarBlob } = opts;
+  let itens;
+  if (Array.isArray(extratoIds) && extratoIds.length > 0) {
+    const idSet = new Set(extratoIds);
+    itens = obra.relatorioExtrato.filter((i) => idSet.has(i.id));
+  } else {
+    itens = obra.relatorioExtrato.filter((i) => i.validacao === 1);
+  }
   if (itens.length === 0) {
     alert("Nenhum item selecionado para o extrato.");
     return;
@@ -440,9 +435,7 @@ export async function gerarPdfExtrato(
   const linhas = itens.map((i) => {
     const pago = (i.status_financeiro || "").toLowerCase() === "pago";
     const qtd =
-      i.quantidade != null && i.quantidade !== ""
-        ? String(i.quantidade)
-        : "—";
+      i.quantidade != null && i.quantidade !== "" ? String(i.quantidade) : "—";
     return [
       i.descricao || "—",
       i.tipo || "—",

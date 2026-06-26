@@ -102,6 +102,7 @@ export default function ModalProjecaoItem({
         <div>
           <label className={labelCampoClass}>Tipo *</label>
           <BaseSelect
+            searchable={false}
             value={tipo}
             onChange={(e) => setTipo(e.target.value)}
             options={TIPO_PROJECAO_OPCOES}

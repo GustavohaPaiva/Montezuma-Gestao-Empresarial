@@ -43,6 +43,20 @@ function omitUndefined(obj) {
   return out;
 }
 
+function isExtratoFinanceiroPago(statusFinanceiro) {
+  return (statusFinanceiro || "").toLowerCase().trim() === "pago";
+}
+
+function calcularStatusLotePorExtratos(extratos) {
+  if (!extratos?.length) return "pendente";
+  const pagos = extratos.filter((e) =>
+    isExtratoFinanceiroPago(e.status_financeiro),
+  ).length;
+  if (pagos === 0) return "pendente";
+  if (pagos === extratos.length) return "pago";
+  return "parcial";
+}
+
 function normalizeObraIdForHistorico(obraId) {
   if (obraId == null || obraId === "") return null;
   if (typeof obraId === "number" && Number.isFinite(obraId)) return obraId;
@@ -982,6 +996,7 @@ export const api = {
       cliente_id: novaObra.cliente_id,
       responsavel_id: novaObra.responsavel_id || null,
       modalidade,
+      data: novaObra.data || null,
     });
     const { data, error } = await supabase
       .from("obras")
@@ -1236,6 +1251,15 @@ export const api = {
       (a, b) => new Date(b.data) - new Date(a.data),
     );
 
+    const { data: lotesPagamento, error: errorLotes } = await supabase
+      .from("obra_lotes_pagamento")
+      .select("*, itens:obra_lote_itens(*)")
+      .eq("obra_id", id)
+      .order("numero", { ascending: false });
+    if (errorLotes) {
+      console.error("Erro ao buscar lotes de pagamento:", errorLotes);
+    }
+
     let etapas = data.etapas_selecionadas || [];
 
     if (data.clientes?.tipo?.toLowerCase() === "reforma" && etapas.length > 0) {
@@ -1265,6 +1289,7 @@ export const api = {
           : l,
       ),
       relatorioExtrato: relatorioOrdenado,
+      lotesPagamento: lotesPagamento || [],
       processos: data.clientes || [],
     };
   },
@@ -1341,9 +1366,14 @@ export const api = {
   },
 
   updateExtratoStatusFinanceiro: async (id, novoStatus) => {
+    const statusPago = (novoStatus || "").toLowerCase().trim() === "pago";
+    const updatePayload = { status_financeiro: novoStatus };
+    if (statusPago) {
+      updatePayload.validacao = 0;
+    }
     const { data, error } = await supabase
       .from("relatorio_extrato")
-      .update({ status_financeiro: novoStatus })
+      .update(updatePayload)
       .eq("id", id)
       .select();
     if (error) throw error;
@@ -1389,6 +1419,284 @@ export const api = {
       .update({ validacao: status })
       .in("id", ids);
     if (error) throw error;
+  },
+
+  updateExtratoStatusFinanceiroInIds: async (ids, novoStatus) => {
+    if (!ids?.length) return [];
+    const statusPago = (novoStatus || "").toLowerCase().trim() === "pago";
+    const updatePayload = { status_financeiro: novoStatus };
+    if (statusPago) {
+      updatePayload.validacao = 0;
+    }
+    const { data, error } = await supabase
+      .from("relatorio_extrato")
+      .update(updatePayload)
+      .in("id", ids)
+      .select();
+    if (error) throw error;
+
+    const materialIds = (data || [])
+      .map((e) => e.material_id)
+      .filter(Boolean);
+    if (materialIds.length) {
+      const { error: errorMat } = await supabase
+        .from("relatorio_materiais")
+        .update({ status_financeiro: novoStatus })
+        .in("id", materialIds);
+      if (errorMat) {
+        console.error(
+          "Erro ao sincronizar status em lote com relatorio_materiais:",
+          errorMat,
+        );
+      }
+    }
+
+    return data || [];
+  },
+
+  getLotesPagamento: async (obraId) => {
+    const { data, error } = await supabase
+      .from("obra_lotes_pagamento")
+      .select("*, itens:obra_lote_itens(*)")
+      .eq("obra_id", obraId)
+      .order("numero", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  getLotesResumo: async (obraId) => {
+    const lotes = await api.getLotesPagamento(obraId);
+    const abertos = lotes.filter(
+      (l) => l.status === "pendente" || l.status === "parcial",
+    );
+    const total = abertos.reduce(
+      (acc, l) => acc + (parseFloat(l.total) || 0),
+      0,
+    );
+    return { quantidade: abertos.length, total, lotes: abertos };
+  },
+
+  getLotesResumoMultiplasObras: async (obraIds) => {
+    if (!obraIds?.length) return {};
+    const { data, error } = await supabase
+      .from("obra_lotes_pagamento")
+      .select("id, obra_id, numero, total, status, data_criacao")
+      .in("obra_id", obraIds)
+      .in("status", ["pendente", "parcial"])
+      .order("numero", { ascending: false });
+    if (error) throw error;
+
+    const porObra = {};
+    (data || []).forEach((lote) => {
+      const key = lote.obra_id;
+      if (!porObra[key]) {
+        porObra[key] = { quantidade: 0, total: 0, lotes: [] };
+      }
+      porObra[key].quantidade += 1;
+      porObra[key].total += parseFloat(lote.total) || 0;
+      porObra[key].lotes.push(lote);
+    });
+    return porObra;
+  },
+
+  recalcularStatusLote: async (loteId) => {
+    return api.sincronizarLote(loteId);
+  },
+
+  sincronizarLote: async (loteId) => {
+    const { data: lote, error: errLote } = await supabase
+      .from("obra_lotes_pagamento")
+      .select("*, itens:obra_lote_itens(*)")
+      .eq("id", loteId)
+      .single();
+    if (errLote) throw errLote;
+
+    if (!lote.itens?.length) {
+      const { error: errDel } = await supabase
+        .from("obra_lotes_pagamento")
+        .delete()
+        .eq("id", loteId);
+      if (errDel) throw errDel;
+      return null;
+    }
+
+    const total = lote.itens.reduce(
+      (acc, item) => acc + (parseFloat(item.valor) || 0),
+      0,
+    );
+    const extratoIds = lote.itens.map((i) => i.extrato_id);
+    const { data: extratos, error: errExt } = await supabase
+      .from("relatorio_extrato")
+      .select("id, status_financeiro")
+      .in("id", extratoIds);
+    if (errExt) throw errExt;
+
+    const status = calcularStatusLotePorExtratos(extratos);
+    const { data: updated, error: errUp } = await supabase
+      .from("obra_lotes_pagamento")
+      .update({
+        total,
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", loteId)
+      .select("*, itens:obra_lote_itens(*)")
+      .single();
+    if (errUp) throw errUp;
+    return updated;
+  },
+
+  removerItemDoLote: async (loteItemId) => {
+    const { data: item, error: errItem } = await supabase
+      .from("obra_lote_itens")
+      .select("id, lote_id, lote:obra_lotes_pagamento(id, status, numero)")
+      .eq("id", loteItemId)
+      .single();
+    if (errItem) throw errItem;
+
+    if (item.lote?.status === "pago") {
+      throw new Error(
+        "Reabra o lote antes de remover itens de um lote já pago.",
+      );
+    }
+
+    const loteId = item.lote_id;
+    const { error: errDel } = await supabase
+      .from("obra_lote_itens")
+      .delete()
+      .eq("id", loteItemId);
+    if (errDel) throw errDel;
+
+    return api.sincronizarLote(loteId);
+  },
+
+  createLotePagamento: async (obraId, extratoIds) => {
+    if (!obraId || !extratoIds?.length) {
+      throw new Error("Selecione ao menos um item para o lote.");
+    }
+
+    const idsUnicos = [...new Set(extratoIds)];
+
+    const { data: extratos, error: errExt } = await supabase
+      .from("relatorio_extrato")
+      .select("id, obra_id, valor, status_financeiro")
+      .in("id", idsUnicos)
+      .eq("obra_id", obraId);
+    if (errExt) throw errExt;
+    if (!extratos?.length) {
+      throw new Error("Itens do extrato não encontrados.");
+    }
+    if (extratos.length !== idsUnicos.length) {
+      throw new Error("Alguns itens selecionados não pertencem a esta obra.");
+    }
+
+    for (const e of extratos) {
+      if (isExtratoFinanceiroPago(e.status_financeiro)) {
+        throw new Error("Não é possível incluir itens já pagos no lote.");
+      }
+    }
+
+    const { data: itensEmLote, error: errConf } = await supabase
+      .from("obra_lote_itens")
+      .select("extrato_id, lote:obra_lotes_pagamento!inner(id, status)")
+      .in("extrato_id", idsUnicos);
+    if (errConf) throw errConf;
+
+    const conflito = (itensEmLote || []).find((row) =>
+      ["pendente", "parcial"].includes(row.lote?.status),
+    );
+    if (conflito) {
+      throw new Error("Um ou mais itens já estão em outro lote aberto.");
+    }
+
+    const { data: ultimos, error: errNum } = await supabase
+      .from("obra_lotes_pagamento")
+      .select("numero")
+      .eq("obra_id", obraId)
+      .order("numero", { ascending: false })
+      .limit(1);
+    if (errNum) throw errNum;
+
+    const numero = (ultimos?.[0]?.numero || 0) + 1;
+    const total = extratos.reduce(
+      (acc, e) => acc + (parseFloat(e.valor) || 0),
+      0,
+    );
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { data: lote, error: errLote } = await supabase
+      .from("obra_lotes_pagamento")
+      .insert({
+        obra_id: obraId,
+        numero,
+        total,
+        status: "pendente",
+        criado_por: user?.id || null,
+      })
+      .select()
+      .single();
+    if (errLote) throw errLote;
+
+    const itensPayload = extratos.map((e) => ({
+      lote_id: lote.id,
+      extrato_id: e.id,
+      valor: parseFloat(e.valor) || 0,
+    }));
+
+    const { data: itens, error: errItens } = await supabase
+      .from("obra_lote_itens")
+      .insert(itensPayload)
+      .select();
+    if (errItens) throw errItens;
+
+    return { ...lote, itens: itens || [] };
+  },
+
+  marcarLoteComoPago: async (loteId) => {
+    const { data: lote, error: errLote } = await supabase
+      .from("obra_lotes_pagamento")
+      .select("*, itens:obra_lote_itens(extrato_id)")
+      .eq("id", loteId)
+      .single();
+    if (errLote) throw errLote;
+
+    const extratoIds = (lote.itens || []).map((i) => i.extrato_id);
+    if (!extratoIds.length) {
+      throw new Error("Lote sem itens.");
+    }
+
+    await api.updateExtratoStatusFinanceiroInIds(extratoIds, "Pago");
+
+    const { data: updated, error } = await supabase
+      .from("obra_lotes_pagamento")
+      .update({ status: "pago", updated_at: new Date().toISOString() })
+      .eq("id", loteId)
+      .select("*, itens:obra_lote_itens(*)")
+      .single();
+    if (error) throw error;
+    return updated;
+  },
+
+  reabrirLote: async (loteId) => {
+    const { data: lote, error: errLote } = await supabase
+      .from("obra_lotes_pagamento")
+      .select("*, itens:obra_lote_itens(extrato_id)")
+      .eq("id", loteId)
+      .single();
+    if (errLote) throw errLote;
+
+    const extratoIds = (lote.itens || []).map((i) => i.extrato_id);
+    if (extratoIds.length) {
+      await api.updateExtratoStatusFinanceiroInIds(
+        extratoIds,
+        "Aguardando pagamento",
+      );
+    }
+
+    return api.sincronizarLote(loteId);
   },
 
   uploadFotoUsuario: async (userId, file) => {

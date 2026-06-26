@@ -122,6 +122,7 @@ export default function ModalProjecao({
           <div>
             <label className={labelCampoClass}>Status</label>
             <BaseSelect
+              searchable={false}
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               options={STATUS_PROJECAO_OPCOES.map((s) => ({

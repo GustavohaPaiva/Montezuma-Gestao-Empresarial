@@ -4,6 +4,7 @@ import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ModalFinanceiroEntrada from "../../components/modals/ModalFinanceiroEntrada";
 import ModalFinanceiroSaida from "../../components/modals/ModalFinanceiroSaida";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
+import BaseSelect from "../../components/gerais/BaseSelect";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -830,16 +831,17 @@ export default function Financeiro() {
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
                   Filtro de período
                 </p>
-                <select
+                <BaseSelect
+                  searchable={false}
                   value={mesSelecionado}
                   onChange={(e) => {
                     setMesSelecionado(e.target.value);
                     setLimiteMobileEntradas(8);
                     setLimiteMobileSaidas(8);
                   }}
-                  className="mt-1 h-10 w-full cursor-pointer rounded-xl border border-border-primary/45 bg-[#FAFAFA] px-3 text-sm font-semibold text-text-primary shadow-sm transition-all focus:border-accent-primary/40 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 sm:w-auto sm:min-w-[220px]"
-                >
-                  {[
+                  wrapperClassName="mt-1 w-full sm:w-auto sm:min-w-[220px]"
+                  className="h-10 w-full"
+                  options={[
                     "01",
                     "02",
                     "03",
@@ -852,14 +854,14 @@ export default function Financeiro() {
                     "10",
                     "11",
                     "12",
-                  ].map((m) => (
-                    <option key={m} value={m}>
-                      {new Date(2000, parseInt(m) - 1).toLocaleString("pt-BR", {
-                        month: "long",
-                      })}
-                    </option>
-                  ))}
-                </select>
+                  ].map((m) => ({
+                    value: m,
+                    label: new Date(2000, parseInt(m, 10) - 1).toLocaleString(
+                      "pt-BR",
+                      { month: "long" },
+                    ),
+                  }))}
+                />
               </div>
             </div>
           </div>

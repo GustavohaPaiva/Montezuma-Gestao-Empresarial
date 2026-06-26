@@ -368,6 +368,7 @@ export default function Prestadores() {
                 </label>
                 <BaseSelect
                   id="filtro-classe-prestador"
+                  searchable
                   value={filtroClasseId}
                   onChange={(e) => setFiltroClasseId(e.target.value)}
                   placeholder="Todas as classes"

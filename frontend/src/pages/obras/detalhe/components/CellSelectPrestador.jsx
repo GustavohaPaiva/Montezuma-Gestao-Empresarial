@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BaseSelect from "../../../../components/gerais/BaseSelect";
 import { api } from "../../../../services/api";
 
 export default function CellSelectPrestador({
@@ -60,40 +61,70 @@ export default function CellSelectPrestador({
 
   return (
     <div className="flex flex-nowrap items-center justify-center gap-1">
-      <select
-        value={classeId}
-        onChange={(e) => setClasseId(e.target.value)}
-        className="w-[120px] shrink-0 rounded-xl border border-border-primary/55 bg-white p-1.5 text-[13px] uppercase transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+      <BaseSelect
+        size="compact"
+        searchable
         autoFocus
-      >
-        <option value="">
-          {loadingClasses ? "Carregando..." : "Classe..."}
-        </option>
-        {classes.map((op) => (
-          <option key={op.id} value={op.id}>
-            {op.nome}
-          </option>
-        ))}
-      </select>
-      <select
+        loading={loadingClasses}
+        value={classeId}
+        onChange={(e) => {
+          setClasseId(e.target.value);
+          setPrestadorId("");
+        }}
+        className="w-[120px] shrink-0"
+        onCreateOption={async (nome) => {
+          const nova = await api.createClassePrestador({ nome });
+          setClasses((prev) =>
+            [...prev, nova].sort((a, b) =>
+              (a.nome || "").localeCompare(b.nome || ""),
+            ),
+          );
+          return String(nova.id);
+        }}
+        options={[
+          { value: "", label: loadingClasses ? "Carregando..." : "Classe..." },
+          ...classes.map((op) => ({
+            value: String(op.id),
+            label: op.nome,
+          })),
+        ]}
+      />
+      <BaseSelect
+        size="compact"
+        searchable
+        loading={loadingPrestadores}
         value={prestadorId}
         onChange={(e) => setPrestadorId(e.target.value)}
         disabled={!classeId || loadingPrestadores}
-        className="w-[140px] shrink-0 rounded-xl border border-border-primary/55 bg-white p-1.5 text-[13px] uppercase transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 disabled:opacity-50"
-      >
-        <option value="">
-          {!classeId
-            ? "Prestador..."
-            : loadingPrestadores
-              ? "Carregando..."
-              : "Selecione..."}
-        </option>
-        {prestadores.map((op) => (
-          <option key={op.id} value={op.id}>
-            {op.nome}
-          </option>
-        ))}
-      </select>
+        className="w-[140px] shrink-0"
+        onCreateOption={async (nome) => {
+          const novo = await api.createPrestador({
+            nome,
+            ativo: true,
+            classe_ids: [Number(classeId)],
+          });
+          setPrestadores((prev) =>
+            [...prev, { id: novo.id, nome: novo.nome }].sort((a, b) =>
+              (a.nome || "").localeCompare(b.nome || ""),
+            ),
+          );
+          return String(novo.id);
+        }}
+        options={[
+          {
+            value: "",
+            label: !classeId
+              ? "Prestador..."
+              : loadingPrestadores
+                ? "Carregando..."
+                : "Selecione...",
+          },
+          ...prestadores.map((op) => ({
+            value: String(op.id),
+            label: op.nome,
+          })),
+        ]}
+      />
       <button
         type="button"
         onClick={() =>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
+import BaseSelect from "../gerais/BaseSelect";
 import ModalPortal from "../gerais/ModalPortal";
 
 const TIPOS_PERIODO = ["Diário", "Semanal", "Mensal", "Anual"];
@@ -152,18 +153,15 @@ export default function ModalLocacoes({
                 <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   Tipo de período
                 </label>
-                <select
+                <BaseSelect
+                  searchable={false}
                   value={form.tipoPeriodo}
                   onChange={(e) => atualizar("tipoPeriodo", e.target.value)}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
-                >
-                  <option value="">Selecione...</option>
-                  {TIPOS_PERIODO.map((tp) => (
-                    <option key={tp} value={tp}>
-                      {tp}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: "Selecione..." },
+                    ...TIPOS_PERIODO.map((tp) => ({ value: tp, label: tp })),
+                  ]}
+                />
               </div>
               <div className="flex flex-1 flex-col gap-[5px]">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
@@ -185,18 +183,15 @@ export default function ModalLocacoes({
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Solicitante
               </label>
-              <select
+              <BaseSelect
+                searchable={false}
                 value={form.solicitante}
                 onChange={(e) => atualizar("solicitante", e.target.value)}
-                className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
-              >
-                <option value="">Selecione...</option>
-                {opcoesSolicitante.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: "Selecione..." },
+                  ...opcoesSolicitante.map((s) => ({ value: s, label: s })),
+                ]}
+              />
             </div>
 
             <ButtonDefault

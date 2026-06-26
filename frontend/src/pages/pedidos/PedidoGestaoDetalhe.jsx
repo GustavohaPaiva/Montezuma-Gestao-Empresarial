@@ -20,6 +20,7 @@ import PedidoItensTableGestao from "../../components/pedidos/PedidoItensTableGes
 import PedidoOrdensCompra from "../../components/pedidos/PedidoOrdensCompra";
 import PedidoSecaoPainel from "../../components/pedidos/PedidoSecaoPainel";
 import LoadingPainel from "../../components/gerais/LoadingPainel";
+import BaseSelect from "../../components/gerais/BaseSelect";
 import {
   pedidoDetalheHeaderClass,
   pedidoDetalheIconClass,
@@ -275,18 +276,17 @@ export default function PedidoGestaoDetalhe() {
                 <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Status atual
                 </span>
-                <select
+                <BaseSelect
+                  searchable={false}
                   value={statusSel}
                   onChange={(e) => setStatusSel(e.target.value)}
                   disabled={salvandoStatus}
                   className={selectPremium}
-                >
-                  {STATUS_PEDIDO_OPCOES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                  options={STATUS_PEDIDO_OPCOES.map((s) => ({
+                    value: s,
+                    label: s,
+                  }))}
+                />
               </label>
             </PedidoSecaoPainel>
 

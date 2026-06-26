@@ -88,6 +88,7 @@ export default function RelatorioPeriodoCard({ periodo, onAtualizarPeriodo }) {
               Mês
             </label>
             <BaseSelect
+              searchable={false}
               value={String(periodo.mes).padStart(2, "0")}
               onChange={(e) =>
                 onAtualizarPeriodo({ mes: Number(e.target.value) })
@@ -101,6 +102,7 @@ export default function RelatorioPeriodoCard({ periodo, onAtualizarPeriodo }) {
               Ano
             </label>
             <BaseSelect
+              searchable={false}
               value={String(periodo.ano)}
               onChange={(e) =>
                 onAtualizarPeriodo({ ano: Number(e.target.value) })

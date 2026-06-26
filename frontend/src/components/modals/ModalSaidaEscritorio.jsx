@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
+import BaseSelect from "../gerais/BaseSelect";
 import { ID_VOGELKOP } from "../../constants/escritorios";
+import {
+  FORMA_PAGAMENTO_OPCOES,
+  PARCELAS_OPCOES,
+} from "../../constants/financeiroSelectOptions";
 
 const emptyForm = () => ({
   descricao: "",
@@ -132,26 +137,15 @@ export default function ModalSaidaEscritorio({
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Forma de Pagamento
                 </label>
-                <select
-                  className={fieldClass}
+                <BaseSelect
+                  searchable={false}
+                  variant="escritorio"
                   value={formData.formaPagamento}
                   onChange={(e) =>
                     setFormData({ ...formData, formaPagamento: e.target.value })
                   }
-                >
-                  <option value="Á vista" className="bg-esc-bg text-esc-text">
-                    Á vista
-                  </option>
-                  <option value="Debito" className="bg-esc-bg text-esc-text">
-                    Débito
-                  </option>
-                  <option value="Crédito" className="bg-esc-bg text-esc-text">
-                    Crédito
-                  </option>
-                  <option value="Parcelado" className="bg-esc-bg text-esc-text">
-                    Parcelado
-                  </option>
-                </select>
+                  options={FORMA_PAGAMENTO_OPCOES}
+                />
               </div>
 
               {formData.formaPagamento === "Parcelado" && (
@@ -159,23 +153,15 @@ export default function ModalSaidaEscritorio({
                   <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                     Parcelas
                   </label>
-                  <select
-                    className={fieldClass}
+                  <BaseSelect
+                    searchable={false}
+                    variant="escritorio"
                     value={formData.parcelas}
                     onChange={(e) =>
                       setFormData({ ...formData, parcelas: e.target.value })
                     }
-                  >
-                    {[...Array(12)].map((_, i) => (
-                      <option
-                        key={i + 1}
-                        value={`${i + 1}X`}
-                        className="bg-esc-bg text-esc-text"
-                      >
-                        {i + 1}X
-                      </option>
-                    ))}
-                  </select>
+                    options={PARCELAS_OPCOES}
+                  />
                 </div>
               )}
             </div>

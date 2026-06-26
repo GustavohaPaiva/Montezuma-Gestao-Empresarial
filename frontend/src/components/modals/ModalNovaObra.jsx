@@ -15,12 +15,22 @@ function normalizarModalidade(raw) {
   return s === "gestao" ? "gestao" : "empreitada";
 }
 
+function formatarDataParaInput(dataValue) {
+  if (!dataValue) return "";
+  const texto = String(dataValue).slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return texto;
+  const data = new Date(dataValue);
+  if (Number.isNaN(data.getTime())) return "";
+  return data.toISOString().slice(0, 10);
+}
+
 const EMPTY_FORM = {
   nomeObra: "",
   cliente_id: "",
   responsavel_id: "",
   status: "Aguardando iniciação",
   modalidade: "empreitada",
+  data: "",
 };
 
 export default function ModalNovaObra({
@@ -81,6 +91,7 @@ export default function ModalNovaObra({
           : "",
       status: obraParaEditar.status || "Aguardando iniciação",
       modalidade: normalizarModalidade(obraParaEditar.modalidade),
+      data: formatarDataParaInput(obraParaEditar.data),
     });
   }, [isOpen, obraParaEditar]);
 
@@ -102,6 +113,7 @@ export default function ModalNovaObra({
           responsavel_id: formData.responsavel_id || null,
           status: formData.status,
           modalidade: normalizarModalidade(formData.modalidade),
+          data: formData.data || null,
         });
       } else {
         const clienteSelecionado = clientes.find(
@@ -114,6 +126,7 @@ export default function ModalNovaObra({
           responsavel_id: formData.responsavel_id || null,
           status: formData.status,
           modalidade: normalizarModalidade(formData.modalidade),
+          data: formData.data || null,
         });
       }
       if (typeof onSaved === "function") await onSaved();
@@ -153,6 +166,24 @@ export default function ModalNovaObra({
 
         <div className="space-y-1.5">
           <label
+            htmlFor="data_inicio"
+            className="text-xs font-semibold uppercase text-text-muted"
+          >
+            Data de início
+          </label>
+          <BaseInput
+            id="data_inicio"
+            type="date"
+            value={formData.data}
+            onChange={(event) =>
+              setFormData((prev) => ({ ...prev, data: event.target.value }))
+            }
+            disabled={saving}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label
             htmlFor="cliente_id"
             className="text-xs font-semibold uppercase text-text-muted"
           >
@@ -161,6 +192,8 @@ export default function ModalNovaObra({
           <BaseSelect
             id="cliente_id"
             required
+            searchable
+            loading={loading}
             value={formData.cliente_id}
             onChange={(event) =>
               setFormData((prev) => ({
@@ -193,6 +226,7 @@ export default function ModalNovaObra({
           </label>
           <BaseSelect
             id="responsavel_id"
+            searchable
             value={formData.responsavel_id}
             onChange={(event) =>
               setFormData((prev) => ({
@@ -217,6 +251,7 @@ export default function ModalNovaObra({
           </label>
           <BaseSelect
             id="status"
+            searchable={false}
             value={formData.status}
             onChange={(event) =>
               setFormData((prev) => ({ ...prev, status: event.target.value }))
@@ -239,6 +274,7 @@ export default function ModalNovaObra({
           </label>
           <BaseSelect
             id="modalidade"
+            searchable={false}
             value={formData.modalidade}
             onChange={(event) =>
               setFormData((prev) => ({

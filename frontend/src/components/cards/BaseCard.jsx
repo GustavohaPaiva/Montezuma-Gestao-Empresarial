@@ -215,8 +215,15 @@ export default function BaseCard({
               </div>
             </div>
             {statusElement ? (
-              <div className="shrink-0">{statusElement}</div>
+              <div
+                className="shrink-0"
+                onClick={(event) => event.stopPropagation()}
+                onMouseDown={(event) => event.stopPropagation()}
+              >
+                {statusElement}
+              </div>
             ) : status ? (
+              // Satatus
               <span
                 className={joinClasses(
                   "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold tracking-tight",

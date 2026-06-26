@@ -5,13 +5,24 @@ import {
   desempatePorId,
   formatarDataBR,
   formatarMoeda,
-  getCorStatusMaterial,
 } from "../utils/formatters";
 import CellInputNumber from "../components/CellInputNumber";
 import CellInputDate from "../components/CellInputDate";
 import CellSelectFornecedor from "../components/CellSelectFornecedor";
+import StatusSelectBadge from "../../../../components/gerais/StatusSelectBadge";
+import { STATUS_MATERIAL_OPCOES } from "../../../../components/gerais/statusSelectOptions";
 import CellSelectPrestador from "../components/CellSelectPrestador";
 import CellSelectSolicitante from "../components/CellSelectSolicitante";
+import {
+  filtrarMaoDeObraLista,
+  filtrarMateriaisLista,
+} from "../utils/relatorioFiltrosUtils";
+import {
+  getExtratoIdsEmLotesAbertos,
+  getMapaLotesPorExtrato,
+  isExtratoPago,
+  labelsExtratoFinanceiro,
+} from "../utils/lotesPagamentoUtils";
 
 /** Lista do extrato após busca textual e filtro de tipo (mesma regra da tabela). */
 export function filtrarExtratoLista(
@@ -43,6 +54,7 @@ export function filtrarExtratoLista(
 export function useObrasDetalheTableData({
   obra,
   buscaMateriais,
+  filtroFornecedorId,
   sortConfig,
   editandoMaterial,
   setEditandoMaterial,
@@ -63,6 +75,7 @@ export function useObrasDetalheTableData({
   handleDeleteLocacao,
   handleValidarLocacao,
   buscaMaoDeObra,
+  filtroPrestadorId,
   sortConfigMdo,
   editandoMaoDeObra,
   setEditandoMaoDeObra,
@@ -84,19 +97,26 @@ export function useObrasDetalheTableData({
   somenteValidados = false,
   extratoSomenteLeitura = false,
 }) {
+  const listaMateriaisFiltrada = useMemo(() => {
+    if (!obra?.materiais) return [];
+    return filtrarMateriaisLista(obra.materiais, {
+      busca: buscaMateriais,
+      fornecedorId: filtroFornecedorId,
+    });
+  }, [obra?.materiais, buscaMateriais, filtroFornecedorId]);
+
+  const totaisMateriaisFiltrados = useMemo(
+    () =>
+      listaMateriaisFiltrada.reduce(
+        (acc, m) => acc + (parseFloat(m.valor) || 0),
+        0,
+      ),
+    [listaMateriaisFiltrada],
+  );
+
   const dadosMateriais = useMemo(() => {
     if (!obra || !obra.materiais) return [];
-    let listaMateriais = [...obra.materiais];
-
-    if (buscaMateriais) {
-      const termo = buscaMateriais.toLowerCase();
-      listaMateriais = listaMateriais.filter(
-        (m) =>
-          m.material?.toLowerCase().includes(termo) ||
-          m.fornecedores?.nome?.toLowerCase().includes(termo) ||
-          m.fornecedor?.toLowerCase().includes(termo),
-      );
-    }
+    let listaMateriais = [...listaMateriaisFiltrada];
 
     if (sortConfig.campo) {
       listaMateriais.sort((a, b) => {
@@ -141,8 +161,7 @@ export function useObrasDetalheTableData({
       const nomeFornecedorExibicao =
         m.fornecedores?.nome || m.fornecedor || "-";
 
-      const isPagoMat =
-        (m.status_financeiro || "").toLowerCase() === "pago";
+      const isPagoMat = (m.status_financeiro || "").toLowerCase() === "pago";
       const valorTotalClassMat = isPagoMat
         ? "text-emerald-700"
         : "text-text-primary";
@@ -179,18 +198,13 @@ export function useObrasDetalheTableData({
             </div>
           )}
         </div>,
-        <select
+        <StatusSelectBadge
           key={`status-${m.id}`}
+          variant="material"
           value={m.status || "Solicitado"}
-          onChange={(e) => handleStatusChange(m.id, e.target.value)}
-          className={`w-full max-w-[13rem] cursor-pointer appearance-none rounded-full border-0 px-3 py-1.5 text-center text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-9 sm:w-fit ${getCorStatusMaterial(m.status || "Solicitado")}`}
-        >
-          <option value="Solicitado">Solicitado</option>
-          <option value="Em cotação">Em cotação</option>
-          <option value="Aprovado">Aprovado</option>
-          <option value="Aguardando entrega">Aguardando entrega</option>
-          <option value="Entregue">Entregue</option>
-        </select>,
+          onChange={(novo) => handleStatusChange(m.id, novo)}
+          options={STATUS_MATERIAL_OPCOES}
+        />,
         <div
           className="flex items-center justify-center gap-2"
           key={`forn-${m.id}`}
@@ -301,7 +315,7 @@ export function useObrasDetalheTableData({
     salvarDataVencimentoMaterial,
     salvarDataSolicitacaoMaterial,
     handleDeleteMaterial,
-    buscaMateriais,
+    listaMateriaisFiltrada,
     sortConfig,
     setEditandoMaterial,
   ]);
@@ -365,8 +379,7 @@ export function useObrasDetalheTableData({
         calcularDataDevolucao(l.data_coleta, l.periodo, l.tipo_periodo) ||
         l.data_vencimento;
       const isValidadoLoc = l.validacao === 1;
-      const isPagoLoc =
-        (l.status_financeiro || "").toLowerCase() === "pago";
+      const isPagoLoc = (l.status_financeiro || "").toLowerCase() === "pago";
       const valorTotalClassLoc = isPagoLoc
         ? "font-bold text-emerald-700"
         : "text-text-primary";
@@ -459,9 +472,7 @@ export function useObrasDetalheTableData({
         // Valor Total (cor indica status financeiro: verde = pago)
         <div
           className="flex items-center justify-center gap-2"
-          title={
-            isPagoLoc ? "Locação paga" : "Locação aguardando pagamento"
-          }
+          title={isPagoLoc ? "Locação paga" : "Locação aguardando pagamento"}
         >
           {isEditingValor ? (
             <CellInputNumber
@@ -488,18 +499,13 @@ export function useObrasDetalheTableData({
         </div>,
 
         // Status
-        <select
+        <StatusSelectBadge
           key={`status-loc-${l.id}`}
+          variant="material"
           value={l.status || "Solicitado"}
-          onChange={(e) => handleStatusChangeLocacao(l.id, e.target.value)}
-          className={`w-full max-w-[13rem] cursor-pointer appearance-none rounded-full border-0 px-3 py-1.5 text-center text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-9 sm:w-fit ${getCorStatusMaterial(l.status || "Solicitado")}`}
-        >
-          <option value="Solicitado">Solicitado</option>
-          <option value="Em cotação">Em cotação</option>
-          <option value="Aprovado">Aprovado</option>
-          <option value="Aguardando entrega">Aguardando entrega</option>
-          <option value="Entregue">Entregue</option>
-        </select>,
+          onChange={(novo) => handleStatusChangeLocacao(l.id, novo)}
+          options={STATUS_MATERIAL_OPCOES}
+        />,
 
         // Data de coleta
         <div
@@ -573,18 +579,31 @@ export function useObrasDetalheTableData({
     salvarFornecedorLocacao,
   ]);
 
+  const listaMaoDeObraFiltrada = useMemo(() => {
+    if (!obra?.maoDeObra) return [];
+    return filtrarMaoDeObraLista(obra.maoDeObra, {
+      busca: buscaMaoDeObra,
+      prestadorId: filtroPrestadorId,
+    });
+  }, [obra?.maoDeObra, buscaMaoDeObra, filtroPrestadorId]);
+
+  const totaisMaoDeObraFiltrados = useMemo(
+    () => ({
+      orcado: listaMaoDeObraFiltrada.reduce(
+        (acc, m) => acc + (parseFloat(m.valor_orcado) || 0),
+        0,
+      ),
+      cobrado: listaMaoDeObraFiltrada.reduce(
+        (acc, m) => acc + (parseFloat(m.valor_cobrado) || 0),
+        0,
+      ),
+    }),
+    [listaMaoDeObraFiltrada],
+  );
+
   const dadosMaoDeObra = useMemo(() => {
     if (!obra || !obra.maoDeObra) return [];
-    let listaMaoDeObra = [...obra.maoDeObra];
-
-    if (buscaMaoDeObra) {
-      const term = buscaMaoDeObra.toLowerCase();
-      listaMaoDeObra = listaMaoDeObra.filter(
-        (m) =>
-          m.tipo?.toLowerCase().includes(term) ||
-          m.profissional?.toLowerCase().includes(term),
-      );
-    }
+    let listaMaoDeObra = [...listaMaoDeObraFiltrada];
 
     if (sortConfigMdo.campo) {
       listaMaoDeObra.sort((a, b) => {
@@ -780,7 +799,7 @@ export function useObrasDetalheTableData({
     salvarEdicaoMaoDeObra,
     salvarEdicaoMaoDeObraProfissional,
     handleDeleteMaoDeObra,
-    buscaMaoDeObra,
+    listaMaoDeObraFiltrada,
     sortConfigMdo,
     setEditandoMaoDeObra,
   ]);
@@ -884,6 +903,16 @@ export function useObrasDetalheTableData({
     return { materiais, maoDeObra, todos };
   }, [listaExtratoProcessada]);
 
+  const extratoIdsEmLotesAbertos = useMemo(
+    () => getExtratoIdsEmLotesAbertos(obra?.lotesPagamento),
+    [obra?.lotesPagamento],
+  );
+
+  const mapaLotesPorExtrato = useMemo(
+    () => getMapaLotesPorExtrato(obra?.lotesPagamento),
+    [obra?.lotesPagamento],
+  );
+
   const dadosRelatorioExtrato = useMemo(() => {
     if (!listaExtratoProcessada.length) return [];
 
@@ -891,6 +920,10 @@ export function useObrasDetalheTableData({
       const isEditing = editandoId === item.id;
       const isSelected = item.validacao === 1;
       const statusFinanceiro = item.status_financeiro || "Aguardando pagamento";
+      const pago = isExtratoPago(statusFinanceiro);
+      const emLoteAberto = extratoIdsEmLotesAbertos.has(item.id);
+      const podeIncluirLote = !pago && !emLoteAberto;
+      const infoLote = mapaLotesPorExtrato.get(item.id);
 
       const linha = [];
 
@@ -899,19 +932,34 @@ export function useObrasDetalheTableData({
           <label
             className="flex items-center justify-center"
             key={`cb-ext-${item.id}`}
+            title={
+              pago
+                ? "Item já pago"
+                : emLoteAberto
+                  ? labelsExtratoFinanceiro.itemEmExtratoAberto
+                  : labelsExtratoFinanceiro.incluirNoExtratoPagamento
+            }
           >
             <input
               type="checkbox"
               checked={isSelected}
+              disabled={!podeIncluirLote}
               onChange={() => handleCheckExtrato(item)}
-              className="h-[18px] w-[18px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer"
+              className="h-[18px] w-[18px] cursor-pointer accent-check-accent disabled:cursor-not-allowed disabled:opacity-40"
             />
           </label>,
         );
       }
 
       linha.push(
-        <div className="uppercase">{item.descricao}</div>,
+        <div className="uppercase" key={`desc-ext-${item.id}`}>
+          <div>{item.descricao}</div>
+          {infoLote ? (
+            <span className="mt-0.5 block text-[10px] font-semibold normal-case text-indigo-700">
+              {labelsExtratoFinanceiro.numero(infoLote.numero)}
+            </span>
+          ) : null}
+        </div>,
         <div className="uppercase">{item.tipo}</div>,
         <div className="uppercase">{item.fornecedor_prestador}</div>,
         <div className="tabular-nums" key={`qtd-ext-${item.id}`}>
@@ -929,7 +977,7 @@ export function useObrasDetalheTableData({
           <span
             key={`status-fin-${item.id}`}
             className={`inline-flex w-fit max-w-[13rem] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
-              statusFinanceiro === "Pago"
+              pago
                 ? "bg-emerald-500/18 text-emerald-900 ring-emerald-500/35"
                 : "bg-amber-500/18 text-amber-950 ring-amber-400/35"
             }`}
@@ -964,21 +1012,23 @@ export function useObrasDetalheTableData({
               </div>
             )}
           </div>,
-          <select
-            key={`status-fin-${item.id}`}
-            value={statusFinanceiro}
-            onChange={(e) =>
-              handleStatusFinanceiroChange(item.id, e.target.value)
-            }
-            className={`w-full max-w-[11rem] cursor-pointer appearance-none rounded-full border-0 px-2 py-1 text-center text-xs font-semibold shadow-sm ring-1 transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:h-8 sm:max-w-[13rem] sm:w-fit sm:px-3 sm:text-sm ${
-              statusFinanceiro === "Pago"
-                ? "bg-emerald-500/18 text-emerald-900 ring-emerald-500/35"
-                : "bg-amber-500/18 text-amber-950 ring-amber-400/35"
-            }`}
+          <label
+            className="flex items-center justify-center"
+            key={`pago-ext-${item.id}`}
+            title={pago ? "Marcar como pendente" : "Marcar como pago"}
           >
-            <option value="Aguardando pagamento">Aguardando pagamento</option>
-            <option value="Pago">Pago</option>
-          </select>,
+            <input
+              type="checkbox"
+              checked={pago}
+              onChange={() =>
+                handleStatusFinanceiroChange(
+                  item.id,
+                  pago ? "Aguardando pagamento" : "Pago",
+                )
+              }
+              className="h-[18px] w-[18px] cursor-pointer accent-check-accent"
+            />
+          </label>,
         );
       }
 
@@ -994,6 +1044,8 @@ export function useObrasDetalheTableData({
     handleStatusFinanceiroChange,
     setEditandoId,
     extratoSomenteLeitura,
+    extratoIdsEmLotesAbertos,
+    mapaLotesPorExtrato,
   ]);
 
   const headerExtrato = useMemo(() => {
@@ -1010,14 +1062,18 @@ export function useObrasDetalheTableData({
       ...(extratoSomenteLeitura
         ? []
         : [
-            <label className="flex items-center justify-center" key="header-cb">
+            <div
+              className="flex flex-col items-center gap-1 text-[10px] font-semibold uppercase leading-tight text-text-muted"
+              key="header-cb"
+            >
+              <span>{labelsExtratoFinanceiro.incluirNoExtrato}</span>
               <input
                 type="checkbox"
                 checked={todosSelecionados}
                 onChange={(e) => handleCheckAllExtrato(e.target.checked)}
-                className="h-[18px] w-[18px] text-[#abe4a0] transition duration-150 ease-in-out cursor-pointer"
+                className="h-[18px] w-[18px] cursor-pointer accent-check-accent"
               />
-            </label>,
+            </div>,
           ]),
       "Descrição",
       <span
@@ -1034,12 +1090,16 @@ export function useObrasDetalheTableData({
       </span>,
       "Qtd",
       "Valor",
-      <span
-        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
-        onClick={() => handleSortExtrato("status_financeiro")}
-      >
-        Status Fin. {getSortIcon("status_financeiro")}
-      </span>,
+      extratoSomenteLeitura ? (
+        <span
+          className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+          onClick={() => handleSortExtrato("status_financeiro")}
+        >
+          Status Fin. {getSortIcon("status_financeiro")}
+        </span>
+      ) : (
+        "Pago"
+      ),
       "Data",
     ];
   }, [
@@ -1058,5 +1118,7 @@ export function useObrasDetalheTableData({
     dadosRelatorioExtrato,
     headerExtrato,
     totaisExtratoSelecionados,
+    totaisMateriaisFiltrados,
+    totaisMaoDeObraFiltrados,
   };
 }

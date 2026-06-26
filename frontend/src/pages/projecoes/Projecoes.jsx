@@ -115,6 +115,7 @@ export default function Projecoes() {
     />,
     <BaseSelect
       key="status-projecoes"
+      searchable={false}
       value={filtroStatus}
       onChange={(e) => setFiltroStatus(e.target.value)}
       options={[

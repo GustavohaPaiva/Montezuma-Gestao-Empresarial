@@ -28,6 +28,8 @@ import { useObrasList } from "./hooks/useObrasList";
 import { obrasDictionary } from "../../constants/dictionaries";
 import StatusSelectBadge from "../../components/gerais/StatusSelectBadge";
 import { STATUS_OBRA_OPCOES } from "../../components/gerais/statusSelectOptions";
+import ObraLotesPendentesModal from "./components/ObraLotesPendentesModal";
+import { formatarMoeda } from "../financeiro/financeiroUtils";
 
 function nomeResponsavelObra(obra, diretoriaUsuarios = []) {
   if (obra?.responsavel_id && Array.isArray(diretoriaUsuarios)) {
@@ -99,11 +101,14 @@ export default function Obras() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("Tudo");
+  const [filtroStatus, setFiltroStatus] = useState("Em andamento");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [obraParaEditar, setObraParaEditar] = useState(null);
   const [obraParaExcluir, setObraParaExcluir] = useState(null);
   const [diretoriaUsuarios, setDiretoriaUsuarios] = useState([]);
+  const [resumosLotes, setResumosLotes] = useState({});
+  const [obraLotesModal, setObraLotesModal] = useState(null);
+  const [processandoLoteId, setProcessandoLoteId] = useState(null);
   const { obras, setObras, carregando, showElements, reloadObras } =
     useObrasList();
   const isEncarregado = user?.tipo === "encarregado";
@@ -156,6 +161,64 @@ export default function Obras() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const carregarResumosLotes = async () => {
+      if (!obras.length || isEncarregado) {
+        if (!cancelled) setResumosLotes({});
+        return;
+      }
+      try {
+        const ids = obras.map((obra) => obra.id).filter(Boolean);
+        const resumos = await api.getLotesResumoMultiplasObras(ids);
+        if (!cancelled) setResumosLotes(resumos || {});
+      } catch (error) {
+        console.error("Erro ao carregar resumos de lotes:", error);
+        if (!cancelled) setResumosLotes({});
+      }
+    };
+
+    carregarResumosLotes();
+    return () => {
+      cancelled = true;
+    };
+  }, [obras, isEncarregado]);
+
+  const handleMarcarLotePagoLista = async (lote) => {
+    if (!lote?.id || !obraLotesModal?.id) return;
+    const confirmar = window.confirm(
+      `Marcar o Lote #${lote.numero} como pago (R$ ${formatarMoeda(lote.total)})?`,
+    );
+    if (!confirmar) return;
+
+    const obraId = obraLotesModal.id;
+    setProcessandoLoteId(lote.id);
+    try {
+      await api.marcarLoteComoPago(lote.id);
+      const resumos = await api.getLotesResumoMultiplasObras([obraId]);
+      setResumosLotes((prev) => ({ ...prev, ...resumos }));
+      reloadObras();
+      if (!resumos[obraId]?.quantidade) {
+        setObraLotesModal(null);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Erro ao marcar lote como pago.");
+    } finally {
+      setProcessandoLoteId(null);
+    }
+  };
+
+  const abrirExtratoObra = (obra) => {
+    setObraLotesModal(null);
+    if (usaHubObra) {
+      navigate(`/obras/${obra.id}?secao=relatorios&sub=extrato`);
+      return;
+    }
+    navigate(`/obrasD/${obra.id}?secao=relatorios&sub=extrato`);
+  };
 
   const metricas = useMemo(() => {
     const ativas = obras.filter((o) => o.active !== false);
@@ -262,6 +325,7 @@ export default function Obras() {
             />,
             <BaseSelect
               key="filtro-status"
+              searchable={false}
               value={filtroStatus}
               onChange={(event) => setFiltroStatus(event.target.value)}
               options={[
@@ -379,7 +443,12 @@ export default function Obras() {
           </div>
         ) : (
           <div className="grid w-full gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 place-items-center">
-            {obrasVisiveis.map((obra, index) => (
+            {obrasVisiveis.map((obra, index) => {
+              const resumoLotes = resumosLotes[obra.id];
+              const temLotesPendentes = (resumoLotes?.quantidade || 0) > 0;
+              const financeiroInfo = getFinanceiroInfo(obra);
+
+              return (
               <div
                 key={obra.id}
                 className={`transition-all duration-700 ease-out transform w-full flex justify-center ${
@@ -408,21 +477,36 @@ export default function Obras() {
                             icon: (
                               <CircleDollarSign
                                 className={`h-4 w-4 ${
-                                  getFinanceiroInfo(obra).isPago
-                                    ? "text-emerald-600"
-                                    : "text-amber-600"
+                                  temLotesPendentes || !financeiroInfo.isPago
+                                    ? "text-amber-600"
+                                    : "text-emerald-600"
                                 }`}
                               />
                             ),
-                            label: (
+                            label: temLotesPendentes ? (
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setObraLotesModal(obra);
+                                }}
+                                className="text-left font-medium text-amber-700 underline-offset-2 hover:underline"
+                              >
+                                {resumoLotes.quantidade} lote
+                                {resumoLotes.quantidade === 1 ? "" : "s"}{" "}
+                                pendente
+                                {resumoLotes.quantidade === 1 ? "" : "s"} · R${" "}
+                                {formatarMoeda(resumoLotes.total)}
+                              </button>
+                            ) : (
                               <span
                                 className={
-                                  getFinanceiroInfo(obra).isPago
+                                  financeiroInfo.isPago
                                     ? "text-emerald-600"
                                     : "text-amber-600"
                                 }
                               >
-                                {getFinanceiroInfo(obra).status}
+                                {financeiroInfo.status}
                               </span>
                             ),
                           },
@@ -489,7 +573,8 @@ export default function Obras() {
                   ) : null}
                 </BaseCard>
               </div>
-            ))}
+              );
+            })}
             {obrasVisiveis.length === 0 && (
               <p className="w-full mt-10 text-center text-gray-500 col-span-full">
                 {obrasDictionary.empty}
@@ -543,6 +628,16 @@ export default function Obras() {
               </BaseButton>
             </div>
           </BaseModal>
+
+          <ObraLotesPendentesModal
+            isOpen={Boolean(obraLotesModal)}
+            onClose={() => setObraLotesModal(null)}
+            obra={obraLotesModal}
+            lotes={obraLotesModal ? resumosLotes[obraLotesModal.id]?.lotes || [] : []}
+            processandoId={processandoLoteId}
+            onMarcarPago={handleMarcarLotePagoLista}
+            onAbrirExtrato={abrirExtratoObra}
+          />
         </>
       ) : null}
     </div>

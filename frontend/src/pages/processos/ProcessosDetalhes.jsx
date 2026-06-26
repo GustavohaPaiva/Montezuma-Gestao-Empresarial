@@ -14,6 +14,7 @@ import {
 import { pdf } from "@react-pdf/renderer";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
+import BaseSelect from "../../components/gerais/BaseSelect";
 import { api } from "../../services/api";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import FichaClientePDF from "../../documents/FichaClientePDF";
@@ -25,6 +26,71 @@ import {
   formatValorPipeline,
   FORMATADORES_POR_CAMPO,
 } from "../../utils/clienteFormatters";
+
+const STATUS_PMU_OPCOES = [
+  "Produção de Projeto",
+  "Prefeitura",
+  "Codau",
+  "Paralizado",
+  "Seplan",
+  "Sefaz",
+  "Concluído",
+];
+
+const STATUS_CAIXA_OPCOES = [
+  "Engenharia",
+  "Assinatura",
+  "Conformidade",
+  "ITBI",
+  "Cartório",
+  "Concluído",
+];
+
+const STATUS_FIN_OPCOES = [
+  "Acompanhamento",
+  "Gestão",
+  "Finalizado",
+  "Futuros",
+  "Concluído",
+];
+
+const CUB_TIPO_OPCOES = [
+  { value: "Residencial", label: "Residencial" },
+  { value: "Comercial", label: "Comercial" },
+  { value: "Industrial", label: "Industrial / Galpão" },
+];
+
+const CUB_PADRAO_OPCOES = [
+  { value: "Baixo", label: "Baixo" },
+  { value: "Normal", label: "Normal" },
+  { value: "Alto", label: "Alto" },
+];
+
+function mapStringOptions(list) {
+  return list.map((item) => ({ value: item, label: item }));
+}
+
+function getCubNomenclaturaOptions(processo) {
+  const tipo = processo?.cub_tipo_projeto;
+  const padrao = processo?.cub_padrao;
+
+  if (tipo === "Residencial" && padrao === "Baixo") {
+    return mapStringOptions(["R1", "PP-4", "R8", "PIS"]);
+  }
+  if (tipo === "Residencial" && padrao === "Normal") {
+    return mapStringOptions(["R1", "PP-4", "R8", "R16"]);
+  }
+  if (tipo === "Residencial" && padrao === "Alto") {
+    return mapStringOptions(["R1", "R8", "R16"]);
+  }
+  if (tipo === "Comercial") {
+    return mapStringOptions(["CAL-8", "CSL-8", "CSL-16"]);
+  }
+  if (tipo === "Industrial") {
+    return mapStringOptions(["GI", "RP1Q"]);
+  }
+  return [];
+}
 
 function nomeArquivoSeguro(raw) {
   const limpo = String(raw || "Cliente")
@@ -367,6 +433,35 @@ export default function ProcessosDetalhes() {
   const selectEtapaClass = (statusVal) =>
     `inline-flex min-h-[38px] w-fit max-w-full cursor-pointer appearance-none rounded-full px-4 py-2 text-center text-[13px] font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-orange-400/35 ${getCorStatus(statusVal)}`;
 
+  const cubSelectClass =
+    "box-border h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-[16px] outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-500/15";
+
+  const renderEtapaSelect = (
+    key,
+    field,
+    value,
+    statusForClass,
+    options,
+    disabled = false,
+  ) => (
+    <BaseSelect
+      key={key}
+      searchable={false}
+      hideChevron
+      optionsCentered
+      wrapperClassName="inline-flex w-fit max-w-full"
+      triggerClassName={`${selectEtapaClass(statusForClass)} ${
+        disabled ? "cursor-not-allowed opacity-60" : ""
+      }`}
+      value={value}
+      disabled={disabled}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onChange={(e) => handleStatusChange(field, e.target.value)}
+      options={mapStringOptions(options)}
+    />
+  );
+
   const getCorGlobalPipeline = (status) => {
     const s = status || "Produção";
     switch (s) {
@@ -395,20 +490,13 @@ export default function ProcessosDetalhes() {
       >
         {processo.tipo || "-"}
       </span>,
-      <select
-        key="status-pmu"
-        value={processo.status_pmu || "Prefeitura"}
-        onChange={(e) => handleStatusChange("status_pmu", e.target.value)}
-        className={selectEtapaClass(processo.status_pmu || "Prefeitura")}
-      >
-        <option value="Produção de Projeto">Produção de Projeto</option>
-        <option value="Prefeitura">Prefeitura</option>
-        <option value="Codau">Codau</option>
-        <option value="Paralizado">Paralizado</option>
-        <option value="Seplan">Seplan</option>
-        <option value="Sefaz">Sefaz</option>
-        <option value="Concluído">Concluído</option>
-      </select>,
+      renderEtapaSelect(
+        "status-pmu",
+        "status_pmu",
+        processo.status_pmu || "Prefeitura",
+        processo.status_pmu || "Prefeitura",
+        STATUS_PMU_OPCOES,
+      ),
       renderCelulaEditavel("protocolo_pmu", "number", processo.protocolo_pmu),
       renderCelulaEditavel("observacao_pmu", "text", processo.observacao_pmu),
     ],
@@ -416,22 +504,14 @@ export default function ProcessosDetalhes() {
 
   const dadosCaixa = [
     [
-      <select
-        key="status-caixa"
-        value={processo.status_caixa || "Engenharia"}
-        onChange={(e) => handleStatusChange("status_caixa", e.target.value)}
-        disabled={!isPrefeituraConcluida}
-        className={`${selectEtapaClass(processo.status_caixa || "Engenharia")} ${
-          !isPrefeituraConcluida ? "cursor-not-allowed opacity-60" : ""
-        }`}
-      >
-        <option value="Engenharia">Engenharia</option>
-        <option value="Assinatura">Assinatura</option>
-        <option value="Conformidade">Conformidade</option>
-        <option value="ITBI">ITBI</option>
-        <option value="Cartório">Cartório</option>
-        <option value="Concluído">Concluído</option>
-      </select>,
+      renderEtapaSelect(
+        "status-caixa",
+        "status_caixa",
+        processo.status_caixa || "Engenharia",
+        processo.status_caixa || "Engenharia",
+        STATUS_CAIXA_OPCOES,
+        !isPrefeituraConcluida,
+      ),
       renderCelulaEditavel("engenheiro", "text", processo.engenheiro),
       renderCelulaEditavel(
         "protocolo_caixa",
@@ -450,21 +530,14 @@ export default function ProcessosDetalhes() {
       >
         {processo.tipo || "-"}
       </span>,
-      <select
-        key="status-fin"
-        value={processo.status_fin || "Acompanhamento"}
-        onChange={(e) => handleStatusChange("status_fin", e.target.value)}
-        disabled={!isCaixaConcluida}
-        className={`${selectEtapaClass(processo.status_fin || "Acompanhamento")} ${
-          !isCaixaConcluida ? "cursor-not-allowed opacity-60" : ""
-        }`}
-      >
-        <option value="Acompanhamento">Acompanhamento</option>
-        <option value="Gestão">Gestão</option>
-        <option value="Finalizado">Finalizado</option>
-        <option value="Futuros">Futuros</option>
-        <option value="Concluído">Concluído</option>
-      </select>,
+      renderEtapaSelect(
+        "status-fin",
+        "status_fin",
+        processo.status_fin || "Acompanhamento",
+        processo.status_fin || "Acompanhamento",
+        STATUS_FIN_OPCOES,
+        !isCaixaConcluida,
+      ),
       renderCelulaEditavel("n_alvara", "text", processo.n_alvara),
       renderCelulaEditavel("n_contrato", "number", processo.n_contrato),
       renderCelulaEditavel("data_ass_fin", "date", processo.data_ass_fin),
@@ -827,25 +900,13 @@ export default function ProcessosDetalhes() {
                   <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Status
                   </span>
-                  <select
-                    value={processo.status_pmu || "Prefeitura"}
-                    onChange={(e) =>
-                      handleStatusChange("status_pmu", e.target.value)
-                    }
-                    className={selectEtapaClass(
-                      processo.status_pmu || "Prefeitura",
-                    )}
-                  >
-                    <option value="Produção de Projeto">
-                      Produção de Projeto
-                    </option>
-                    <option value="Prefeitura">Prefeitura</option>
-                    <option value="Codau">Codau</option>
-                    <option value="Paralizado">Paralizado</option>
-                    <option value="Seplan">Seplan</option>
-                    <option value="Sefaz">Sefaz</option>
-                    <option value="Concluído">Concluído</option>
-                  </select>
+                  {renderEtapaSelect(
+                    "status-pmu-mobile",
+                    "status_pmu",
+                    processo.status_pmu || "Prefeitura",
+                    processo.status_pmu || "Prefeitura",
+                    STATUS_PMU_OPCOES,
+                  )}
                 </div>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -894,25 +955,14 @@ export default function ProcessosDetalhes() {
                   <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Status
                   </span>
-                  <select
-                    value={processo.status_caixa || "Engenharia"}
-                    onChange={(e) =>
-                      handleStatusChange("status_caixa", e.target.value)
-                    }
-                    disabled={!isPrefeituraConcluida}
-                    className={`${selectEtapaClass(processo.status_caixa || "Engenharia")} ${
-                      !isPrefeituraConcluida
-                        ? "cursor-not-allowed opacity-60"
-                        : ""
-                    }`}
-                  >
-                    <option value="Engenharia">Engenharia</option>
-                    <option value="Assinatura">Assinatura</option>
-                    <option value="Conformidade">Conformidade</option>
-                    <option value="ITBI">ITBI</option>
-                    <option value="Cartório">Cartório</option>
-                    <option value="Concluído">Concluído</option>
-                  </select>
+                  {renderEtapaSelect(
+                    "status-caixa-mobile",
+                    "status_caixa",
+                    processo.status_caixa || "Engenharia",
+                    processo.status_caixa || "Engenharia",
+                    STATUS_CAIXA_OPCOES,
+                    !isPrefeituraConcluida,
+                  )}
                 </div>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -979,22 +1029,14 @@ export default function ProcessosDetalhes() {
                   <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Status
                   </span>
-                  <select
-                    value={processo.status_fin || "Acompanhamento"}
-                    onChange={(e) =>
-                      handleStatusChange("status_fin", e.target.value)
-                    }
-                    disabled={!isCaixaConcluida}
-                    className={`${selectEtapaClass(processo.status_fin || "Acompanhamento")} ${
-                      !isCaixaConcluida ? "cursor-not-allowed opacity-60" : ""
-                    }`}
-                  >
-                    <option value="Acompanhamento">Acompanhamento</option>
-                    <option value="Gestão">Gestão</option>
-                    <option value="Finalizado">Finalizado</option>
-                    <option value="Futuros">Futuros</option>
-                    <option value="Concluído">Concluído</option>
-                  </select>
+                  {renderEtapaSelect(
+                    "status-fin-mobile",
+                    "status_fin",
+                    processo.status_fin || "Acompanhamento",
+                    processo.status_fin || "Acompanhamento",
+                    STATUS_FIN_OPCOES,
+                    !isCaixaConcluida,
+                  )}
                 </div>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -1372,8 +1414,10 @@ export default function ProcessosDetalhes() {
                   <label className="text-xs font-medium text-gray-600">
                     Tipo de Projeto (CUB)
                   </label>
-                  <select
+                  <BaseSelect
+                    searchable={false}
                     name="cub_tipo_projeto"
+                    className={cubSelectClass}
                     value={processo.cub_tipo_projeto || ""}
                     onChange={(e) => {
                       setProcesso((prev) => ({
@@ -1383,13 +1427,11 @@ export default function ProcessosDetalhes() {
                         cub_nomenclatura: "",
                       }));
                     }}
-                    className="box-border h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-[16px] outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-500/15"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="Residencial">Residencial</option>
-                    <option value="Comercial">Comercial</option>
-                    <option value="Industrial">Industrial / Galpão</option>
-                  </select>
+                    options={[
+                      { value: "", label: "Selecione..." },
+                      ...CUB_TIPO_OPCOES,
+                    ]}
+                  />
                 </div>
                 {processo.cub_tipo_projeto &&
                   processo.cub_tipo_projeto !== "Industrial" && (
@@ -1397,8 +1439,10 @@ export default function ProcessosDetalhes() {
                       <label className="text-xs font-medium text-gray-600">
                         Padrão de Acabamento
                       </label>
-                      <select
+                      <BaseSelect
+                        searchable={false}
                         name="cub_padrao"
+                        className={cubSelectClass}
                         value={processo.cub_padrao || ""}
                         onChange={(e) => {
                           setProcesso((prev) => ({
@@ -1407,13 +1451,11 @@ export default function ProcessosDetalhes() {
                             cub_nomenclatura: "",
                           }));
                         }}
-                        className="box-border h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-[16px] outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-500/15"
-                      >
-                        <option value="">Selecione...</option>
-                        <option value="Baixo">Baixo</option>
-                        <option value="Normal">Normal</option>
-                        <option value="Alto">Alto</option>
-                      </select>
+                        options={[
+                          { value: "", label: "Selecione..." },
+                          ...CUB_PADRAO_OPCOES,
+                        ]}
+                      />
                     </div>
                   )}
                 {((processo.cub_tipo_projeto &&
@@ -1424,53 +1466,22 @@ export default function ProcessosDetalhes() {
                     <label className="text-xs font-medium text-gray-600">
                       Código / Pavimentos
                     </label>
-                    <select
+                    <BaseSelect
+                      searchable={false}
                       name="cub_nomenclatura"
+                      className={cubSelectClass}
                       value={processo.cub_nomenclatura || ""}
-                      onChange={handleInputChange}
-                      className="box-border h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-[16px] outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-500/15"
-                    >
-                      <option value="">Selecione...</option>
-                      {processo.cub_tipo_projeto === "Residencial" &&
-                        processo.cub_padrao === "Baixo" && (
-                          <>
-                            <option value="R1">R1</option>
-                            <option value="PP-4">PP-4</option>
-                            <option value="R8">R8 </option>
-                            <option value="PIS">PIS</option>
-                          </>
-                        )}
-                      {processo.cub_tipo_projeto === "Residencial" &&
-                        processo.cub_padrao === "Normal" && (
-                          <>
-                            <option value="R1">R1</option>
-                            <option value="PP-4">PP-4</option>
-                            <option value="R8">R8 </option>
-                            <option value="R16">R16</option>
-                          </>
-                        )}
-                      {processo.cub_tipo_projeto === "Residencial" &&
-                        processo.cub_padrao === "Alto" && (
-                          <>
-                            <option value="R1">R1</option>
-                            <option value="R8">R8 </option>
-                            <option value="R16">R16</option>
-                          </>
-                        )}
-                      {processo.cub_tipo_projeto === "Comercial" && (
-                        <>
-                          <option value="CAL-8">CAL-8</option>
-                          <option value="CSL-8">CSL-8 </option>
-                          <option value="CSL-16">CSL-16</option>
-                        </>
-                      )}
-                      {processo.cub_tipo_projeto === "Industrial" && (
-                        <>
-                          <option value="GI">GI </option>
-                          <option value="RP1Q">RP1Q </option>
-                        </>
-                      )}
-                    </select>
+                      onChange={(e) =>
+                        setProcesso((prev) => ({
+                          ...prev,
+                          cub_nomenclatura: e.target.value,
+                        }))
+                      }
+                      options={[
+                        { value: "", label: "Selecione..." },
+                        ...getCubNomenclaturaOptions(processo),
+                      ]}
+                    />
                   </div>
                 )}
               </div>

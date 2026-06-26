@@ -105,6 +105,7 @@ export default function RelatorioSemanaReferenciaCard({
             Semana do calendário
           </label>
           <BaseSelect
+            searchable={false}
             value={semanaInicio}
             onChange={(e) => onTrocarSemana?.(e.target.value)}
             options={opcoes}

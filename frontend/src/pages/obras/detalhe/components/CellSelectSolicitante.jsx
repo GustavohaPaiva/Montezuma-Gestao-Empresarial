@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import BaseSelect from "../../../../components/gerais/BaseSelect";
 
 const SOLICITANTES_FIXOS = ["Montezuma", "Marcelo"];
 
@@ -30,19 +31,18 @@ export default function CellSelectSolicitante({
 
   return (
     <div className="flex items-center gap-1">
-      <select
+      <BaseSelect
+        size="compact"
+        searchable={false}
+        autoFocus
         value={val}
         onChange={(e) => setVal(e.target.value)}
-        className="w-[140px] rounded-xl border border-border-primary/55 bg-white p-1.5 text-[13px] uppercase transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
-        autoFocus
-      >
-        <option value="">Selecione...</option>
-        {opcoes.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
+        className="w-[140px]"
+        options={[
+          { value: "", label: "Selecione..." },
+          ...opcoes.map((s) => ({ value: s, label: s })),
+        ]}
+      />
       <button
         type="button"
         onClick={() => onSave(val)}
