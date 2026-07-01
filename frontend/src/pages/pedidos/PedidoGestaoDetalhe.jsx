@@ -256,13 +256,14 @@ export default function PedidoGestaoDetalhe() {
 
             <PedidoSecaoPainel
               titulo="Materiais do pedido"
-              descricao="Edite qualquer coluna diretamente na tabela. O valor pode ficar em branco no lançamento. A sincronização com a obra ocorre ao marcar cada ordem de compra como Comprado."
+              descricao="Edite qualquer coluna diretamente na tabela. Selecione linhas para atribuir fornecedor ou etapa em massa. A sincronização com a obra ocorre ao marcar cada ordem de compra como Comprado."
               icon={<ClipboardList className="h-5 w-5" />}
               iconTheme="blue"
             >
               <PedidoItensTableGestao
                 itens={pedido.itens || []}
                 fornecedores={fornecedores}
+                obra={obra}
               />
             </PedidoSecaoPainel>
 

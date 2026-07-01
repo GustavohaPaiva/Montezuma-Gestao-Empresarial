@@ -28,6 +28,7 @@ import ObraDetalheHeader from "./detalhe/components/ObraDetalheHeader";
 import ObraDetalheResumoFinanceiro from "./detalhe/components/ObraDetalheResumoFinanceiro";
 import ObraDetalheLotesPagamento from "./detalhe/components/ObraDetalheLotesPagamento";
 import ModalRelatorioPrestador from "./detalhe/components/ModalRelatorioPrestador";
+import { etapasParaSelectOptions } from "./detalhe/utils/etapasLancamento";
 import {
   calcularDataDevolucao,
   formatarMoeda,
@@ -111,6 +112,9 @@ export default function ObrasDetalhe() {
   const [carregandoFornecedores, setCarregandoFornecedores] = useState(false);
   const [carregandoPrestadores, setCarregandoPrestadores] = useState(false);
   const [buscaLocacoes, setBuscaLocacoes] = useState("");
+  const [filtroEtapaMateriais, setFiltroEtapaMateriais] = useState("");
+  const [filtroEtapaMaoDeObra, setFiltroEtapaMaoDeObra] = useState("");
+  const [filtroEtapaLocacoes, setFiltroEtapaLocacoes] = useState("");
   const [buscaExtrato, setBuscaExtrato] = useState("");
   const [sortField, setSortField] = useState("status_financeiro");
   const [sortDirection, setSortDirection] = useState("asc");
@@ -167,6 +171,14 @@ export default function ObrasDetalhe() {
               { id: "etapas", label: "Etapas" },
             ],
     [isEncarregado, isSecretaria],
+  );
+
+  const opcoesEtapasObra = useMemo(
+    () => [
+      { value: "", label: "Todas as etapas" },
+      ...etapasParaSelectOptions(obra, { incluirVazio: false }),
+    ],
+    [obra],
   );
 
   // Checagem se o projeto é de reforma (para injetar "Demolição")
@@ -298,6 +310,7 @@ export default function ObrasDetalhe() {
           data_solicitacao: dataAtual,
           data_vencimento: dados.data_vencimento || null,
           status_financeiro: "Aguardando pagamento",
+          etapa_nome: dados.etapa_nome || null,
         });
         await fetchDados();
         setModalMateriaisOpen(false);
@@ -396,6 +409,20 @@ export default function ObrasDetalhe() {
     [fetchDados, setObra, showFeedback],
   );
 
+  const salvarEtapaMaterial = useCallback(
+    async (materialId, etapaNome) => {
+      setEditandoMaterial({ id: null, campo: null });
+      try {
+        await api.updateMaterialEtapa(materialId, etapaNome);
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar etapa do material:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados],
+  );
+
   const handleSaveLocacao = useCallback(
     async (dados) => {
       const dataAtual = new Date().toISOString().split("T")[0];
@@ -410,6 +437,7 @@ export default function ObrasDetalhe() {
           data_solicitacao: dataAtual,
           data_vencimento: dados.data_vencimento || null,
           valor: 0,
+          etapa_nome: dados.etapa_nome || null,
         });
         await fetchDados();
         setModalLocacoesOpen(false);
@@ -420,6 +448,20 @@ export default function ObrasDetalhe() {
       }
     },
     [id, fetchDados, showFeedback],
+  );
+
+  const salvarEtapaLocacao = useCallback(
+    async (locacaoId, etapaNome) => {
+      setEditandoLocacao({ id: null, campo: null });
+      try {
+        await api.updateLocacaoEtapa(locacaoId, etapaNome);
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar etapa da locação:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados],
   );
 
   const handleStatusChangeLocacao = useCallback(
@@ -460,6 +502,20 @@ export default function ObrasDetalhe() {
       }
     },
     [fetchDados, setObra],
+  );
+
+  const salvarFornecedorLocacao = useCallback(
+    async (locacaoId, novoFornecedorId) => {
+      setEditandoLocacao({ id: null, campo: null });
+      try {
+        await api.updateLocacaoFornecedor(locacaoId, novoFornecedorId);
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar fornecedor da locação:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados],
   );
 
   const salvarSolicitanteLocacao = useCallback(
@@ -608,6 +664,7 @@ export default function ObrasDetalhe() {
           valor_cobrado: valorInput,
           valor_orcado: valorInput,
           valor_pago: 0,
+          etapa_nome: dados.etapa_nome || null,
         });
         await fetchDados();
         setModalMaoDeObraOpen(false);
@@ -617,6 +674,20 @@ export default function ObrasDetalhe() {
       }
     },
     [id, fetchDados, showFeedback],
+  );
+
+  const salvarEtapaMaoDeObra = useCallback(
+    async (mdoId, etapaNome) => {
+      setEditandoMaoDeObra({ id: null, campo: null });
+      try {
+        await api.updateMaoDeObraEtapa(mdoId, etapaNome);
+        await fetchDados();
+      } catch (err) {
+        console.error("Erro ao atualizar etapa da mão de obra:", err);
+        fetchDados();
+      }
+    },
+    [fetchDados],
   );
 
   const handleValidarMaoDeObra = useCallback(
@@ -1138,36 +1209,44 @@ export default function ObrasDetalhe() {
     totaisExtratoSelecionados,
     totaisMateriaisFiltrados,
     totaisMaoDeObraFiltrados,
+    totaisLocacoesFiltrados,
   } = useObrasDetalheTableData({
     obra,
     buscaMateriais,
     filtroFornecedorId,
+    filtroEtapaMateriais,
     sortConfig,
     editandoMaterial,
     setEditandoMaterial,
     handleStatusChange,
     salvarValorMaterial,
     salvarFornecedorMaterial,
+    salvarEtapaMaterial,
     salvarDataVencimentoMaterial,
     salvarDataSolicitacaoMaterial,
     handleDeleteMaterial,
     buscaLocacoes,
+    filtroEtapaLocacoes,
     editandoLocacao,
     setEditandoLocacao,
     handleStatusChangeLocacao,
     salvarValorLocacao,
+    salvarFornecedorLocacao,
+    salvarEtapaLocacao,
     salvarSolicitanteLocacao,
     salvarDataColetaLocacao,
     handleDeleteLocacao,
     handleValidarLocacao,
     buscaMaoDeObra,
     filtroPrestadorId,
+    filtroEtapaMaoDeObra,
     sortConfigMdo,
     editandoMaoDeObra,
     setEditandoMaoDeObra,
     handleValidarMaoDeObra,
     salvarEdicaoMaoDeObra,
     salvarEdicaoMaoDeObraProfissional,
+    salvarEtapaMaoDeObra,
     handleDeleteMaoDeObra,
     buscaExtrato,
     filtroExtrato,
@@ -1590,6 +1669,14 @@ export default function ObrasDetalhe() {
                           })),
                         ]}
                       />
+                      <BaseSelect
+                        searchable
+                        value={filtroEtapaMateriais}
+                        onChange={(e) => setFiltroEtapaMateriais(e.target.value)}
+                        wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
+                        className={`${selectPremium} w-full`}
+                        options={opcoesEtapasObra}
+                      />
                       <ButtonDefault
                         type="button"
                         onClick={() => setModalMateriaisOpen(true)}
@@ -1621,6 +1708,7 @@ export default function ObrasDetalhe() {
                       >
                         Fornecedor ↕
                       </span>,
+                      "Etapa",
                       <span
                         key="col-data"
                         className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
@@ -1643,7 +1731,11 @@ export default function ObrasDetalhe() {
                       Relatório Materiais
                     </ButtonDefault>
                     <div className={totalBarClass}>
-                      <span className="text-text-muted">Total lançado:</span>
+                      <span className="text-text-muted">
+                        {filtroEtapaMateriais
+                          ? `Total (${filtroEtapaMateriais}):`
+                          : "Total lançado:"}
+                      </span>
                       <span className="font-bold tabular-nums text-text-primary">
                         R$ {formatarMoeda(totaisMateriaisFiltrados)}
                       </span>
@@ -1694,6 +1786,16 @@ export default function ObrasDetalhe() {
                           })),
                         ]}
                       />
+                      <BaseSelect
+                        searchable
+                        value={filtroEtapaMaoDeObra}
+                        onChange={(e) =>
+                          setFiltroEtapaMaoDeObra(e.target.value)
+                        }
+                        wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
+                        className={`${selectPremium} w-full`}
+                        options={opcoesEtapasObra}
+                      />
                       <ButtonDefault
                         type="button"
                         onClick={() => setModalMaoDeObraOpen(true)}
@@ -1727,6 +1829,7 @@ export default function ObrasDetalhe() {
                       "Valor Pago",
                       "Saldo",
                       "Data",
+                      "Etapa",
                       "",
                     ]}
                     dados={dadosMaoDeObra}
@@ -1757,7 +1860,11 @@ export default function ObrasDetalhe() {
                       className={`flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center`}
                     >
                       <div className={totalBarClass}>
-                        <span className="text-text-muted">Total orçado:</span>
+                        <span className="text-text-muted">
+                          {filtroEtapaMaoDeObra
+                            ? `Total orçado (${filtroEtapaMaoDeObra}):`
+                            : "Total orçado:"}
+                        </span>
                         <span className="font-bold tabular-nums text-text-primary">
                           R$ {formatarMoeda(totaisMaoDeObraFiltrados.orcado)}
                         </span>
@@ -1794,6 +1901,14 @@ export default function ObrasDetalhe() {
                       onChange={(e) => setBuscaLocacoes(e.target.value)}
                       className={`${inputPremium} lg:max-w-[250px] lg:min-w-0 lg:flex-1`}
                     />
+                    <BaseSelect
+                      searchable
+                      value={filtroEtapaLocacoes}
+                      onChange={(e) => setFiltroEtapaLocacoes(e.target.value)}
+                      wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
+                      className={`${selectPremium} w-full`}
+                      options={opcoesEtapasObra}
+                    />
                     <ButtonDefault
                       type="button"
                       onClick={() => setModalLocacoesOpen(true)}
@@ -1818,6 +1933,7 @@ export default function ObrasDetalhe() {
                     "Status",
                     "Data de Coleta",
                     "Data de Devolução",
+                    "Etapa",
                     " ",
                   ]}
                   dados={dadosLocacoes}
@@ -1832,9 +1948,13 @@ export default function ObrasDetalhe() {
                     Relatório Locações
                   </ButtonDefault>
                   <div className={totalBarClass}>
-                    <span className="text-text-muted">Total lançado:</span>
+                    <span className="text-text-muted">
+                      {filtroEtapaLocacoes
+                        ? `Total (${filtroEtapaLocacoes}):`
+                        : "Total lançado:"}
+                    </span>
                     <span className="font-bold tabular-nums text-text-primary">
-                      R$ {formatarMoeda(totais.locacoes)}
+                      R$ {formatarMoeda(totaisLocacoesFiltrados)}
                     </span>
                   </div>
                 </div>
@@ -2019,6 +2139,7 @@ export default function ObrasDetalhe() {
         isOpen={modalMateriaisOpen}
         onClose={() => setModalMateriaisOpen(false)}
         nomeObra={obra.local}
+        obra={obra}
         onSave={handleSaveMaterial}
       />
       <ModalLocacoes
@@ -2026,12 +2147,14 @@ export default function ObrasDetalhe() {
         onClose={() => setModalLocacoesOpen(false)}
         nomeObra={obra.local}
         nomeCliente={obra.clientes}
+        obra={obra}
         onSave={handleSaveLocacao}
       />
       <ModalMaoDeObra
         isOpen={modalMaoDeObraOpen}
         onClose={() => setModalMaoDeObraOpen(false)}
         nomeObra={obra.local}
+        obra={obra}
         onSave={handleSaveMaoDeObra}
       />
       <ModalRelatorioPrestador

@@ -50,14 +50,6 @@ export default function Processos() {
   const [refNav, isNavVisible] = useScrollFadeIn();
   const [refMain] = useScrollFadeIn();
 
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
   const carregarProcessos = useCallback(async () => {
     setCarregando(true);
     setShowElements(false);
@@ -95,16 +87,16 @@ export default function Processos() {
 
       await api.updateCliente(id, dadosAtualizados, clienteAtual.escritorio_id);
 
-      if (dadosAtualizados.status === "Obra") {
-        if (clienteAtual) {
-          await api.createObra({
-            cliente: clienteAtual.nome,
-            local:
-              clienteAtual.rua_obra ||
-              clienteAtual.bairro_obra ||
-              "Local a definir",
-            cliente_id: clienteAtual.id,
-          });
+      if (dadosAtualizados.status === "Obra" && clienteAtual) {
+        const { created } = await api.ensureObraForCliente({
+          cliente: clienteAtual.nome,
+          local:
+            clienteAtual.rua_obra ||
+            clienteAtual.bairro_obra ||
+            "Local a definir",
+          cliente_id: clienteAtual.id,
+        });
+        if (created) {
           alert(
             `Obra criada automaticamente para o cliente ${clienteAtual.nome}!`,
           );
@@ -301,13 +293,7 @@ export default function Processos() {
           </div>
 
           {processosProcessados.length > 0 ? (
-            <div
-              className={
-                isMobile
-                  ? "flex w-full flex-col gap-4"
-                  : "grid w-full grid-cols-1 place-items-center gap-6 md:grid-cols-2 xl:grid-cols-4 xl:gap-8"
-              }
-            >
+            <div className="grid w-full grid-cols-1 place-items-center gap-6 md:grid-cols-2 xl:grid-cols-4 xl:gap-8">
               {processosProcessados.map((item, index) => (
                 <div
                   key={item.id}

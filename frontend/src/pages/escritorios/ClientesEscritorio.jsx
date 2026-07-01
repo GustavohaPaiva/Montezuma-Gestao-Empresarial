@@ -207,7 +207,7 @@ export default function ClientesEscritorio() {
         currentEscritorioId,
       );
       if (novoStatus === "Obra") {
-        await api.createObra({
+        await api.ensureObraForCliente({
           cliente: cliente.nome,
           local:
             cliente.rua_obra ||

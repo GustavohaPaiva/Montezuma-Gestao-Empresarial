@@ -9,6 +9,7 @@ import {
 import CellInputNumber from "../components/CellInputNumber";
 import CellInputDate from "../components/CellInputDate";
 import CellSelectFornecedor from "../components/CellSelectFornecedor";
+import CellSelectEtapa from "../components/CellSelectEtapa";
 import StatusSelectBadge from "../../../../components/gerais/StatusSelectBadge";
 import { STATUS_MATERIAL_OPCOES } from "../../../../components/gerais/statusSelectOptions";
 import CellSelectPrestador from "../components/CellSelectPrestador";
@@ -16,6 +17,7 @@ import CellSelectSolicitante from "../components/CellSelectSolicitante";
 import {
   filtrarMaoDeObraLista,
   filtrarMateriaisLista,
+  filtrarLocacoesLista,
 } from "../utils/relatorioFiltrosUtils";
 import {
   getExtratoIdsEmLotesAbertos,
@@ -55,33 +57,39 @@ export function useObrasDetalheTableData({
   obra,
   buscaMateriais,
   filtroFornecedorId,
+  filtroEtapaMateriais,
   sortConfig,
   editandoMaterial,
   setEditandoMaterial,
   handleStatusChange,
   salvarValorMaterial,
   salvarFornecedorMaterial,
-  salvarFornecedorLocacao,
+  salvarEtapaMaterial,
   salvarDataVencimentoMaterial,
   salvarDataSolicitacaoMaterial,
   handleDeleteMaterial,
   buscaLocacoes,
+  filtroEtapaLocacoes,
   editandoLocacao,
   setEditandoLocacao,
   handleStatusChangeLocacao,
   salvarValorLocacao,
+  salvarFornecedorLocacao,
+  salvarEtapaLocacao,
   salvarSolicitanteLocacao,
   salvarDataColetaLocacao,
   handleDeleteLocacao,
   handleValidarLocacao,
   buscaMaoDeObra,
   filtroPrestadorId,
+  filtroEtapaMaoDeObra,
   sortConfigMdo,
   editandoMaoDeObra,
   setEditandoMaoDeObra,
   handleValidarMaoDeObra,
   salvarEdicaoMaoDeObra,
   salvarEdicaoMaoDeObraProfissional,
+  salvarEtapaMaoDeObra,
   handleDeleteMaoDeObra,
   buscaExtrato,
   filtroExtrato,
@@ -102,8 +110,9 @@ export function useObrasDetalheTableData({
     return filtrarMateriaisLista(obra.materiais, {
       busca: buscaMateriais,
       fornecedorId: filtroFornecedorId,
+      etapaNome: filtroEtapaMateriais,
     });
-  }, [obra?.materiais, buscaMateriais, filtroFornecedorId]);
+  }, [obra?.materiais, buscaMateriais, filtroFornecedorId, filtroEtapaMateriais]);
 
   const totaisMateriaisFiltrados = useMemo(
     () =>
@@ -155,6 +164,8 @@ export function useObrasDetalheTableData({
       const isEditingDataSolicitacao =
         editandoMaterial.id === m.id &&
         editandoMaterial.campo === "data_solicitacao";
+      const isEditingEtapa =
+        editandoMaterial.id === m.id && editandoMaterial.campo === "etapa";
       const qtdNumerica = parseFloat(m.quantidade) || 0;
       const valorUnitario = qtdNumerica > 0 ? m.valor / qtdNumerica : 0;
 
@@ -225,6 +236,32 @@ export function useObrasDetalheTableData({
               <div className="uppercase text-[13px]">
                 {nomeFornecedorExibicao}
               </div>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="ml-[4px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+              />
+            </div>
+          )}
+        </div>,
+        <div
+          className="flex items-center justify-center gap-2"
+          key={`etapa-mat-${m.id}`}
+        >
+          {isEditingEtapa ? (
+            <CellSelectEtapa
+              obra={obra}
+              valorInicial={m.etapa_nome}
+              onSave={(val) => salvarEtapaMaterial(m.id, val)}
+              onCancel={() => setEditandoMaterial({ id: null, campo: null })}
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer justify-center"
+              onClick={() => setEditandoMaterial({ id: m.id, campo: "etapa" })}
+            >
+              <div className="text-[12px]">{m.etapa_nome || "—"}</div>
               <img
                 width="15"
                 src="https://img.icons8.com/ios/50/edit--v1.png"
@@ -312,6 +349,7 @@ export function useObrasDetalheTableData({
     handleStatusChange,
     salvarValorMaterial,
     salvarFornecedorMaterial,
+    salvarEtapaMaterial,
     salvarDataVencimentoMaterial,
     salvarDataSolicitacaoMaterial,
     handleDeleteMaterial,
@@ -320,20 +358,26 @@ export function useObrasDetalheTableData({
     setEditandoMaterial,
   ]);
 
-  const dadosLocacoes = useMemo(() => {
+  const listaLocacoesFiltrada = useMemo(() => {
     if (!obra?.locacoes?.length) return [];
-    let lista = [...obra.locacoes];
+    return filtrarLocacoesLista(obra.locacoes, {
+      busca: buscaLocacoes,
+      etapaNome: filtroEtapaLocacoes,
+    });
+  }, [obra?.locacoes, buscaLocacoes, filtroEtapaLocacoes]);
 
-    if (buscaLocacoes) {
-      const termo = buscaLocacoes.toLowerCase();
-      lista = lista.filter(
-        (l) =>
-          l.equipamento?.toLowerCase().includes(termo) ||
-          l.solicitante?.toLowerCase().includes(termo) ||
-          l.tipo_periodo?.toLowerCase().includes(termo),
-      );
-    }
+  const totaisLocacoesFiltrados = useMemo(
+    () =>
+      listaLocacoesFiltrada.reduce(
+        (acc, l) => acc + (parseFloat(l.valor) || 0),
+        0,
+      ),
+    [listaLocacoesFiltrada],
+  );
 
+  const dadosLocacoes = useMemo(() => {
+    if (!listaLocacoesFiltrada.length) return [];
+    let lista = [...listaLocacoesFiltrada];
     lista.sort((a, b) => {
       const valA = a.validacao || 0;
       const valB = b.validacao || 0;
@@ -374,6 +418,8 @@ export function useObrasDetalheTableData({
         editandoLocacao.id === l.id && editandoLocacao.campo === "data_coleta";
       const isEditingSolicitante =
         editandoLocacao.id === l.id && editandoLocacao.campo === "solicitante";
+      const isEditingEtapa =
+        editandoLocacao.id === l.id && editandoLocacao.campo === "etapa";
       const periodoLabel = `${l.periodo} ${tipoPeriodo || "—"}`;
       const dataDevolucaoCalc =
         calcularDataDevolucao(l.data_coleta, l.periodo, l.tipo_periodo) ||
@@ -547,6 +593,32 @@ export function useObrasDetalheTableData({
           </div>
         </div>,
         <div
+          className="flex items-center justify-center gap-2"
+          key={`etapa-loc-${l.id}`}
+        >
+          {isEditingEtapa ? (
+            <CellSelectEtapa
+              obra={obra}
+              valorInicial={l.etapa_nome}
+              onSave={(val) => salvarEtapaLocacao(l.id, val)}
+              onCancel={() => setEditandoLocacao({ id: null, campo: null })}
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer justify-center"
+              onClick={() => setEditandoLocacao({ id: l.id, campo: "etapa" })}
+            >
+              <div className="text-[12px]">{l.etapa_nome || "—"}</div>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="ml-[4px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+              />
+            </div>
+          )}
+        </div>,
+        <div
           className="flex justify-center px-1 py-0.5"
           key={`del-loc-${l.id}`}
         >
@@ -566,13 +638,14 @@ export function useObrasDetalheTableData({
       ];
     });
   }, [
+    listaLocacoesFiltrada,
     obra,
-    buscaLocacoes,
     editandoLocacao,
     handleStatusChangeLocacao,
     salvarValorLocacao,
     salvarSolicitanteLocacao,
     salvarDataColetaLocacao,
+    salvarEtapaLocacao,
     handleDeleteLocacao,
     handleValidarLocacao,
     setEditandoLocacao,
@@ -584,8 +657,9 @@ export function useObrasDetalheTableData({
     return filtrarMaoDeObraLista(obra.maoDeObra, {
       busca: buscaMaoDeObra,
       prestadorId: filtroPrestadorId,
+      etapaNome: filtroEtapaMaoDeObra,
     });
-  }, [obra?.maoDeObra, buscaMaoDeObra, filtroPrestadorId]);
+  }, [obra?.maoDeObra, buscaMaoDeObra, filtroPrestadorId, filtroEtapaMaoDeObra]);
 
   const totaisMaoDeObraFiltrados = useMemo(
     () => ({
@@ -640,6 +714,8 @@ export function useObrasDetalheTableData({
         editandoMaoDeObra.id === m.id && editandoMaoDeObra.campo === "orcado";
       const isEditingPago =
         editandoMaoDeObra.id === m.id && editandoMaoDeObra.campo === "pago";
+      const isEditingEtapa =
+        editandoMaoDeObra.id === m.id && editandoMaoDeObra.campo === "etapa";
       const isValidado = m.validacao === 1;
 
       return [
@@ -777,6 +853,34 @@ export function useObrasDetalheTableData({
         <span className="whitespace-nowrap">
           {formatarDataBR(m.data_solicitacao)}
         </span>,
+        <div
+          className="flex items-center justify-center gap-2 whitespace-nowrap"
+          key={`etapa-mdo-${m.id}`}
+        >
+          {isEditingEtapa ? (
+            <CellSelectEtapa
+              obra={obra}
+              valorInicial={m.etapa_nome}
+              onSave={(val) => salvarEtapaMaoDeObra(m.id, val)}
+              onCancel={() => setEditandoMaoDeObra({ id: null, campo: null })}
+            />
+          ) : (
+            <div
+              className="group flex cursor-pointer items-center gap-2"
+              onClick={() =>
+                setEditandoMaoDeObra({ id: m.id, campo: "etapa" })
+              }
+            >
+              <span className="text-[12px]">{m.etapa_nome || "—"}</span>
+              <img
+                width="15"
+                src="https://img.icons8.com/ios/50/edit--v1.png"
+                alt="edit"
+                className="ml-[4px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+              />
+            </div>
+          )}
+        </div>,
         <div className="flex justify-center" key={`del-mdo-${m.id}`}>
           <button
             onClick={() => handleDeleteMaoDeObra(m.id)}
@@ -798,6 +902,7 @@ export function useObrasDetalheTableData({
     handleValidarMaoDeObra,
     salvarEdicaoMaoDeObra,
     salvarEdicaoMaoDeObraProfissional,
+    salvarEtapaMaoDeObra,
     handleDeleteMaoDeObra,
     listaMaoDeObraFiltrada,
     sortConfigMdo,
@@ -1120,5 +1225,6 @@ export function useObrasDetalheTableData({
     totaisExtratoSelecionados,
     totaisMateriaisFiltrados,
     totaisMaoDeObraFiltrados,
+    totaisLocacoesFiltrados,
   };
 }

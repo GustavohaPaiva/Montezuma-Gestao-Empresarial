@@ -125,7 +125,7 @@ export default function StatusSelectBadge({
   const atual = value || options[0] || "";
 
   const pararPropagacao = (e) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
   };
 
   return (
@@ -148,9 +148,8 @@ export default function StatusSelectBadge({
       onClick={pararPropagacao}
       onMouseDown={pararPropagacao}
       onChange={(e) => {
-        pararPropagacao(e);
-        const novo = e.target.value;
-        if (novo !== atual) onChange(novo);
+        const novo = e?.target?.value;
+        if (novo != null && novo !== atual) onChange(novo);
       }}
       aria-label="Alterar status"
       options={options.map((opt) => ({ value: opt, label: opt }))}

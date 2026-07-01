@@ -3,13 +3,26 @@ import ButtonDefault from "../gerais/ButtonDefault";
 import BaseSelect from "../gerais/BaseSelect";
 import ModalPortal from "../gerais/ModalPortal";
 import { api } from "../../services/api";
+import {
+  etapasParaSelectOptions,
+  getEtapaPadrao,
+  isEtapaObrigatoria,
+  validarEtapaLancamento,
+} from "../../pages/obras/detalhe/utils/etapasLancamento";
 
-export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
+export default function ModalMateriais({
+  isOpen,
+  onClose,
+  onSave,
+  nomeObra,
+  obra,
+}) {
   const [material, setMaterial] = useState("");
   const [fornecedorId, setFornecedorId] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [unidade, setUnidade] = useState("Un.");
   const [dataVencimento, setDataVencimento] = useState("");
+  const [etapaNome, setEtapaNome] = useState("");
 
   const [listaFornecedores, setListaFornecedores] = useState([]);
   const [carregandoFornecedores, setCarregandoFornecedores] = useState(false);
@@ -31,21 +44,25 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
   ];
 
   useEffect(() => {
-    if (isOpen) {
-      const carregarFornecedores = async () => {
-        setCarregandoFornecedores(true);
-        try {
-          const dados = await api.getFornecedoresSimples();
-          setListaFornecedores(dados || []);
-        } catch (error) {
-          console.error("Erro ao carregar lista de fornecedores", error);
-        } finally {
-          setCarregandoFornecedores(false);
-        }
-      };
-      carregarFornecedores();
-    }
+    if (!isOpen) return;
+    const carregarFornecedores = async () => {
+      setCarregandoFornecedores(true);
+      try {
+        const dados = await api.getFornecedoresSimples();
+        setListaFornecedores(dados || []);
+      } catch (error) {
+        console.error("Erro ao carregar lista de fornecedores", error);
+      } finally {
+        setCarregandoFornecedores(false);
+      }
+    };
+    carregarFornecedores();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setEtapaNome((prev) => prev || getEtapaPadrao(obra) || "");
+  }, [isOpen, obra]);
 
   if (!isOpen) return null;
 
@@ -55,12 +72,19 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
       return;
     }
 
+    const erroEtapa = validarEtapaLancamento(obra, etapaNome);
+    if (erroEtapa) {
+      alert(erroEtapa);
+      return;
+    }
+
     onSave({
       material,
       fornecedor_id: fornecedorId,
       quantidade,
       unidade,
       data_vencimento: dataVencimento || null,
+      etapa_nome: etapaNome || null,
     });
 
     setMaterial("");
@@ -69,6 +93,8 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
     setUnidade("Un.");
     setDataVencimento("");
   };
+
+  const etapaObrigatoria = isEtapaObrigatoria(obra);
 
   return (
     <ModalPortal>
@@ -140,6 +166,26 @@ export default function ModalMateriais({ isOpen, onClose, onSave, nomeObra }) {
                     value: String(f.id),
                     label: f.nome,
                   })),
+                ]}
+              />
+            </div>
+
+            <div className="flex flex-col gap-[5px]">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                Etapa{etapaObrigatoria ? " *" : ""}
+              </label>
+              <BaseSelect
+                searchable
+                value={etapaNome}
+                onChange={(e) => setEtapaNome(e.target.value)}
+                options={[
+                  {
+                    value: "",
+                    label: etapaObrigatoria
+                      ? "Selecione a etapa..."
+                      : "— Sem etapa —",
+                  },
+                  ...etapasParaSelectOptions(obra, { incluirVazio: false }),
                 ]}
               />
             </div>

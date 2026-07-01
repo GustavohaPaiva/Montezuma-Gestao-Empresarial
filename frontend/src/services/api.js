@@ -132,7 +132,7 @@ async function anexarItensAosPedidos(pedidos) {
   const { data: itens, error } = await supabase
     .from("obra_pedido_itens")
     .select(
-      "id, pedido_id, material, quantidade, unidade, data_entrega, created_at, grupo_compra_id, material_relatorio_id, fornecedor_id, data_pagamento, valor",
+      "id, pedido_id, material, quantidade, unidade, data_entrega, created_at, grupo_compra_id, material_relatorio_id, fornecedor_id, data_pagamento, valor, etapa_nome",
     )
     .in("pedido_id", ids);
   if (error) throw new Error(mensagemErroPedido(error));
@@ -155,7 +155,9 @@ async function enriquecerPedidosComObra(pedidos) {
 
   const { data: obras, error } = await supabase
     .from("obras")
-    .select("id, local, cliente, clientes!cliente_id(nome)")
+    .select(
+      "id, local, cliente, etapas_selecionadas, clientes!cliente_id(nome)",
+    )
     .in("id", obraIds);
   if (error) {
     console.warn("[pedidos] enriquecer obras:", error);
@@ -1006,6 +1008,34 @@ export const api = {
     return data[0];
   },
 
+  /** Retorna a obra ativa mais recente vinculada ao cliente, ou null. */
+  getObraAtivaPorClienteId: async (clienteId) => {
+    if (clienteId == null || clienteId === "") return null;
+    const { data, error } = await supabase
+      .from("obras")
+      .select("id, cliente, local, status, cliente_id, active")
+      .eq("cliente_id", clienteId)
+      .eq("active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Garante uma obra ativa para o cliente: reutiliza existente ou cria nova.
+   * @returns {{ obra: object, created: boolean }}
+   */
+  ensureObraForCliente: async (dados) => {
+    const clienteId = dados?.cliente_id;
+    const existente = await api.getObraAtivaPorClienteId(clienteId);
+    if (existente) return { obra: existente, created: false };
+
+    const obra = await api.createObra(dados);
+    return { obra, created: true };
+  },
+
   updateObra: async (id, dados) => {
     const { data, error } = await supabase
       .from("obras")
@@ -1113,6 +1143,7 @@ export const api = {
           valor: Number(dados.valor) || 0,
           status: "Solicitado",
           status_financeiro: "Aguardando pagamento",
+          etapa_nome: dados.etapa_nome || null,
         },
       ])
       .select();
@@ -1148,6 +1179,29 @@ export const api = {
     const { data, error } = await supabase
       .from("relatorio_locacoes")
       .update({ solicitante })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateLocacaoFornecedor: async (id, novoFornecedorId) => {
+    const fid = novoFornecedorId || null;
+    let fornecedorNome = null;
+    if (fid) {
+      const { data: fornecedor } = await supabase
+        .from("fornecedores")
+        .select("nome")
+        .eq("id", fid)
+        .maybeSingle();
+      fornecedorNome = fornecedor?.nome || null;
+    }
+    const { data, error } = await supabase
+      .from("relatorio_locacoes")
+      .update({
+        fornecedor_id: fid,
+        fornecedor: fornecedorNome,
+      })
       .eq("id", id)
       .select();
     if (error) throw error;
@@ -1219,6 +1273,7 @@ export const api = {
           validacao: 0,
           status_financeiro:
             dadosOriginais?.status_financeiro || "Aguardando pagamento",
+          etapa_nome: dadosOriginais?.etapa_nome || null,
         },
       ]);
     if (errorExtrato) throw errorExtrato;
@@ -1348,11 +1403,108 @@ export const api = {
             validacao: 0,
             status_financeiro:
               materialAtualizado.status_financeiro || "Aguardando pagamento",
+            etapa_nome: materialAtualizado.etapa_nome || null,
           },
         ]);
       }
     }
     return materialAtualizado;
+  },
+
+  updateMaterialEtapa: async (id, etapaNome) => {
+    const etapa = etapaNome ? String(etapaNome).trim() : null;
+    const { data, error } = await supabase
+      .from("relatorio_materiais")
+      .update({ etapa_nome: etapa })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    await supabase
+      .from("relatorio_extrato")
+      .update({ etapa_nome: etapa })
+      .eq("material_id", id);
+    return data[0];
+  },
+
+  updateMateriaisEtapaInIds: async (ids, etapaNome) => {
+    const lista = (Array.isArray(ids) ? ids : []).filter((id) => id != null);
+    if (!lista.length) return [];
+    const etapa = etapaNome ? String(etapaNome).trim() : null;
+    const { data, error } = await supabase
+      .from("relatorio_materiais")
+      .update({ etapa_nome: etapa })
+      .in("id", lista)
+      .select();
+    if (error) throw error;
+    await supabase
+      .from("relatorio_extrato")
+      .update({ etapa_nome: etapa })
+      .in("material_id", lista);
+    return data || [];
+  },
+
+  updateMaoDeObraEtapa: async (id, etapaNome) => {
+    const etapa = etapaNome ? String(etapaNome).trim() : null;
+    const { data, error } = await supabase
+      .from("relatorio_mao_de_obra")
+      .update({ etapa_nome: etapa })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    await supabase
+      .from("relatorio_extrato")
+      .update({ etapa_nome: etapa })
+      .eq("mao_de_obra_id", id);
+    return data[0];
+  },
+
+  updateMaoDeObraEtapaInIds: async (ids, etapaNome) => {
+    const lista = (Array.isArray(ids) ? ids : []).filter((id) => id != null);
+    if (!lista.length) return [];
+    const etapa = etapaNome ? String(etapaNome).trim() : null;
+    const { data, error } = await supabase
+      .from("relatorio_mao_de_obra")
+      .update({ etapa_nome: etapa })
+      .in("id", lista)
+      .select();
+    if (error) throw error;
+    await supabase
+      .from("relatorio_extrato")
+      .update({ etapa_nome: etapa })
+      .in("mao_de_obra_id", lista);
+    return data || [];
+  },
+
+  updateLocacaoEtapa: async (id, etapaNome) => {
+    const etapa = etapaNome ? String(etapaNome).trim() : null;
+    const { data, error } = await supabase
+      .from("relatorio_locacoes")
+      .update({ etapa_nome: etapa })
+      .eq("id", id)
+      .select();
+    if (error) throw error;
+    await supabase
+      .from("relatorio_extrato")
+      .update({ etapa_nome: etapa })
+      .eq("locacao_id", id);
+    return data[0];
+  },
+
+  updateLocacoesEtapaInIds: async (ids, etapaNome) => {
+    const lista = (Array.isArray(ids) ? ids : []).filter((id) => id != null);
+    if (!lista.length) return [];
+    const etapa = etapaNome ? String(etapaNome).trim() : null;
+    const { data, error } = await supabase
+      .from("relatorio_locacoes")
+      .update({ etapa_nome: etapa })
+      .in("id", lista)
+      .select();
+    if (error) throw error;
+    await supabase
+      .from("relatorio_extrato")
+      .update({ etapa_nome: etapa })
+      .in("locacao_id", lista);
+    return data || [];
   },
 
   updateValorRelatorioExtrato: async (id, novoValor) => {
@@ -1739,6 +1891,7 @@ export const api = {
           data_solicitacao: dados.data_solicitacao,
           data_vencimento: dados.data_vencimento ?? null,
           status_financeiro: "Aguardando pagamento",
+          etapa_nome: dados.etapa_nome || null,
         },
       ])
       .select();
@@ -1794,6 +1947,7 @@ export const api = {
           valor_pago: dados.valor_pago,
           saldo: saldoInicial,
           validacao: 0,
+          etapa_nome: dados.etapa_nome || null,
         },
       ])
       .select();
@@ -1859,6 +2013,7 @@ export const api = {
           valor: valorParaExtrato,
           validacao: 0,
           status_financeiro: "Aguardando pagamento",
+          etapa_nome: dadosOriginais.etapa_nome || null,
         },
       ]);
     if (errorExtrato) throw errorExtrato;
@@ -2808,6 +2963,11 @@ export const api = {
     if (campos.fornecedor_id !== undefined) {
       payload.fornecedor_id = campos.fornecedor_id || null;
     }
+    if (campos.etapa_nome !== undefined) {
+      payload.etapa_nome = campos.etapa_nome
+        ? String(campos.etapa_nome).trim()
+        : null;
+    }
     if (campos.data_pagamento !== undefined) {
       payload.data_pagamento = campos.data_pagamento || null;
     }
@@ -2821,12 +2981,56 @@ export const api = {
     }
     if (!Object.keys(payload).length) return true;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("obra_pedido_itens")
       .update(payload)
-      .eq("id", itemId);
+      .eq("id", itemId)
+      .select("id, material_relatorio_id")
+      .maybeSingle();
     if (error) throw new Error(mensagemErroPedido(error));
+
+    if (
+      campos.etapa_nome !== undefined &&
+      data?.material_relatorio_id != null
+    ) {
+      await api.updateMaterialEtapa(data.material_relatorio_id, payload.etapa_nome);
+    }
     return true;
+  },
+
+  updateObraPedidoItensGestaoInIds: async (itemIds, campos = {}) => {
+    const lista = (Array.isArray(itemIds) ? itemIds : []).filter(
+      (id) => id != null,
+    );
+    if (!lista.length) return [];
+
+    const payload = {};
+    if (campos.fornecedor_id !== undefined) {
+      payload.fornecedor_id = campos.fornecedor_id || null;
+    }
+    if (campos.etapa_nome !== undefined) {
+      payload.etapa_nome = campos.etapa_nome
+        ? String(campos.etapa_nome).trim()
+        : null;
+    }
+    if (!Object.keys(payload).length) return [];
+
+    const { data, error } = await supabase
+      .from("obra_pedido_itens")
+      .update(payload)
+      .in("id", lista)
+      .select("id, material_relatorio_id");
+    if (error) throw new Error(mensagemErroPedido(error));
+
+    if (campos.etapa_nome !== undefined) {
+      const matIds = (data || [])
+        .map((item) => item.material_relatorio_id)
+        .filter((id) => id != null);
+      if (matIds.length) {
+        await api.updateMateriaisEtapaInIds(matIds, payload.etapa_nome);
+      }
+    }
+    return data || [];
   },
 
   removerItemDaOrdemCompra: async (itemId) => {
@@ -2897,7 +3101,7 @@ export const api = {
     const { data: itens, error: errI } = await supabase
       .from("obra_pedido_itens")
       .select(
-        "id, pedido_id, material, quantidade, unidade, data_entrega, grupo_compra_id, material_relatorio_id, fornecedor_id, data_pagamento, valor",
+        "id, pedido_id, material, quantidade, unidade, data_entrega, grupo_compra_id, material_relatorio_id, fornecedor_id, data_pagamento, valor, etapa_nome",
       )
       .eq("pedido_id", pedidoId);
     if (errI) throw new Error(mensagemErroPedido(errI));
@@ -2933,9 +3137,37 @@ export const api = {
     if (error) throw new Error(mensagemErroPedido(error));
   },
 
+  _aplicarEtapaItensGrupo: async (grupoId, etapaNome) => {
+    const etapa = etapaNome ? String(etapaNome).trim() : null;
+    const { data, error } = await supabase
+      .from("obra_pedido_itens")
+      .update({ etapa_nome: etapa })
+      .eq("grupo_compra_id", grupoId)
+      .select("id, material_relatorio_id");
+    if (error) throw new Error(mensagemErroPedido(error));
+
+    const matIds = (data || [])
+      .map((item) => item.material_relatorio_id)
+      .filter((id) => id != null);
+    if (matIds.length) {
+      await api.updateMateriaisEtapaInIds(matIds, etapa);
+    }
+  },
+
   updateGrupoCompraFornecedor: async (grupoId, fornecedorId) => {
     if (!grupoId) throw new Error("Grupo inválido.");
     await api._aplicarFornecedorItensGrupo(grupoId, fornecedorId || null);
+    const { data: grupo } = await supabase
+      .from("obra_pedido_grupos_compra")
+      .select("pedido_id")
+      .eq("id", grupoId)
+      .maybeSingle();
+    return api.getPedidoGruposCompra(grupo?.pedido_id);
+  },
+
+  updateGrupoCompraEtapa: async (grupoId, etapaNome) => {
+    if (!grupoId) throw new Error("Grupo inválido.");
+    await api._aplicarEtapaItensGrupo(grupoId, etapaNome || null);
     const { data: grupo } = await supabase
       .from("obra_pedido_grupos_compra")
       .select("pedido_id")
@@ -2949,6 +3181,7 @@ export const api = {
     emitente,
     itemIds,
     fornecedorId,
+    etapaNome,
     separarPorItem = false,
   }) => {
     const pedido = await api.getObraPedidoById(pedidoId);
@@ -3009,7 +3242,10 @@ export const api = {
 
       const { error: errUp } = await supabase
         .from("obra_pedido_itens")
-        .update({ grupo_compra_id: grupo.id })
+        .update({
+          grupo_compra_id: grupo.id,
+          ...(etapaNome ? { etapa_nome: String(etapaNome).trim() } : {}),
+        })
         .in("id", listaIds)
         .eq("pedido_id", pedidoId)
         .is("grupo_compra_id", null);
@@ -3082,7 +3318,7 @@ export const api = {
     const { data: itens, error: errI } = await supabase
       .from("obra_pedido_itens")
       .select(
-        "id, material, quantidade, unidade, data_entrega, material_relatorio_id, fornecedor_id, valor",
+        "id, material, quantidade, unidade, data_entrega, material_relatorio_id, fornecedor_id, valor, etapa_nome",
       )
       .eq("grupo_compra_id", grupoId);
     if (errI) throw new Error(mensagemErroPedido(errI));
@@ -3107,6 +3343,7 @@ export const api = {
           data_vencimento: item.data_entrega || null,
           status_financeiro: "Aguardando pagamento",
           status: "Aguardando entrega",
+          etapa_nome: item.etapa_nome || null,
         };
 
         let { data: mat, error: errM } = await supabase
@@ -3380,10 +3617,10 @@ export const api = {
       .from("obras")
       .select(
         `id, cliente, local, status, clientes!cliente_id(nome, tipo),
-        materiais:relatorio_materiais(id, material, quantidade, valor, data_solicitacao, data_vencimento, status_financeiro, fornecedores(nome)),
-        maoDeObra:relatorio_mao_de_obra(id, tipo, profissional, valor_cobrado, valor_orcado, valor_pago, saldo, data_solicitacao, validacao),
-        locacoes:relatorio_locacoes(id, equipamento, valor, data_coleta, data_vencimento, validacao, status_financeiro),
-        relatorioExtrato:relatorio_extrato(id, descricao, tipo, valor, data, status_financeiro, material_id, mao_de_obra_id, locacao_id)`,
+        materiais:relatorio_materiais(id, material, quantidade, valor, data_solicitacao, data_vencimento, status_financeiro, etapa_nome, fornecedores(nome)),
+        maoDeObra:relatorio_mao_de_obra(id, tipo, profissional, valor_cobrado, valor_orcado, valor_pago, saldo, data_solicitacao, validacao, etapa_nome),
+        locacoes:relatorio_locacoes(id, equipamento, valor, data_coleta, data_vencimento, validacao, status_financeiro, etapa_nome),
+        relatorioExtrato:relatorio_extrato(id, descricao, tipo, valor, data, status_financeiro, material_id, mao_de_obra_id, locacao_id, etapa_nome)`,
       )
       .eq("id", obraId)
       .maybeSingle();

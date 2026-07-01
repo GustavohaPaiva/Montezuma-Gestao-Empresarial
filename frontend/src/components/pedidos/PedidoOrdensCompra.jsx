@@ -28,6 +28,7 @@ import {
   pedidoSubpainelTituloClass,
   selectPremium,
 } from "./pedidosUi";
+import { etapasParaSelectOptions } from "../../pages/obras/detalhe/utils/etapasLancamento";
 
 /**
  * @param {{ pedido: object, obra?: object, onAtualizarPedido?: () => void }} props
@@ -44,6 +45,7 @@ export default function PedidoOrdensCompra({
   const [selecionados, setSelecionados] = useState(() => new Set());
   const [emitente, setEmitente] = useState(EMITENTE_ORDEM_MONTEZUMA);
   const [fornecedorId, setFornecedorId] = useState("");
+  const [etapaNome, setEtapaNome] = useState("");
   const [fornecedores, setFornecedores] = useState([]);
   const [gerando, setGerando] = useState(false);
   const [obraCompleta, setObraCompleta] = useState(obra ?? null);
@@ -129,6 +131,7 @@ export default function PedidoOrdensCompra({
         emitente,
         itemIds: [...selecionados],
         fornecedorId: fornecedorId || null,
+        etapaNome: etapaNome || null,
         separarPorItem: false,
       });
       setGrupos(resultado.grupos || []);
@@ -164,6 +167,15 @@ export default function PedidoOrdensCompra({
     return item?.fornecedor_id ?? "";
   };
 
+  const etapaDoGrupo = (grupo) => {
+    const itens = grupo.itens || [];
+    if (!itens.length) return "";
+    const nomes = [
+      ...new Set(itens.map((i) => i.etapa_nome || "").filter(Boolean)),
+    ];
+    return nomes.length === 1 ? nomes[0] : "";
+  };
+
   const handleFornecedorGrupo = async (grupoId, novoFornecedorId) => {
     setSalvandoGrupoId(grupoId);
     setErro(null);
@@ -176,6 +188,23 @@ export default function PedidoOrdensCompra({
       setItensSemGrupo(resultado.itensSemGrupo || []);
     } catch (e) {
       setErro(e?.message || "Não foi possível atualizar o fornecedor.");
+    } finally {
+      setSalvandoGrupoId(null);
+    }
+  };
+
+  const handleEtapaGrupo = async (grupoId, novaEtapa) => {
+    setSalvandoGrupoId(grupoId);
+    setErro(null);
+    try {
+      const resultado = await api.updateGrupoCompraEtapa(
+        grupoId,
+        novaEtapa || null,
+      );
+      setGrupos(resultado.grupos || []);
+      setItensSemGrupo(resultado.itensSemGrupo || []);
+    } catch (e) {
+      setErro(e?.message || "Não foi possível atualizar a etapa.");
     } finally {
       setSalvandoGrupoId(null);
     }
@@ -302,6 +331,23 @@ export default function PedidoOrdensCompra({
                 ]}
               />
             </label>
+            <label className="flex flex-col gap-1.5 md:col-span-2">
+              <span className={pedidoSubpainelTituloClass}>
+                Etapa (todos os itens desta ordem)
+              </span>
+              <BaseSelect
+                searchable
+                value={etapaNome}
+                onChange={(e) => setEtapaNome(e.target.value)}
+                className={selectPremium}
+                options={[
+                  { value: "", label: "— Sem etapa —" },
+                  ...etapasParaSelectOptions(obraCompleta, {
+                    incluirVazio: false,
+                  }),
+                ]}
+              />
+            </label>
           </div>
 
           <div className="mt-5 flex justify-end border-t border-border-primary/20 pt-4">
@@ -382,7 +428,7 @@ export default function PedidoOrdensCompra({
                 ))}
               </ul>
 
-              <div className="grid grid-cols-1 gap-3 border-t border-border-primary/20 pt-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 border-t border-border-primary/20 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                 <label className="flex min-w-0 flex-col gap-1.5">
                   <span className={pedidoSubpainelTituloClass}>Fornecedor</span>
                   <BaseSelect
@@ -400,6 +446,19 @@ export default function PedidoOrdensCompra({
                         label: f.nome,
                       })),
                     ]}
+                  />
+                </label>
+                <label className="flex min-w-0 flex-col gap-1.5">
+                  <span className={pedidoSubpainelTituloClass}>
+                    Etapa (todos os itens)
+                  </span>
+                  <BaseSelect
+                    searchable
+                    value={etapaDoGrupo(grupo)}
+                    disabled={salvandoGrupoId === grupo.id}
+                    onChange={(e) => handleEtapaGrupo(grupo.id, e.target.value)}
+                    className={selectPremium}
+                    options={etapasParaSelectOptions(obraCompleta)}
                   />
                 </label>
                 <label className="flex min-w-0 flex-col gap-1.5">

@@ -3,14 +3,21 @@ import ButtonDefault from "../gerais/ButtonDefault";
 import BaseSelect from "../gerais/BaseSelect";
 import ModalPortal from "../gerais/ModalPortal";
 import { api } from "../../services/api";
+import {
+  etapasParaSelectOptions,
+  getEtapaPadrao,
+  isEtapaObrigatoria,
+  validarEtapaLancamento,
+} from "../../pages/obras/detalhe/utils/etapasLancamento";
 
-export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
+export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra, obra }) {
   const [formData, setFormData] = useState({
     tipo: "",
     classe_id: "",
     prestador_id: "",
     valor: "",
   });
+  const [etapaNome, setEtapaNome] = useState("");
   const [classes, setClasses] = useState([]);
   const [prestadores, setPrestadores] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
@@ -31,6 +38,11 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
     };
     carregarClasses();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setEtapaNome((prev) => prev || getEtapaPadrao(obra) || "");
+  }, [isOpen, obra]);
 
   useEffect(() => {
     const carregarPrestadores = async () => {
@@ -67,16 +79,25 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
       return;
     }
 
+    const erroEtapa = validarEtapaLancamento(obra, etapaNome);
+    if (erroEtapa) {
+      alert(erroEtapa);
+      return;
+    }
+
     onSave({
       ...formData,
       profissional: prestadorSelecionado?.nome || "",
       classe_id: Number(formData.classe_id),
       prestador_id: Number(formData.prestador_id),
+      etapa_nome: etapaNome || null,
     });
 
     setFormData({ tipo: "", classe_id: "", prestador_id: "", valor: "" });
     setPrestadores([]);
   };
+
+  const etapaObrigatoria = isEtapaObrigatoria(obra);
 
   return (
     <ModalPortal>
@@ -198,6 +219,26 @@ export default function ModalMaoDeObra({ isOpen, onClose, onSave, nomeObra }) {
                     value: String(opcao.id),
                     label: opcao.nome,
                   })) ?? []),
+                ]}
+              />
+            </div>
+
+            <div className="flex flex-col gap-[5px]">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                Etapa{etapaObrigatoria ? " *" : ""}
+              </label>
+              <BaseSelect
+                searchable
+                value={etapaNome}
+                onChange={(e) => setEtapaNome(e.target.value)}
+                options={[
+                  {
+                    value: "",
+                    label: etapaObrigatoria
+                      ? "Selecione a etapa..."
+                      : "— Sem etapa —",
+                  },
+                  ...etapasParaSelectOptions(obra, { incluirVazio: false }),
                 ]}
               />
             </div>
