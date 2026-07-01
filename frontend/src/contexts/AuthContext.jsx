@@ -1,8 +1,21 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../services/supabase";
 import { api } from "../services/api";
 
 const AuthContext = createContext();
+
+function parseSubclasses(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -14,6 +27,51 @@ export function AuthProvider({ children }) {
   });
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id || user.tipo === "cliente") return;
+
+    let cancelado = false;
+
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("usuarios")
+          .select("tipo, escritorio, nome, escritorio_id, subclasses")
+          .eq("id", user.id)
+          .single();
+
+        if (cancelado || error || !data) return;
+
+        const subclasses = parseSubclasses(data.subclasses);
+        const atual = parseSubclasses(user.subclasses);
+        const mudou =
+          JSON.stringify(subclasses) !== JSON.stringify(atual) ||
+          data.tipo !== user.tipo ||
+          data.escritorio_id !== user.escritorio_id;
+
+        if (!mudou) return;
+
+        const userData = {
+          ...user,
+          nome: data.nome ?? user.nome,
+          tipo: data.tipo,
+          escritorio: data.escritorio,
+          escritorio_id: data.escritorio_id ?? null,
+          subclasses,
+        };
+
+        setUser(userData);
+        sessionStorage.setItem("montezuma_session", JSON.stringify(userData));
+      } catch (e) {
+        console.error("[AuthContext] refresh subclasses:", e);
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [user?.id, user?.tipo]);
 
   const updateUserFoto = (novaFotoUrl) => {
     if (user) {
@@ -97,7 +155,7 @@ export function AuthProvider({ children }) {
 
       const { data: usuarioData, error: usuarioError } = await supabase
         .from("usuarios")
-        .select("tipo, escritorio, nome, escritorio_id")
+        .select("tipo, escritorio, nome, escritorio_id, subclasses")
         .eq("id", data.user.id)
         .single();
 
@@ -106,6 +164,8 @@ export function AuthProvider({ children }) {
 
       const fotoDoAdmin = data.user.user_metadata?.foto || null;
 
+      const subclasses = parseSubclasses(usuarioData.subclasses);
+
       const userData = {
         id: data.user.id,
         email: data.user.email,
@@ -113,6 +173,7 @@ export function AuthProvider({ children }) {
         tipo: usuarioData.tipo,
         escritorio: usuarioData.escritorio,
         escritorio_id: usuarioData.escritorio_id ?? null,
+        subclasses,
         foto: fotoDoAdmin,
       };
 

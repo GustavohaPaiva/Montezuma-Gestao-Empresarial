@@ -17,6 +17,7 @@ import {
   Circle,
   ArrowUpRight,
   ArrowDownLeft,
+  ClipboardList,
 } from "lucide-react";
 import {
   ESCRITORIO_NOME_POR_ID,
@@ -64,6 +65,13 @@ const ACESSOS_RAPIDOS = [
     descricao: "Compromissos",
     path: "agenda",
     Icon: CalendarCheck,
+  },
+  {
+    id: "ordens-servico",
+    titulo: "Ordens de Serviço",
+    descricao: "Solicitações e PDFs",
+    path: "ordens-servico",
+    Icon: ClipboardList,
   },
 ];
 

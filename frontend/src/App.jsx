@@ -40,6 +40,9 @@ import RelatorioFinanceiroSemana from "./pages/relatorios-diretoria/RelatorioFin
 import RelatorioSemanaDetalhe from "./pages/relatorios-diretoria/RelatorioSemanaDetalhe";
 // GAMBIARRA TESTE PROPOSTA VK — remover esta linha junto com a rota abaixo
 import TesteProvaVK from "./pages/escritorios/TesteProvaVK";
+import OrdensServicoLista from "./pages/ordens-servico/OrdensServicoLista";
+import OrdemServicoForm from "./pages/ordens-servico/OrdemServicoForm";
+import OrdemServicoDetalhe from "./pages/ordens-servico/OrdemServicoDetalhe";
 
 import "./index.css";
 
@@ -234,6 +237,48 @@ export default function App() {
           </Route>
 
           <Route
+            element={
+              <RotaProtegida
+                allowedTypes={[
+                  "gestor_master",
+                  "diretoria",
+                  "secretaria",
+                  "suporte_ti",
+                  "encarregado",
+                  "funcionario",
+                  "dono",
+                  "admin",
+                ]}
+              />
+            }
+          >
+            <Route
+              path="/ordens-servico"
+              element={
+                <PageTransition>
+                  <OrdensServicoLista variant="montezuma" />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/ordens-servico/nova"
+              element={
+                <PageTransition>
+                  <OrdemServicoForm variant="montezuma" />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/ordens-servico/:id"
+              element={
+                <PageTransition>
+                  <OrdemServicoDetalhe variant="montezuma" />
+                </PageTransition>
+              }
+            />
+          </Route>
+
+          <Route
             element={<RotaProtegida allowedTypes={["diretoria"]} />}
           >
             <Route
@@ -347,6 +392,30 @@ export default function App() {
                 element={
                   <PageTransition>
                     <AgendaEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="ordens-servico"
+                element={
+                  <PageTransition>
+                    <OrdensServicoLista variant="vogelkop" />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="ordens-servico/nova"
+                element={
+                  <PageTransition>
+                    <OrdemServicoForm variant="vogelkop" />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="ordens-servico/:id"
+                element={
+                  <PageTransition>
+                    <OrdemServicoDetalhe variant="vogelkop" />
                   </PageTransition>
                 }
               />

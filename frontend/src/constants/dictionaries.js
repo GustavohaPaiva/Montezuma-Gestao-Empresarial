@@ -21,6 +21,7 @@ export const homeDictionary = {
     suprimentosServicos: "Suprimentos e Serviços",
     pedidos: "Pedidos",
     projecoes: "Projeções",
+    ordensServico: "Ordens de Serviço",
     categorias: {
       escritorio: "Escritório",
       administrativo: "Administrativo",
@@ -49,6 +50,8 @@ export const homeDictionary = {
         "Crie e acompanhe pedidos de compra, aprovações e entregas com rastreabilidade total.",
       projecoes:
         "Analise cenários financeiros, projeções de receita e indicadores estratégicos do negócio.",
+      ordensServico:
+        "Emita solicitações internas e gere PDFs de ordem de serviço para clientes.",
     },
     destaques: {
       meuEscritorio: ["Agenda", "Reuniões", "Visitas"],
@@ -60,6 +63,7 @@ export const homeDictionary = {
       suprimentosServicos: ["Fornecedores", "Prestadores", "Cadastro"],
       pedidos: ["Compras", "Aprovações", "Entregas"],
       projecoes: ["Cenários", "Indicadores", "Relatórios"],
+      ordensServico: ["Solicitações", "PDF", "Pendências"],
     },
     card: {
       acessar: "Acessar módulo",

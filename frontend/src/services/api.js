@@ -3862,4 +3862,191 @@ export const api = {
       .eq("id", id);
     if (error) throw error;
   },
+
+  proximoNumeroOS: async (escritorioId) => {
+    if (!escritorioId) throw new Error("escritorio_id obrigatório.");
+    const { data, error } = await supabase
+      .from("ordens_servico")
+      .select("numero")
+      .eq("escritorio_id", escritorioId)
+      .order("numero", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return (data?.numero ?? 0) + 1;
+  },
+
+  listOrdensServico: async ({ escritorioId } = {}) => {
+    let query = supabase
+      .from("ordens_servico")
+      .select(
+        `
+        *,
+        criador:usuarios!ordens_servico_criador_id_fkey(id, nome),
+        responsavel:usuarios!ordens_servico_responsavel_id_fkey(id, nome),
+        concluido_por:usuarios!ordens_servico_concluido_por_id_fkey(id, nome)
+      `,
+      )
+      .order("data_emissao", { ascending: false })
+      .order("numero", { ascending: false });
+
+    if (escritorioId) {
+      query = query.eq("escritorio_id", escritorioId);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      const { data: fallback, error: err2 } = await supabase
+        .from("ordens_servico")
+        .select("*")
+        .order("data_emissao", { ascending: false })
+        .order("numero", { ascending: false });
+      if (escritorioId && !err2) {
+        return (fallback || []).filter(
+          (r) => String(r.escritorio_id) === String(escritorioId),
+        );
+      }
+      if (err2) throw error;
+      return Array.isArray(fallback) ? fallback : [];
+    }
+    return Array.isArray(data) ? data : [];
+  },
+
+  getOrdemServicoById: async (id) => {
+    if (!id) return null;
+    const { data, error } = await supabase
+      .from("ordens_servico")
+      .select(
+        `
+        *,
+        criador:usuarios!ordens_servico_criador_id_fkey(id, nome),
+        responsavel:usuarios!ordens_servico_responsavel_id_fkey(id, nome),
+        concluido_por:usuarios!ordens_servico_concluido_por_id_fkey(id, nome)
+      `,
+      )
+      .eq("id", id)
+      .maybeSingle();
+    if (error) {
+      const { data: fallback, error: err2 } = await supabase
+        .from("ordens_servico")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (err2) throw error;
+      return fallback;
+    }
+    return data;
+  },
+
+  createOrdemServico: async (payload) => {
+    if (!payload?.escritorio_id) {
+      throw new Error("escritorio_id obrigatório.");
+    }
+    if (!payload?.criador_id) {
+      throw new Error("criador_id obrigatório.");
+    }
+
+    const numero =
+      payload.numero ??
+      (await (async () => {
+        const { data, error } = await supabase
+          .from("ordens_servico")
+          .select("numero")
+          .eq("escritorio_id", payload.escritorio_id)
+          .order("numero", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        return (data?.numero ?? 0) + 1;
+      })());
+
+    const row = omitUndefined({
+      numero,
+      escritorio_id: payload.escritorio_id,
+      criador_id: payload.criador_id,
+      responsavel_id: payload.responsavel_id || null,
+      status: payload.status || "pendente",
+      data_emissao: payload.data_emissao || new Date().toISOString().slice(0, 10),
+      cliente_id: payload.cliente_id || null,
+      responsavel_tecnico: payload.responsavel_tecnico || null,
+      cliente_nome: payload.cliente_nome || null,
+      cliente_telefone: payload.cliente_telefone || null,
+      cliente_email: payload.cliente_email || null,
+      endereco_projeto: payload.endereco_projeto || null,
+      objeto_servico: payload.objeto_servico || null,
+      escopo: Array.isArray(payload.escopo) ? payload.escopo : [],
+      escopo_outro: payload.escopo_outro || null,
+      descricao_servicos: payload.descricao_servicos || null,
+      data_inicio: payload.data_inicio || null,
+      data_entrega_prevista: payload.data_entrega_prevista || null,
+      observacoes_prazos: payload.observacoes_prazos || null,
+      valor_total:
+        payload.valor_total != null && payload.valor_total !== ""
+          ? Number(payload.valor_total)
+          : null,
+      formas_pagamento: Array.isArray(payload.formas_pagamento)
+        ? payload.formas_pagamento
+        : [],
+      forma_pagamento_outro: payload.forma_pagamento_outro || null,
+      observacoes_gerais: payload.observacoes_gerais || null,
+      updated_at: new Date().toISOString(),
+    });
+
+    const { data, error } = await supabase
+      .from("ordens_servico")
+      .insert(row)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  updateOrdemServico: async (id, payload) => {
+    if (!id) throw new Error("ID da OS é obrigatório.");
+    const limpo = { ...payload };
+    delete limpo.id;
+    delete limpo.numero;
+    delete limpo.criador_id;
+    delete limpo.escritorio_id;
+    if (limpo.valor_total != null && limpo.valor_total !== "") {
+      limpo.valor_total = Number(limpo.valor_total);
+    }
+    limpo.updated_at = new Date().toISOString();
+    const cleaned = omitUndefined(limpo);
+
+    const { data, error } = await supabase
+      .from("ordens_servico")
+      .update(cleaned)
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  concluirOrdemServico: async (id, usuarioId) => {
+    if (!id) throw new Error("ID da OS é obrigatório.");
+    const { data, error } = await supabase
+      .from("ordens_servico")
+      .update({
+        status: "concluida",
+        data_conclusao: new Date().toISOString(),
+        concluido_por_id: usuarioId || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  listUsuariosDestinatariosOS: async () => {
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id, nome, tipo, escritorio_id, subclasses")
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
 };
