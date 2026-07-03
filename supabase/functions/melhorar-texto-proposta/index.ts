@@ -36,6 +36,28 @@ ${texto}
 """`;
   }
 
+  if (contexto === "ordem_servico") {
+    return `Você é redator de ordens de serviço de um escritório de arquitetura no Brasil.
+
+Reescreva o texto abaixo em português brasileiro formal, claro e profissional.
+Corrija gramática, ortografia e pontuação. Melhore a fluidez sem mudar o sentido nem inventar informações.
+Use tom adequado a contrato comercial / ordem de serviço (objetivo, preciso e cordial).
+
+Regras obrigatórias:
+- Máximo ${maxLinhas} linhas (quebras de linha só entre frases completas).
+- Cada linha deve ser uma frase completa terminada em . ! ou ?
+- A última linha DEVE fechar o texto com pontuação final — nunca pare no meio de palavra ou frase.
+- Se o conteúdo for longo, resuma reescrevendo de forma mais concisa; não truncar nem cortar.
+
+Não use markdown, títulos, bullets, aspas envolvendo o texto inteiro nem explicações.
+Retorne APENAS o texto final reescrito.
+
+Texto original:
+"""
+${texto}
+"""`;
+  }
+
   return `Você é redator de propostas comerciais de um escritório de arquitetura no Brasil.
 
 Reescreva o texto abaixo em português brasileiro formal, claro e profissional.
@@ -65,7 +87,9 @@ function montarPromptAjuste(
   const papel =
     contexto === "relatorio_obra"
       ? "relatórios de obras de construção civil"
-      : "propostas comerciais de arquitetura";
+      : contexto === "ordem_servico"
+        ? "ordens de serviço de arquitetura"
+        : "propostas comerciais de arquitetura";
 
   return `Você é redator de ${papel} no Brasil.
 

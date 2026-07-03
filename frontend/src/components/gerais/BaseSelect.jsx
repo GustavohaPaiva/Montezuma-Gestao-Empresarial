@@ -101,7 +101,7 @@ function useDropdownPosition(isOpen, triggerRef) {
       width: rect.width,
       top: openUpward ? undefined : rect.bottom + gap,
       bottom: openUpward ? window.innerHeight - rect.top + gap : undefined,
-      zIndex: 9999,
+      zIndex: 10050,
     });
   }, [triggerRef]);
 

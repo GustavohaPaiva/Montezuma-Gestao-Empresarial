@@ -179,9 +179,39 @@ export default function Navbar({
             </div>
           </div>
 
-          {userProfile ? (
-            <UserProfileBlock userProfile={userProfile} elaborate />
-          ) : null}
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            {safeActions.length > 0 ? (
+              <div className="flex shrink-0 items-center gap-2">
+                {safeActions.map((action, index) => {
+                  if (action?.hidden) return null;
+                  return (
+                    <button
+                      key={action?.key || action?.label || index}
+                      type={action?.type || "button"}
+                      onClick={action?.onClick}
+                      disabled={action?.disabled}
+                      className={joinClasses(
+                        "inline-flex min-h-[2.25rem] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold tracking-tight ring-1 ring-slate-900/5 transition-all duration-200 sm:px-3.5 sm:text-sm",
+                        action?.className ||
+                          "bg-white text-text-primary hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60",
+                      )}
+                    >
+                      {action?.icon ? (
+                        <span className="inline-flex shrink-0">
+                          {action.icon}
+                        </span>
+                      ) : null}
+                      <span className="hidden sm:inline">{action?.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {userProfile ? (
+              <UserProfileBlock userProfile={userProfile} elaborate />
+            ) : null}
+          </div>
         </div>
       </header>
     );
@@ -205,7 +235,7 @@ export default function Navbar({
         />
 
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-semibold tracking-tight text-text-primary text-3xl">
+          <h1 className="break-words text-xl font-semibold tracking-tight text-text-primary sm:text-2xl md:text-3xl">
             {title}
           </h1>
           {subtitle ? (

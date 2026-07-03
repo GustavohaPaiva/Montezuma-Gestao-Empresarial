@@ -38,10 +38,7 @@ import RelatorioObraDetalhe from "./pages/relatorios-diretoria/RelatorioObraDeta
 import RelatorioObraLancamento from "./pages/relatorios-diretoria/RelatorioObraLancamento";
 import RelatorioFinanceiroSemana from "./pages/relatorios-diretoria/RelatorioFinanceiroSemana";
 import RelatorioSemanaDetalhe from "./pages/relatorios-diretoria/RelatorioSemanaDetalhe";
-// GAMBIARRA TESTE PROPOSTA VK — remover esta linha junto com a rota abaixo
-import TesteProvaVK from "./pages/escritorios/TesteProvaVK";
 import OrdensServicoLista from "./pages/ordens-servico/OrdensServicoLista";
-import OrdemServicoForm from "./pages/ordens-servico/OrdemServicoForm";
 import OrdemServicoDetalhe from "./pages/ordens-servico/OrdemServicoDetalhe";
 
 import "./index.css";
@@ -51,9 +48,6 @@ export default function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* GAMBIARRA TESTE PROPOSTA VK — rota pública de teste, remover quando não precisar mais */}
-          <Route path="/teste-proposta-vk" element={<TesteProvaVK />} />
-
           <Route
             path="/login"
             element={
@@ -181,6 +175,7 @@ export default function App() {
                   "diretoria",
                   "secretaria",
                   "suporte_ti",
+                  "encarregado",
                 ]}
               />
             }
@@ -261,14 +256,6 @@ export default function App() {
               }
             />
             <Route
-              path="/ordens-servico/nova"
-              element={
-                <PageTransition>
-                  <OrdemServicoForm variant="montezuma" />
-                </PageTransition>
-              }
-            />
-            <Route
               path="/ordens-servico/:id"
               element={
                 <PageTransition>
@@ -278,9 +265,7 @@ export default function App() {
             />
           </Route>
 
-          <Route
-            element={<RotaProtegida allowedTypes={["diretoria"]} />}
-          >
+          <Route element={<RotaProtegida allowedTypes={["diretoria"]} />}>
             <Route
               path="/obras/:id"
               element={
@@ -400,14 +385,6 @@ export default function App() {
                 element={
                   <PageTransition>
                     <OrdensServicoLista variant="vogelkop" />
-                  </PageTransition>
-                }
-              />
-              <Route
-                path="ordens-servico/nova"
-                element={
-                  <PageTransition>
-                    <OrdemServicoForm variant="vogelkop" />
                   </PageTransition>
                 }
               />

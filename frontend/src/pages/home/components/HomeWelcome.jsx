@@ -10,7 +10,12 @@ import {
   formatDataHojeExtenso,
 } from "../homeUi";
 
-export default function HomeWelcome({ modulosCount, nomeUsuario, saudacao }) {
+export default function HomeWelcome({
+  modulosCount,
+  nomeUsuario,
+  saudacao,
+  acessoLimitado = false,
+}) {
   const dataHoje = formatDataHojeExtenso();
 
   return (
@@ -73,7 +78,9 @@ export default function HomeWelcome({ modulosCount, nomeUsuario, saudacao }) {
               {homeDictionary.session.modulesAvailable}
             </span>
             <span className="text-xs text-text-muted">
-              {homeDictionary.session.fullAccess}
+              {acessoLimitado
+                ? homeDictionary.session.limitedAccess
+                : homeDictionary.session.fullAccess}
             </span>
           </aside>
         </div>

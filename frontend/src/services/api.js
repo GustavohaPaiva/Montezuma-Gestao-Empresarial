@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { ID_MONTEZUMA, ID_VOGELKOP, ID_YBYOCA } from "../constants/escritorios";
+import { escritorioIdsClientesOrdemServico } from "../pages/ordens-servico/ordensServicoUtils";
 import { STATUS as TAREFA_STATUS } from "../pages/tarefas/tarefasHelpers";
 import {
   enriquecerNumerosPedidos,
@@ -41,6 +42,51 @@ function omitUndefined(obj) {
     if (out[k] === undefined) delete out[k];
   });
   return out;
+}
+
+async function enrichOrdensServicoComUsuarios(rows) {
+  const lista = Array.isArray(rows) ? rows : rows ? [rows] : [];
+  if (lista.length === 0) return rows;
+
+  const ids = new Set();
+  for (const row of lista) {
+    if (row.criador_id) ids.add(row.criador_id);
+    if (row.responsavel_id) ids.add(row.responsavel_id);
+    if (row.concluido_por_id) ids.add(row.concluido_por_id);
+  }
+  if (ids.size === 0) return rows;
+
+  const { data: usuarios, error } = await supabase
+    .from("usuarios")
+    .select("id, nome")
+    .in("id", [...ids]);
+  if (error) throw error;
+
+  const porId = Object.fromEntries(
+    (usuarios || []).map((u) => [String(u.id), { id: u.id, nome: u.nome }]),
+  );
+  const enriquecer = (row) => ({
+    ...row,
+    criador: row.criador_id ? porId[String(row.criador_id)] || null : null,
+    responsavel: row.responsavel_id
+      ? porId[String(row.responsavel_id)] || null
+      : null,
+    concluido_por: row.concluido_por_id
+      ? porId[String(row.concluido_por_id)] || null
+      : null,
+  });
+
+  return Array.isArray(rows) ? lista.map(enriquecer) : enriquecer(lista[0]);
+}
+
+function normalizarOutrosJsonb(val) {
+  if (Array.isArray(val)) {
+    return val.map((s) => String(s ?? "").trim()).filter(Boolean);
+  }
+  if (typeof val === "string" && val.trim()) {
+    return [val.trim()];
+  }
+  return [];
 }
 
 function isExtratoFinanceiroPago(statusFinanceiro) {
@@ -553,6 +599,18 @@ export const api = {
       .order("data", { ascending: false });
     if (error) throw error;
     return data;
+  },
+
+  listClientesOrdemServico: async (variant = "montezuma") => {
+    const ids = escritorioIdsClientesOrdemServico(variant);
+    if (!ids.length) return [];
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*")
+      .in("escritorio_id", ids)
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
   },
 
   getClientesPorEscritorios: async (escritorioIds) => {
@@ -3879,14 +3937,7 @@ export const api = {
   listOrdensServico: async ({ escritorioId } = {}) => {
     let query = supabase
       .from("ordens_servico")
-      .select(
-        `
-        *,
-        criador:usuarios!ordens_servico_criador_id_fkey(id, nome),
-        responsavel:usuarios!ordens_servico_responsavel_id_fkey(id, nome),
-        concluido_por:usuarios!ordens_servico_concluido_por_id_fkey(id, nome)
-      `,
-      )
+      .select("*")
       .order("data_emissao", { ascending: false })
       .order("numero", { ascending: false });
 
@@ -3895,47 +3946,20 @@ export const api = {
     }
 
     const { data, error } = await query;
-    if (error) {
-      const { data: fallback, error: err2 } = await supabase
-        .from("ordens_servico")
-        .select("*")
-        .order("data_emissao", { ascending: false })
-        .order("numero", { ascending: false });
-      if (escritorioId && !err2) {
-        return (fallback || []).filter(
-          (r) => String(r.escritorio_id) === String(escritorioId),
-        );
-      }
-      if (err2) throw error;
-      return Array.isArray(fallback) ? fallback : [];
-    }
-    return Array.isArray(data) ? data : [];
+    if (error) throw error;
+    return enrichOrdensServicoComUsuarios(Array.isArray(data) ? data : []);
   },
 
   getOrdemServicoById: async (id) => {
     if (!id) return null;
     const { data, error } = await supabase
       .from("ordens_servico")
-      .select(
-        `
-        *,
-        criador:usuarios!ordens_servico_criador_id_fkey(id, nome),
-        responsavel:usuarios!ordens_servico_responsavel_id_fkey(id, nome),
-        concluido_por:usuarios!ordens_servico_concluido_por_id_fkey(id, nome)
-      `,
-      )
+      .select("*")
       .eq("id", id)
       .maybeSingle();
-    if (error) {
-      const { data: fallback, error: err2 } = await supabase
-        .from("ordens_servico")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-      if (err2) throw error;
-      return fallback;
-    }
-    return data;
+    if (error) throw error;
+    if (!data) return null;
+    return enrichOrdensServicoComUsuarios(data);
   },
 
   createOrdemServico: async (payload) => {
@@ -3972,10 +3996,13 @@ export const api = {
       cliente_nome: payload.cliente_nome || null,
       cliente_telefone: payload.cliente_telefone || null,
       cliente_email: payload.cliente_email || null,
+      endereco_rua: payload.endereco_rua || null,
+      endereco_numero: payload.endereco_numero || null,
+      endereco_bairro: payload.endereco_bairro || null,
       endereco_projeto: payload.endereco_projeto || null,
       objeto_servico: payload.objeto_servico || null,
       escopo: Array.isArray(payload.escopo) ? payload.escopo : [],
-      escopo_outro: payload.escopo_outro || null,
+      escopo_outro: normalizarOutrosJsonb(payload.escopo_outro),
       descricao_servicos: payload.descricao_servicos || null,
       data_inicio: payload.data_inicio || null,
       data_entrega_prevista: payload.data_entrega_prevista || null,
@@ -3987,7 +4014,8 @@ export const api = {
       formas_pagamento: Array.isArray(payload.formas_pagamento)
         ? payload.formas_pagamento
         : [],
-      forma_pagamento_outro: payload.forma_pagamento_outro || null,
+      forma_pagamento_outro: normalizarOutrosJsonb(payload.forma_pagamento_outro),
+      responsabilidades_cliente: payload.responsabilidades_cliente || null,
       observacoes_gerais: payload.observacoes_gerais || null,
       updated_at: new Date().toISOString(),
     });
@@ -4041,11 +4069,21 @@ export const api = {
     return data;
   },
 
-  listUsuariosDestinatariosOS: async () => {
-    const { data, error } = await supabase
+  deleteOrdemServico: async (id) => {
+    if (!id) throw new Error("ID da OS é obrigatório.");
+    const { error } = await supabase.from("ordens_servico").delete().eq("id", id);
+    if (error) throw error;
+  },
+
+  listUsuariosDestinatariosOS: async ({ variant = "montezuma", escritorioId } = {}) => {
+    let query = supabase
       .from("usuarios")
       .select("id, nome, tipo, escritorio_id, subclasses")
       .order("nome", { ascending: true });
+    if (variant === "vogelkop" && escritorioId) {
+      query = query.eq("escritorio_id", escritorioId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   },

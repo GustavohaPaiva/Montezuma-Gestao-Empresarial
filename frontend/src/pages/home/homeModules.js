@@ -53,7 +53,7 @@ export const MODULOS_HOME = [
     statKey: "obrasAtivas",
     Icon: HardHat,
     path: "/obras",
-    roles: ["gestor_master", "diretoria", "secretaria", "suporte_ti"],
+    roles: ["gestor_master", "diretoria", "secretaria", "suporte_ti", "encarregado"],
   },
   {
     id: 4,

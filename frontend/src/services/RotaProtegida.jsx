@@ -7,7 +7,7 @@ const ENCARREGADO = "encarregado";
 function getFallbackRoute(user) {
   if (!user) return "/login";
   if (user.tipo === "cliente") return `/obra/${user.id}`;
-  if (user.tipo === ENCARREGADO) return "/obras";
+  if (user.tipo === ENCARREGADO) return "/";
   return "/";
 }
 

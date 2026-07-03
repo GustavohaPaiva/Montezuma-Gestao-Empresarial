@@ -1,4 +1,4 @@
-import { ID_VOGELKOP } from "./escritorios";
+import { ESCRITORIO_NOME_POR_ID } from "./escritorios";
 
 export const OS_SUBCLASSES = {
   gestor: "gestor_os",
@@ -39,12 +39,6 @@ export const OS_FORMAS_PAGAMENTO = [
 export const OS_OBJETO_PADRAO =
   "Prestação de serviços de arquitetura referente ao projeto localizado no endereço acima, conforme escopo descrito nesta Ordem de Serviço.";
 
-export const OS_RESPONSABILIDADES_CLIENTE = [
-  "Fornecer informações e documentos necessários para o desenvolvimento dos serviços.",
-  "Aprovar etapas dentro dos prazos estabelecidos.",
-  "Comunicar alterações ou solicitações adicionais por escrito.",
-];
-
 export const OS_OBSERVACOES_GERAIS_PADRAO = [
   "Alterações não previstas no escopo poderão gerar custos adicionais.",
   "Os prazos poderão ser ajustados em caso de atrasos nas aprovações ou fornecimento de informações pelo cliente.",
@@ -52,7 +46,9 @@ export const OS_OBSERVACOES_GERAIS_PADRAO = [
 ];
 
 export function prefixoPdfOrdemServico(escritorioId) {
-  return escritorioId === ID_VOGELKOP ? "VogelKop" : "Montezuma";
+  const nome = ESCRITORIO_NOME_POR_ID[escritorioId];
+  if (!nome) return "OrdemServico";
+  return nome.replace(/\s+/g, "");
 }
 
 export function emptyOrdemServicoForm() {
@@ -63,17 +59,20 @@ export function emptyOrdemServicoForm() {
     cliente_nome: "",
     cliente_telefone: "",
     cliente_email: "",
-    endereco_projeto: "",
+    endereco_rua: "",
+    endereco_numero: "",
+    endereco_bairro: "",
     objeto_servico: OS_OBJETO_PADRAO,
     escopo: [],
-    escopo_outro: "",
+    escopo_outros: [],
     descricao_servicos: "",
     data_inicio: "",
     data_entrega_prevista: "",
     observacoes_prazos: "",
     valor_total: "",
     formas_pagamento: [],
-    forma_pagamento_outro: "",
+    formas_pagamento_outros: [],
+    responsabilidades_cliente: "",
     observacoes_gerais: OS_OBSERVACOES_GERAIS_PADRAO.join("\n"),
     data_emissao: new Date().toISOString().slice(0, 10),
   };

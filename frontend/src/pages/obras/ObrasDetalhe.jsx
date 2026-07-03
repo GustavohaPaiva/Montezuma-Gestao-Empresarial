@@ -1672,7 +1672,9 @@ export default function ObrasDetalhe() {
                       <BaseSelect
                         searchable
                         value={filtroEtapaMateriais}
-                        onChange={(e) => setFiltroEtapaMateriais(e.target.value)}
+                        onChange={(e) =>
+                          setFiltroEtapaMateriais(e.target.value)
+                        }
                         wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
                         className={`${selectPremium} w-full`}
                         options={opcoesEtapasObra}

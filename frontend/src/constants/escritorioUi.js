@@ -1,5 +1,11 @@
 /** Tokens visuais compartilhados — selects e dropdowns no tema escuro dos escritórios. */
 
+export const escInputClass =
+  "h-10 w-full rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 text-sm text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 placeholder:text-esc-muted/60 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20 disabled:cursor-not-allowed disabled:opacity-60 [color-scheme:dark]";
+
+export const escTextareaClass =
+  "min-h-[88px] w-full rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 py-2.5 text-sm text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 placeholder:text-esc-muted/60 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20 disabled:cursor-not-allowed disabled:opacity-60";
+
 export const escSelectTriggerModal =
   "box-border min-h-0 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pr-9 text-left text-sm text-esc-text shadow-inner outline-none transition-all duration-300 focus:border-esc-destaque focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-esc-destaque";
 

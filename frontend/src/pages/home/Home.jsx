@@ -11,6 +11,7 @@ import {
   getSaudacao,
   getPerfilLabel,
   userVeDashboard,
+  userEhEncarregado,
 } from "./homeUi";
 import HomeBackground from "./components/HomeBackground";
 import Navbar from "../../components/navbar/Navbar";
@@ -35,6 +36,7 @@ export default function Home() {
   const modulosPermitidos = getModulosPermitidos(user);
   const { counts, loading, visible: dashboardVisible } = useHomeDashboard(user);
   const veAgendaEDashboard = userVeDashboard(user?.tipo);
+  const ehEncarregado = userEhEncarregado(user?.tipo);
 
   const nomeUsuario =
     user?.nome ||
@@ -136,6 +138,7 @@ export default function Home() {
           modulosCount={modulosPermitidos.length}
           nomeUsuario={nomeUsuario}
           saudacao={getSaudacao()}
+          acessoLimitado={ehEncarregado}
         />
         {veAgendaEDashboard ? <HomeWeeklyAgenda /> : null}
         {dashboardVisible ? (

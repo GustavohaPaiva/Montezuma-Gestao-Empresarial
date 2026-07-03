@@ -261,6 +261,10 @@ export function userVeDashboard(tipo) {
   return tipo === "diretoria" || tipo === "gestor_master";
 }
 
+export function userEhEncarregado(tipo) {
+  return tipo === "encarregado";
+}
+
 /** Índice 0–5 para Seg–Sáb; -1 para domingo (fora da rotina). */
 export function getDiaSemanaAgendaIndex(date = new Date()) {
   const jsDay = date.getDay();

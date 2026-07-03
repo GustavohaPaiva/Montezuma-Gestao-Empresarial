@@ -439,7 +439,7 @@ export default function HomeEscritorio() {
               </h2>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {ACESSOS_RAPIDOS.map((item) => {
               const { Icon } = item;
               return (

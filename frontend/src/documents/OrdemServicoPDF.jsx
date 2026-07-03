@@ -7,332 +7,642 @@ import {
   View,
 } from "@react-pdf/renderer";
 import logoMontezuma from "../assets/logos/logo sem fundo.png";
+import logoVogelkop from "../assets/documents/vogelkop-proposta/logo-bird.png";
 import { ID_VOGELKOP } from "../constants/escritorios";
+import { OS_STATUS_LABEL } from "../constants/ordemServico";
 import {
-  OS_ESCOPO_OPCOES,
-  OS_FORMAS_PAGAMENTO,
-  OS_RESPONSABILIDADES_CLIENTE,
-} from "../constants/ordemServico";
+  buildSecoesPdfOs,
+  campoPreenchido,
+  enderecoProjetoFromOs,
+} from "../pages/ordens-servico/ordensServicoUtils";
 import { ARQUITETO_INFO } from "./orcamentoPropostaTemplate";
 
-const COR_MONTEZUMA = "#DC3B0B";
-const COR_VK = "#149FC4";
 const COR_TEXTO = "#111827";
 const COR_MUTED = "#6B7280";
 const COR_DIVISOR = "#E5E7EB";
+const COR_FUNDO = "#FAFAFA";
 
-function formatarDataBR(raw) {
-  if (!raw) return "___/___/______";
-  const d = new Date(`${String(raw).slice(0, 10)}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return String(raw);
-  return d.toLocaleDateString("pt-BR");
+const COR_MONTEZUMA = "#DC3B0B";
+const COR_MONTEZUMA_SUAVE = "#FEF3EF";
+const COR_VK = "#149FC4";
+const COR_VK_SUAVE = "#E8F4F8";
+
+function getBrandConfig(escritorioId) {
+  const isVogelkop = escritorioId === ID_VOGELKOP;
+  return {
+    isVogelkop,
+    logo: isVogelkop ? logoVogelkop : logoMontezuma,
+    nomeMarca: isVogelkop ? "VogelKop Arquitetura" : "Montezuma Gestão de Obras",
+    author: isVogelkop ? "VogelKop Arquitetura" : "Montezuma Gestão de Obras",
+    corPrimaria: isVogelkop ? COR_VK : COR_MONTEZUMA,
+    corPrimariaSuave: isVogelkop ? COR_VK_SUAVE : COR_MONTEZUMA_SUAVE,
+  };
 }
 
-function formatarMoeda(valor) {
-  const n = Number(valor);
-  if (Number.isNaN(n)) return "R$ __________________";
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function criarStyles(isVogelkop) {
-  const corPrimaria = isVogelkop ? COR_VK : COR_MONTEZUMA;
+function criarStyles(corPrimaria, corPrimariaSuave) {
   return StyleSheet.create({
     page: {
       paddingTop: 36,
-      paddingBottom: 48,
+      paddingBottom: 56,
       paddingHorizontal: 40,
       fontFamily: "Helvetica",
-      fontSize: 9.5,
+      fontSize: 10,
       color: COR_TEXTO,
-      lineHeight: 1.4,
     },
     header: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "flex-start",
+      justifyContent: "space-between",
+      paddingBottom: 14,
       borderBottomWidth: 2,
       borderBottomColor: corPrimaria,
-      paddingBottom: 12,
-      marginBottom: 16,
+      borderBottomStyle: "solid",
+      marginBottom: 18,
     },
-    brand: { flexDirection: "row", alignItems: "center", flex: 1 },
-    logo: { width: 44, height: 44, objectFit: "contain", marginRight: 10 },
-    title: {
-      fontSize: 16,
+    brand: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
+    logo: {
+      width: 48,
+      height: 48,
+      objectFit: "contain",
+      marginRight: 12,
+    },
+    docTitle: {
+      fontSize: 17,
       fontFamily: "Helvetica-Bold",
       color: COR_TEXTO,
+      letterSpacing: 0.3,
     },
-    subtitle: { fontSize: 8.5, color: COR_MUTED, marginTop: 2 },
-    meta: { alignItems: "flex-end", minWidth: 120 },
+    docSubtitle: {
+      fontSize: 9.5,
+      color: COR_MUTED,
+      marginTop: 3,
+    },
+    docRef: {
+      fontSize: 9,
+      color: corPrimaria,
+      fontFamily: "Helvetica-Bold",
+      marginTop: 5,
+    },
+    meta: {
+      alignItems: "flex-end",
+      minWidth: 140,
+    },
     metaLabel: {
-      fontSize: 7,
+      fontSize: 7.5,
       color: COR_MUTED,
       textTransform: "uppercase",
-      letterSpacing: 0.4,
+      letterSpacing: 0.5,
     },
     metaValue: {
       fontSize: 10,
       fontFamily: "Helvetica-Bold",
-      marginBottom: 4,
+      color: COR_TEXTO,
+      marginTop: 2,
+      marginBottom: 6,
     },
-    section: { marginBottom: 12 },
-    sectionTitle: {
-      fontSize: 9,
+    badge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      backgroundColor: corPrimariaSuave,
+      borderWidth: 0.6,
+      borderColor: COR_DIVISOR,
+      fontSize: 8.5,
+      fontFamily: "Helvetica-Bold",
+      color: corPrimaria,
+      marginTop: 2,
+    },
+    cardBlock: {
+      marginBottom: 12,
+    },
+    card: {
+      width: "100%",
+      padding: 10,
+      borderRadius: 6,
+      borderWidth: 0.7,
+      borderColor: COR_DIVISOR,
+      backgroundColor: COR_FUNDO,
+    },
+    cardTitle: {
+      fontSize: 8,
       fontFamily: "Helvetica-Bold",
       color: corPrimaria,
       textTransform: "uppercase",
-      letterSpacing: 0.5,
+      letterSpacing: 0.6,
       marginBottom: 6,
-      paddingBottom: 3,
+    },
+    cardLine: {
+      fontSize: 9.5,
+      color: COR_TEXTO,
+      marginBottom: 3,
+      lineHeight: 1.35,
+    },
+    cardMuted: {
+      fontSize: 8.5,
+      color: COR_MUTED,
+      marginBottom: 2,
+    },
+    section: {
+      marginTop: 4,
+      marginBottom: 10,
+    },
+    sectionTitle: {
+      fontSize: 10,
+      fontFamily: "Helvetica-Bold",
+      color: COR_TEXTO,
+      paddingBottom: 4,
+      marginBottom: 8,
+      borderBottomWidth: 0.7,
+      borderBottomColor: COR_DIVISOR,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    infoRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 4,
+    },
+    infoChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      borderRadius: 4,
+      backgroundColor: "#FFFFFF",
+      borderWidth: 0.6,
+      borderColor: COR_DIVISOR,
+      minWidth: "30%",
+      flexGrow: 1,
+    },
+    infoChipLabel: {
+      fontSize: 7,
+      color: COR_MUTED,
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+      marginBottom: 1,
+    },
+    infoChipValue: {
+      fontSize: 9,
+      fontFamily: "Helvetica-Bold",
+      color: COR_TEXTO,
+    },
+    textBlock: {
+      fontSize: 9.5,
+      color: COR_TEXTO,
+      lineHeight: 1.45,
+    },
+    listaBox: {
+      borderWidth: 0.7,
+      borderColor: COR_DIVISOR,
+      borderRadius: 4,
+      overflow: "hidden",
+      marginTop: 4,
+    },
+    listaItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 6,
+      paddingHorizontal: 8,
       borderBottomWidth: 0.5,
       borderBottomColor: COR_DIVISOR,
     },
-    fieldRow: { flexDirection: "row", marginBottom: 4, flexWrap: "wrap" },
-    fieldLabel: { fontSize: 8, color: COR_MUTED, width: "28%" },
-    fieldValue: { fontSize: 9.5, flex: 1 },
-    checkboxRow: { flexDirection: "row", alignItems: "center", marginBottom: 3 },
-    checkbox: { width: 10, marginRight: 6, fontSize: 10 },
-    bullet: { fontSize: 9, marginBottom: 3, paddingLeft: 8 },
-    divider: {
-      borderBottomWidth: 0.5,
-      borderBottomColor: COR_DIVISOR,
-      marginVertical: 8,
+    listaItemAlt: {
+      backgroundColor: COR_FUNDO,
     },
-    textBlock: { fontSize: 9.5, marginBottom: 6, minHeight: 40 },
-    assinaturaBox: {
-      marginTop: 16,
-      paddingTop: 8,
-      borderTopWidth: 0.5,
-      borderTopColor: COR_DIVISOR,
+    listaMarcador: {
+      width: 12,
+      fontSize: 9,
+      fontFamily: "Helvetica-Bold",
+      color: corPrimaria,
+      marginRight: 6,
+    },
+    listaTexto: {
+      fontSize: 9,
+      color: COR_TEXTO,
+      flex: 1,
+      lineHeight: 1.3,
+    },
+    resumoBox: {
+      marginTop: 8,
+      padding: 10,
+      borderRadius: 4,
+      backgroundColor: COR_FUNDO,
+      borderWidth: 0.6,
+      borderColor: COR_DIVISOR,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    resumoText: {
+      fontSize: 9,
+      color: COR_MUTED,
+    },
+    resumoDestaque: {
+      fontSize: 11,
+      fontFamily: "Helvetica-Bold",
+      color: COR_TEXTO,
+    },
+    notas: {
+      marginTop: 12,
+      padding: 10,
+      borderRadius: 4,
+      borderWidth: 0.6,
+      borderColor: COR_DIVISOR,
+      backgroundColor: "#FFFFFF",
+    },
+    notasTitle: {
+      fontSize: 8,
+      fontFamily: "Helvetica-Bold",
+      color: COR_MUTED,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 5,
+    },
+    notasText: {
+      fontSize: 8.5,
+      color: COR_MUTED,
+      lineHeight: 1.45,
+    },
+    assinaturas: {
+      flexDirection: "row",
+      gap: 24,
+      marginTop: 22,
+    },
+    assinatura: {
+      flex: 1,
     },
     assinaturaTitulo: {
       fontSize: 9,
       fontFamily: "Helvetica-Bold",
-      marginBottom: 12,
+      color: COR_TEXTO,
+      marginBottom: 8,
     },
-    linhaAssinatura: { marginBottom: 14 },
-    linhaLabel: { fontSize: 8, color: COR_MUTED, marginBottom: 2 },
-    linhaValor: {
-      borderBottomWidth: 0.5,
+    assinaturaLinha: {
+      borderBottomWidth: 0.7,
       borderBottomColor: COR_TEXTO,
-      minHeight: 14,
-      fontSize: 9,
+      marginBottom: 4,
+      height: 28,
+    },
+    assinaturaLabel: {
+      fontSize: 8,
+      color: COR_MUTED,
+      textAlign: "center",
+    },
+    footer: {
+      position: "absolute",
+      bottom: 24,
+      left: 40,
+      right: 40,
+      textAlign: "center",
+      fontSize: 7.5,
+      color: COR_MUTED,
+      borderTopWidth: 0.6,
+      borderTopColor: COR_DIVISOR,
+      paddingTop: 6,
     },
   });
 }
 
-function CheckboxItem({ checked, label, styles }) {
+function formatarData(raw) {
+  if (!raw) return "—";
+  const iso = String(raw).slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const [y, m, day] = iso.split("-");
+    return `${day}/${m}/${y}`;
+  }
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR");
+}
+
+function formatarDataHora(raw) {
+  if (!raw) return "—";
+  const iso = String(raw).slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const d = new Date(`${iso}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return formatarData(raw);
+    return d.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  const d = raw instanceof Date ? raw : new Date(raw);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatarMoeda(valor) {
+  const n = Number(valor);
+  if (Number.isNaN(n)) return "—";
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function InfoChip({ label, value, styles }) {
   return (
-    <View style={styles.checkboxRow}>
-      <Text style={styles.checkbox}>{checked ? "☑" : "☐"}</Text>
-      <Text>{label}</Text>
+    <View style={styles.infoChip}>
+      <View>
+        <Text style={styles.infoChipLabel}>{label}</Text>
+        <Text style={styles.infoChipValue}>{value || "—"}</Text>
+      </View>
+    </View>
+  );
+}
+
+function BlocoCard({ titulo, linhas, styles }) {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>{titulo}</Text>
+      {linhas.map((linha, i) =>
+        linha.muted ? (
+          <Text key={i} style={styles.cardMuted}>
+            {linha.texto}
+          </Text>
+        ) : (
+          <Text key={i} style={styles.cardLine}>
+            {linha.texto}
+          </Text>
+        ),
+      )}
+    </View>
+  );
+}
+
+function ListaMarcada({ itens, styles }) {
+  if (!itens.length) return null;
+  return (
+    <View style={styles.listaBox}>
+      {itens.map((item, idx) => (
+        <View
+          key={`${item}-${idx}`}
+          style={[
+            styles.listaItem,
+            idx % 2 === 1 ? styles.listaItemAlt : null,
+          ]}
+        >
+          <Text style={styles.listaMarcador}>✓</Text>
+          <Text style={styles.listaTexto}>{item}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function SecaoPdf({ secao, numero, styles }) {
+  const titulo = `${numero}. ${secao.titulo}`;
+
+  if (secao.tipo === "texto") {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{titulo}</Text>
+        <Text style={styles.textBlock}>{secao.conteudo}</Text>
+      </View>
+    );
+  }
+
+  if (secao.tipo === "checkboxes") {
+    const itens = [
+      ...secao.opcoes,
+      ...secao.outros.map((item) => `Outro: ${item}`),
+    ];
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{titulo}</Text>
+        <ListaMarcada itens={itens} styles={styles} />
+      </View>
+    );
+  }
+
+  if (secao.tipo === "prazos") {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{titulo}</Text>
+        <View style={styles.infoRow}>
+          {campoPreenchido(secao.data_inicio) ? (
+            <InfoChip
+              label="Data de início"
+              value={formatarData(secao.data_inicio)}
+              styles={styles}
+            />
+          ) : null}
+          {campoPreenchido(secao.data_entrega_prevista) ? (
+            <InfoChip
+              label="Entrega prevista"
+              value={formatarData(secao.data_entrega_prevista)}
+              styles={styles}
+            />
+          ) : null}
+        </View>
+        {campoPreenchido(secao.observacoes) ? (
+          <Text style={[styles.textBlock, { marginTop: 6 }]}>
+            {secao.observacoes}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
+
+  if (secao.tipo === "valor") {
+    const valorFormatado =
+      secao.valor_total != null ? formatarMoeda(secao.valor_total) : "";
+    const formas = [
+      ...secao.opcoes,
+      ...secao.outros.map((item) => `Outro: ${item}`),
+    ];
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{titulo}</Text>
+        {valorFormatado ? (
+          <View style={styles.resumoBox}>
+            <Text style={styles.resumoText}>Valor total dos serviços</Text>
+            <Text style={styles.resumoDestaque}>{valorFormatado}</Text>
+          </View>
+        ) : null}
+        {formas.length > 0 ? (
+          <>
+            <Text
+              style={{
+                fontSize: 8,
+                color: COR_MUTED,
+                textTransform: "uppercase",
+                letterSpacing: 0.4,
+                marginTop: valorFormatado ? 8 : 0,
+                marginBottom: 4,
+              }}
+            >
+              Forma de pagamento
+            </Text>
+            <ListaMarcada itens={formas} styles={styles} />
+          </>
+        ) : null}
+      </View>
+    );
+  }
+
+  return null;
+}
+
+function BlocoCliente({ os, styles }) {
+  const endereco = enderecoProjetoFromOs(os);
+  const linhas = [];
+
+  if (campoPreenchido(os?.cliente_nome)) {
+    linhas.push({ texto: os.cliente_nome });
+  }
+  if (campoPreenchido(os?.cliente_telefone)) {
+    linhas.push({ texto: `Tel.: ${os.cliente_telefone}`, muted: true });
+  }
+  if (campoPreenchido(os?.cliente_email)) {
+    linhas.push({ texto: os.cliente_email, muted: true });
+  }
+  if (campoPreenchido(endereco)) {
+    linhas.push({ texto: endereco, muted: true });
+  }
+
+  const temResponsavel = campoPreenchido(os?.responsavel_tecnico);
+  if (linhas.length === 0 && !temResponsavel) return null;
+
+  return (
+    <View style={styles.cardBlock}>
+      {linhas.length > 0 ? (
+        <BlocoCard titulo="Cliente e projeto" linhas={linhas} styles={styles} />
+      ) : null}
+      {temResponsavel ? (
+        <View style={[styles.infoRow, linhas.length > 0 ? { marginTop: 8 } : null]}>
+          <InfoChip
+            label="Responsável técnico"
+            value={os.responsavel_tecnico}
+            styles={styles}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
 
 export default function OrdemServicoPDF({ os, escritorioId }) {
-  const isVogelkop = escritorioId === ID_VOGELKOP;
-  const styles = criarStyles(isVogelkop);
-  const escopoSet = new Set(Array.isArray(os?.escopo) ? os.escopo : []);
-  const pagamentoSet = new Set(
-    Array.isArray(os?.formas_pagamento) ? os.formas_pagamento : [],
-  );
+  const brand = getBrandConfig(escritorioId);
+  const styles = criarStyles(brand.corPrimaria, brand.corPrimariaSuave);
+  const secoes = buildSecoesPdfOs(os);
 
-  const nomeMarca = isVogelkop ? "VK ARQUITETURA" : "MONTEZUMA";
-  const responsavelEmpresa = isVogelkop
+  const numeroOs = os?.numero ?? "";
+  const docRef = numeroOs
+    ? `OS-${String(numeroOs).padStart(3, "0")}`
+    : "OS — nova";
+  const statusLabel =
+    OS_STATUS_LABEL[os?.status] || OS_STATUS_LABEL.pendente;
+  const dataEmissao = os?.data_emissao || new Date().toISOString();
+
+  const responsavelEmpresa = brand.isVogelkop
     ? ARQUITETO_INFO.nome
-    : os?.responsavel_tecnico || "—";
+    : os?.responsavel_tecnico || "";
+
+  const temBlocoCliente =
+    campoPreenchido(os?.responsavel_tecnico) ||
+    campoPreenchido(os?.cliente_nome) ||
+    campoPreenchido(os?.cliente_telefone) ||
+    campoPreenchido(os?.cliente_email) ||
+    campoPreenchido(enderecoProjetoFromOs(os));
+
+  const footerRef = numeroOs
+    ? `OS-${String(numeroOs).padStart(3, "0")}`
+    : "OS";
 
   return (
-    <Document title={`Ordem de Serviço Nº ${os?.numero ?? ""}`}>
+    <Document
+      title={`Ordem de Serviço ${numeroOs}`}
+      author={brand.author}
+    >
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.brand}>
-            <Image src={logoMontezuma} style={styles.logo} />
+            <Image src={brand.logo} style={styles.logo} />
             <View>
-              <Text style={styles.title}>ORDEM DE SERVIÇO (OS)</Text>
-              <Text style={styles.subtitle}>{nomeMarca}</Text>
+              <Text style={styles.docTitle}>Ordem de Serviço</Text>
+              <Text style={styles.docSubtitle}>{brand.nomeMarca}</Text>
+              <Text style={styles.docRef}>{docRef}</Text>
             </View>
           </View>
           <View style={styles.meta}>
-            <Text style={styles.metaLabel}>Nº da OS</Text>
-            <Text style={styles.metaValue}>{os?.numero ?? "—"}</Text>
-            <Text style={styles.metaLabel}>Data de Emissão</Text>
+            <Text style={styles.metaLabel}>Emissão</Text>
             <Text style={styles.metaValue}>
-              {formatarDataBR(os?.data_emissao)}
+              {formatarDataHora(dataEmissao)}
             </Text>
+            <Text style={styles.metaLabel}>Status</Text>
+            <Text style={styles.badge}>{statusLabel}</Text>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Responsável Técnico:</Text>
-            <Text style={styles.fieldValue}>
-              {os?.responsavel_tecnico || "—"}
-            </Text>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Cliente:</Text>
-            <Text style={styles.fieldValue}>{os?.cliente_nome || "—"}</Text>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Telefone:</Text>
-            <Text style={styles.fieldValue}>
-              {os?.cliente_telefone || "—"}
-            </Text>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>E-mail:</Text>
-            <Text style={styles.fieldValue}>{os?.cliente_email || "—"}</Text>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Endereço do Projeto:</Text>
-            <Text style={styles.fieldValue}>
-              {os?.endereco_projeto || "—"}
-            </Text>
-          </View>
-        </View>
+        {temBlocoCliente ? <BlocoCliente os={os} styles={styles} /> : null}
 
-        <View style={styles.divider} />
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. Objeto do Serviço</Text>
-          <Text style={styles.textBlock}>
-            {os?.objeto_servico ||
-              "Prestação de serviços conforme escopo descrito nesta Ordem de Serviço."}
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Escopo Contratado</Text>
-          {OS_ESCOPO_OPCOES.map((op) => (
-            <CheckboxItem
-              key={op.id}
-              checked={escopoSet.has(op.id)}
-              label={op.label}
-              styles={styles}
-            />
-          ))}
-          <CheckboxItem
-            checked={Boolean(os?.escopo_outro)}
-            label={`Outro: ${os?.escopo_outro || "________________"}`}
+        {secoes.map((secao, index) => (
+          <SecaoPdf
+            key={secao.id}
+            secao={secao}
+            numero={index + 1}
             styles={styles}
           />
-        </View>
+        ))}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Descrição dos Serviços</Text>
-          <Text style={styles.textBlock}>
-            {os?.descricao_servicos || " "}
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>4. Prazos</Text>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Data de Início:</Text>
-            <Text style={styles.fieldValue}>
-              {formatarDataBR(os?.data_inicio)}
-            </Text>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Data Prevista para Entrega:</Text>
-            <Text style={styles.fieldValue}>
-              {formatarDataBR(os?.data_entrega_prevista)}
-            </Text>
-          </View>
-          <Text style={styles.fieldLabel}>Observações:</Text>
-          <Text style={styles.textBlock}>{os?.observacoes_prazos || " "}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>5. Valor dos Serviços</Text>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Valor Total:</Text>
-            <Text style={styles.fieldValue}>
-              {formatarMoeda(os?.valor_total)}
-            </Text>
-          </View>
-          <Text style={{ fontSize: 8.5, marginTop: 4, marginBottom: 4 }}>
-            Forma de Pagamento:
-          </Text>
-          {OS_FORMAS_PAGAMENTO.map((fp) => (
-            <CheckboxItem
-              key={fp.id}
-              checked={pagamentoSet.has(fp.id)}
-              label={fp.label}
-              styles={styles}
-            />
-          ))}
-          <CheckboxItem
-            checked={Boolean(os?.forma_pagamento_outro)}
-            label={`Outro: ${os?.forma_pagamento_outro || "________________"}`}
-            styles={styles}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            6. Responsabilidades do Cliente
-          </Text>
-          {OS_RESPONSABILIDADES_CLIENTE.map((item) => (
-            <Text key={item} style={styles.bullet}>
-              • {item}
-            </Text>
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>7. Observações Gerais</Text>
-          <Text style={styles.textBlock}>
-            {os?.observacoes_gerais || " "}
-          </Text>
-        </View>
-
-        <View style={styles.assinaturaBox}>
-          <Text style={styles.assinaturaTitulo}>APROVAÇÃO</Text>
-          <Text style={{ fontSize: 8.5, marginBottom: 10 }}>
+        <View style={styles.notas}>
+          <Text style={styles.notasTitle}>Aprovação</Text>
+          <Text style={styles.notasText}>
             Declaro estar de acordo com os serviços descritos nesta Ordem de
-            Serviço.
+            Serviço. Alterações não previstas no escopo poderão gerar custos
+            adicionais. Os prazos poderão ser ajustados em caso de atrasos nas
+            aprovações ou fornecimento de informações pelo cliente.
           </Text>
-          <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 8 }}>
-            Cliente
-          </Text>
-          <View style={styles.linhaAssinatura}>
-            <Text style={styles.linhaLabel}>Nome:</Text>
-            <Text style={styles.linhaValor}> </Text>
-          </View>
-          <View style={styles.linhaAssinatura}>
-            <Text style={styles.linhaLabel}>Assinatura:</Text>
-            <Text style={styles.linhaValor}> </Text>
-          </View>
-          <View style={styles.linhaAssinatura}>
-            <Text style={styles.linhaLabel}>Data:</Text>
-            <Text style={styles.linhaValor}> </Text>
-          </View>
+        </View>
 
-          <Text
-            style={{
-              fontFamily: "Helvetica-Bold",
-              marginTop: 12,
-              marginBottom: 8,
-            }}
-          >
-            {nomeMarca}
-          </Text>
-          <View style={styles.linhaAssinatura}>
-            <Text style={styles.linhaLabel}>Responsável:</Text>
-            <Text style={styles.linhaValor}>{responsavelEmpresa}</Text>
+        <View style={styles.assinaturas}>
+          <View style={styles.assinatura}>
+            <Text style={styles.assinaturaTitulo}>Cliente</Text>
+            <View style={styles.assinaturaLinha} />
+            <Text style={styles.assinaturaLabel}>Nome e assinatura</Text>
+            <View style={[styles.assinaturaLinha, { marginTop: 16 }]} />
+            <Text style={styles.assinaturaLabel}>Data</Text>
           </View>
-          <View style={styles.linhaAssinatura}>
-            <Text style={styles.linhaLabel}>Assinatura:</Text>
-            <Text style={styles.linhaValor}> </Text>
-          </View>
-          <View style={styles.linhaAssinatura}>
-            <Text style={styles.linhaLabel}>Data:</Text>
-            <Text style={styles.linhaValor}> </Text>
+          <View style={styles.assinatura}>
+            <Text style={styles.assinaturaTitulo}>{brand.nomeMarca}</Text>
+            {responsavelEmpresa ? (
+              <Text
+                style={{
+                  fontSize: 8.5,
+                  color: COR_MUTED,
+                  textAlign: "center",
+                  marginBottom: 6,
+                }}
+              >
+                {responsavelEmpresa}
+              </Text>
+            ) : null}
+            <View style={styles.assinaturaLinha} />
+            <Text style={styles.assinaturaLabel}>Assinatura</Text>
+            <View style={[styles.assinaturaLinha, { marginTop: 16 }]} />
+            <Text style={styles.assinaturaLabel}>Data</Text>
           </View>
         </View>
+
+        <Text
+          style={styles.footer}
+          render={({ pageNumber, totalPages }) =>
+            `Ordem de Serviço ${footerRef} · ${brand.nomeMarca} · ${formatarDataHora(dataEmissao)} · pág. ${pageNumber}/${totalPages}`
+          }
+          fixed
+        />
       </Page>
     </Document>
   );

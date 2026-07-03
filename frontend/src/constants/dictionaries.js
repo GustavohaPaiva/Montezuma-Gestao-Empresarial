@@ -97,6 +97,7 @@ export const homeDictionary = {
     title: "Sessão ativa",
     modulesAvailable: "módulos disponíveis",
     fullAccess: "Perfil com acesso completo",
+    limitedAccess: "Acesso operacional",
   },
   weeklyAgenda: {
     sectionLabel: "Rotina semanal",
