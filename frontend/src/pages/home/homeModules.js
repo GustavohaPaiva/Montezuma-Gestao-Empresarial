@@ -7,11 +7,13 @@ import {
   ShoppingCart,
   LineChart,
   ClipboardList,
+  Users,
 } from "lucide-react";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import { homeDictionary } from "../../constants/dictionaries";
 import { isGestorPedidos } from "../../constants/pedidos";
 import { podeAcessarModuloOrdemServico } from "../../utils/ordemServicoPermissions";
+import { podeGerenciarUsuarios } from "../../utils/usuarioPermissions";
 
 const m = homeDictionary.modulos;
 const d = homeDictionary.modulos.descricoes;
@@ -112,6 +114,17 @@ export const MODULOS_HOME = [
     path: "/ordens-servico",
     ordemServico: true,
   },
+  {
+    id: 10,
+    titulo: m.usuariosSistema,
+    descricao: d.usuariosSistema,
+    categoria: c.cadastro,
+    destaques: dest.usuariosSistema,
+    colorTheme: "blue",
+    Icon: Users,
+    path: "/usuarios",
+    gestaoUsuarios: true,
+  },
 ];
 
 export function getModulosPermitidos(user) {
@@ -121,6 +134,9 @@ export function getModulosPermitidos(user) {
     }
     if (modulo.ordemServico) {
       return podeAcessarModuloOrdemServico(user);
+    }
+    if (modulo.gestaoUsuarios) {
+      return podeGerenciarUsuarios(user);
     }
     if (modulo.meuEscritorio) {
       return (

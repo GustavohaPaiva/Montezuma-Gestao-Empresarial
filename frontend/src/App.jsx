@@ -40,6 +40,8 @@ import RelatorioFinanceiroSemana from "./pages/relatorios-diretoria/RelatorioFin
 import RelatorioSemanaDetalhe from "./pages/relatorios-diretoria/RelatorioSemanaDetalhe";
 import OrdensServicoLista from "./pages/ordens-servico/OrdensServicoLista";
 import OrdemServicoDetalhe from "./pages/ordens-servico/OrdemServicoDetalhe";
+import UsuariosLista from "./pages/usuarios/UsuariosLista";
+import UsuarioDetalhe from "./pages/usuarios/UsuarioDetalhe";
 
 import "./index.css";
 
@@ -310,6 +312,55 @@ export default function App() {
               element={
                 <PageTransition>
                   <RelatorioObraDetalhe />
+                </PageTransition>
+              }
+            />
+          </Route>
+
+          <Route
+            element={
+              <RotaProtegida allowedTypes={["diretoria", "gestor_master"]} />
+            }
+          >
+            <Route
+              path="/usuarios"
+              element={
+                <PageTransition>
+                  <UsuariosLista />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/usuarios/novo"
+              element={
+                <PageTransition>
+                  <UsuarioDetalhe modoCriacao />
+                </PageTransition>
+              }
+            />
+          </Route>
+
+          <Route
+            element={
+              <RotaProtegida
+                allowedTypes={[
+                  "gestor_master",
+                  "diretoria",
+                  "secretaria",
+                  "suporte_ti",
+                  "encarregado",
+                  "funcionario",
+                  "dono",
+                  "admin",
+                ]}
+              />
+            }
+          >
+            <Route
+              path="/usuarios/:id"
+              element={
+                <PageTransition>
+                  <UsuarioDetalhe />
                 </PageTransition>
               }
             />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -6,7 +6,7 @@ import {
   ClipboardList,
   Download,
   Loader2,
-  Save,
+  PenLine,
   Trash2,
 } from "lucide-react";
 import BaseButton from "../../components/gerais/BaseButton";
@@ -23,6 +23,8 @@ import { emptyOrdemServicoForm, OS_STATUS } from "../../constants/ordemServico";
 import {
   filtrarDestinatariosPermitidos,
   podeAcessarModuloOrdemServico,
+  podeAssinarEmissorOrdemServico,
+  podeAssinarResponsavelOrdemServico,
   podeConcluirOrdemServico,
   podeExcluirOrdemServico,
   usuarioVeOrdemServico,
@@ -35,8 +37,11 @@ import {
   getOrdensServicoBasePath,
   osParaForm,
   resolveEscritorioIdOrdemServico,
+  snapshotFormOrdemServico,
   temaOrdemServico,
 } from "./ordensServicoUtils";
+
+const AUTO_SAVE_MS = 900;
 import {
   osDetalheHeaderClass,
   osDetalheHeaderVkClass,
@@ -65,8 +70,16 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
   const [destinatarios, setDestinatarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
-  const [salvando, setSalvando] = useState(false);
+  const [statusSalvamento, setStatusSalvamento] = useState("idle");
+  const snapshotInicial = useRef("");
+  const saveTimerRef = useRef(null);
+  const salvandoRef = useRef(false);
+  const formRef = useRef(form);
+  const osRef = useRef(os);
+  const destinatariosRef = useRef(destinatarios);
   const [concluindo, setConcluindo] = useState(false);
+  const [assinandoEmissor, setAssinandoEmissor] = useState(false);
+  const [assinandoResponsavel, setAssinandoResponsavel] = useState(false);
   const [pdfPreview, setPdfPreview] = useState(false);
   const [modalExcluir, setModalExcluir] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
@@ -75,6 +88,35 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
   const somenteLeitura = os?.status === OS_STATUS.concluida;
   const podeConcluir = podeConcluirOrdemServico(user, os);
   const podeExcluir = podeExcluirOrdemServico(user, os, variant);
+  const podeAssinarEmissor = podeAssinarEmissorOrdemServico(user, os);
+  const podeAssinarResponsavel = podeAssinarResponsavelOrdemServico(user, os);
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
+  useEffect(() => {
+    osRef.current = os;
+  }, [os]);
+
+  useEffect(() => {
+    destinatariosRef.current = destinatarios;
+  }, [destinatarios]);
+
+  const snapshotOpts = useMemo(
+    () => ({
+      escritorioId: os?.escritorio_id || escritorioId,
+      criadorId: os?.criador_id,
+      destinatarios,
+    }),
+    [os?.escritorio_id, os?.criador_id, escritorioId, destinatarios],
+  );
+
+  const dirty = useMemo(
+    () =>
+      snapshotFormOrdemServico(form, snapshotOpts) !== snapshotInicial.current,
+    [form, snapshotOpts],
+  );
 
   const setField = (campo, valor) => {
     setForm((prev) => ({ ...prev, [campo]: valor }));
@@ -87,14 +129,20 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
         api.listClientesOrdemServico(variant),
         api.listUsuariosDestinatariosOS({ variant, escritorioId }),
       ]);
-      setClientes(Array.isArray(clientesData) ? clientesData : []);
-      setDestinatarios(
-        filtrarDestinatariosPermitidos(user, usuariosData, variant),
+      const clientesLista = Array.isArray(clientesData) ? clientesData : [];
+      const destinatariosLista = filtrarDestinatariosPermitidos(
+        user,
+        usuariosData,
+        variant,
       );
+      setClientes(clientesLista);
+      setDestinatarios(destinatariosLista);
+      return { clientes: clientesLista, destinatarios: destinatariosLista };
     } catch (e) {
       console.error("[OrdemServicoDetalhe] auxiliares:", e);
       setClientes([]);
       setDestinatarios([]);
+      return { clientes: [], destinatarios: [] };
     } finally {
       setClientesCarregando(false);
     }
@@ -113,9 +161,17 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
         setOs(null);
       } else {
         setOs(row);
-        setForm(osParaForm(row) || emptyOrdemServicoForm());
+        const formCarregado = osParaForm(row) || emptyOrdemServicoForm();
+        setForm(formCarregado);
         setErro(null);
-        await carregarAuxiliares();
+        const { destinatarios: destinatariosCarregados } =
+          await carregarAuxiliares();
+        snapshotInicial.current = snapshotFormOrdemServico(formCarregado, {
+          escritorioId: row.escritorio_id || escritorioId,
+          criadorId: row.criador_id,
+          destinatarios: destinatariosCarregados,
+        });
+        setStatusSalvamento("idle");
       }
     } catch (e) {
       console.error(e);
@@ -124,7 +180,7 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
     } finally {
       setLoading(false);
     }
-  }, [id, autorizado, user, carregarAuxiliares, variant]);
+  }, [id, autorizado, user, carregarAuxiliares, variant, escritorioId]);
 
   useEffect(() => {
     carregar();
@@ -159,42 +215,140 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
         destinatarios,
       }),
       numero: os.numero,
+      assinatura_emissor_em: os.assinatura_emissor_em,
+      assinatura_responsavel_em: os.assinatura_responsavel_em,
+      criador: os.criador,
+      responsavel: os.responsavel,
     };
   }, [os, form, escritorioId, destinatarios]);
 
-  const handleSalvar = async () => {
-    if (!os?.id || somenteLeitura) return;
-    setSalvando(true);
-    try {
-      const payload = formPayloadFromForm(form, {
-        escritorioId: os.escritorio_id || escritorioId,
-        criadorId: os.criador_id,
-        destinatarios,
-      });
-      delete payload.escritorio_id;
-      delete payload.criador_id;
-      const atualizada = await api.updateOrdemServico(os.id, payload);
-      setOs(atualizada);
-      setForm(osParaForm(atualizada) || form);
-    } catch (e) {
-      console.error(e);
-      alert(e?.message || "Não foi possível salvar a ordem de serviço.");
-    } finally {
-      setSalvando(false);
+  const salvarForm = useCallback(
+    async (formParaSalvar) => {
+      const osAtual = osRef.current;
+      if (!osAtual?.id || osAtual.status === OS_STATUS.concluida) return true;
+
+      const opts = {
+        escritorioId: osAtual.escritorio_id || escritorioId,
+        criadorId: osAtual.criador_id,
+        destinatarios: destinatariosRef.current,
+      };
+      const snapshotAtual = snapshotFormOrdemServico(formParaSalvar, opts);
+      if (
+        snapshotAtual === snapshotInicial.current ||
+        salvandoRef.current
+      ) {
+        return true;
+      }
+
+      salvandoRef.current = true;
+      setStatusSalvamento("saving");
+      try {
+        const payload = formPayloadFromForm(formParaSalvar, opts);
+        delete payload.escritorio_id;
+        delete payload.criador_id;
+        const atualizada = await api.updateOrdemServico(osAtual.id, payload);
+        setOs(atualizada);
+        const formAtualizada = osParaForm(atualizada) || formParaSalvar;
+        setForm(formAtualizada);
+        snapshotInicial.current = snapshotFormOrdemServico(formAtualizada, {
+          escritorioId: atualizada.escritorio_id || escritorioId,
+          criadorId: atualizada.criador_id,
+          destinatarios: destinatariosRef.current,
+        });
+        setStatusSalvamento("saved");
+        return true;
+      } catch (e) {
+        console.error(e);
+        setStatusSalvamento("error");
+        return false;
+      } finally {
+        salvandoRef.current = false;
+      }
+    },
+    [escritorioId],
+  );
+
+  const flushSave = useCallback(async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
     }
-  };
+    return salvarForm(formRef.current);
+  }, [salvarForm]);
+
+  useEffect(() => {
+    if (loading || somenteLeitura || !os?.id || !dirty) return undefined;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      salvarForm(formRef.current);
+    }, AUTO_SAVE_MS);
+
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
+  }, [form, loading, somenteLeitura, os?.id, dirty, salvarForm]);
+
+  useEffect(
+    () => () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    },
+    [],
+  );
 
   const handleConcluir = async () => {
     if (!os?.id) return;
     setConcluindo(true);
     try {
-      const atualizada = await api.concluirOrdemServico(os.id, user.id);
+      await flushSave();
+      const responsavelId =
+        formRef.current.responsavel_id || os.responsavel_id || null;
+      const atualizada = await api.concluirOrdemServico(
+        os.id,
+        user.id,
+        responsavelId,
+      );
       setOs(atualizada);
     } catch (e) {
       console.error(e);
       alert(e?.message || "Não foi possível concluir a ordem de serviço.");
     } finally {
       setConcluindo(false);
+    }
+  };
+
+  const handleAssinarEmissor = async () => {
+    if (!os?.id) return;
+    setAssinandoEmissor(true);
+    try {
+      const atualizada = await api.assinarOrdemServicoEmissor(os.id, user.id);
+      setOs(atualizada);
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Não foi possível registrar a assinatura.");
+    } finally {
+      setAssinandoEmissor(false);
+    }
+  };
+
+  const handleAssinarResponsavel = async () => {
+    if (!os?.id) return;
+    setAssinandoResponsavel(true);
+    try {
+      const atualizada = await api.assinarOrdemServicoResponsavel(
+        os.id,
+        user.id,
+      );
+      setOs(atualizada);
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Não foi possível registrar a assinatura.");
+    } finally {
+      setAssinandoResponsavel(false);
     }
   };
 
@@ -256,6 +410,92 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
   const headerBg = "bg-[#FAFAFA]/95";
   const headerBorder = "border-border-primary/40";
 
+  const textoStatusSalvamento =
+    !somenteLeitura && statusSalvamento === "saving"
+      ? "Salvando alterações…"
+      : !somenteLeitura && statusSalvamento === "error"
+        ? "Erro ao salvar — verifique a conexão"
+        : !somenteLeitura && statusSalvamento === "saved" && !dirty
+          ? "Alterações salvas"
+          : null;
+
+  const voltarComSalvamento = async () => {
+    await flushSave();
+    navigate(basePath);
+  };
+
+  const abrirPdfPreview = async () => {
+    await flushSave();
+    setPdfPreview(true);
+  };
+
+  const statusAssinaturas = (
+    <div className="mt-2 flex flex-wrap gap-2">
+      <span
+        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          os.assinatura_emissor_em
+            ? "bg-emerald-50 text-emerald-700"
+            : "bg-amber-50 text-amber-800"
+        }`}
+      >
+        Emissor: {os.assinatura_emissor_em ? "Assinado" : "Pendente"}
+      </span>
+      {os.responsavel_id ? (
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+            os.assinatura_responsavel_em
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-amber-50 text-amber-800"
+          }`}
+        >
+          Responsável:{" "}
+          {os.assinatura_responsavel_em ? "Assinado" : "Pendente"}
+        </span>
+      ) : null}
+    </div>
+  );
+
+  const botoesAssinatura = (
+    <>
+      {podeAssinarEmissor ? (
+        <BaseButton
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+          icon={
+            assinandoEmissor ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <PenLine className="h-4 w-4" />
+            )
+          }
+          onClick={handleAssinarEmissor}
+          disabled={assinandoEmissor}
+        >
+          Assinar emissor
+        </BaseButton>
+      ) : null}
+      {podeAssinarResponsavel ? (
+        <BaseButton
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+          icon={
+            assinandoResponsavel ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <PenLine className="h-4 w-4" />
+            )
+          }
+          onClick={handleAssinarResponsavel}
+          disabled={assinandoResponsavel}
+        >
+          Assinar responsável
+        </BaseButton>
+      ) : null}
+    </>
+  );
+
   if (isVk) {
     const nomeEscritorio = ESCRITORIO_NOME_POR_ID[escritorioId] ?? "Escritório";
 
@@ -269,7 +509,7 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
         <div className="relative z-10 mx-auto w-full">
           <button
             type="button"
-            onClick={() => navigate(basePath)}
+            onClick={voltarComSalvamento}
             className="mb-6 mt-4 flex cursor-pointer items-center gap-2 text-esc-muted transition-colors hover:text-esc-destaque"
           >
             <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
@@ -286,37 +526,21 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
               </h1>
               <p className="mt-1 text-sm text-esc-muted">
                 Ordens de Serviço — {nomeEscritorio}
+                {textoStatusSalvamento ? ` · ${textoStatusSalvamento}` : ""}
               </p>
             </div>
 
             <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:justify-end">
-              {!somenteLeitura ? (
-                <BaseButton
-                  variant="primary"
-                  size="sm"
-                  className="w-full !bg-esc-destaque !text-white sm:w-auto"
-                  icon={
-                    salvando ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )
-                  }
-                  onClick={handleSalvar}
-                  disabled={salvando}
-                >
-                  Salvar
-                </BaseButton>
-              ) : null}
               <BaseButton
                 variant="outline"
                 size="sm"
                 className="w-full sm:w-auto"
                 icon={<Download className="h-4 w-4" />}
-                onClick={() => setPdfPreview(true)}
+                onClick={abrirPdfPreview}
               >
                 PDF
               </BaseButton>
+              {botoesAssinatura}
               {podeConcluir && !somenteLeitura ? (
                 <BaseButton
                   variant="outline"
@@ -377,6 +601,7 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
                           : ""}
                       </p>
                     ) : null}
+                    {statusAssinaturas}
                   </div>
                 </div>
               </div>
@@ -460,7 +685,7 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
           <div className="flex min-w-0 w-full gap-3">
             <button
               type="button"
-              onClick={() => navigate(basePath)}
+              onClick={voltarComSalvamento}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-primary/50 bg-white shadow-sm transition hover:border-accent-primary/35"
               aria-label="Voltar"
             >
@@ -469,6 +694,7 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-text-muted sm:text-sm">
                 Ordens de Serviço
+                {textoStatusSalvamento ? ` · ${textoStatusSalvamento}` : ""}
               </p>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <h1 className="break-words text-base font-bold text-text-primary sm:text-md">
@@ -479,33 +705,16 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
             </div>
           </div>
           <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:justify-end">
-            {!somenteLeitura ? (
-              <BaseButton
-                variant="primary"
-                size="sm"
-                className="w-full sm:w-auto"
-                icon={
-                  salvando ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )
-                }
-                onClick={handleSalvar}
-                disabled={salvando}
-              >
-                Salvar
-              </BaseButton>
-            ) : null}
             <BaseButton
               variant="outline"
               size="sm"
               className="w-full sm:w-auto"
               icon={<Download className="h-4 w-4" />}
-              onClick={() => setPdfPreview(true)}
+              onClick={abrirPdfPreview}
             >
               PDF
             </BaseButton>
+            {botoesAssinatura}
             {podeConcluir && !somenteLeitura ? (
               <BaseButton
                 variant="outline"
@@ -568,6 +777,7 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
                         : ""}
                     </p>
                   ) : null}
+                  {statusAssinaturas}
                 </div>
               </div>
             </div>

@@ -58,12 +58,15 @@ async function enrichOrdensServicoComUsuarios(rows) {
 
   const { data: usuarios, error } = await supabase
     .from("usuarios")
-    .select("id, nome")
+    .select("id, nome, assinatura_url")
     .in("id", [...ids]);
   if (error) throw error;
 
   const porId = Object.fromEntries(
-    (usuarios || []).map((u) => [String(u.id), { id: u.id, nome: u.nome }]),
+    (usuarios || []).map((u) => [
+      String(u.id),
+      { id: u.id, nome: u.nome, assinatura_url: u.assinatura_url || null },
+    ]),
   );
   const enriquecer = (row) => ({
     ...row,
@@ -1910,30 +1913,30 @@ export const api = {
   },
 
   uploadFotoUsuario: async (userId, file) => {
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `admin_${userId}_${Math.random()}.${fileExt}`;
-      const filePath = `admins/${fileName}`;
-      const { error: uploadError } = await supabase.storage
-        .from("fotos_clientes")
-        .upload(filePath, file);
-      if (uploadError) throw new Error("Falha ao subir imagem para o Storage");
+    if (!userId || !file) throw new Error("Usuário e arquivo são obrigatórios.");
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) throw new Error("Sessão expirada. Faça login novamente.");
 
-      const { data: publicUrlData } = supabase.storage
-        .from("fotos_clientes")
-        .getPublicUrl(filePath);
-      const fotoUrl = publicUrlData.publicUrl;
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { foto: fotoUrl },
-      });
-      if (updateError)
-        throw new Error("Falha ao vincular a foto ao perfil do Admin");
+    const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
+    const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+    const formData = new FormData();
+    formData.append("userId", String(userId));
+    formData.append("file", file);
 
-      return { fotoUrl };
-    } catch (error) {
-      console.error("Erro completo no uploadFotoUsuario:", error);
-      throw error;
+    const res = await fetch(`${supabaseUrl}/functions/v1/upload-foto-usuario`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: anonKey,
+      },
+      body: formData,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json.erro || "Falha ao enviar foto de perfil.");
     }
+    return { fotoUrl: json.fotoUrl };
   },
 
   addMaterial: async (dados) => {
@@ -4052,21 +4055,96 @@ export const api = {
     return data;
   },
 
-  concluirOrdemServico: async (id, usuarioId) => {
+  concluirOrdemServico: async (id, usuarioId, responsavelId = null) => {
     if (!id) throw new Error("ID da OS é obrigatório.");
+    const agora = new Date().toISOString();
+    const patch = {
+      status: "concluida",
+      data_conclusao: agora,
+      concluido_por_id: usuarioId || null,
+      updated_at: agora,
+    };
+    if (
+      responsavelId &&
+      usuarioId &&
+      String(usuarioId) === String(responsavelId)
+    ) {
+      patch.assinatura_responsavel_em = agora;
+    }
+    const { data, error } = await supabase
+      .from("ordens_servico")
+      .update(patch)
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return enrichOrdensServicoComUsuarios(data);
+  },
+
+  assinarOrdemServicoEmissor: async (id, usuarioId) => {
+    if (!id) throw new Error("ID da OS é obrigatório.");
+    const { data: os, error: fetchErr } = await supabase
+      .from("ordens_servico")
+      .select("id, criador_id, status, assinatura_emissor_em")
+      .eq("id", id)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!os) throw new Error("Ordem de serviço não encontrada.");
+    if (os.status !== "concluida") {
+      throw new Error("A OS precisa estar concluída para assinar como emissor.");
+    }
+    if (String(os.criador_id) !== String(usuarioId)) {
+      throw new Error("Apenas o emissor pode assinar neste campo.");
+    }
+    if (os.assinatura_emissor_em) {
+      throw new Error("Esta OS já foi assinada pelo emissor.");
+    }
+    const agora = new Date().toISOString();
     const { data, error } = await supabase
       .from("ordens_servico")
       .update({
-        status: "concluida",
-        data_conclusao: new Date().toISOString(),
-        concluido_por_id: usuarioId || null,
-        updated_at: new Date().toISOString(),
+        assinatura_emissor_em: agora,
+        updated_at: agora,
       })
       .eq("id", id)
       .select("*")
       .single();
     if (error) throw error;
-    return data;
+    return enrichOrdensServicoComUsuarios(data);
+  },
+
+  assinarOrdemServicoResponsavel: async (id, usuarioId) => {
+    if (!id) throw new Error("ID da OS é obrigatório.");
+    const { data: os, error: fetchErr } = await supabase
+      .from("ordens_servico")
+      .select(
+        "id, responsavel_id, status, assinatura_responsavel_em",
+      )
+      .eq("id", id)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!os) throw new Error("Ordem de serviço não encontrada.");
+    if (os.status !== "concluida") {
+      throw new Error("A OS precisa estar concluída para assinar como responsável.");
+    }
+    if (!os.responsavel_id || String(os.responsavel_id) !== String(usuarioId)) {
+      throw new Error("Apenas o responsável designado pode assinar neste campo.");
+    }
+    if (os.assinatura_responsavel_em) {
+      throw new Error("Esta OS já foi assinada pelo responsável.");
+    }
+    const agora = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("ordens_servico")
+      .update({
+        assinatura_responsavel_em: agora,
+        updated_at: agora,
+      })
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return enrichOrdensServicoComUsuarios(data);
   },
 
   deleteOrdemServico: async (id) => {
@@ -4086,5 +4164,207 @@ export const api = {
     const { data, error } = await query;
     if (error) throw error;
     return Array.isArray(data) ? data : [];
+  },
+
+  listUsuariosSistema: async () => {
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id, nome, tipo, escritorio_id, escritorio, subclasses, assinatura_url")
+      .neq("tipo", "cliente")
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  resolverFotosUsuariosStorage: async () => {
+    const map = new Map();
+    const regex = /^admin_([0-9a-f-]{36})_/i;
+
+    const { data: files, error } = await supabase.storage
+      .from("fotos_clientes")
+      .list("admins", {
+        limit: 1000,
+        sortBy: { column: "updated_at", order: "desc" },
+      });
+
+    if (!error && Array.isArray(files)) {
+      for (const file of files) {
+        if (!file?.name || file.name === ".emptyFolderPlaceholder") continue;
+        const match = file.name.match(regex);
+        if (!match || map.has(match[1])) continue;
+        const { data: publicUrlData } = supabase.storage
+          .from("fotos_clientes")
+          .getPublicUrl(`admins/${file.name}`);
+        map.set(match[1], publicUrlData.publicUrl);
+      }
+      return map;
+    }
+
+    try {
+      const json = await api._chamarEdgeUsuarioAuth({ acao: "listar_fotos" });
+      const fotos = json?.fotos ?? {};
+      for (const [uid, url] of Object.entries(fotos)) {
+        if (uid && url) map.set(uid, url);
+      }
+    } catch (e) {
+      console.warn("resolverFotosUsuariosStorage fallback:", e);
+    }
+    return map;
+  },
+
+  resolverFotoUsuarioStorage: async (userId) => {
+    if (!userId) return null;
+    const map = await api.resolverFotosUsuariosStorage();
+    return map.get(String(userId)) ?? null;
+  },
+
+  listUsuariosSistemaComFotos: async () => {
+    const [usuarios, fotosMap] = await Promise.all([
+      api.listUsuariosSistema(),
+      api.resolverFotosUsuariosStorage(),
+    ]);
+    return usuarios.map((u) => ({
+      ...u,
+      foto: fotosMap.get(String(u.id)) ?? null,
+    }));
+  },
+
+  _chamarEdgeUsuarioAuth: async (body) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) throw new Error("Sessão expirada. Faça login novamente.");
+
+    const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
+    const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+    const res = await fetch(
+      `${supabaseUrl}/functions/v1/atualizar-usuario-auth`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: anonKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json.erro || "Erro na operação de autenticação.");
+    }
+    return json;
+  },
+
+  consultarAuthUsuario: async (userId) => {
+    if (!userId) throw new Error("ID do usuário é obrigatório.");
+    return api._chamarEdgeUsuarioAuth({ acao: "consultar", userId });
+  },
+
+  atualizarCredenciaisUsuario: async (userId, { senha, login } = {}) => {
+    if (!userId) throw new Error("ID do usuário é obrigatório.");
+    const payload = { acao: "atualizar_credenciais", userId };
+    if (senha) payload.senha = senha;
+    if (login) payload.login = login;
+    return api._chamarEdgeUsuarioAuth(payload);
+  },
+
+  atualizarSenhaPropria: async (senha) => {
+    if (!senha || String(senha).length < 6) {
+      throw new Error("A senha deve ter pelo menos 6 caracteres.");
+    }
+    const { error } = await supabase.auth.updateUser({ password: senha });
+    if (error) {
+      throw new Error(error.message || "Não foi possível alterar a senha.");
+    }
+  },
+
+  getUsuarioSistemaById: async (id) => {
+    if (!id) return null;
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id, nome, tipo, escritorio_id, escritorio, subclasses, assinatura_url")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  updateUsuarioSistema: async (id, payload) => {
+    if (!id) throw new Error("ID do usuário é obrigatório.");
+    const limpo = { ...payload };
+    delete limpo.id;
+    delete limpo.login;
+    delete limpo.senha;
+    const cleaned = omitUndefined(limpo);
+    const { data, error } = await supabase
+      .from("usuarios")
+      .update(cleaned)
+      .eq("id", id)
+      .select("id, nome, tipo, escritorio_id, escritorio, subclasses, assinatura_url")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  createUsuarioSistema: async (payload) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) throw new Error("Sessão expirada. Faça login novamente.");
+
+    const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
+    const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+    const res = await fetch(`${supabaseUrl}/functions/v1/criar-usuario`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: anonKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json.erro || "Não foi possível criar o usuário.");
+    }
+    return json.usuario;
+  },
+
+  uploadAssinaturaUsuario: async (userId, file) => {
+    if (!userId || !file) throw new Error("Usuário e arquivo são obrigatórios.");
+    const fileExt = (file.name.split(".").pop() || "png").toLowerCase();
+    const filePath = `${userId}/assinatura.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("assinaturas_usuarios")
+      .upload(filePath, file, { upsert: true, contentType: file.type });
+    if (uploadError) {
+      throw new Error("Falha ao enviar a imagem da assinatura.");
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("assinaturas_usuarios")
+      .getPublicUrl(filePath);
+    const assinaturaUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+
+    const { data, error } = await supabase
+      .from("usuarios")
+      .update({ assinatura_url: assinaturaUrl })
+      .eq("id", userId)
+      .select("id, nome, tipo, escritorio_id, escritorio, subclasses, assinatura_url")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  removerAssinaturaUsuario: async (userId) => {
+    if (!userId) throw new Error("ID do usuário é obrigatório.");
+    const { data, error } = await supabase
+      .from("usuarios")
+      .update({ assinatura_url: null })
+      .eq("id", userId)
+      .select("id, nome, tipo, escritorio_id, escritorio, subclasses, assinatura_url")
+      .single();
+    if (error) throw error;
+    return data;
   },
 };

@@ -15,12 +15,12 @@ import {
   campoPreenchido,
   enderecoProjetoFromOs,
 } from "../pages/ordens-servico/ordensServicoUtils";
-import { ARQUITETO_INFO } from "./orcamentoPropostaTemplate";
 
 const COR_TEXTO = "#111827";
 const COR_MUTED = "#6B7280";
 const COR_DIVISOR = "#E5E7EB";
 const COR_FUNDO = "#FAFAFA";
+const COR_BRANCO = "#FFFFFF";
 
 const COR_MONTEZUMA = "#DC3B0B";
 const COR_MONTEZUMA_SUAVE = "#FEF3EF";
@@ -32,7 +32,9 @@ function getBrandConfig(escritorioId) {
   return {
     isVogelkop,
     logo: isVogelkop ? logoVogelkop : logoMontezuma,
-    nomeMarca: isVogelkop ? "VogelKop Arquitetura" : "Montezuma Gestão de Obras",
+    nomeMarca: isVogelkop
+      ? "VogelKop Arquitetura"
+      : "Montezuma Gestão de Obras",
     author: isVogelkop ? "VogelKop Arquitetura" : "Montezuma Gestão de Obras",
     corPrimaria: isVogelkop ? COR_VK : COR_MONTEZUMA,
     corPrimariaSuave: isVogelkop ? COR_VK_SUAVE : COR_MONTEZUMA_SUAVE,
@@ -42,22 +44,30 @@ function getBrandConfig(escritorioId) {
 function criarStyles(corPrimaria, corPrimariaSuave) {
   return StyleSheet.create({
     page: {
-      paddingTop: 36,
-      paddingBottom: 56,
-      paddingHorizontal: 40,
+      paddingTop: 44,
+      paddingBottom: 60,
+      paddingHorizontal: 44,
       fontFamily: "Helvetica",
       fontSize: 10,
       color: COR_TEXTO,
+      backgroundColor: COR_BRANCO,
+    },
+    topBand: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 4,
+      backgroundColor: corPrimaria,
     },
     header: {
       flexDirection: "row",
       alignItems: "flex-start",
       justifyContent: "space-between",
-      paddingBottom: 14,
+      paddingBottom: 16,
       borderBottomWidth: 2,
       borderBottomColor: corPrimaria,
-      borderBottomStyle: "solid",
-      marginBottom: 18,
+      marginBottom: 20,
     },
     brand: {
       flexDirection: "row",
@@ -65,115 +75,157 @@ function criarStyles(corPrimaria, corPrimariaSuave) {
       flex: 1,
     },
     logo: {
-      width: 48,
-      height: 48,
+      width: 56,
+      height: 56,
       objectFit: "contain",
-      marginRight: 12,
+      marginRight: 14,
     },
     docTitle: {
-      fontSize: 17,
+      fontSize: 18,
       fontFamily: "Helvetica-Bold",
       color: COR_TEXTO,
-      letterSpacing: 0.3,
+      letterSpacing: 0.4,
     },
     docSubtitle: {
       fontSize: 9.5,
       color: COR_MUTED,
-      marginTop: 3,
+      marginTop: 4,
     },
     docRef: {
       fontSize: 9,
       color: corPrimaria,
       fontFamily: "Helvetica-Bold",
-      marginTop: 5,
+      marginTop: 6,
+      letterSpacing: 0.3,
     },
-    meta: {
+    metaCard: {
       alignItems: "flex-end",
-      minWidth: 140,
-    },
-    metaLabel: {
-      fontSize: 7.5,
-      color: COR_MUTED,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-    },
-    metaValue: {
-      fontSize: 10,
-      fontFamily: "Helvetica-Bold",
-      color: COR_TEXTO,
-      marginTop: 2,
-      marginBottom: 6,
-    },
-    badge: {
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 999,
-      backgroundColor: corPrimariaSuave,
-      borderWidth: 0.6,
-      borderColor: COR_DIVISOR,
-      fontSize: 8.5,
-      fontFamily: "Helvetica-Bold",
-      color: corPrimaria,
-      marginTop: 2,
-    },
-    cardBlock: {
-      marginBottom: 12,
-    },
-    card: {
-      width: "100%",
+      minWidth: 148,
       padding: 10,
       borderRadius: 6,
       borderWidth: 0.7,
       borderColor: COR_DIVISOR,
       backgroundColor: COR_FUNDO,
     },
+    metaLabel: {
+      fontSize: 7,
+      color: COR_MUTED,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+    },
+    metaValue: {
+      fontSize: 10,
+      fontFamily: "Helvetica-Bold",
+      color: COR_TEXTO,
+      marginTop: 2,
+      marginBottom: 8,
+    },
+    badge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
+      backgroundColor: corPrimariaSuave,
+      borderWidth: 0.6,
+      borderColor: corPrimaria,
+      fontSize: 8.5,
+      fontFamily: "Helvetica-Bold",
+      color: corPrimaria,
+      marginTop: 2,
+    },
+    cardBlock: {
+      marginBottom: 16,
+    },
+    card: {
+      width: "100%",
+      padding: 12,
+      borderRadius: 6,
+      borderWidth: 0.7,
+      borderColor: COR_DIVISOR,
+      backgroundColor: COR_FUNDO,
+      borderLeftWidth: 3,
+      borderLeftColor: corPrimaria,
+    },
     cardTitle: {
       fontSize: 8,
       fontFamily: "Helvetica-Bold",
       color: corPrimaria,
       textTransform: "uppercase",
-      letterSpacing: 0.6,
-      marginBottom: 6,
+      letterSpacing: 0.7,
+      marginBottom: 8,
     },
     cardLine: {
       fontSize: 9.5,
       color: COR_TEXTO,
-      marginBottom: 3,
-      lineHeight: 1.35,
+      marginBottom: 4,
+      lineHeight: 1.4,
     },
     cardMuted: {
       fontSize: 8.5,
       color: COR_MUTED,
-      marginBottom: 2,
+      marginBottom: 3,
+      lineHeight: 1.35,
     },
-    section: {
-      marginTop: 4,
-      marginBottom: 10,
+    sectionCard: {
+      marginBottom: 16,
+      borderWidth: 0.7,
+      borderColor: COR_DIVISOR,
+      borderRadius: 6,
+      overflow: "hidden",
+      backgroundColor: COR_BRANCO,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: COR_FUNDO,
+      borderBottomWidth: 0.6,
+      borderBottomColor: COR_DIVISOR,
+      borderLeftWidth: 3,
+      borderLeftColor: corPrimaria,
+    },
+    sectionNumeroWrap: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: corPrimariaSuave,
+      borderWidth: 0.6,
+      borderColor: corPrimaria,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 8,
+    },
+    sectionNumero: {
+      fontSize: 9,
+      fontFamily: "Helvetica-Bold",
+      color: corPrimaria,
+      textAlign: "center",
     },
     sectionTitle: {
       fontSize: 10,
       fontFamily: "Helvetica-Bold",
       color: COR_TEXTO,
-      paddingBottom: 4,
-      marginBottom: 8,
-      borderBottomWidth: 0.7,
-      borderBottomColor: COR_DIVISOR,
       textTransform: "uppercase",
       letterSpacing: 0.5,
+      flex: 1,
+    },
+    sectionBody: {
+      paddingVertical: 10,
+      paddingHorizontal: 12,
     },
     infoRow: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 8,
+      gap: 10,
       marginBottom: 4,
     },
     infoChip: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: 4,
-      paddingHorizontal: 8,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
       borderRadius: 4,
-      backgroundColor: "#FFFFFF",
+      backgroundColor: COR_BRANCO,
       borderWidth: 0.6,
       borderColor: COR_DIVISOR,
       minWidth: "30%",
@@ -184,7 +236,7 @@ function criarStyles(corPrimaria, corPrimariaSuave) {
       color: COR_MUTED,
       textTransform: "uppercase",
       letterSpacing: 0.4,
-      marginBottom: 1,
+      marginBottom: 2,
     },
     infoChipValue: {
       fontSize: 9,
@@ -194,10 +246,10 @@ function criarStyles(corPrimaria, corPrimariaSuave) {
     textBlock: {
       fontSize: 9.5,
       color: COR_TEXTO,
-      lineHeight: 1.45,
+      lineHeight: 1.5,
     },
     listaBox: {
-      borderWidth: 0.7,
+      borderWidth: 0.6,
       borderColor: COR_DIVISOR,
       borderRadius: 4,
       overflow: "hidden",
@@ -206,34 +258,43 @@ function criarStyles(corPrimaria, corPrimariaSuave) {
     listaItem: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: 6,
-      paddingHorizontal: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
       borderBottomWidth: 0.5,
       borderBottomColor: COR_DIVISOR,
     },
     listaItemAlt: {
       backgroundColor: COR_FUNDO,
     },
+    listaMarcadorWrap: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: corPrimariaSuave,
+      borderWidth: 0.5,
+      borderColor: corPrimaria,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 8,
+    },
     listaMarcador: {
-      width: 12,
-      fontSize: 9,
+      fontSize: 8,
       fontFamily: "Helvetica-Bold",
       color: corPrimaria,
-      marginRight: 6,
     },
     listaTexto: {
       fontSize: 9,
       color: COR_TEXTO,
       flex: 1,
-      lineHeight: 1.3,
+      lineHeight: 1.35,
     },
     resumoBox: {
-      marginTop: 8,
-      padding: 10,
-      borderRadius: 4,
-      backgroundColor: COR_FUNDO,
-      borderWidth: 0.6,
-      borderColor: COR_DIVISOR,
+      marginTop: 4,
+      padding: 12,
+      borderRadius: 6,
+      backgroundColor: corPrimariaSuave,
+      borderWidth: 0.8,
+      borderColor: corPrimaria,
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
@@ -243,67 +304,111 @@ function criarStyles(corPrimaria, corPrimariaSuave) {
       color: COR_MUTED,
     },
     resumoDestaque: {
-      fontSize: 11,
+      fontSize: 13,
       fontFamily: "Helvetica-Bold",
-      color: COR_TEXTO,
+      color: corPrimaria,
     },
     notas: {
-      marginTop: 12,
-      padding: 10,
-      borderRadius: 4,
+      marginTop: 16,
+      padding: 12,
+      borderRadius: 6,
       borderWidth: 0.6,
       borderColor: COR_DIVISOR,
-      backgroundColor: "#FFFFFF",
+      backgroundColor: COR_FUNDO,
+      borderLeftWidth: 3,
+      borderLeftColor: corPrimaria,
     },
     notasTitle: {
       fontSize: 8,
       fontFamily: "Helvetica-Bold",
-      color: COR_MUTED,
+      color: corPrimaria,
       textTransform: "uppercase",
-      letterSpacing: 0.5,
-      marginBottom: 5,
+      letterSpacing: 0.6,
+      marginBottom: 6,
     },
     notasText: {
       fontSize: 8.5,
       color: COR_MUTED,
-      lineHeight: 1.45,
+      lineHeight: 1.5,
     },
-    assinaturas: {
-      flexDirection: "row",
-      gap: 24,
-      marginTop: 22,
+    assinaturasWrap: {
+      marginTop: 32,
+      paddingTop: 16,
+      borderTopWidth: 0.8,
+      borderTopColor: COR_DIVISOR,
     },
-    assinatura: {
-      flex: 1,
-    },
-    assinaturaTitulo: {
+    assinaturasTitle: {
       fontSize: 9,
       fontFamily: "Helvetica-Bold",
       color: COR_TEXTO,
-      marginBottom: 8,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      marginBottom: 14,
+      textAlign: "center",
     },
-    assinaturaLinha: {
-      borderBottomWidth: 0.7,
-      borderBottomColor: COR_TEXTO,
+    assinaturas: {
+      flexDirection: "row",
+      gap: 20,
+    },
+    assinatura: {
+      flex: 1,
+      padding: 10,
+      borderRadius: 6,
+      borderWidth: 0.7,
+      borderColor: COR_DIVISOR,
+      backgroundColor: COR_FUNDO,
+      minHeight: 100,
+    },
+    assinaturaTitulo: {
+      fontSize: 8,
+      fontFamily: "Helvetica-Bold",
+      color: corPrimaria,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
       marginBottom: 4,
-      height: 28,
+      textAlign: "center",
     },
-    assinaturaLabel: {
+    assinaturaNome: {
+      fontSize: 8.5,
+      color: COR_TEXTO,
+      textAlign: "center",
+      marginBottom: 6,
+    },
+    assinaturaImgWrap: {
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 6,
+    },
+    assinaturaImg: {
+      maxHeight: 44,
+      maxWidth: "100%",
+      objectFit: "contain",
+    },
+    assinaturaPendente: {
       fontSize: 8,
       color: COR_MUTED,
+      fontStyle: "italic",
       textAlign: "center",
+      marginVertical: 12,
+    },
+    assinaturaData: {
+      fontSize: 7.5,
+      color: COR_MUTED,
+      textAlign: "center",
+      marginTop: 4,
     },
     footer: {
       position: "absolute",
       bottom: 24,
-      left: 40,
-      right: 40,
+      left: 44,
+      right: 44,
       textAlign: "center",
       fontSize: 7.5,
       color: COR_MUTED,
       borderTopWidth: 0.6,
       borderTopColor: COR_DIVISOR,
-      paddingTop: 6,
+      paddingTop: 8,
     },
   });
 }
@@ -322,20 +427,8 @@ function formatarData(raw) {
 
 function formatarDataHora(raw) {
   if (!raw) return "—";
-  const iso = String(raw).slice(0, 10);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-    const d = new Date(`${iso}T12:00:00`);
-    if (Number.isNaN(d.getTime())) return formatarData(raw);
-    return d.toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
   const d = raw instanceof Date ? raw : new Date(raw);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return formatarData(raw);
   return d.toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -388,12 +481,11 @@ function ListaMarcada({ itens, styles }) {
       {itens.map((item, idx) => (
         <View
           key={`${item}-${idx}`}
-          style={[
-            styles.listaItem,
-            idx % 2 === 1 ? styles.listaItemAlt : null,
-          ]}
+          style={[styles.listaItem, idx % 2 === 1 ? styles.listaItemAlt : null]}
         >
-          <Text style={styles.listaMarcador}>✓</Text>
+          <View style={styles.listaMarcadorWrap}>
+            <Text style={styles.listaMarcador}>✓</Text>
+          </View>
           <Text style={styles.listaTexto}>{item}</Text>
         </View>
       ))}
@@ -402,13 +494,24 @@ function ListaMarcada({ itens, styles }) {
 }
 
 function SecaoPdf({ secao, numero, styles }) {
-  const titulo = `${numero}. ${secao.titulo}`;
+  const titulo = secao.titulo;
+
+  const header = (
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionNumeroWrap}>
+        <Text style={styles.sectionNumero}>{numero}</Text>
+      </View>
+      <Text style={styles.sectionTitle}>{titulo}</Text>
+    </View>
+  );
 
   if (secao.tipo === "texto") {
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{titulo}</Text>
-        <Text style={styles.textBlock}>{secao.conteudo}</Text>
+      <View style={styles.sectionCard} wrap={false}>
+        {header}
+        <View style={styles.sectionBody}>
+          <Text style={styles.textBlock}>{secao.conteudo}</Text>
+        </View>
       </View>
     );
   }
@@ -419,38 +522,42 @@ function SecaoPdf({ secao, numero, styles }) {
       ...secao.outros.map((item) => `Outro: ${item}`),
     ];
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{titulo}</Text>
-        <ListaMarcada itens={itens} styles={styles} />
+      <View style={styles.sectionCard}>
+        {header}
+        <View style={styles.sectionBody}>
+          <ListaMarcada itens={itens} styles={styles} />
+        </View>
       </View>
     );
   }
 
   if (secao.tipo === "prazos") {
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{titulo}</Text>
-        <View style={styles.infoRow}>
-          {campoPreenchido(secao.data_inicio) ? (
-            <InfoChip
-              label="Data de início"
-              value={formatarData(secao.data_inicio)}
-              styles={styles}
-            />
-          ) : null}
-          {campoPreenchido(secao.data_entrega_prevista) ? (
-            <InfoChip
-              label="Entrega prevista"
-              value={formatarData(secao.data_entrega_prevista)}
-              styles={styles}
-            />
+      <View style={styles.sectionCard} wrap={false}>
+        {header}
+        <View style={styles.sectionBody}>
+          <View style={styles.infoRow}>
+            {campoPreenchido(secao.data_inicio) ? (
+              <InfoChip
+                label="Data de início"
+                value={formatarData(secao.data_inicio)}
+                styles={styles}
+              />
+            ) : null}
+            {campoPreenchido(secao.data_entrega_prevista) ? (
+              <InfoChip
+                label="Entrega prevista"
+                value={formatarData(secao.data_entrega_prevista)}
+                styles={styles}
+              />
+            ) : null}
+          </View>
+          {campoPreenchido(secao.observacoes) ? (
+            <Text style={[styles.textBlock, { marginTop: 8 }]}>
+              {secao.observacoes}
+            </Text>
           ) : null}
         </View>
-        {campoPreenchido(secao.observacoes) ? (
-          <Text style={[styles.textBlock, { marginTop: 6 }]}>
-            {secao.observacoes}
-          </Text>
-        ) : null}
       </View>
     );
   }
@@ -463,31 +570,33 @@ function SecaoPdf({ secao, numero, styles }) {
       ...secao.outros.map((item) => `Outro: ${item}`),
     ];
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{titulo}</Text>
-        {valorFormatado ? (
-          <View style={styles.resumoBox}>
-            <Text style={styles.resumoText}>Valor total dos serviços</Text>
-            <Text style={styles.resumoDestaque}>{valorFormatado}</Text>
-          </View>
-        ) : null}
-        {formas.length > 0 ? (
-          <>
-            <Text
-              style={{
-                fontSize: 8,
-                color: COR_MUTED,
-                textTransform: "uppercase",
-                letterSpacing: 0.4,
-                marginTop: valorFormatado ? 8 : 0,
-                marginBottom: 4,
-              }}
-            >
-              Forma de pagamento
-            </Text>
-            <ListaMarcada itens={formas} styles={styles} />
-          </>
-        ) : null}
+      <View style={styles.sectionCard}>
+        {header}
+        <View style={styles.sectionBody}>
+          {valorFormatado ? (
+            <View style={styles.resumoBox}>
+              <Text style={styles.resumoText}>Valor total dos serviços</Text>
+              <Text style={styles.resumoDestaque}>{valorFormatado}</Text>
+            </View>
+          ) : null}
+          {formas.length > 0 ? (
+            <>
+              <Text
+                style={{
+                  fontSize: 8,
+                  color: COR_MUTED,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.4,
+                  marginTop: valorFormatado ? 10 : 0,
+                  marginBottom: 6,
+                }}
+              >
+                Forma de pagamento
+              </Text>
+              <ListaMarcada itens={formas} styles={styles} />
+            </>
+          ) : null}
+        </View>
       </View>
     );
   }
@@ -521,13 +630,39 @@ function BlocoCliente({ os, styles }) {
         <BlocoCard titulo="Cliente e projeto" linhas={linhas} styles={styles} />
       ) : null}
       {temResponsavel ? (
-        <View style={[styles.infoRow, linhas.length > 0 ? { marginTop: 8 } : null]}>
+        <View
+          style={[styles.infoRow, linhas.length > 0 ? { marginTop: 10 } : null]}
+        >
           <InfoChip
             label="Responsável técnico"
             value={os.responsavel_tecnico}
             styles={styles}
           />
         </View>
+      ) : null}
+    </View>
+  );
+}
+
+function BlocoAssinatura({ titulo, nome, assinadoEm, assinaturaUrl, styles }) {
+  const assinado = Boolean(assinadoEm);
+  return (
+    <View style={styles.assinatura}>
+      <Text style={styles.assinaturaTitulo}>{titulo}</Text>
+      {nome ? <Text style={styles.assinaturaNome}>{nome}</Text> : null}
+      {assinado && assinaturaUrl ? (
+        <View style={styles.assinaturaImgWrap}>
+          <Image src={assinaturaUrl} style={styles.assinaturaImg} />
+        </View>
+      ) : assinado ? (
+        <Text style={styles.assinaturaPendente}>Assinatura registrada</Text>
+      ) : (
+        <Text style={styles.assinaturaPendente}>Assinatura pendente</Text>
+      )}
+      {assinado ? (
+        <Text style={styles.assinaturaData}>
+          {formatarDataHora(assinadoEm)}
+        </Text>
       ) : null}
     </View>
   );
@@ -542,13 +677,8 @@ export default function OrdemServicoPDF({ os, escritorioId }) {
   const docRef = numeroOs
     ? `OS-${String(numeroOs).padStart(3, "0")}`
     : "OS — nova";
-  const statusLabel =
-    OS_STATUS_LABEL[os?.status] || OS_STATUS_LABEL.pendente;
+  const statusLabel = OS_STATUS_LABEL[os?.status] || OS_STATUS_LABEL.pendente;
   const dataEmissao = os?.data_emissao || new Date().toISOString();
-
-  const responsavelEmpresa = brand.isVogelkop
-    ? ARQUITETO_INFO.nome
-    : os?.responsavel_tecnico || "";
 
   const temBlocoCliente =
     campoPreenchido(os?.responsavel_tecnico) ||
@@ -557,16 +687,16 @@ export default function OrdemServicoPDF({ os, escritorioId }) {
     campoPreenchido(os?.cliente_email) ||
     campoPreenchido(enderecoProjetoFromOs(os));
 
-  const footerRef = numeroOs
-    ? `OS-${String(numeroOs).padStart(3, "0")}`
-    : "OS";
+  const footerRef = numeroOs ? `OS-${String(numeroOs).padStart(3, "0")}` : "OS";
+
+  const nomeEmissor = os?.criador?.nome || "—";
+  const nomeResponsavel = os?.responsavel?.nome || null;
 
   return (
-    <Document
-      title={`Ordem de Serviço ${numeroOs}`}
-      author={brand.author}
-    >
+    <Document title={`Ordem de Serviço ${numeroOs}`} author={brand.author}>
       <Page size="A4" style={styles.page}>
+        <View style={styles.topBand} fixed />
+
         <View style={styles.header}>
           <View style={styles.brand}>
             <Image src={brand.logo} style={styles.logo} />
@@ -576,7 +706,7 @@ export default function OrdemServicoPDF({ os, escritorioId }) {
               <Text style={styles.docRef}>{docRef}</Text>
             </View>
           </View>
-          <View style={styles.meta}>
+          <View style={styles.metaCard}>
             <Text style={styles.metaLabel}>Emissão</Text>
             <Text style={styles.metaValue}>
               {formatarDataHora(dataEmissao)}
@@ -598,41 +728,42 @@ export default function OrdemServicoPDF({ os, escritorioId }) {
         ))}
 
         <View style={styles.notas}>
-          <Text style={styles.notasTitle}>Aprovação</Text>
+          <Text style={styles.notasTitle}>Termos e condições</Text>
           <Text style={styles.notasText}>
-            Declaro estar de acordo com os serviços descritos nesta Ordem de
-            Serviço. Alterações não previstas no escopo poderão gerar custos
-            adicionais. Os prazos poderão ser ajustados em caso de atrasos nas
-            aprovações ou fornecimento de informações pelo cliente.
+            Esta Ordem de Serviço formaliza o escopo, prazos e condições
+            comerciais acordados para a prestação dos serviços descritos.
+            Alterações não previstas no escopo poderão gerar custos adicionais.
+            Os prazos poderão ser ajustados em caso de atrasos nas aprovações ou
+            fornecimento de informações necessárias à execução.
           </Text>
         </View>
 
-        <View style={styles.assinaturas}>
-          <View style={styles.assinatura}>
-            <Text style={styles.assinaturaTitulo}>Cliente</Text>
-            <View style={styles.assinaturaLinha} />
-            <Text style={styles.assinaturaLabel}>Nome e assinatura</Text>
-            <View style={[styles.assinaturaLinha, { marginTop: 16 }]} />
-            <Text style={styles.assinaturaLabel}>Data</Text>
-          </View>
-          <View style={styles.assinatura}>
-            <Text style={styles.assinaturaTitulo}>{brand.nomeMarca}</Text>
-            {responsavelEmpresa ? (
-              <Text
-                style={{
-                  fontSize: 8.5,
-                  color: COR_MUTED,
-                  textAlign: "center",
-                  marginBottom: 6,
-                }}
-              >
-                {responsavelEmpresa}
-              </Text>
-            ) : null}
-            <View style={styles.assinaturaLinha} />
-            <Text style={styles.assinaturaLabel}>Assinatura</Text>
-            <View style={[styles.assinaturaLinha, { marginTop: 16 }]} />
-            <Text style={styles.assinaturaLabel}>Data</Text>
+        <View style={styles.assinaturasWrap}>
+          <Text style={styles.assinaturasTitle}>Assinaturas internas</Text>
+          <View style={styles.assinaturas}>
+            <BlocoAssinatura
+              titulo="Emissor"
+              nome={nomeEmissor}
+              assinadoEm={os?.assinatura_emissor_em}
+              assinaturaUrl={os?.criador?.assinatura_url}
+              styles={styles}
+            />
+            {os?.responsavel_id ? (
+              <BlocoAssinatura
+                titulo="Responsável designado"
+                nome={nomeResponsavel || "—"}
+                assinadoEm={os?.assinatura_responsavel_em}
+                assinaturaUrl={os?.responsavel?.assinatura_url}
+                styles={styles}
+              />
+            ) : (
+              <View style={styles.assinatura}>
+                <Text style={styles.assinaturaTitulo}>
+                  Responsável designado
+                </Text>
+                <Text style={styles.assinaturaPendente}>Não designado</Text>
+              </View>
+            )}
           </View>
         </View>
 

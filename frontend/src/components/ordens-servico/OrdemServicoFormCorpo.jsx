@@ -240,6 +240,7 @@ export default function OrdemServicoFormCorpo({
         variant={variant}
       >
         <OsCampoTextoComIA
+          value={form.objeto_servico}
           onChange={(v) => setField("objeto_servico", v)}
           multiline
           rows={3}

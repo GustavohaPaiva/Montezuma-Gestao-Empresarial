@@ -159,3 +159,18 @@ export function podeAcessarModuloOrdemServico(user) {
   ];
   return tiposInternos.includes(user.tipo);
 }
+
+export function podeAssinarEmissorOrdemServico(user, os) {
+  if (!user?.id || !os) return false;
+  if (os.status !== "concluida") return false;
+  if (os.assinatura_emissor_em) return false;
+  return String(os.criador_id ?? "") === String(user.id);
+}
+
+export function podeAssinarResponsavelOrdemServico(user, os) {
+  if (!user?.id || !os) return false;
+  if (os.status !== "concluida") return false;
+  if (!os.responsavel_id) return false;
+  if (os.assinatura_responsavel_em) return false;
+  return String(os.responsavel_id) === String(user.id);
+}

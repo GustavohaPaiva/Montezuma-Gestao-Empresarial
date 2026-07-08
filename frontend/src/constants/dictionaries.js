@@ -22,6 +22,7 @@ export const homeDictionary = {
     pedidos: "Pedidos",
     projecoes: "Projeções",
     ordensServico: "Ordens de Serviço",
+    usuariosSistema: "Usuários do sistema",
     categorias: {
       escritorio: "Escritório",
       administrativo: "Administrativo",
@@ -52,6 +53,8 @@ export const homeDictionary = {
         "Analise cenários financeiros, projeções de receita e indicadores estratégicos do negócio.",
       ordensServico:
         "Emita solicitações internas e gere PDFs de ordem de serviço para clientes.",
+      usuariosSistema:
+        "Cadastre usuários internos, permissões de OS e assinaturas digitais para documentos.",
     },
     destaques: {
       meuEscritorio: ["Agenda", "Reuniões", "Visitas"],
@@ -64,6 +67,7 @@ export const homeDictionary = {
       pedidos: ["Compras", "Aprovações", "Entregas"],
       projecoes: ["Cenários", "Indicadores", "Relatórios"],
       ordensServico: ["Solicitações", "PDF", "Pendências"],
+      usuariosSistema: ["Cadastro", "Permissões", "Assinaturas"],
     },
     card: {
       acessar: "Acessar módulo",

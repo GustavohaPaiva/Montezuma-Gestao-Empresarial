@@ -197,6 +197,20 @@ export function formPayloadFromForm(
   };
 }
 
+export function snapshotFormOrdemServico(
+  form,
+  { escritorioId, criadorId, destinatarios = [] } = {},
+) {
+  const payload = formPayloadFromForm(form, {
+    escritorioId,
+    criadorId,
+    destinatarios,
+  });
+  delete payload.escritorio_id;
+  delete payload.criador_id;
+  return JSON.stringify(payload);
+}
+
 export function formPayloadMinimoModal(
   form,
   { escritorioId, criadorId, destinatarios = [] } = {},

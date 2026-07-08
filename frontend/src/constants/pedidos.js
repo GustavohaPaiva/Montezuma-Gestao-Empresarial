@@ -1,5 +1,5 @@
 /** Utilizador que gere pedidos no Home (gestão global). */
-export const GESTOR_PEDIDOS_USER_ID = "ef81544f-7e48-4641-9e43-18d80b7c58da";
+export const GESTOR_PEDIDOS_USER_ID = "gestor_pedidos";
 
 /** Unidades de medida permitidas no lançamento de pedidos (alinhado a ModalMateriais). */
 export const UNIDADES_MEDIDA_PEDIDO = [
@@ -35,8 +35,8 @@ export const STATUS_PEDIDO_OPCOES = [
 ];
 
 export function isGestorPedidos(user) {
-  if (!user?.id) return false;
-  return String(user.id).toLowerCase() === GESTOR_PEDIDOS_USER_ID.toLowerCase();
+  if (!user?.subclasses) return false;
+  return String(user.subclasses).includes(GESTOR_PEDIDOS_USER_ID);
 }
 
 export function isPedidoEditavel(status) {
