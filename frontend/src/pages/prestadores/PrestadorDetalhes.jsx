@@ -25,6 +25,37 @@ import {
   Tags,
 } from "lucide-react";
 
+const FILTRO_INPUT_CLASS =
+  "box-border min-h-11 h-11 w-full min-w-0 shrink-0 rounded-xl border border-border-primary/55 bg-white px-3 text-sm text-text-primary shadow-sm transition-all placeholder:text-text-muted focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
+
+const FILTRO_SELECT_CLASS =
+  "box-border min-h-11 h-11 w-full min-w-0 shrink-0 cursor-pointer rounded-xl border border-border-primary/55 bg-white px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
+
+const ORDEM_STATUS_PRESTADOR = {
+  pendente: 0,
+  pago: 1,
+};
+
+function statusPrestadorItem(item) {
+  // Mesmo critério do extrato da obra (status_financeiro === "Pago").
+  const isPago =
+    item.pago_extrato === true ||
+    (item.status_financeiro || "").toLowerCase().trim() === "pago";
+
+  if (isPago) {
+    return {
+      key: "pago",
+      label: "PAGO",
+      badgeClass: "bg-emerald-50 text-emerald-800 ring-emerald-100",
+    };
+  }
+  return {
+    key: "pendente",
+    label: "PENDENTE",
+    badgeClass: "bg-amber-50 text-amber-900 ring-amber-100",
+  };
+}
+
 export default function PrestadorDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -44,6 +75,10 @@ export default function PrestadorDetalhes() {
   });
 
   const [classeSelecionada, setClasseSelecionada] = useState("");
+  const [busca, setBusca] = useState("");
+  const [filtroObraId, setFiltroObraId] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("");
+  const [sortConfig, setSortConfig] = useState({ campo: null, direcao: "asc" });
 
   const fileInputRef = useRef(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
@@ -193,7 +228,9 @@ export default function PrestadorDetalhes() {
     historicoFinanceiro.forEach((item) => {
       const val = parseFloat(item.valor) || 0;
       contratado += val;
-      if (item.validacao === 1) pago += val;
+      if (statusPrestadorItem(item).key === "pago") {
+        pago += val;
+      }
     });
 
     const pendente = Math.max(contratado - pago, 0);
@@ -202,27 +239,99 @@ export default function PrestadorDetalhes() {
     return { contratado, pago, pendente, excedente };
   }, [historicoFinanceiro]);
 
+  const temLancamentos = historicoFinanceiro.length > 0;
+
+  const opcoesObras = useMemo(() => {
+    const mapa = new Map();
+    historicoFinanceiro.forEach((item) => {
+      const obraId = item.obra_id != null ? String(item.obra_id) : "";
+      if (!obraId || mapa.has(obraId)) return;
+      mapa.set(obraId, item.obra_nome || "Obra Desconhecida");
+    });
+    return Array.from(mapa.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }, [historicoFinanceiro]);
+
+  const handleSort = (campo) => {
+    setSortConfig((prev) => ({
+      campo,
+      direcao: prev.campo === campo && prev.direcao === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const getSortIcon = (campo) => {
+    if (sortConfig.campo !== campo) return "↕";
+    return sortConfig.direcao === "asc" ? "↑" : "↓";
+  };
+
   const dadosTabela = useMemo(() => {
-    if (!historicoFinanceiro.length) return [];
+    if (!temLancamentos) return [];
 
-    return [...historicoFinanceiro].map((item) => {
-      const isPago = item.validacao === 1;
-      const valorContratado = parseFloat(item.valor) || 0;
-      const valorPago = parseFloat(item.valor_pago) || 0;
-      const pagamentoCorreto = valorPago <= valorContratado;
+    const termo = busca.trim().toLowerCase();
 
-      let badgeClass;
-      let label;
-      if (!pagamentoCorreto) {
-        badgeClass = "bg-red-50 text-red-800 ring-red-100";
-        label = "PAGO ACIMA";
-      } else if (isPago) {
-        badgeClass = "bg-emerald-50 text-emerald-800 ring-emerald-100";
-        label = "PAGO";
-      } else {
-        badgeClass = "bg-amber-50 text-amber-900 ring-amber-100";
-        label = "PENDENTE";
+    let lista = historicoFinanceiro.filter((item) => {
+      const status = statusPrestadorItem(item);
+
+      if (filtroObraId && String(item.obra_id) !== filtroObraId) return false;
+      if (filtroStatus && status.key !== filtroStatus) return false;
+
+      if (termo) {
+        const classe = (item.classe_nome || "").toLowerCase();
+        const descricao = (item.descricao || "").toLowerCase();
+        const obra = (item.obra_nome || "").toLowerCase();
+        if (
+          !classe.includes(termo) &&
+          !descricao.includes(termo) &&
+          !obra.includes(termo)
+        ) {
+          return false;
+        }
       }
+
+      return true;
+    });
+
+    lista = [...lista];
+
+    if (sortConfig.campo) {
+      lista.sort((a, b) => {
+        let valA;
+        let valB;
+
+        if (sortConfig.campo === "data") {
+          valA = new Date(a.data || 0).getTime();
+          valB = new Date(b.data || 0).getTime();
+        } else if (sortConfig.campo === "obra") {
+          valA = (a.obra_nome || "").toLowerCase();
+          valB = (b.obra_nome || "").toLowerCase();
+        } else if (sortConfig.campo === "classe") {
+          valA = (a.classe_nome || "").toLowerCase();
+          valB = (b.classe_nome || "").toLowerCase();
+        } else if (sortConfig.campo === "descricao") {
+          valA = (a.descricao || "").toLowerCase();
+          valB = (b.descricao || "").toLowerCase();
+        } else if (sortConfig.campo === "valor") {
+          valA = parseFloat(a.valor) || 0;
+          valB = parseFloat(b.valor) || 0;
+        } else if (sortConfig.campo === "status") {
+          valA = ORDEM_STATUS_PRESTADOR[statusPrestadorItem(a).key] ?? 0;
+          valB = ORDEM_STATUS_PRESTADOR[statusPrestadorItem(b).key] ?? 0;
+        } else {
+          return 0;
+        }
+
+        if (valA < valB) return sortConfig.direcao === "asc" ? -1 : 1;
+        if (valA > valB) return sortConfig.direcao === "asc" ? 1 : -1;
+        if (a.id < b.id) return -1;
+        if (a.id > b.id) return 1;
+        return 0;
+      });
+    }
+
+    return lista.map((item) => {
+      const status = statusPrestadorItem(item);
+      const obraNome = item.obra_nome || "Obra Desconhecida";
 
       return [
         <div
@@ -232,19 +341,42 @@ export default function PrestadorDetalhes() {
           {formatarData(item.data)}
         </div>,
         <div
+          key={`obra-${item.id}`}
+          className="mx-auto max-w-[200px] truncate text-center text-sm font-semibold uppercase text-text-primary"
+          title={obraNome}
+        >
+          {obraNome}
+        </div>,
+        <div
           key={`classe-${item.id}`}
           className="mx-auto max-w-[200px] truncate text-center text-sm font-semibold uppercase text-text-primary"
           title={item.classe_nome}
         >
           {item.classe_nome || "Sem classe"}
         </div>,
-        <div
-          key={`descricao-${item.id}`}
-          className="mx-auto max-w-[260px] truncate text-center text-sm uppercase text-text-muted"
-          title={item.descricao}
-        >
-          {item.descricao || "—"}
-        </div>,
+        item.obra_id != null ? (
+          <button
+            key={`descricao-${item.id}`}
+            type="button"
+            title="Abrir no relatório da obra"
+            onClick={() =>
+              navigate(
+                `/obrasD/${item.obra_id}?secao=relatorios&sub=mao&item=${item.id}`,
+              )
+            }
+            className="mx-auto max-w-[260px] cursor-pointer truncate text-center text-sm font-semibold uppercase text-accent-primary underline-offset-2 transition-colors hover:text-accent-primary-dark hover:underline"
+          >
+            {item.descricao || "—"}
+          </button>
+        ) : (
+          <div
+            key={`descricao-${item.id}`}
+            className="mx-auto max-w-[260px] truncate text-center text-sm uppercase text-text-muted"
+            title={item.descricao}
+          >
+            {item.descricao || "—"}
+          </div>
+        ),
         <div
           key={`valor-${item.id}`}
           className="whitespace-nowrap text-center font-bold text-text-primary"
@@ -253,14 +385,67 @@ export default function PrestadorDetalhes() {
         </div>,
         <div key={`status-${item.id}`} className="flex justify-center">
           <span
-            className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold ring-1 ${badgeClass}`}
+            className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold ring-1 ${status.badgeClass}`}
           >
-            {label}
+            {status.label}
           </span>
         </div>,
       ];
     });
-  }, [historicoFinanceiro]);
+  }, [
+    historicoFinanceiro,
+    temLancamentos,
+    busca,
+    filtroObraId,
+    filtroStatus,
+    sortConfig,
+    navigate,
+  ]);
+
+  const colunasTabela = [
+    <span
+      key="col-data"
+      className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+      onClick={() => handleSort("data")}
+    >
+      Data {getSortIcon("data")}
+    </span>,
+    <span
+      key="col-obra"
+      className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+      onClick={() => handleSort("obra")}
+    >
+      Obra {getSortIcon("obra")}
+    </span>,
+    <span
+      key="col-classe"
+      className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+      onClick={() => handleSort("classe")}
+    >
+      Classe {getSortIcon("classe")}
+    </span>,
+    <span
+      key="col-descricao"
+      className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+      onClick={() => handleSort("descricao")}
+    >
+      Descrição {getSortIcon("descricao")}
+    </span>,
+    <span
+      key="col-valor"
+      className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+      onClick={() => handleSort("valor")}
+    >
+      Valor {getSortIcon("valor")}
+    </span>,
+    <span
+      key="col-status"
+      className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+      onClick={() => handleSort("status")}
+    >
+      Status {getSortIcon("status")}
+    </span>,
+  ];
 
   if (loading) {
     return (
@@ -687,19 +872,58 @@ export default function PrestadorDetalhes() {
               : "translate-y-6 opacity-0"
           }`}
         >
-          <h2 className="mb-6 flex items-center gap-2 text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
+          <div className="flex flex-col lg:flex-row gap-4">
+          <h2 className="mb-0 lg:mb-4 flex items-center gap-2 text-lg font-bold tracking-tight w-full text-gray-900 sm:text-xl">
             <FileText className="h-5 w-5 text-orange-600" aria-hidden />
             Histórico de serviços
           </h2>
 
-          {dadosTabela.length === 0 ? (
+          {temLancamentos && (
+            <div className="mb-5 flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+              <input
+                type="text"
+                placeholder="Buscar por obra, classe ou descrição..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className={`${FILTRO_INPUT_CLASS} lg:max-w-[280px] lg:min-w-0 lg:flex-1`}
+              />
+              <BaseSelect
+                searchable
+                value={filtroObraId}
+                onChange={(e) => setFiltroObraId(e.target.value)}
+                wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[220px]"
+                className={`${FILTRO_SELECT_CLASS} w-full`}
+                options={[
+                  { value: "", label: "Todas as obras" },
+                  ...opcoesObras,
+                ]}
+              />
+              <BaseSelect
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+                wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
+                className={`${FILTRO_SELECT_CLASS} w-full`}
+                options={[
+                  { value: "", label: "Todos os status" },
+                  { value: "pago", label: "Pago" },
+                  { value: "pendente", label: "Pendente" },
+                ]}
+              />
+            </div>
+          )}</div>
+
+          {!temLancamentos ? (
             <div className="rounded-xl border-2 border-dashed border-border-primary/35 py-12 text-center text-sm font-medium text-text-muted">
               Nenhum serviço financeiro registado para este prestador.
+            </div>
+          ) : dadosTabela.length === 0 ? (
+            <div className="rounded-xl border-2 border-dashed border-border-primary/35 py-12 text-center text-sm font-medium text-text-muted">
+              Nenhum item encontrado com os filtros aplicados.
             </div>
           ) : (
             <TabelaSimples
               variant="financeiro"
-              colunas={["Data", "Classe", "Descrição", "Valor", "Status"]}
+              colunas={colunasTabela}
               dados={dadosTabela}
             />
           )}

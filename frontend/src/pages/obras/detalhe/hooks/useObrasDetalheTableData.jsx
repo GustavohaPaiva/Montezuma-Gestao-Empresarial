@@ -123,8 +123,8 @@ export function useObrasDetalheTableData({
     [listaMateriaisFiltrada],
   );
 
-  const dadosMateriais = useMemo(() => {
-    if (!obra || !obra.materiais) return [];
+  const tabelaMateriais = useMemo(() => {
+    if (!obra || !obra.materiais) return { dados: [], rowIds: [] };
     let listaMateriais = [...listaMateriaisFiltrada];
 
     if (sortConfig.campo) {
@@ -154,7 +154,9 @@ export function useObrasDetalheTableData({
       });
     }
 
-    return listaMateriais.map((m) => {
+    return {
+      rowIds: listaMateriais.map((m) => m.id),
+      dados: listaMateriais.map((m) => {
       const isEditingValor =
         editandoMaterial.id === m.id && editandoMaterial.campo === "valor";
       const isEditingFornecedor =
@@ -342,7 +344,8 @@ export function useObrasDetalheTableData({
           </button>
         </div>,
       ];
-    });
+    }),
+    };
   }, [
     obra,
     editandoMaterial,
@@ -357,6 +360,9 @@ export function useObrasDetalheTableData({
     sortConfig,
     setEditandoMaterial,
   ]);
+
+  const dadosMateriais = tabelaMateriais.dados;
+  const rowIdsMateriais = tabelaMateriais.rowIds;
 
   const listaLocacoesFiltrada = useMemo(() => {
     if (!obra?.locacoes?.length) return [];
@@ -675,8 +681,8 @@ export function useObrasDetalheTableData({
     [listaMaoDeObraFiltrada],
   );
 
-  const dadosMaoDeObra = useMemo(() => {
-    if (!obra || !obra.maoDeObra) return [];
+  const tabelaMaoDeObra = useMemo(() => {
+    if (!obra || !obra.maoDeObra) return { dados: [], rowIds: [] };
     let listaMaoDeObra = [...listaMaoDeObraFiltrada];
 
     if (sortConfigMdo.campo) {
@@ -703,7 +709,9 @@ export function useObrasDetalheTableData({
       });
     }
 
-    return listaMaoDeObra.map((m) => {
+    return {
+      rowIds: listaMaoDeObra.map((m) => m.id),
+      dados: listaMaoDeObra.map((m) => {
       const saldo = (m.valor_orcado || 0) - (m.valor_pago || 0);
       const isEditingProfissional =
         editandoMaoDeObra.id === m.id &&
@@ -895,7 +903,8 @@ export function useObrasDetalheTableData({
           </button>
         </div>,
       ];
-    });
+    }),
+    };
   }, [
     obra,
     editandoMaoDeObra,
@@ -908,6 +917,9 @@ export function useObrasDetalheTableData({
     sortConfigMdo,
     setEditandoMaoDeObra,
   ]);
+
+  const dadosMaoDeObra = tabelaMaoDeObra.dados;
+  const rowIdsMaoDeObra = tabelaMaoDeObra.rowIds;
 
   const listaExtratoFiltrada = useMemo(
     () =>
@@ -1218,8 +1230,10 @@ export function useObrasDetalheTableData({
 
   return {
     dadosMateriais,
+    rowIdsMateriais,
     dadosLocacoes,
     dadosMaoDeObra,
+    rowIdsMaoDeObra,
     dadosRelatorioExtrato,
     headerExtrato,
     totaisExtratoSelecionados,

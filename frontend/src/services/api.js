@@ -93,6 +93,36 @@ function isExtratoFinanceiroPago(statusFinanceiro) {
   return (statusFinanceiro || "").toLowerCase().trim() === "pago";
 }
 
+/** MdO conta como pago quando todos os lançamentos de extrato ligados estão "Pago". */
+function mdoPagoNoExtrato(extratos) {
+  const lista = Array.isArray(extratos)
+    ? extratos
+    : extratos
+      ? [extratos]
+      : [];
+  if (!lista.length) return false;
+  return lista.every((e) => isExtratoFinanceiroPago(e?.status_financeiro));
+}
+
+async function mapaExtratosPorMaoDeObraId(maoDeObraIds) {
+  const ids = [...new Set((maoDeObraIds || []).filter((id) => id != null))];
+  const mapa = new Map();
+  if (!ids.length) return mapa;
+
+  const { data, error } = await supabase
+    .from("relatorio_extrato")
+    .select("mao_de_obra_id, status_financeiro, valor")
+    .in("mao_de_obra_id", ids);
+  if (error) throw error;
+
+  (data || []).forEach((extrato) => {
+    const chave = String(extrato.mao_de_obra_id);
+    if (!mapa.has(chave)) mapa.set(chave, []);
+    mapa.get(chave).push(extrato);
+  });
+  return mapa;
+}
+
 function calcularStatusLotePorExtratos(extratos) {
   if (!extratos?.length) return "pendente";
   const pagos = extratos.filter((e) =>
@@ -2257,7 +2287,7 @@ export const api = {
       const { data: dataMdo, error: errMdo } = await supabase
         .from("relatorio_mao_de_obra")
         .select(
-          "prestador_id, valor_orcado, valor_cobrado, valor_pago, validacao",
+          "id, prestador_id, valor_orcado, valor_cobrado, valor_pago",
         )
         .not("prestador_id", "is", null);
       if (errMdo) throw errMdo;
@@ -2271,6 +2301,10 @@ export const api = {
       }
     }
 
+    const mapaExtratos = await mapaExtratosPorMaoDeObraId(
+      lancamentosMdo.map((item) => item.id),
+    );
+
     const mapaResumo = new Map();
     lancamentosMdo.forEach((item) => {
       const chave = Number(item.prestador_id);
@@ -2283,11 +2317,19 @@ export const api = {
         });
       }
       const atual = mapaResumo.get(chave);
-      const valorOrcado = parseFloat(item.valor_orcado) || 0;
-      const valorPago = parseFloat(item.valor_pago) || 0;
-      atual.contratado += valorOrcado;
-      atual.pago += valorPago;
-      atual.pendente += valorOrcado - valorPago;
+      const valorOrcado =
+        parseFloat(item.valor_orcado) || parseFloat(item.valor_cobrado) || 0;
+      const valorExibicao =
+        valorOrcado > 0 ? valorOrcado : parseFloat(item.valor_pago) || 0;
+      const pagoNoExtrato = mdoPagoNoExtrato(
+        mapaExtratos.get(String(item.id)),
+      );
+      atual.contratado += valorExibicao;
+      if (pagoNoExtrato) {
+        atual.pago += valorExibicao;
+      } else {
+        atual.pendente += valorExibicao;
+      }
       atual.quantidade += 1;
     });
 
@@ -2445,14 +2487,17 @@ export const api = {
       .select(
         `
         id,
+        obra_id,
         tipo,
         profissional,
         valor_orcado,
+        valor_cobrado,
         valor_pago,
         saldo,
         data_solicitacao,
         validacao,
-        classe_id
+        classe_id,
+        obras ( cliente, local )
       `,
       )
       .eq("prestador_id", prestadorId)
@@ -2467,10 +2512,38 @@ export const api = {
       throw error;
     }
 
+    const mapaExtratos = await mapaExtratosPorMaoDeObraId(
+      (data || []).map((item) => item.id),
+    );
+
+    const mapearItem = (item, mapaClasses) => {
+      const valorOrcado =
+        parseFloat(item.valor_orcado) || parseFloat(item.valor_cobrado) || 0;
+      const valorPago = parseFloat(item.valor_pago) || 0;
+      const valorExibicao = valorOrcado > 0 ? valorOrcado : valorPago;
+      const pagoExtrato = mdoPagoNoExtrato(
+        mapaExtratos.get(String(item.id)),
+      );
+      return {
+        ...item,
+        descricao: `${item.tipo || "Serviço"} - ${item.profissional || "Prestador"}`,
+        valor: valorExibicao,
+        data: item.data_solicitacao,
+        obra_nome: item.obras?.cliente || "Obra Desconhecida",
+        classe_nome: item.classe_id
+          ? mapaClasses?.get(item.classe_id) || "Sem classe"
+          : "Sem classe",
+        status_financeiro: pagoExtrato ? "Pago" : "Aguardando pagamento",
+        pago_extrato: pagoExtrato,
+      };
+    };
+
     const classeIds = [
       ...new Set((data || []).map((i) => i.classe_id).filter(Boolean)),
     ];
-    if (classeIds.length === 0) return data || [];
+    if (classeIds.length === 0) {
+      return (data || []).map((item) => mapearItem(item, null));
+    }
 
     const { data: classesData, error: classeError } = await supabase
       .from("classes_prestadores")
@@ -2479,21 +2552,7 @@ export const api = {
     if (classeError) throw classeError;
 
     const mapaClasses = new Map((classesData || []).map((c) => [c.id, c.nome]));
-    return (data || []).map((item) => {
-      const valorOrcado =
-        parseFloat(item.valor_orcado) || parseFloat(item.valor_cobrado) || 0;
-      const valorPago = parseFloat(item.valor_pago) || 0;
-      const valorExibicao = valorOrcado > 0 ? valorOrcado : valorPago;
-      return {
-        ...item,
-        descricao: `${item.tipo || "Serviço"} - ${item.profissional || "Prestador"}`,
-        valor: valorExibicao,
-        data: item.data_solicitacao,
-        classe_nome: item.classe_id
-          ? mapaClasses.get(item.classe_id) || "Sem classe"
-          : "Sem classe",
-      };
-    });
+    return (data || []).map((item) => mapearItem(item, mapaClasses));
   },
 
   uploadFotoFornecedor: async (fornecedorId, file) => {

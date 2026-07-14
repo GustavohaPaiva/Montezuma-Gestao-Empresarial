@@ -4,6 +4,9 @@ export default function TabelaSimples({
   variant = "light",
   /** Linhas e cabeçalho mais compactos (obra detalhe / financeiro). */
   dense = false,
+  /** IDs paralelos a `dados` — usados em deep-link / destaque de linha. */
+  rowIds,
+  highlightedRowId,
 }) {
   const esc = variant === "escritorio";
   const obraDetalhe = variant === "obraDetalhe";
@@ -103,24 +106,37 @@ export default function TabelaSimples({
                       : "text-center text-[#464C54]"
             }
           >
-            {dados.map((linha, i) => (
+            {dados.map((linha, i) => {
+              const rowId = rowIds?.[i];
+              const isHighlighted =
+                rowId != null &&
+                highlightedRowId != null &&
+                String(rowId) === String(highlightedRowId);
+              const baseRowClass = esc
+                ? "border-b border-esc-border/60 last:border-0 hover:bg-white/[0.03]"
+                : obraDetalhe
+                  ? compact
+                    ? "border-b border-border-primary/15 transition-colors last:border-0 hover:bg-[#FAFAFA]/90"
+                    : "border-b border-border-primary/15 transition-colors last:border-0 hover:bg-[#FAFAFA]/90"
+                  : financeiro
+                    ? compact
+                      ? "border-b border-border-primary/20 transition-colors last:border-0 hover:bg-[#FCFCFD]"
+                      : "border-b border-border-primary/20 transition-colors last:border-0 hover:bg-[#FCFCFD]"
+                    : processoDetalhe
+                      ? "transition-colors odd:bg-white even:bg-[#FAFAFA]/40 hover:bg-orange-50/40"
+                      : "border-b border-[#F0F0F2] last:border-0 hover:bg-[#F9FAFB]";
+
+              return (
               <tr
-                key={i}
-                className={
-                  esc
-                    ? "border-b border-esc-border/60 last:border-0 hover:bg-white/[0.03]"
-                    : obraDetalhe
-                      ? compact
-                        ? "border-b border-border-primary/15 transition-colors last:border-0 hover:bg-[#FAFAFA]/90"
-                        : "border-b border-border-primary/15 transition-colors last:border-0 hover:bg-[#FAFAFA]/90"
-                      : financeiro
-                        ? compact
-                          ? "border-b border-border-primary/20 transition-colors last:border-0 hover:bg-[#FCFCFD]"
-                          : "border-b border-border-primary/20 transition-colors last:border-0 hover:bg-[#FCFCFD]"
-                        : processoDetalhe
-                          ? "transition-colors odd:bg-white even:bg-[#FAFAFA]/40 hover:bg-orange-50/40"
-                          : "border-b border-[#F0F0F2] last:border-0 hover:bg-[#F9FAFB]"
+                key={rowId != null ? String(rowId) : i}
+                id={
+                  rowId != null ? `obra-relatorio-item-${rowId}` : undefined
                 }
+                className={`${baseRowClass}${
+                  isHighlighted
+                    ? " bg-amber-50/80 ring-1 ring-inset ring-accent-primary/25"
+                    : ""
+                }`}
               >
                 {linha.map((valor, j) => (
                   <td
@@ -147,7 +163,8 @@ export default function TabelaSimples({
                   </td>
                 ))}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

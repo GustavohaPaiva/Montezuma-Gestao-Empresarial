@@ -116,6 +116,7 @@ export default function ObrasDetalhe() {
   const [filtroEtapaMaoDeObra, setFiltroEtapaMaoDeObra] = useState("");
   const [filtroEtapaLocacoes, setFiltroEtapaLocacoes] = useState("");
   const [buscaExtrato, setBuscaExtrato] = useState("");
+  const [itemDestacadoId, setItemDestacadoId] = useState(null);
   const [sortField, setSortField] = useState("status_financeiro");
   const [sortDirection, setSortDirection] = useState("asc");
 
@@ -213,8 +214,22 @@ export default function ObrasDetalhe() {
   useEffect(() => {
     const secao = searchParams.get("secao");
     const sub = searchParams.get("sub");
+    const item = searchParams.get("item");
     if (secao) setSecaoObra(secao);
     if (sub) setSubRelatorio(sub);
+
+    if (item) {
+      setItemDestacadoId(item);
+      if (sub === "mao") {
+        setBuscaMaoDeObra("");
+        setFiltroPrestadorId("");
+        setFiltroEtapaMaoDeObra("");
+      } else {
+        setBuscaMateriais("");
+        setFiltroFornecedorId("");
+        setFiltroEtapaMateriais("");
+      }
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -1202,8 +1217,10 @@ export default function ObrasDetalhe() {
 
   const {
     dadosMateriais,
+    rowIdsMateriais,
     dadosLocacoes,
     dadosMaoDeObra,
+    rowIdsMaoDeObra,
     dadosRelatorioExtrato,
     headerExtrato,
     totaisExtratoSelecionados,
@@ -1262,6 +1279,33 @@ export default function ObrasDetalhe() {
     somenteValidados: isSecretaria,
     extratoSomenteLeitura: isSecretaria,
   });
+
+  useEffect(() => {
+    if (!itemDestacadoId || !obra) return;
+
+    const timer = setTimeout(() => {
+      const el = document.getElementById(
+        `obra-relatorio-item-${itemDestacadoId}`,
+      );
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+
+    const clearHighlight = setTimeout(() => {
+      setItemDestacadoId(null);
+    }, 3200);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(clearHighlight);
+    };
+  }, [
+    itemDestacadoId,
+    obra,
+    subRelatorio,
+    secaoObra,
+    dadosMateriais,
+    dadosMaoDeObra,
+  ]);
 
   if (!obra)
     return (
@@ -1691,6 +1735,8 @@ export default function ObrasDetalhe() {
                   <TabelaSimples
                     variant="obraDetalhe"
                     dense
+                    rowIds={rowIdsMateriais}
+                    highlightedRowId={itemDestacadoId}
                     colunas={[
                       "Material",
                       "Quantidade",
@@ -1810,6 +1856,8 @@ export default function ObrasDetalhe() {
                   <TabelaSimples
                     variant="obraDetalhe"
                     dense
+                    rowIds={rowIdsMaoDeObra}
+                    highlightedRowId={itemDestacadoId}
                     colunas={[
                       "Validação",
                       <span
