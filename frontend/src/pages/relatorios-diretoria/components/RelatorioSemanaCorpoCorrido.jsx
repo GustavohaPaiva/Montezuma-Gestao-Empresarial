@@ -90,16 +90,32 @@ export default function RelatorioSemanaCorpoCorrido({ consolidado }) {
         }
 
         if (mod.id === "financeiro") {
+          const observacoes =
+            normalizarConteudo(lancamento?.conteudo).observacoes?.trim() || "";
           return (
             <SecaoModulo key={mod.id} mod={mod}>
-              <RelatorioFinanceiroResumo
-                totais={financeiroResumo.totais}
-                porCategoria={financeiroResumo.porCategoria}
-              />
-              <RelatorioFinanceiroDetalhes
-                extratoSemana={financeiroResumo.extratoSemana}
-                emEsperaSemana={financeiroResumo.emEsperaSemana}
-              />
+              {financeiroResumo ? (
+                <>
+                  <RelatorioFinanceiroResumo
+                    totais={financeiroResumo.totais}
+                    porCategoria={financeiroResumo.porCategoria}
+                  />
+                  <RelatorioFinanceiroDetalhes
+                    extratoSemana={financeiroResumo.extratoSemana}
+                    emEsperaSemana={financeiroResumo.emEsperaSemana}
+                  />
+                </>
+              ) : null}
+              {observacoes ? (
+                <div className="mt-4">
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                    Observações
+                  </p>
+                  <p className={`whitespace-pre-wrap ${relatorioProsaClass}`}>
+                    {observacoes}
+                  </p>
+                </div>
+              ) : null}
             </SecaoModulo>
           );
         }

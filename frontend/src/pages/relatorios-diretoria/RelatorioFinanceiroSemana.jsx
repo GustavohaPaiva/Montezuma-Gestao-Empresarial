@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { FileDown, Wallet } from "lucide-react";
 import LoadingPainel from "../../components/gerais/LoadingPainel";
 import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
+import { api } from "../../services/api";
 import RelatorioDetalheHeader from "./components/RelatorioDetalheHeader";
 import RelatorioFinanceiroDetalhes from "./components/RelatorioFinanceiroDetalhes";
 import RelatorioFinanceiroGraficos from "./components/RelatorioFinanceiroGraficos";
 import RelatorioFinanceiroResumo from "./components/RelatorioFinanceiroResumo";
+import RelatorioObservacoesCampo from "./components/RelatorioObservacoesCampo";
 import RelatorioSemanaReferenciaCard from "./components/RelatorioSemanaReferenciaCard";
 import { useRelatorioFinanceiroGlobal } from "./hooks/useRelatorioFinanceiroObra";
 import { financeiroSemanaTemDados } from "./relatorioFinanceiroUtils";
@@ -14,6 +16,7 @@ import {
   derivarPeriodoDaSemana,
   isSemanaAtual,
   labelSemanaFromInicio,
+  normalizarConteudo,
   periodoAtual,
   rotaListaRelatorios,
   rotaRelatorioFinanceiro,
@@ -41,6 +44,47 @@ export default function RelatorioFinanceiroSemana() {
 
   const { resumo, loading, erro } = useRelatorioFinanceiroGlobal(semanaInicio);
   const [pdfPreview, setPdfPreview] = useState(null);
+  const [observacoes, setObservacoes] = useState("");
+  const [salvandoObs, setSalvandoObs] = useState(false);
+  const [erroObs, setErroObs] = useState(null);
+
+  const carregarObservacoes = useCallback(async () => {
+    if (!semanaInicio) return;
+    try {
+      const relatorios = await api.getRelatoriosDiretoriaSemana(semanaInicio);
+      const fin = (relatorios || []).find((r) => r.modalidade === "financeiro");
+      setObservacoes(normalizarConteudo(fin?.conteudo).observacoes || "");
+      setErroObs(null);
+    } catch (e) {
+      console.error("[RelatorioFinanceiroSemana] observações:", e);
+      setErroObs(e?.message || "Não foi possível carregar as observações.");
+    }
+  }, [semanaInicio]);
+
+  useEffect(() => {
+    carregarObservacoes();
+  }, [carregarObservacoes]);
+
+  const salvarObservacoes = async () => {
+    setSalvandoObs(true);
+    setErroObs(null);
+    try {
+      await api.upsertRelatorioDiretoria({
+        modalidade: "financeiro",
+        ano,
+        mes,
+        semana_inicio: semanaInicio,
+        conteudo: { observacoes: observacoes.trim() },
+      });
+      await carregarObservacoes();
+    } catch (e) {
+      console.error("[RelatorioFinanceiroSemana] salvar observações:", e);
+      setErroObs(e?.message || "Não foi possível salvar as observações.");
+      alert(e?.message || "Não foi possível salvar as observações.");
+    } finally {
+      setSalvandoObs(false);
+    }
+  };
 
   const voltarDestino = () => {
     if (origem === "lista") {
@@ -72,6 +116,7 @@ export default function RelatorioFinanceiroSemana() {
   }
 
   const temDados = financeiroSemanaTemDados(resumo);
+  const temObservacoes = Boolean(observacoes.trim());
 
   const handleGerarPdf = () => {
     setPdfPreview({
@@ -81,6 +126,7 @@ export default function RelatorioFinanceiroSemana() {
         gerarPdfRelatorioDiretoriaFinanceiro({
           semanaInicio,
           resumo,
+          observacoes: observacoes.trim(),
         }),
     });
   };
@@ -92,7 +138,7 @@ export default function RelatorioFinanceiroSemana() {
         onVoltar={() => navigate(voltarDestino())}
         subtitulo={subtituloBase}
         acoes={
-          temDados ? (
+          temDados || temObservacoes ? (
             <button
               type="button"
               onClick={handleGerarPdf}
@@ -111,6 +157,11 @@ export default function RelatorioFinanceiroSemana() {
             {erro}
           </p>
         ) : null}
+        {erroObs ? (
+          <p className="mb-4 rounded-xl border border-danger-primary/30 bg-danger-soft/40 px-3 py-2 text-sm text-danger-primary">
+            {erroObs}
+          </p>
+        ) : null}
 
         <RelatorioSemanaReferenciaCard
           semanaInicio={semanaInicio}
@@ -120,7 +171,7 @@ export default function RelatorioFinanceiroSemana() {
         />
 
         {!temDados ? (
-          <p className="rounded-xl border border-dashed border-border-primary/40 bg-white px-4 py-10 text-center text-sm text-text-muted">
+          <p className="mb-6 rounded-xl border border-dashed border-border-primary/40 bg-white px-4 py-10 text-center text-sm text-text-muted">
             Nenhum lançamento financeiro registrado nas obras nesta semana.
           </p>
         ) : (
@@ -136,6 +187,13 @@ export default function RelatorioFinanceiroSemana() {
             />
           </>
         )}
+
+        <RelatorioObservacoesCampo
+          value={observacoes}
+          onChange={setObservacoes}
+          onSave={salvarObservacoes}
+          salvando={salvandoObs}
+        />
       </main>
 
       <PdfPreviewModal

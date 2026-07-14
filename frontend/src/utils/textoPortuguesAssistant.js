@@ -40,6 +40,28 @@ ${texto}
 """`;
   }
 
+  if (contexto === "relatorio_financeiro") {
+    return `Você é redator de relatórios financeiros semanais para a diretoria de uma empresa de construção civil no Brasil.
+
+Reescreva o texto abaixo em português brasileiro claro, objetivo e profissional.
+Corrija gramática, ortografia e pontuação. Melhore a fluidez sem mudar o sentido nem inventar informações.
+Use tom adequado a observações de acompanhamento financeiro (direto, preciso e informativo).
+
+Regras obrigatórias:
+- Máximo ${maxLinhas} linhas (quebras de linha só entre frases completas).
+- Cada linha deve ser uma frase completa terminada em . ! ou ?
+- A última linha DEVE fechar o texto com pontuação final — nunca pare no meio de palavra ou frase.
+- Se o conteúdo for longo, resuma reescrevendo de forma mais concisa; não truncar nem cortar.
+
+Não use markdown, títulos, bullets, aspas envolvendo o texto inteiro nem explicações.
+Retorne APENAS o texto final reescrito.
+
+Texto original:
+"""
+${texto}
+"""`;
+  }
+
   if (contexto === "ordem_servico") {
     return `Você é redator de ordens de serviço de um escritório de arquitetura no Brasil.
 
@@ -87,9 +109,11 @@ function montarPromptAjuste(texto, maxLinhas, contexto = "proposta") {
   const papel =
     contexto === "relatorio_obra"
       ? "relatórios de obras de construção civil"
-      : contexto === "ordem_servico"
-        ? "ordens de serviço de arquitetura"
-        : "propostas comerciais de arquitetura";
+      : contexto === "relatorio_financeiro"
+        ? "observações de relatórios financeiros para a diretoria"
+        : contexto === "ordem_servico"
+          ? "ordens de serviço de arquitetura"
+          : "propostas comerciais de arquitetura";
 
   return `Você é redator de ${papel} no Brasil.
 

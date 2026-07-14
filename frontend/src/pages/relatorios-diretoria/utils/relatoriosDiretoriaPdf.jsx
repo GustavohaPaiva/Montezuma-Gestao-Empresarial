@@ -100,6 +100,7 @@ function montarBlocosPdfSemanal(consolidado) {
 export async function gerarPdfRelatorioDiretoriaFinanceiro({
   semanaInicio,
   resumo,
+  observacoes = "",
 } = {}) {
   const semanaLabel = labelSemanaFromInicio(semanaInicio);
   const semanaSlug = slugify(semanaInicio || semanaLabel);
@@ -109,6 +110,7 @@ export async function gerarPdfRelatorioDiretoriaFinanceiro({
     <RelatorioDiretoriaFinanceiroPDF
       semanaLabel={semanaLabel}
       resumo={resumo}
+      observacoes={observacoes}
     />
   );
 

@@ -26,7 +26,7 @@ function TopicosObraSection({ topicos }) {
               <Text style={styles.empty}>Nenhum item registrado.</Text>
             ) : (
               topico.itens.map((item) => (
-                <View key={item.id} style={styles.item}>
+                <View key={item.id} style={styles.item} wrap={false}>
                   <Text style={styles.itemText}>{item.texto}</Text>
                   {item.prazoLabel ? (
                     <Text style={styles.itemPrazo}>
@@ -43,76 +43,104 @@ function TopicosObraSection({ topicos }) {
   );
 }
 
-function FinanceiroResumoCompacto({ resumo }) {
+function LinhaLista({ children }) {
+  return (
+    <View style={styles.listItem} wrap={false}>
+      <Text style={styles.listItemText}>{children}</Text>
+    </View>
+  );
+}
+
+function FinanceiroResumoCompacto({ resumo, observacoes = "" }) {
   const totais = resumo?.totais || {};
   const categorias = TIPOS_EXTRATO.filter(
     (tipo) => (resumo?.porCategoria?.[tipo]?.count || 0) > 0,
   );
+  const temResumo = Boolean(resumo);
 
   return (
     <View>
-      <View style={styles.metricGrid}>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>A cobrar</Text>
-          <Text style={styles.metricValue}>R$ {formatMoeda(totais.aCobrar)}</Text>
-        </View>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Pago</Text>
-          <Text style={styles.metricValue}>R$ {formatMoeda(totais.pago)}</Text>
-        </View>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Aguardando</Text>
-          <Text style={styles.metricValue}>
-            R$ {formatMoeda(totais.aguardando)}
-          </Text>
-        </View>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Em espera</Text>
-          <Text style={styles.metricValue}>
-            R$ {formatMoeda(totais.emEspera)}
-          </Text>
-        </View>
-      </View>
-
-      {categorias.length > 0 ? (
-        <View style={{ marginTop: 8 }}>
-          <Text style={[styles.sectionSubtitle, { marginBottom: 4 }]}>
-            Por categoria
-          </Text>
-          {categorias.map((tipo) => {
-            const cat = resumo.porCategoria[tipo];
-            return (
-              <Text key={tipo} style={styles.tableCell}>
-                {tipo}: R$ {formatMoeda(cat.total)} ({cat.count} lanç.)
+      {temResumo ? (
+        <>
+          <View style={styles.metricGrid} wrap={false}>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>A cobrar</Text>
+              <Text style={styles.metricValue}>
+                R$ {formatMoeda(totais.aCobrar)}
               </Text>
-            );
-          })}
-        </View>
+            </View>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Pago</Text>
+              <Text style={styles.metricValue}>
+                R$ {formatMoeda(totais.pago)}
+              </Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Aguardando</Text>
+              <Text style={styles.metricValue}>
+                R$ {formatMoeda(totais.aguardando)}
+              </Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Em espera</Text>
+              <Text style={styles.metricValue}>
+                R$ {formatMoeda(totais.emEspera)}
+              </Text>
+            </View>
+          </View>
+
+          {categorias.length > 0 ? (
+            <View style={{ marginTop: 8 }}>
+              <Text style={[styles.sectionSubtitle, { marginBottom: 4 }]}>
+                Por categoria
+              </Text>
+              {categorias.map((tipo) => {
+                const cat = resumo.porCategoria[tipo];
+                return (
+                  <LinhaLista key={tipo}>
+                    {tipo}: R$ {formatMoeda(cat.total)} ({cat.count} lanç.)
+                  </LinhaLista>
+                );
+              })}
+            </View>
+          ) : null}
+
+          {(resumo?.extratoSemana?.length || 0) > 0 ? (
+            <View style={{ marginTop: 10 }}>
+              <Text style={[styles.sectionTitle, { fontSize: 9 }]} wrap={false}>
+                A cobrar do cliente
+              </Text>
+              {resumo.extratoSemana.map((item, idx) => (
+                <LinhaLista key={item.id ?? idx}>
+                  · {item.descricao || item.tipo} — {formatData(item.data)} — R${" "}
+                  {formatMoeda(item.valor)} ({item.status})
+                </LinhaLista>
+              ))}
+            </View>
+          ) : null}
+
+          {(resumo?.emEsperaSemana?.length || 0) > 0 ? (
+            <View style={{ marginTop: 10 }}>
+              <Text style={[styles.sectionTitle, { fontSize: 9 }]} wrap={false}>
+                Em espera
+              </Text>
+              {resumo.emEsperaSemana.map((item, idx) => (
+                <LinhaLista key={item.id ?? idx}>
+                  · {item.descricao || item.tipo} — {formatData(item.data)} — R${" "}
+                  {formatMoeda(item.valor)}
+                </LinhaLista>
+              ))}
+            </View>
+          ) : null}
+        </>
       ) : null}
 
-      {(resumo?.extratoSemana?.length || 0) > 0 ? (
-        <View style={{ marginTop: 10 }}>
-          <Text style={[styles.sectionTitle, { fontSize: 9 }]}>
-            A cobrar do cliente
+      {observacoes ? (
+        <View style={{ marginTop: temResumo ? 10 : 0 }}>
+          <Text style={[styles.sectionTitle, { fontSize: 9 }]} wrap={false}>
+            Observações
           </Text>
-          {resumo.extratoSemana.map((item, idx) => (
-            <Text key={item.id ?? idx} style={styles.tableCell}>
-              · {item.descricao || item.tipo} — {formatData(item.data)} — R${" "}
-              {formatMoeda(item.valor)} ({item.status})
-            </Text>
-          ))}
-        </View>
-      ) : null}
-
-      {(resumo?.emEsperaSemana?.length || 0) > 0 ? (
-        <View style={{ marginTop: 10 }}>
-          <Text style={[styles.sectionTitle, { fontSize: 9 }]}>Em espera</Text>
-          {resumo.emEsperaSemana.map((item, idx) => (
-            <Text key={item.id ?? idx} style={styles.tableCell}>
-              · {item.descricao || item.tipo} — {formatData(item.data)} — R${" "}
-              {formatMoeda(item.valor)}
-            </Text>
-          ))}
+          <Text style={styles.prosa}>{observacoes}</Text>
         </View>
       ) : null}
     </View>
@@ -121,8 +149,8 @@ function FinanceiroResumoCompacto({ resumo }) {
 
 function ModalitySection({ titulo, children }) {
   return (
-    <View style={styles.section} wrap={false}>
-      <View style={styles.modalityHeader}>
+    <View style={styles.section}>
+      <View style={styles.modalityHeader} wrap={false}>
         <Text style={styles.modalityTitle}>{titulo}</Text>
         <Text style={styles.modalityBadge}>Lançado</Text>
       </View>
@@ -181,7 +209,10 @@ export default function RelatorioDiretoriaSemanalPDF({
             if (bloco.tipo === "financeiro") {
               return (
                 <ModalitySection key={bloco.id} titulo="Financeiro">
-                  <FinanceiroResumoCompacto resumo={bloco.resumo} />
+                  <FinanceiroResumoCompacto
+                    resumo={bloco.resumo}
+                    observacoes={bloco.observacoes}
+                  />
                 </ModalitySection>
               );
             }

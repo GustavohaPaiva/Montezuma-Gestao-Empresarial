@@ -228,12 +228,21 @@ export const styles = StyleSheet.create({
   tableCell: {
     fontSize: 8,
     color: COR_TEXTO,
-    lineHeight: 1.25,
+    lineHeight: 1.35,
   },
   tableCellBold: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
     color: COR_TEXTO,
+  },
+  listItem: {
+    marginBottom: 4,
+    paddingBottom: 2,
+  },
+  listItemText: {
+    fontSize: 8,
+    color: COR_TEXTO,
+    lineHeight: 1.4,
   },
   subtotalBar: {
     flexDirection: "row",

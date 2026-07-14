@@ -89,13 +89,11 @@ export default function RelatorioSemanaCard({
         <div className="flex flex-wrap gap-1.5">
           {MODALIDADES_RELATORIO.map((mod) => {
             const theme = themeModalidade(mod.colorTheme);
-            const preenchido =
-              mod.id === "financeiro"
-                ? modalidadeEstaPreenchida(mod.id, null, financeiroResumo)
-                : modalidadeEstaPreenchida(
-                    mod.id,
-                    resumo.porModalidade[mod.id],
-                  );
+            const preenchido = modalidadeEstaPreenchida(
+              mod.id,
+              resumo.porModalidade[mod.id],
+              financeiroResumo,
+            );
             const Icon = mod.Icon;
             return (
               <span

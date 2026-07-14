@@ -66,12 +66,15 @@ function TabelaFinanceira({ tipo, itens }) {
   );
 
   return (
-    <View wrap={false}>
-      <Text style={[styles.sectionTitle, { fontSize: 9, marginBottom: 4 }]}>
+    <View style={{ marginBottom: 8 }}>
+      <Text
+        style={[styles.sectionTitle, { fontSize: 9, marginBottom: 4 }]}
+        wrap={false}
+      >
         {tipo}
       </Text>
       <View style={styles.table}>
-        <View style={styles.tableHead}>
+        <View style={styles.tableHead} wrap={false}>
           <Text style={[styles.tableHeadCell, { width: "38%" }]}>
             Descrição
           </Text>
@@ -83,6 +86,7 @@ function TabelaFinanceira({ tipo, itens }) {
           <View
             key={item.id ?? `${tipo}-${idx}`}
             style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : null]}
+            wrap={false}
           >
             <Text style={[styles.tableCell, { width: "38%" }]}>
               {descricaoItem(item)}
@@ -99,7 +103,7 @@ function TabelaFinanceira({ tipo, itens }) {
           </View>
         ))}
       </View>
-      <View style={styles.subtotalBar}>
+      <View style={styles.subtotalBar} wrap={false}>
         <Text style={styles.subtotalLabel}>
           Subtotal {tipo} · {itens.length} item(ns)
         </Text>
@@ -161,8 +165,10 @@ export default function RelatorioDiretoriaFinanceiroPDF({
   referencia = "Situação financeira da semana",
   semanaLabel,
   resumo,
+  observacoes = "",
 }) {
   const totais = resumo?.totais || {};
+  const textoObs = String(observacoes || "").trim();
 
   return (
     <Document title={titulo} author="Montezuma Gestão Empresarial">
@@ -204,6 +210,13 @@ export default function RelatorioDiretoriaFinanceiroPDF({
           subtitulo="Lançamentos ainda não consolidados no extrato"
           itens={resumo?.emEsperaSemana}
         />
+
+        {textoObs ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Observações</Text>
+            <Text style={styles.prosa}>{textoObs}</Text>
+          </View>
+        ) : null}
       </ReportPage>
     </Document>
   );

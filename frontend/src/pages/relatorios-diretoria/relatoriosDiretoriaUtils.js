@@ -496,6 +496,10 @@ export function modalidadeEstaPreenchida(
   financeiroResumo = null,
 ) {
   if (id === "financeiro") {
+    const obs = lancamento
+      ? normalizarConteudo(lancamento.conteudo).observacoes?.trim()
+      : "";
+    if (obs) return true;
     if (financeiroResumo != null) {
       const temExtrato = (financeiroResumo.extratoSemana?.length || 0) > 0;
       const temEspera = (financeiroResumo.emEsperaSemana?.length || 0) > 0;
@@ -552,17 +556,30 @@ export function montarBlocosRelatorioCorrico(consolidado) {
   });
 
   const financeiroResumo = consolidado?.financeiroResumo;
+  const lancamentoFinanceiro = porModalidade.financeiro;
+  const observacoesFinanceiro = lancamentoFinanceiro
+    ? normalizarConteudo(lancamentoFinanceiro.conteudo).observacoes?.trim()
+    : "";
   if (financeiroResumo) {
     const temExtrato = (financeiroResumo.extratoSemana?.length || 0) > 0;
     const temEspera = (financeiroResumo.emEsperaSemana?.length || 0) > 0;
-    if (temExtrato || temEspera) {
+    if (temExtrato || temEspera || observacoesFinanceiro) {
       blocos.push({
         tipo: "financeiro",
         id: "financeiro",
         titulo: "Financeiro",
         resumo: financeiroResumo,
+        observacoes: observacoesFinanceiro || "",
       });
     }
+  } else if (observacoesFinanceiro) {
+    blocos.push({
+      tipo: "financeiro",
+      id: "financeiro",
+      titulo: "Financeiro",
+      resumo: null,
+      observacoes: observacoesFinanceiro,
+    });
   }
 
   return blocos;
