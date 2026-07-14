@@ -159,7 +159,11 @@ export default function OrdemServicoFormCorpo({
                 variant={isVk ? "escritorio" : "default"}
                 disabled={somenteLeitura}
                 loading={clientesCarregando}
-                emptyMessage="Nenhum cliente cadastrado"
+                emptyMessage={
+                  isVk
+                    ? "Nenhum cliente cadastrado"
+                    : "Nenhum cliente com obra em andamento"
+                }
               />
             </CampoForm>
           </div>

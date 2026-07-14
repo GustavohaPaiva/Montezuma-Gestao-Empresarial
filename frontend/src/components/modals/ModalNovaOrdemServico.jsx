@@ -173,7 +173,11 @@ export default function ModalNovaOrdemServico({
           variant={isVk ? "escritorio" : "default"}
           loading={carregando}
           disabled={carregando}
-          emptyMessage="Nenhum cliente cadastrado"
+          emptyMessage={
+            isVk
+              ? "Nenhum cliente cadastrado"
+              : "Nenhum cliente com obra em andamento"
+          }
         />
       </div>
       <div>

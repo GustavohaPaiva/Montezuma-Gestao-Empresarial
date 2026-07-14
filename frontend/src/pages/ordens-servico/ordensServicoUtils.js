@@ -3,7 +3,7 @@ import {
   OS_FORMAS_PAGAMENTO,
   OS_OBJETO_PADRAO,
 } from "../../constants/ordemServico";
-import { ID_MONTEZUMA, ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
+import { ID_MONTEZUMA, ID_VOGELKOP } from "../../constants/escritorios";
 
 export function getOrdensServicoBasePath(variant) {
   return variant === "vogelkop"
@@ -17,10 +17,10 @@ export function resolveEscritorioIdOrdemServico(variant, userEscritorioId) {
   return userEscritorioId || ID_MONTEZUMA;
 }
 
-/** Escritórios cujo cadastro de clientes alimenta o select da OS. */
+/** Escritórios cujo cadastro alimenta o select da OS no escritório. */
 export function escritorioIdsClientesOrdemServico(variant) {
   if (variant === "vogelkop") return [ID_VOGELKOP];
-  return [ID_VOGELKOP, ID_YBYOCA];
+  return [];
 }
 
 export function ordenarClientesPorNome(clientes) {

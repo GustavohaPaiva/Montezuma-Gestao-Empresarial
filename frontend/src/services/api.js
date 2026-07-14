@@ -631,13 +631,50 @@ export const api = {
     return data;
   },
 
-  listClientesOrdemServico: async (variant = "montezuma") => {
-    const ids = escritorioIdsClientesOrdemServico(variant);
-    if (!ids.length) return [];
+  /**
+   * Clientes para o select de OS.
+   * Vogelkop/escritório: todos os clientes do escritório.
+   * Montezuma: apenas clientes com obra ativa "Em andamento".
+   * @param {string} variant
+   * @param {{ incluirClienteId?: string|number|null }} [options]
+   */
+  listClientesOrdemServico: async (variant = "montezuma", options = {}) => {
+    const incluirClienteId = options?.incluirClienteId;
+
+    if (variant === "vogelkop") {
+      const idsEscritorio = escritorioIdsClientesOrdemServico(variant);
+      if (!idsEscritorio.length) return [];
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*")
+        .in("escritorio_id", idsEscritorio)
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return Array.isArray(data) ? data : [];
+    }
+
+    const { data: obras, error: obrasError } = await supabase
+      .from("obras")
+      .select("cliente_id")
+      .eq("active", true)
+      .eq("status", "Em andamento")
+      .not("cliente_id", "is", null);
+    if (obrasError) throw obrasError;
+
+    const clienteIds = new Set(
+      (obras || [])
+        .map((o) => o.cliente_id)
+        .filter((id) => id != null && id !== ""),
+    );
+    if (incluirClienteId != null && incluirClienteId !== "") {
+      clienteIds.add(incluirClienteId);
+    }
+    if (!clienteIds.size) return [];
+
     const { data, error } = await supabase
       .from("clientes")
       .select("*")
-      .in("escritorio_id", ids)
+      .in("id", [...clienteIds])
       .order("nome", { ascending: true });
     if (error) throw error;
     return Array.isArray(data) ? data : [];
@@ -1049,7 +1086,6 @@ export const api = {
   },
 
   getObras: async () => {
-    // Sem embed responsavel:usuarios (exige FK em obras.responsavel_id). O nome resolve-se no UI com listUsuariosDiretoria.
     let query = supabase
       .from("obras")
       .select(
@@ -3497,8 +3533,7 @@ export const api = {
     const oid = /^\d+$/.test(s) ? Number(s) : s;
     let q = supabase.from("cronograma_eventos").select("*").eq("obra_id", oid);
     if (de && ate) {
-      // Sobrepõe [de, ate]: evento de um dia em [de,ate] OU intervalo [início,fim] a cruzar a janela
-      q = q.or(
+     q = q.or(
         `and(data_fim.is.null,data_evento.gte.${de},data_evento.lte.${ate}),and(data_fim.not.is.null,data_evento.lte.${ate},data_fim.gte.${de})`,
       );
     } else {
@@ -3529,7 +3564,6 @@ export const api = {
     if (error) throw error;
   },
 
-  // ─── Projeções comerciais (Montezuma) ───────────────────────────────────────
   getProjecoes: async () => {
     const { data, error } = await supabase
       .from("projecoes")
@@ -3704,7 +3738,6 @@ export const api = {
     };
   },
 
-  // ─── Relatórios Diretoria (semanais gerais) ─────────────────────────────────
   getObrasFinanceiroParaRelatorioGlobal: async () => {
     const { data, error } = await supabase
       .from("obras")

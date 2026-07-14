@@ -122,31 +122,34 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
     setForm((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  const carregarAuxiliares = useCallback(async () => {
-    setClientesCarregando(true);
-    try {
-      const [clientesData, usuariosData] = await Promise.all([
-        api.listClientesOrdemServico(variant),
-        api.listUsuariosDestinatariosOS({ variant, escritorioId }),
-      ]);
-      const clientesLista = Array.isArray(clientesData) ? clientesData : [];
-      const destinatariosLista = filtrarDestinatariosPermitidos(
-        user,
-        usuariosData,
-        variant,
-      );
-      setClientes(clientesLista);
-      setDestinatarios(destinatariosLista);
-      return { clientes: clientesLista, destinatarios: destinatariosLista };
-    } catch (e) {
-      console.error("[OrdemServicoDetalhe] auxiliares:", e);
-      setClientes([]);
-      setDestinatarios([]);
-      return { clientes: [], destinatarios: [] };
-    } finally {
-      setClientesCarregando(false);
-    }
-  }, [variant, user, escritorioId]);
+  const carregarAuxiliares = useCallback(
+    async (incluirClienteId) => {
+      setClientesCarregando(true);
+      try {
+        const [clientesData, usuariosData] = await Promise.all([
+          api.listClientesOrdemServico(variant, { incluirClienteId }),
+          api.listUsuariosDestinatariosOS({ variant, escritorioId }),
+        ]);
+        const clientesLista = Array.isArray(clientesData) ? clientesData : [];
+        const destinatariosLista = filtrarDestinatariosPermitidos(
+          user,
+          usuariosData,
+          variant,
+        );
+        setClientes(clientesLista);
+        setDestinatarios(destinatariosLista);
+        return { clientes: clientesLista, destinatarios: destinatariosLista };
+      } catch (e) {
+        console.error("[OrdemServicoDetalhe] auxiliares:", e);
+        setClientes([]);
+        setDestinatarios([]);
+        return { clientes: [], destinatarios: [] };
+      } finally {
+        setClientesCarregando(false);
+      }
+    },
+    [variant, user, escritorioId],
+  );
 
   const carregar = useCallback(async () => {
     if (!id || !autorizado) {
@@ -165,7 +168,7 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
         setForm(formCarregado);
         setErro(null);
         const { destinatarios: destinatariosCarregados } =
-          await carregarAuxiliares();
+          await carregarAuxiliares(row.cliente_id);
         snapshotInicial.current = snapshotFormOrdemServico(formCarregado, {
           escritorioId: row.escritorio_id || escritorioId,
           criadorId: row.criador_id,
