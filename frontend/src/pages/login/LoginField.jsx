@@ -2,7 +2,7 @@ import { useId } from "react";
 
 export default function LoginField({
   label,
-  icon: Icon,
+  icon: Icon = null,
   id,
   error,
   className = "",
@@ -21,12 +21,14 @@ export default function LoginField({
         {label}
       </label>
       <div className="relative">
+        {Icon ? (
         <span
           className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
           aria-hidden
         >
-          <Icon className="size-[1.125rem]" />
-        </span>
+            <Icon className="size-[1.125rem]" />
+          </span>
+        ) : null}
         <input
           id={fieldId}
           {...(hasError ? { "aria-invalid": "true" } : {})}

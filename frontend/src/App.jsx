@@ -4,7 +4,6 @@ import RotaProtegida from "./services/RotaProtegida";
 import PageTransition from "./components/gerais/PageTransition";
 
 import Obras from "./pages/obras/Obras";
-import ObraHub from "./pages/obras/ObraHub";
 import ObrasDetalhe from "./pages/obras/ObrasDetalhe";
 import PedidoObraDetalhe from "./pages/obras/detalhe/PedidoObraDetalhe";
 import PedidosGestao from "./pages/pedidos/PedidosGestao";
@@ -267,24 +266,13 @@ export default function App() {
             />
           </Route>
 
-          <Route element={<RotaProtegida allowedTypes={["diretoria"]} />}>
-            <Route
-              path="/obras/:id"
-              element={
-                <PageTransition>
-                  <ObraHub />
-                </PageTransition>
-              }
-            />
-          </Route>
-
           <Route
             element={
               <RotaProtegida allowedTypes={["gestor_master", "diretoria"]} />
             }
           >
             <Route
-              path="/relatorios-diretoria/:obraId/semana/:semanaRef/obra"
+              path="/relatorios-diretoria/semana/:semanaRef/obra"
               element={
                 <PageTransition>
                   <RelatorioObraLancamento />
@@ -292,7 +280,7 @@ export default function App() {
               }
             />
             <Route
-              path="/relatorios-diretoria/:obraId/semana/:semanaRef/financeiro"
+              path="/relatorios-diretoria/semana/:semanaRef/financeiro"
               element={
                 <PageTransition>
                   <RelatorioFinanceiroSemana />
@@ -300,7 +288,7 @@ export default function App() {
               }
             />
             <Route
-              path="/relatorios-diretoria/:obraId/semana/:semanaRef"
+              path="/relatorios-diretoria/semana/:semanaRef"
               element={
                 <PageTransition>
                   <RelatorioSemanaDetalhe />
@@ -308,7 +296,7 @@ export default function App() {
               }
             />
             <Route
-              path="/relatorios-diretoria/:obraId"
+              path="/relatorios-diretoria"
               element={
                 <PageTransition>
                   <RelatorioObraDetalhe />

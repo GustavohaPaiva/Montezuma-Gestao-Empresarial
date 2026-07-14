@@ -19,7 +19,6 @@ export default function ModalLancamentoRelatorio({
   onClose,
   onSave,
   salvando = false,
-  obraId,
   modalidade,
   periodo,
   lancamentoExistente = null,
@@ -52,7 +51,6 @@ export default function ModalLancamentoRelatorio({
 
   const handleSalvar = async () => {
     await onSave?.({
-      obra_id: obraId,
       modalidade,
       ano,
       mes,

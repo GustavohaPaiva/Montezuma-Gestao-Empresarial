@@ -8,6 +8,7 @@ import {
   LineChart,
   ClipboardList,
   Users,
+  CalendarRange,
 } from "lucide-react";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import { homeDictionary } from "../../constants/dictionaries";
@@ -56,6 +57,17 @@ export const MODULOS_HOME = [
     Icon: HardHat,
     path: "/obras",
     roles: ["gestor_master", "diretoria", "secretaria", "suporte_ti", "encarregado"],
+  },
+  {
+    id: 11,
+    titulo: m.relatoriosSemanais,
+    descricao: d.relatoriosSemanais,
+    categoria: c.analise,
+    destaques: dest.relatoriosSemanais,
+    colorTheme: "pink",
+    Icon: CalendarRange,
+    path: "/relatorios-diretoria",
+    roles: ["gestor_master", "diretoria"],
   },
   {
     id: 4,

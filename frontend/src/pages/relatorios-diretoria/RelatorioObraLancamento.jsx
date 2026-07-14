@@ -9,13 +9,14 @@ import RelatorioObraTopicoSection from "./components/RelatorioObraTopicoSection"
 import RelatorioSemanaReferenciaCard from "./components/RelatorioSemanaReferenciaCard";
 import {
   TOPICOS_RELATORIO_OBRA,
-  buildSemanaSearchParams,
   derivarPeriodoDaSemana,
   isSemanaAtual,
   labelSemanaFromInicio,
   normalizarConteudoObra,
   periodoAtual,
   rotaLancamentoObra,
+  rotaListaRelatorios,
+  rotaRelatorioSemana,
   serializarConteudoObra,
 } from "./relatoriosDiretoriaUtils";
 import { relatorioNavbarAcaoClass } from "./relatoriosDiretoriaUi";
@@ -28,7 +29,7 @@ function snapshotTopicos(topicos) {
 }
 
 export default function RelatorioObraLancamento() {
-  const { obraId, semanaRef: semanaInicioParam } = useParams();
+  const { semanaRef: semanaInicioParam } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const atual = periodoAtual();
@@ -42,9 +43,8 @@ export default function RelatorioObraLancamento() {
     Number(searchParams.get("mes")) ||
     derivarPeriodoDaSemana(semanaInicio).mes ||
     atual.mes;
-  const origem = searchParams.get("origem") === "obra" ? "obra" : "semana";
+  const origem = searchParams.get("origem") === "semana" ? "semana" : "lista";
 
-  const [obra, setObra] = useState(null);
   const [topicos, setTopicos] = useState(
     () => normalizarConteudoObra(null).topicos,
   );
@@ -62,18 +62,14 @@ export default function RelatorioObraLancamento() {
   }, [topicos]);
 
   const carregar = useCallback(async () => {
-    if (!obraId || !semanaInicio) return;
+    if (!semanaInicio) return;
     setLoading(true);
     try {
-      const [obraData, relatorios] = await Promise.all([
-        api.getObraResumoParaRelatorio(obraId),
-        api.getRelatoriosDiretoriaSemana(obraId, semanaInicio),
-      ]);
+      const relatorios = await api.getRelatoriosDiretoriaSemana(semanaInicio);
       const lancamentoObra = (relatorios || []).find(
         (l) => l.modalidade === "obra",
       );
       const normalizado = normalizarConteudoObra(lancamentoObra?.conteudo);
-      setObra(obraData);
       setTopicos(normalizado.topicos);
       snapshotInicial.current = snapshotTopicos(normalizado.topicos);
       setStatusSalvamento("idle");
@@ -84,7 +80,7 @@ export default function RelatorioObraLancamento() {
     } finally {
       setLoading(false);
     }
-  }, [obraId, semanaInicio]);
+  }, [semanaInicio]);
 
   useEffect(() => {
     carregar();
@@ -101,7 +97,6 @@ export default function RelatorioObraLancamento() {
       setStatusSalvamento("saving");
       try {
         await api.upsertRelatorioDiretoria({
-          obra_id: obraId,
           modalidade: "obra",
           ano,
           mes,
@@ -119,7 +114,7 @@ export default function RelatorioObraLancamento() {
         salvandoRef.current = false;
       }
     },
-    [ano, mes, obraId, semanaInicio],
+    [ano, mes, semanaInicio],
   );
 
   const flushSave = useCallback(async () => {
@@ -162,10 +157,10 @@ export default function RelatorioObraLancamento() {
   );
 
   const voltarDestino = () => {
-    if (origem === "obra") {
-      return `/relatorios-diretoria/${obraId}${buildSemanaSearchParams(ano, mes)}`;
+    if (origem === "lista") {
+      return rotaListaRelatorios({ ano, mes });
     }
-    return `/relatorios-diretoria/${obraId}/semana/${semanaInicio}${buildSemanaSearchParams(ano, mes)}`;
+    return rotaRelatorioSemana(semanaInicio, { ano, mes });
   };
 
   const tentarVoltar = async () => {
@@ -176,7 +171,7 @@ export default function RelatorioObraLancamento() {
   const trocarSemana = async (novaSemana) => {
     if (!novaSemana || novaSemana === semanaInicio) return;
     await flushSave();
-    navigate(`${rotaLancamentoObra(obraId, novaSemana, { ano, mes, origem })}`);
+    navigate(rotaLancamentoObra(novaSemana, { ano, mes, origem }));
   };
 
   const handleGerarPdf = async () => {
@@ -185,7 +180,7 @@ export default function RelatorioObraLancamento() {
       titulo: "Relatório de Obra",
       nomeFallback: "Relatorio_Obra.pdf",
       gerador: () =>
-        gerarPdfRelatorioDiretoriaObra(obra, {
+        gerarPdfRelatorioDiretoriaObra({
           semanaInicio,
           topicos: topicosRef.current,
         }),
@@ -225,7 +220,7 @@ export default function RelatorioObraLancamento() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center overflow-x-hidden bg-[#FAFAFA] pb-10">
       <RelatorioDetalheHeader
-        obra={obra}
+        titulo="Relatórios Semanais"
         onVoltar={tentarVoltar}
         subtitulo={subtitulo}
         acoes={

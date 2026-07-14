@@ -400,3 +400,86 @@ export function contarSemanasComFinanceiro(obra, semanas = []) {
     ),
   ).length;
 }
+
+function metaObra(obra) {
+  return {
+    obra_id: obra?.id ?? null,
+    obra_cliente: obra?.clientes?.nome || obra?.cliente || "—",
+    obra_local: obra?.local || "—",
+  };
+}
+
+function comMetaObra(item, obra) {
+  const meta = metaObra(obra);
+  const labelObra =
+    meta.obra_cliente && meta.obra_local
+      ? `${meta.obra_cliente} · ${meta.obra_local}`
+      : meta.obra_cliente || meta.obra_local;
+  return {
+    ...item,
+    ...meta,
+    descricao: labelObra
+      ? `${item.descricao || "—"} · ${labelObra}`
+      : item.descricao,
+  };
+}
+
+/**
+ * Agrega lançamentos financeiros de todas as obras na semana
+ * (mesma classificação a_cobrar / em_espera do relatório por obra).
+ */
+export function classificarLancamentosGlobal(obras = [], semanaInicio) {
+  if (!semanaInicio) return resumoVazio(semanaInicio);
+
+  const extratoSemana = [];
+  const emEsperaSemana = [];
+
+  (obras || []).forEach((obra) => {
+    if (!obra) return;
+    const resumo = classificarLancamentosObra(obra, semanaInicio);
+    (resumo.extratoSemana || []).forEach((item) => {
+      extratoSemana.push(comMetaObra(item, obra));
+    });
+    (resumo.emEsperaSemana || []).forEach((item) => {
+      emEsperaSemana.push(comMetaObra(item, obra));
+    });
+  });
+
+  const ordenarPorData = (a, b) => String(a.data).localeCompare(String(b.data));
+  extratoSemana.sort(ordenarPorData);
+  emEsperaSemana.sort(ordenarPorData);
+
+  const { inicio, fim } = intervaloSemana(semanaInicio);
+
+  return {
+    extratoSemana,
+    emEsperaSemana,
+    totais: calcularTotais(extratoSemana, emEsperaSemana),
+    porCategoria: calcularPorCategoria(extratoSemana, emEsperaSemana),
+    graficos: montarDadosGraficos(extratoSemana),
+    semanaInicio,
+    intervalo: { inicio, fim },
+  };
+}
+
+export function calcularResumosFinanceirosGlobaisPorSemana(
+  obras = [],
+  semanas = [],
+) {
+  const mapa = {};
+  semanas.forEach((semana) => {
+    const resumo = classificarLancamentosGlobal(obras, semana.inicio);
+    if (financeiroSemanaTemDados(resumo)) {
+      mapa[semana.inicio] = resumo;
+    }
+  });
+  return mapa;
+}
+
+export function contarSemanasComFinanceiroGlobal(obras = [], semanas = []) {
+  return semanas.filter((semana) =>
+    financeiroSemanaTemDados(
+      classificarLancamentosGlobal(obras, semana.inicio),
+    ),
+  ).length;
+}

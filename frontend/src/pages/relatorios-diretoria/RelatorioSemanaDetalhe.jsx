@@ -8,22 +8,22 @@ import MenuNovoLancamento from "./components/MenuNovoLancamento";
 import ModalLancamentoRelatorio from "./components/ModalLancamentoRelatorio";
 import RelatorioDetalheHeader from "./components/RelatorioDetalheHeader";
 import RelatorioSemanaDocumento from "./components/RelatorioSemanaDocumento";
-import { classificarLancamentosObra } from "./relatorioFinanceiroUtils";
+import { classificarLancamentosGlobal } from "./relatorioFinanceiroUtils";
 import {
-  buildSemanaSearchParams,
-  derivarPeriodoDaSemana,
   isSemanaAtual,
   labelSemanaFromInicio,
   montarRelatorioConsolidado,
   periodoAtual,
+  derivarPeriodoDaSemana,
   rotaLancamentoObra,
+  rotaListaRelatorios,
   rotaRelatorioFinanceiro,
 } from "./relatoriosDiretoriaUtils";
 import { relatorioNavbarAcaoClass } from "./relatoriosDiretoriaUi";
 import { gerarPdfRelatorioDiretoriaSemanal } from "./utils/relatoriosDiretoriaPdf";
 
 export default function RelatorioSemanaDetalhe() {
-  const { obraId, semanaRef: semanaInicioParam } = useParams();
+  const { semanaRef: semanaInicioParam } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const atual = periodoAtual();
@@ -38,9 +38,8 @@ export default function RelatorioSemanaDetalhe() {
     derivarPeriodoDaSemana(semanaInicio).mes ||
     atual.mes;
 
-  const [obra, setObra] = useState(null);
-  const [obraFinanceiro, setObraFinanceiro] = useState(null);
   const [lancamentos, setLancamentos] = useState([]);
+  const [obrasFinanceiro, setObrasFinanceiro] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
@@ -51,41 +50,37 @@ export default function RelatorioSemanaDetalhe() {
   const [pdfPreview, setPdfPreview] = useState(null);
 
   const carregar = useCallback(async () => {
-    if (!obraId || !semanaInicio) return;
+    if (!semanaInicio) return;
     setLoading(true);
     try {
-      const [obraData, obraFin, relatorios] = await Promise.all([
-        api.getObraResumoParaRelatorio(obraId),
-        api.getObraFinanceiroParaRelatorio(obraId),
-        api.getRelatoriosDiretoriaSemana(obraId, semanaInicio),
+      const [relatorios, obrasFin] = await Promise.all([
+        api.getRelatoriosDiretoriaSemana(semanaInicio),
+        api.getObrasFinanceiroParaRelatorioGlobal(),
       ]);
-      setObra(obraData);
-      setObraFinanceiro(obraFin);
       setLancamentos(relatorios || []);
+      setObrasFinanceiro(obrasFin || []);
       setErro(null);
     } catch (e) {
       console.error("[RelatorioSemanaDetalhe] carregar:", e);
       setErro(e?.message || "Não foi possível carregar o relatório.");
-      setObra(null);
-      setObraFinanceiro(null);
       setLancamentos([]);
+      setObrasFinanceiro([]);
     } finally {
       setLoading(false);
     }
-  }, [obraId, semanaInicio]);
+  }, [semanaInicio]);
 
   useEffect(() => {
     carregar();
   }, [carregar]);
 
   const financeiroResumo = useMemo(
-    () => classificarLancamentosObra(obraFinanceiro, semanaInicio),
-    [obraFinanceiro, semanaInicio],
+    () => classificarLancamentosGlobal(obrasFinanceiro, semanaInicio),
+    [obrasFinanceiro, semanaInicio],
   );
 
   const consolidado = useMemo(
-    () =>
-      montarRelatorioConsolidado(lancamentos, { financeiroResumo }),
+    () => montarRelatorioConsolidado(lancamentos, { financeiroResumo }),
     [lancamentos, financeiroResumo],
   );
 
@@ -105,16 +100,14 @@ export default function RelatorioSemanaDetalhe() {
     return new Date(datas[0]).toLocaleString("pt-BR");
   }, [lancamentos]);
 
-  const voltarObra = () => {
-    navigate(
-      `/relatorios-diretoria/${obraId}${buildSemanaSearchParams(ano, mes)}`,
-    );
+  const voltarLista = () => {
+    navigate(rotaListaRelatorios({ ano, mes }));
   };
 
   const abrirLancamento = (modalidade, lancamento = null) => {
     if (modalidade === "obra") {
       navigate(
-        rotaLancamentoObra(obraId, semanaInicio, {
+        rotaLancamentoObra(semanaInicio, {
           ano,
           mes,
           origem: "semana",
@@ -125,7 +118,7 @@ export default function RelatorioSemanaDetalhe() {
     }
     if (modalidade === "financeiro") {
       navigate(
-        rotaRelatorioFinanceiro(obraId, semanaInicio, {
+        rotaRelatorioFinanceiro(semanaInicio, {
           ano,
           mes,
           origem: "semana",
@@ -160,7 +153,7 @@ export default function RelatorioSemanaDetalhe() {
       titulo: "Relatório Semanal",
       nomeFallback: "Relatorio_Semanal.pdf",
       gerador: () =>
-        gerarPdfRelatorioDiretoriaSemanal(obra, {
+        gerarPdfRelatorioDiretoriaSemanal({
           semanaInicio,
           consolidado,
           ultimaAtualizacao,
@@ -183,8 +176,8 @@ export default function RelatorioSemanaDetalhe() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center overflow-x-hidden bg-[#FAFAFA] pb-10">
       <RelatorioDetalheHeader
-        obra={obra}
-        onVoltar={voltarObra}
+        titulo="Relatórios Semanais"
+        onVoltar={voltarLista}
         subtitulo={subtituloSemana}
         acoes={
           <>
@@ -221,7 +214,6 @@ export default function RelatorioSemanaDetalhe() {
         ) : null}
 
         <RelatorioSemanaDocumento
-          obra={obra}
           semanaInicio={semanaInicio}
           consolidado={consolidado}
           ultimaAtualizacao={ultimaAtualizacao}
@@ -236,7 +228,6 @@ export default function RelatorioSemanaDetalhe() {
         }}
         onSave={handleSalvar}
         salvando={salvando}
-        obraId={obraId}
         modalidade={modalidadeAtiva}
         periodo={{ ano, mes }}
         lancamentoExistente={lancamentoEdicao}

@@ -185,9 +185,8 @@ function InfoChip({ label, value }) {
  */
 export default function RelatorioDiretoriaObraPDF({
   titulo = "Relatório de Obra",
-  subtitulo = "Montezuma Gestão de Obras",
+  subtitulo = "Montezuma Gestão Empresarial",
   referencia,
-  obra,
   semanaLabel,
   topicos = [],
 }) {
@@ -200,7 +199,7 @@ export default function RelatorioDiretoriaObraPDF({
   });
 
   return (
-    <Document title={titulo} author="Montezuma Gestão de Obras">
+    <Document title={titulo} author="Montezuma Gestão Empresarial">
       <Page size="A4" orientation="portrait" style={styles.page}>
         <View style={styles.header} fixed>
           <View style={styles.brand}>
@@ -225,14 +224,12 @@ export default function RelatorioDiretoriaObraPDF({
           </View>
         </View>
 
-        {obra ? (
-          <View style={styles.infoRow}>
-            {obra.cliente ? (
-              <InfoChip label="Cliente" value={obra.cliente} />
-            ) : null}
-            {obra.local ? <InfoChip label="Local" value={obra.local} /> : null}
-          </View>
-        ) : null}
+        <View style={styles.infoRow}>
+          <InfoChip label="Escopo" value="Geral da semana" />
+          {semanaLabel ? (
+            <InfoChip label="Período" value={semanaLabel} />
+          ) : null}
+        </View>
 
         {topicos.map((topico) => (
           <View key={topico.id} style={styles.topicoSection}>

@@ -52,11 +52,7 @@ export default function RelatorioSemanaCorpoCorrido({ consolidado }) {
   const financeiroResumo = consolidado?.financeiroResumo;
 
   const temConteudo = MODALIDADES_RELATORIO.some((mod) =>
-    modalidadeEstaPreenchida(
-      mod.id,
-      porModalidade[mod.id],
-      financeiroResumo,
-    ),
+    modalidadeEstaPreenchida(mod.id, porModalidade[mod.id], financeiroResumo),
   );
 
   if (!temConteudo) {

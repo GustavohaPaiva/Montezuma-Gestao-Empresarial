@@ -12,10 +12,7 @@ import {
   calcularValoresPorTipo,
   normalizarItensProjecao,
 } from "../utils/projecaoUtils";
-import {
-  semanasDoMes,
-  chaveSemanaLancamento,
-} from "../pages/relatorios-diretoria/relatoriosDiretoriaUtils";
+import { semanasDoMes } from "../pages/relatorios-diretoria/relatoriosDiretoriaUtils";
 import {
   calcularTotalValoresProposta,
   normalizarPropostaDados,
@@ -3648,58 +3645,41 @@ export const api = {
     };
   },
 
-  // ─── Relatórios Diretoria (semanais por obra) ───────────────────────────────
-  getObrasParaRelatorios: async () => {
-    const { data, error } = await supabase
-      .from("obras")
-      .select("id, cliente, local, status, clientes!cliente_id(nome)")
-      .eq("active", true)
-      .order("cliente", { ascending: true });
-    if (error) throw error;
-    return data || [];
-  },
-
-  getObraResumoParaRelatorio: async (obraId) => {
-    if (!obraId) return null;
-    const { data, error } = await supabase
-      .from("obras")
-      .select("id, cliente, local, status, clientes!cliente_id(nome, tipo)")
-      .eq("id", obraId)
-      .maybeSingle();
-    if (error) throw error;
-    if (!data)
-      throw new Error("Obra não encontrada ou sem permissão de acesso.");
-    return data;
-  },
-
-  getObraFinanceiroParaRelatorio: async (obraId) => {
-    if (!obraId) return null;
+  // ─── Relatórios Diretoria (semanais gerais) ─────────────────────────────────
+  getObrasFinanceiroParaRelatorioGlobal: async () => {
     const { data, error } = await supabase
       .from("obras")
       .select(
-        `id, cliente, local, status, clientes!cliente_id(nome, tipo),
+        `id, cliente, local, status, active, clientes!cliente_id(nome, tipo),
         materiais:relatorio_materiais(id, material, quantidade, valor, data_solicitacao, data_vencimento, status_financeiro, etapa_nome, fornecedores(nome)),
         maoDeObra:relatorio_mao_de_obra(id, tipo, profissional, valor_cobrado, valor_orcado, valor_pago, saldo, data_solicitacao, validacao, etapa_nome),
         locacoes:relatorio_locacoes(id, equipamento, valor, data_coleta, data_vencimento, validacao, status_financeiro, etapa_nome),
         relatorioExtrato:relatorio_extrato(id, descricao, tipo, valor, data, status_financeiro, material_id, mao_de_obra_id, locacao_id, etapa_nome)`,
       )
-      .eq("id", obraId)
-      .maybeSingle();
+      .eq("active", true)
+      .order("cliente", { ascending: true });
     if (error) throw error;
-    if (!data)
-      throw new Error("Obra não encontrada ou sem permissão de acesso.");
-    return {
-      ...data,
-      materiais: normalizarMateriaisLista(data.materiais),
-    };
+    return (data || []).map((obra) => ({
+      ...obra,
+      materiais: normalizarMateriaisLista(obra.materiais),
+    }));
   },
 
-  getRelatoriosDiretoriaPorObra: async (obraId, { ano, mes }) => {
-    if (!obraId) return [];
+  getRelatoriosDiretoriaPeriodo: async ({ ano, mes } = {}) => {
     const semanaInicios =
       ano != null && mes != null
         ? semanasDoMes(ano, mes).map((s) => s.inicio)
         : [];
+
+    if (semanaInicios.length === 0 && (ano == null || mes == null)) {
+      const { data, error } = await supabase
+        .from("relatorios_diretoria")
+        .select("*")
+        .order("semana_inicio", { ascending: true })
+        .order("modalidade", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    }
 
     const queries = [];
 
@@ -3708,7 +3688,6 @@ export const api = {
         supabase
           .from("relatorios_diretoria")
           .select("*")
-          .eq("obra_id", obraId)
           .in("semana_inicio", semanaInicios),
       );
     }
@@ -3718,22 +3697,9 @@ export const api = {
         supabase
           .from("relatorios_diretoria")
           .select("*")
-          .eq("obra_id", obraId)
           .eq("ano", ano)
-          .eq("mes", mes)
-          .is("semana_inicio", null),
+          .eq("mes", mes),
       );
-    }
-
-    if (!queries.length) {
-      const { data, error } = await supabase
-        .from("relatorios_diretoria")
-        .select("*")
-        .eq("obra_id", obraId)
-        .order("semana_inicio", { ascending: true })
-        .order("modalidade", { ascending: true });
-      if (error) throw error;
-      return data || [];
     }
 
     const results = await Promise.all(queries);
@@ -3755,72 +3721,22 @@ export const api = {
     });
   },
 
-  getRelatoriosDiretoriaSemana: async (obraId, semanaInicio) => {
-    if (!obraId || !semanaInicio) return [];
+  getRelatoriosDiretoriaSemana: async (semanaInicio) => {
+    if (!semanaInicio) return [];
     const inicio = String(semanaInicio).slice(0, 10);
 
-    const { data: modern, error: errModern } = await supabase
+    const { data, error } = await supabase
       .from("relatorios_diretoria")
       .select("*")
-      .eq("obra_id", obraId)
-      .eq("semana_inicio", inicio);
+      .eq("semana_inicio", inicio)
+      .order("modalidade", { ascending: true });
 
-    if (errModern) throw errModern;
-    if (modern?.length) return modern;
-
-    const { data: legacy, error: errLegacy } = await supabase
-      .from("relatorios_diretoria")
-      .select("*")
-      .eq("obra_id", obraId)
-      .is("semana_inicio", null);
-
-    if (errLegacy) throw errLegacy;
-
-    return (legacy || []).filter(
-      (row) => chaveSemanaLancamento(row) === inicio,
-    );
-  },
-
-  getContagemRelatoriosDiretoriaMes: async (ano, mes) => {
-    const semanaInicios = semanasDoMes(ano, mes).map((s) => s.inicio);
-    const queries = [];
-
-    if (semanaInicios.length > 0) {
-      queries.push(
-        supabase
-          .from("relatorios_diretoria")
-          .select("obra_id")
-          .in("semana_inicio", semanaInicios),
-      );
-    }
-
-    queries.push(
-      supabase
-        .from("relatorios_diretoria")
-        .select("obra_id")
-        .eq("ano", ano)
-        .eq("mes", mes)
-        .is("semana_inicio", null),
-    );
-
-    const results = await Promise.all(queries);
-    for (const { error } of results) {
-      if (error) throw error;
-    }
-
-    const contagem = {};
-    results.forEach(({ data }) => {
-      (data || []).forEach((row) => {
-        const id = row.obra_id;
-        contagem[id] = (contagem[id] || 0) + 1;
-      });
-    });
-    return contagem;
+    if (error) throw error;
+    return data || [];
   },
 
   upsertRelatorioDiretoria: async (payload) => {
     const {
-      obra_id,
       modalidade,
       ano,
       mes,
@@ -3829,14 +3745,13 @@ export const api = {
       conteudo,
       criado_por,
     } = payload || {};
-    if (!obra_id) throw new Error("Obra é obrigatória.");
     if (!modalidade) throw new Error("Modalidade é obrigatória.");
 
     const inicio =
       semana_inicio != null ? String(semana_inicio).slice(0, 10) : null;
 
-    if (!inicio && (ano == null || mes == null || semana_ref == null)) {
-      throw new Error("Período e semana são obrigatórios.");
+    if (!inicio) {
+      throw new Error("Semana de referência é obrigatória.");
     }
 
     let userId = criado_por;
@@ -3849,20 +3764,17 @@ export const api = {
     let mesSalvar = mes;
     let semanaRefSalvar = semana_ref;
 
-    if (inicio) {
-      const d = new Date(`${inicio}T12:00:00`);
-      if (!Number.isNaN(d.getTime())) {
-        anoSalvar = d.getFullYear();
-        mesSalvar = d.getMonth() + 1;
-        const idx = semanasDoMes(anoSalvar, mesSalvar).findIndex(
-          (s) => s.inicio === inicio,
-        );
-        semanaRefSalvar = idx >= 0 ? idx + 1 : (semana_ref ?? 1);
-      }
+    const d = new Date(`${inicio}T12:00:00`);
+    if (!Number.isNaN(d.getTime())) {
+      anoSalvar = d.getFullYear();
+      mesSalvar = d.getMonth() + 1;
+      const idx = semanasDoMes(anoSalvar, mesSalvar).findIndex(
+        (s) => s.inicio === inicio,
+      );
+      semanaRefSalvar = idx >= 0 ? idx + 1 : (semana_ref ?? 1);
     }
 
     const row = {
-      obra_id,
       modalidade,
       ano: Number(anoSalvar),
       mes: Number(mesSalvar),
@@ -3873,29 +3785,16 @@ export const api = {
     };
     if (userId) row.criado_por = userId;
 
-    // PostgREST upsert exige UNIQUE CONSTRAINT; índices parciais (migration
-    // semana_inicio) não são aceitos em onConflict — busca + update/insert.
-    let query = supabase
+    const { data: existente, error: errBusca } = await supabase
       .from("relatorios_diretoria")
       .select("id")
-      .eq("obra_id", obra_id)
-      .eq("modalidade", modalidade);
-
-    if (inicio) {
-      query = query.eq("semana_inicio", inicio);
-    } else {
-      query = query
-        .eq("ano", row.ano)
-        .eq("mes", row.mes)
-        .eq("semana_ref", row.semana_ref)
-        .is("semana_inicio", null);
-    }
-
-    const { data: existente, error: errBusca } = await query.maybeSingle();
+      .eq("modalidade", modalidade)
+      .eq("semana_inicio", inicio)
+      .maybeSingle();
     if (errBusca) throw errBusca;
 
     if (existente?.id) {
-      const { criado_por: _c, obra_id: _o, modalidade: _m, ...patch } = row;
+      const { criado_por: _c, modalidade: _m, ...patch } = row;
       const { data, error } = await supabase
         .from("relatorios_diretoria")
         .update(patch)

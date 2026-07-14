@@ -21,6 +21,7 @@ export const homeDictionary = {
     suprimentosServicos: "Suprimentos e Serviços",
     pedidos: "Pedidos",
     projecoes: "Projeções",
+    relatoriosSemanais: "Relatórios Semanais",
     ordensServico: "Ordens de Serviço",
     usuariosSistema: "Usuários do sistema",
     categorias: {
@@ -38,7 +39,9 @@ export const homeDictionary = {
       processos:
         "Gerencie clientes, documentos e licitações com histórico completo e acompanhamento de status.",
       obras:
-        "Selecione uma obra para acessar detalhes operacionais, cronogramas e relatórios semanais.",
+        "Selecione uma obra para acessar detalhes operacionais, cronogramas e etapas.",
+      relatoriosSemanais:
+        "Lance e consulte o relatório geral da semana — obra, financeiro e compras.",
       financeiro:
         "Registre entradas e saídas, acompanhe pendências e mantenha a saúde financeira da operação.",
       fornecedores:
@@ -59,7 +62,8 @@ export const homeDictionary = {
     destaques: {
       meuEscritorio: ["Agenda", "Reuniões", "Visitas"],
       processos: ["Clientes", "Documentos", "Licitações"],
-      obras: ["Cronogramas", "Etapas", "Relatórios"],
+      obras: ["Cronogramas", "Etapas", "Detalhes"],
+      relatoriosSemanais: ["Semanal", "Geral", "Consolidado"],
       financeiro: ["Entradas", "Saídas", "Pendências"],
       fornecedores: ["Cadastro", "Histórico", "Parceiros"],
       prestadores: ["Equipes", "Serviços", "Vínculos"],
@@ -139,23 +143,6 @@ export const homeDictionary = {
       "Equipes terceirizadas e serviços vinculados às obras.",
     metricFornecedores: "Fornecedores",
     metricPrestadores: "Prestadores",
-  },
-  obraHub: {
-    eyebrow: "Centro da obra",
-    acessoDetalhes: "Detalhes da Obra",
-    acessoDetalhesDescricao:
-      "Cronograma, etapas construtivas, pedidos e financeiro da obra.",
-    acessoRelatorios: "Relatórios Semanais",
-    acessoRelatoriosDescricao:
-      "Lançamentos semanais de execução, financeiro e compras.",
-    metricFinanceiro: "Financeiro",
-    metricEtapas: "Etapas concluídas",
-    metricPedidos: "Pedidos",
-    metricRelatorios: "Relatórios no mês",
-    financeiroPago: "Pago",
-    financeiroPendente: "Pendente",
-    loadingTitulo: "Carregando obra",
-    loadingDescricao: "Buscando dados e indicadores desta obra…",
   },
 };
 

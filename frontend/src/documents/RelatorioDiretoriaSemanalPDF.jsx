@@ -9,7 +9,7 @@ import {
   styles,
 } from "./RelatorioDiretoriaPdfShared";
 
-const SUBTITULO = "Relatórios da Diretoria · Montezuma Gestão de Obras";
+const SUBTITULO = "Relatórios da Diretoria · Montezuma Gestão Empresarial";
 
 function TopicosObraSection({ topicos }) {
   if (!topicos?.length) return null;
@@ -134,14 +134,13 @@ function ModalitySection({ titulo, children }) {
 export default function RelatorioDiretoriaSemanalPDF({
   titulo = "Relatório Semanal",
   referencia = "Visão consolidada da semana",
-  obra,
   semanaLabel,
   blocos = [],
   ultimaAtualizacao,
   completo,
 }) {
   return (
-    <Document title={titulo} author="Montezuma Gestão de Obras">
+    <Document title={titulo} author="Montezuma Gestão Empresarial">
       <ReportPage titulo={titulo} subtitulo={SUBTITULO}>
         <ReportHeader
           titulo={titulo}
@@ -155,17 +154,15 @@ export default function RelatorioDiretoriaSemanalPDF({
           }
         />
 
-        {obra ? (
-          <View style={styles.infoRow}>
-            {obra.cliente ? (
-              <InfoChip label="Cliente" value={obra.cliente} />
-            ) : null}
-            {obra.local ? <InfoChip label="Local" value={obra.local} /> : null}
-            {ultimaAtualizacao ? (
-              <InfoChip label="Última atualização" value={ultimaAtualizacao} />
-            ) : null}
-          </View>
-        ) : null}
+        <View style={styles.infoRow}>
+          <InfoChip label="Escopo" value="Todas as obras" />
+          {semanaLabel ? (
+            <InfoChip label="Período" value={semanaLabel} />
+          ) : null}
+          {ultimaAtualizacao ? (
+            <InfoChip label="Última atualização" value={ultimaAtualizacao} />
+          ) : null}
+        </View>
 
         {blocos.length === 0 ? (
           <Text style={styles.empty}>

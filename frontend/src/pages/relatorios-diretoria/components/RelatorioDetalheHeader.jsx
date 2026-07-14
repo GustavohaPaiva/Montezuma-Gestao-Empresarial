@@ -1,14 +1,11 @@
 import { ArrowLeft } from "lucide-react";
 
 export default function RelatorioDetalheHeader({
-  obra,
+  titulo = "Relatórios Semanais",
   onVoltar,
   subtitulo,
   acoes,
 }) {
-  const nomeCliente = obra?.clientes?.nome || obra?.cliente || "Obra";
-  const local = obra?.local || "Local não informado";
-
   return (
     <header className="sticky top-0 z-[60] mb-1 w-full border-b border-border-primary/40 bg-[#FAFAFA]/95 shadow-sm backdrop-blur-sm">
       <div className="flex w-full flex-col gap-3 px-[5%] py-2.5 sm:py-3 md:flex-row md:items-center md:justify-between md:gap-4 md:py-2">
@@ -24,9 +21,7 @@ export default function RelatorioDetalheHeader({
 
           <div className="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2">
             <h1 className="mt-0.5 text-xs font-bold leading-tight tracking-tight text-text-primary sm:text-sm md:text-base">
-              <span className="text-accent-primary">{nomeCliente}</span>
-              <span className="text-text-muted"> · </span>
-              <span>{local}</span>
+              <span className="text-accent-primary">{titulo}</span>
             </h1>
             {subtitulo ? (
               <p className="mt-1 line-clamp-2 text-[10px] font-medium uppercase leading-snug tracking-wide text-text-muted sm:text-[11px]">

@@ -1,4 +1,4 @@
-import { CalendarDays, CheckCircle2, MapPin, User } from "lucide-react";
+import { CalendarDays, CheckCircle2 } from "lucide-react";
 import {
   isSemanaAtual,
   labelSemanaFromInicio,
@@ -19,29 +19,21 @@ import {
 } from "../relatoriosDiretoriaUi";
 import RelatorioSemanaCorpoCorrido from "./RelatorioSemanaCorpoCorrido";
 
-function MetaChip({ icon: Icon, label, value }) {
+function MetaChip({ label, value }) {
   return (
     <div className={relatorioDocumentoMetaChipClass}>
-      <p
-        className={`${relatorioDocumentoMetaChipLabelClass} flex items-center gap-1`}
-      >
-        {Icon ? <Icon className="h-3 w-3 text-accent-primary" /> : null}
-        {label}
-      </p>
+      <p className={relatorioDocumentoMetaChipLabelClass}>{label}</p>
       <p className={relatorioDocumentoMetaChipValueClass}>{value || "—"}</p>
     </div>
   );
 }
 
 export default function RelatorioSemanaDocumento({
-  obra,
   semanaInicio,
   consolidado,
   ultimaAtualizacao,
 }) {
   const label = labelSemanaFromInicio(semanaInicio);
-  const nomeCliente = obra?.clientes?.nome || obra?.cliente || "—";
-  const local = obra?.local || "—";
   const semanaAtual = isSemanaAtual(semanaInicio);
 
   const dataEmissao = new Date().toLocaleString("pt-BR", {
@@ -88,8 +80,7 @@ export default function RelatorioSemanaDocumento({
         </div>
 
         <div className={relatorioDocumentoMetaGridClass}>
-          <MetaChip icon={User} label="Cliente" value={nomeCliente} />
-          <MetaChip icon={MapPin} label="Local" value={local} />
+          <MetaChip label="Escopo" value="Geral da semana" />
           <MetaChip label="Período" value={label} />
           <MetaChip
             label="Última atualização"

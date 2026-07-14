@@ -112,14 +112,8 @@ export default function Obras() {
   const { obras, setObras, carregando, showElements, reloadObras } =
     useObrasList();
   const isEncarregado = user?.tipo === "encarregado";
-  const usaHubObra =
-    user?.tipo === "diretoria" || user?.tipo === "gestor_master";
 
   const navegarParaObra = (obraId) => {
-    if (usaHubObra) {
-      navigate(`/obras/${obraId}`);
-      return;
-    }
     navigate(`/obrasD/${obraId}`);
   };
 
@@ -213,10 +207,6 @@ export default function Obras() {
 
   const abrirExtratoObra = (obra) => {
     setObraLotesModal(null);
-    if (usaHubObra) {
-      navigate(`/obras/${obra.id}?secao=relatorios&sub=extrato`);
-      return;
-    }
     navigate(`/obrasD/${obra.id}?secao=relatorios&sub=extrato`);
   };
 

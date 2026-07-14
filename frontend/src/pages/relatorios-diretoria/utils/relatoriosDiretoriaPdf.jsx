@@ -24,15 +24,6 @@ function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function obraParaPdf(obra) {
-  if (!obra) return undefined;
-  return {
-    cliente:
-      obra?.clientes?.nome || obra?.cliente || obra?.cliente_nome || undefined,
-    local: obra?.local || undefined,
-  };
-}
-
 function montarTopicosPdf(topicosState) {
   const serializado = serializarConteudoObra(topicosState);
   return TOPICOS_RELATORIO_OBRA.map((topico) => {
@@ -53,23 +44,20 @@ function montarTopicosPdf(topicosState) {
  * Gera PDF do relatório semanal de obra no formato detalhado da tela.
  * @returns {Promise<{ blob: Blob, nomePadrao: string }>}
  */
-export async function gerarPdfRelatorioDiretoriaObra(
-  obra,
-  { semanaInicio, topicos } = {},
-) {
-  const obraPdf = obraParaPdf(obra);
+export async function gerarPdfRelatorioDiretoriaObra({
+  semanaInicio,
+  topicos,
+} = {}) {
   const semanaLabel = labelSemanaFromInicio(semanaInicio);
   const topicosPdf = montarTopicosPdf(topicos);
-  const obraSlug = slugify(obraPdf?.local || obraPdf?.cliente || "obra");
   const semanaSlug = slugify(semanaInicio || semanaLabel);
-  const nomePadrao = `Montezuma_Relatorio-Obra_Semana-${semanaSlug}_Obra-${obraSlug}_${hojeISO()}.pdf`;
+  const nomePadrao = `Montezuma_Relatorio-Obra_Semana-${semanaSlug}_${hojeISO()}.pdf`;
 
   const doc = (
     <RelatorioDiretoriaObraPDF
       titulo="Relatório de Obra"
-      subtitulo="Relatórios da Diretoria · Montezuma Gestão de Obras"
-      referencia="Acompanhamento semanal da execução"
-      obra={obraPdf}
+      subtitulo="Relatórios da Diretoria · Montezuma Gestão Empresarial"
+      referencia="Acompanhamento semanal geral"
       semanaLabel={semanaLabel}
       topicos={topicosPdf}
     />
@@ -106,22 +94,19 @@ function montarBlocosPdfSemanal(consolidado) {
 }
 
 /**
- * Gera PDF do relatório financeiro semanal.
+ * Gera PDF do relatório financeiro semanal (agregado de todas as obras).
  * @returns {Promise<{ blob: Blob, nomePadrao: string }>}
  */
-export async function gerarPdfRelatorioDiretoriaFinanceiro(
-  obra,
-  { semanaInicio, resumo } = {},
-) {
-  const obraPdf = obraParaPdf(obra);
+export async function gerarPdfRelatorioDiretoriaFinanceiro({
+  semanaInicio,
+  resumo,
+} = {}) {
   const semanaLabel = labelSemanaFromInicio(semanaInicio);
-  const obraSlug = slugify(obraPdf?.local || obraPdf?.cliente || "obra");
   const semanaSlug = slugify(semanaInicio || semanaLabel);
-  const nomePadrao = `Montezuma_Relatorio-Financeiro_Semana-${semanaSlug}_Obra-${obraSlug}_${hojeISO()}.pdf`;
+  const nomePadrao = `Montezuma_Relatorio-Financeiro_Semana-${semanaSlug}_${hojeISO()}.pdf`;
 
   const doc = (
     <RelatorioDiretoriaFinanceiroPDF
-      obra={obraPdf}
       semanaLabel={semanaLabel}
       resumo={resumo}
     />
@@ -135,20 +120,18 @@ export async function gerarPdfRelatorioDiretoriaFinanceiro(
  * Gera PDF do relatório semanal consolidado (geral).
  * @returns {Promise<{ blob: Blob, nomePadrao: string }>}
  */
-export async function gerarPdfRelatorioDiretoriaSemanal(
-  obra,
-  { semanaInicio, consolidado, ultimaAtualizacao } = {},
-) {
-  const obraPdf = obraParaPdf(obra);
+export async function gerarPdfRelatorioDiretoriaSemanal({
+  semanaInicio,
+  consolidado,
+  ultimaAtualizacao,
+} = {}) {
   const semanaLabel = labelSemanaFromInicio(semanaInicio);
   const blocos = montarBlocosPdfSemanal(consolidado);
-  const obraSlug = slugify(obraPdf?.local || obraPdf?.cliente || "obra");
   const semanaSlug = slugify(semanaInicio || semanaLabel);
-  const nomePadrao = `Montezuma_Relatorio-Semanal_Semana-${semanaSlug}_Obra-${obraSlug}_${hojeISO()}.pdf`;
+  const nomePadrao = `Montezuma_Relatorio-Semanal_Semana-${semanaSlug}_${hojeISO()}.pdf`;
 
   const doc = (
     <RelatorioDiretoriaSemanalPDF
-      obra={obraPdf}
       semanaLabel={semanaLabel}
       blocos={blocos}
       ultimaAtualizacao={ultimaAtualizacao}

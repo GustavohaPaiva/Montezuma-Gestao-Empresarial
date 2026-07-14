@@ -11,14 +11,14 @@ export const MODALIDADES_RELATORIO = [
   {
     id: "financeiro",
     label: "Financeiro",
-    descricao: "Situação financeira automática da semana",
+    descricao: "Situação financeira automática da semana (todas as obras)",
     colorTheme: "primary",
     Icon: Wallet,
   },
   {
     id: "compras",
     label: "Compras",
-    descricao: "Compras e pedidos da obra",
+    descricao: "Compras e pedidos da semana",
     colorTheme: "emerald",
     Icon: ShoppingCart,
   },
@@ -388,12 +388,29 @@ export function formatarPrazoObra(prazo) {
   return d.toLocaleDateString("pt-BR");
 }
 
-export function rotaLancamentoObra(
-  obraId,
+export function rotaListaRelatorios({ ano, mes } = {}) {
+  if (ano != null && mes != null) {
+    return `/relatorios-diretoria${buildSemanaSearchParams(ano, mes)}`;
+  }
+  return "/relatorios-diretoria";
+}
+
+export function rotaRelatorioSemana(
   semanaInicio,
-  { ano, mes, origem = "obra" } = {},
+  { ano, mes } = {},
 ) {
-  const base = `/relatorios-diretoria/${obraId}/semana/${String(semanaInicio).slice(0, 10)}/obra`;
+  const base = `/relatorios-diretoria/semana/${String(semanaInicio).slice(0, 10)}`;
+  if (ano != null && mes != null) {
+    return `${base}${buildSemanaSearchParams(ano, mes)}`;
+  }
+  return base;
+}
+
+export function rotaLancamentoObra(
+  semanaInicio,
+  { ano, mes, origem = "lista" } = {},
+) {
+  const base = `/relatorios-diretoria/semana/${String(semanaInicio).slice(0, 10)}/obra`;
   if (ano != null && mes != null) {
     return `${base}${buildLancamentoObraParams(ano, mes, origem)}`;
   }
@@ -401,11 +418,10 @@ export function rotaLancamentoObra(
 }
 
 export function rotaRelatorioFinanceiro(
-  obraId,
   semanaInicio,
-  { ano, mes, origem = "obra" } = {},
+  { ano, mes, origem = "lista" } = {},
 ) {
-  const base = `/relatorios-diretoria/${obraId}/semana/${String(semanaInicio).slice(0, 10)}/financeiro`;
+  const base = `/relatorios-diretoria/semana/${String(semanaInicio).slice(0, 10)}/financeiro`;
   if (ano != null && mes != null) {
     return `${base}${buildLancamentoObraParams(ano, mes, origem)}`;
   }
@@ -453,7 +469,10 @@ export function montarRelatorioConsolidado(
     if (l?.modalidade && MODALIDADE_IDS.includes(l.modalidade)) {
       porModalidade[l.modalidade] = {
         ...l,
-        conteudo: normalizarConteudo(l.conteudo),
+        conteudo:
+          l.modalidade === "obra"
+            ? normalizarConteudoObra(l.conteudo)
+            : normalizarConteudo(l.conteudo),
       };
     }
   });
@@ -578,48 +597,10 @@ export function derivarPeriodoDaSemana(semanaInicio) {
   };
 }
 
-const PESOS_STATUS_OBRA = {
-  "Em andamento": 1,
-  "Aguardando iniciação": 2,
-  Concluída: 3,
-};
-
-export function statusThemeObra(status) {
-  if (status === "Concluída") return "emerald";
-  if (status === "Em andamento") return "amber";
-  if (status === "Aguardando iniciação") return "purple";
-  return "blue";
-}
-
-export function ordenarObrasPorStatus(obras = []) {
-  return [...obras].sort((a, b) => {
-    const pesoA = PESOS_STATUS_OBRA[a.status] || 99;
-    const pesoB = PESOS_STATUS_OBRA[b.status] || 99;
-    return pesoA - pesoB;
-  });
-}
-
-export function filtrarObrasRelatorio(
-  obras,
-  { busca = "", filtroStatus = "Tudo" } = {},
-) {
-  const termo = busca.trim().toLowerCase();
-  return obras.filter((obra) => {
-    if (filtroStatus !== "Tudo" && obra.status !== filtroStatus) return false;
-    if (!termo) return true;
-    const cliente = (obra.clientes?.nome || obra.cliente || "").toLowerCase();
-    const local = (obra.local || "").toLowerCase();
-    const status = (obra.status || "").toLowerCase();
-    return (
-      cliente.includes(termo) || local.includes(termo) || status.includes(termo)
-    );
-  });
-}
-
 export function buildSemanaSearchParams(ano, mes) {
   return `?ano=${ano}&mes=${mes}`;
 }
 
-export function buildLancamentoObraParams(ano, mes, origem = "obra") {
+export function buildLancamentoObraParams(ano, mes, origem = "lista") {
   return `${buildSemanaSearchParams(ano, mes)}&origem=${origem}`;
 }

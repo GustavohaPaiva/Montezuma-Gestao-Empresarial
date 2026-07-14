@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ClipboardList } from "lucide-react";
 import LoadingPainel from "../../components/gerais/LoadingPainel";
 import { api } from "../../services/api";
@@ -9,20 +9,20 @@ import RelatorioDetalheHeader from "./components/RelatorioDetalheHeader";
 import RelatorioModalidadeCard from "./components/RelatorioModalidadeCard";
 import RelatorioPeriodoCard from "./components/RelatorioPeriodoCard";
 import RelatorioSemanaCard from "./components/RelatorioSemanaCard";
-import { useRelatoriosDiretoriaObra } from "./hooks/useRelatoriosDiretoriaObra";
+import { useRelatoriosDiretoriaPeriodo } from "./hooks/useRelatoriosDiretoriaObra";
 import {
-  calcularResumosFinanceirosPorSemana,
-  classificarLancamentosObra,
-  contarSemanasComFinanceiro,
+  calcularResumosFinanceirosGlobaisPorSemana,
+  classificarLancamentosGlobal,
+  contarSemanasComFinanceiroGlobal,
 } from "./relatorioFinanceiroUtils";
 import {
   agruparLancamentosPorSemana,
-  buildSemanaSearchParams,
   isSemanaAtual,
   MODALIDADES_RELATORIO,
   periodoAtual,
   rotaLancamentoObra,
   rotaRelatorioFinanceiro,
+  rotaRelatorioSemana,
   semanaAtualInicio,
   semanasDoMes,
 } from "./relatoriosDiretoriaUtils";
@@ -35,7 +35,6 @@ import {
 } from "./relatoriosDiretoriaUi";
 
 export default function RelatorioObraDetalhe() {
-  const { obraId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const atual = periodoAtual();
@@ -50,15 +49,14 @@ export default function RelatorioObraDetalhe() {
   }, [searchParams, atual.ano, atual.mes]);
 
   const {
-    obra,
-    obraFinanceiro,
+    obrasFinanceiro,
     lancamentos,
     loading,
     erro,
     periodo,
     atualizarPeriodo,
     recarregar,
-  } = useRelatoriosDiretoriaObra(obraId, periodoInicial);
+  } = useRelatoriosDiretoriaPeriodo(periodoInicial);
 
   const [modalAberto, setModalAberto] = useState(false);
   const [modalidadeAtiva, setModalidadeAtiva] = useState(null);
@@ -78,23 +76,24 @@ export default function RelatorioObraDetalhe() {
   );
 
   const resumosFinanceirosPorSemana = useMemo(
-    () => calcularResumosFinanceirosPorSemana(obraFinanceiro, semanas),
-    [obraFinanceiro, semanas],
+    () =>
+      calcularResumosFinanceirosGlobaisPorSemana(obrasFinanceiro, semanas),
+    [obrasFinanceiro, semanas],
   );
 
   const quantidadeFinanceiro = useMemo(
-    () => contarSemanasComFinanceiro(obraFinanceiro, semanas),
-    [obraFinanceiro, semanas],
+    () => contarSemanasComFinanceiroGlobal(obrasFinanceiro, semanas),
+    [obrasFinanceiro, semanas],
   );
 
   const irParaLancamento = (modalidade, { semanaInicio } = {}) => {
     const semana = semanaInicio ?? semanaAtualInicio();
     if (modalidade === "obra") {
       navigate(
-        rotaLancamentoObra(obraId, semana, {
+        rotaLancamentoObra(semana, {
           ano: periodo.ano,
           mes: periodo.mes,
-          origem: "obra",
+          origem: "lista",
         }),
       );
       setMenuNovaAberto(false);
@@ -102,10 +101,10 @@ export default function RelatorioObraDetalhe() {
     }
     if (modalidade === "financeiro") {
       navigate(
-        rotaRelatorioFinanceiro(obraId, semana, {
+        rotaRelatorioFinanceiro(semana, {
           ano: periodo.ano,
           mes: periodo.mes,
-          origem: "obra",
+          origem: "lista",
         }),
       );
       setMenuNovaAberto(false);
@@ -135,7 +134,10 @@ export default function RelatorioObraDetalhe() {
 
   const irParaSemana = (semanaInicio) => {
     navigate(
-      `/relatorios-diretoria/${obraId}/semana/${semanaInicio}${buildSemanaSearchParams(periodo.ano, periodo.mes)}`,
+      rotaRelatorioSemana(semanaInicio, {
+        ano: periodo.ano,
+        mes: periodo.mes,
+      }),
     );
   };
 
@@ -144,7 +146,7 @@ export default function RelatorioObraDetalhe() {
       <div className="flex min-h-screen items-center justify-center bg-[#FAFAFA] px-[5%] py-12">
         <LoadingPainel
           titulo="Carregando relatórios"
-          descricao="Buscando histórico semanal desta obra…"
+          descricao="Buscando histórico semanal da empresa…"
           icon={<ClipboardList className="h-7 w-7" strokeWidth={2} />}
         />
       </div>
@@ -154,9 +156,9 @@ export default function RelatorioObraDetalhe() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center overflow-x-hidden bg-[#FAFAFA] pb-10">
       <RelatorioDetalheHeader
-        obra={obra}
-        onVoltar={() => navigate(`/obras/${obraId}`)}
-        subtitulo="Relatórios semanais"
+        titulo="Relatórios Semanais"
+        onVoltar={() => navigate("/")}
+        subtitulo="Relatório geral da semana"
         acoes={
           <MenuNovoLancamento
             aberto={menuNovaAberto}
@@ -217,8 +219,8 @@ export default function RelatorioObraDetalhe() {
                   lancamentos={porSemana[semana.inicio] || []}
                   financeiroResumo={
                     resumosFinanceirosPorSemana[semana.inicio] ||
-                    classificarLancamentosObra(
-                      obraFinanceiro,
+                    classificarLancamentosGlobal(
+                      obrasFinanceiro,
                       semana.inicio,
                     )
                   }
@@ -239,7 +241,6 @@ export default function RelatorioObraDetalhe() {
         }}
         onSave={handleSalvar}
         salvando={salvando}
-        obraId={obraId}
         modalidade={modalidadeAtiva}
         periodo={periodo}
         lancamentoExistente={lancamentoEdicao}

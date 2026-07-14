@@ -91,11 +91,7 @@ export default function RelatorioSemanaCard({
             const theme = themeModalidade(mod.colorTheme);
             const preenchido =
               mod.id === "financeiro"
-                ? modalidadeEstaPreenchida(
-                    mod.id,
-                    null,
-                    financeiroResumo,
-                  )
+                ? modalidadeEstaPreenchida(mod.id, null, financeiroResumo)
                 : modalidadeEstaPreenchida(
                     mod.id,
                     resumo.porModalidade[mod.id],

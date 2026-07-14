@@ -9,7 +9,7 @@ import {
   styles,
 } from "./RelatorioDiretoriaPdfShared";
 
-const SUBTITULO = "Relatórios da Diretoria · Montezuma Gestão de Obras";
+const SUBTITULO = "Relatórios da Diretoria · Montezuma Gestão Empresarial";
 
 function MetricCard({ label, value }) {
   return (
@@ -21,18 +21,19 @@ function MetricCard({ label, value }) {
 }
 
 function descricaoItem(item) {
+  if (item.descricao) return item.descricao;
   if (item.origem === "material") {
     return item.fornecedor
-      ? `${item.material || item.descricao} (${item.fornecedor})`
-      : item.material || item.descricao || "—";
+      ? `${item.material || "—"} (${item.fornecedor})`
+      : item.material || "—";
   }
   if (item.origem === "mao_de_obra") {
     return `${item.servico || "Serviço"} — ${item.profissional || "—"}`;
   }
   if (item.origem === "locacao") {
-    return item.equipamento || item.descricao || "—";
+    return item.equipamento || "—";
   }
-  return item.descricao || "—";
+  return "—";
 }
 
 function agruparPorTipo(itens) {
@@ -158,14 +159,13 @@ function ResumoCategorias({ porCategoria }) {
 export default function RelatorioDiretoriaFinanceiroPDF({
   titulo = "Relatório Financeiro",
   referencia = "Situação financeira da semana",
-  obra,
   semanaLabel,
   resumo,
 }) {
   const totais = resumo?.totais || {};
 
   return (
-    <Document title={titulo} author="Montezuma Gestão de Obras">
+    <Document title={titulo} author="Montezuma Gestão Empresarial">
       <ReportPage titulo={titulo} subtitulo={SUBTITULO}>
         <ReportHeader
           titulo={titulo}
@@ -174,14 +174,12 @@ export default function RelatorioDiretoriaFinanceiroPDF({
           semanaLabel={semanaLabel}
         />
 
-        {obra ? (
-          <View style={styles.infoRow}>
-            {obra.cliente ? (
-              <InfoChip label="Cliente" value={obra.cliente} />
-            ) : null}
-            {obra.local ? <InfoChip label="Local" value={obra.local} /> : null}
-          </View>
-        ) : null}
+        <View style={styles.infoRow}>
+          <InfoChip label="Escopo" value="Todas as obras" />
+          {semanaLabel ? (
+            <InfoChip label="Período" value={semanaLabel} />
+          ) : null}
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Resumo da semana</Text>
