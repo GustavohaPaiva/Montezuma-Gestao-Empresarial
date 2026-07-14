@@ -4,8 +4,8 @@ export const relatorioMetricGridClass =
 export const relatorioFinanceiroMetricGridClass =
   "grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4";
 
-export const relatorioObrasGridClass =
-  "grid w-full gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-4";
+export const relatorioAutoFitGridClass =
+  "grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]";
 
 export const relatorioSecaoClass =
   "overflow-hidden rounded-2xl border border-border-primary/35 bg-white shadow-[0_5px_20px_rgba(0,0,0,0.08)]";
@@ -123,12 +123,12 @@ export const relatorioSemanaModalidadeChipPreenchidoClass =
   "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold sm:text-[11px]";
 
 export const relatorioSemanaModalidadeChipVazioClass =
-  "inline-flex items-center gap-1 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-medium text-slate-400 sm:text-[11px]";
+  "inline-flex items-center gap-1 rounded-md border border-dashed border-slate-200/80 bg-transparent px-1.5 py-0.5 text-[10px] font-medium text-slate-400/80 sm:text-[11px]";
 
 export const relatorioHistoricoTimelineClass = "relative space-y-3 ";
 
 export const relatorioSemanaCardRowClass =
-  "group flex w-full cursor-pointer flex-col gap-3 text-left transition hover:border-accent-primary/30 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent-primary/25 sm:flex-row sm:items-center sm:gap-4";
+  "group flex w-full cursor-pointer flex-col gap-3 px-4 py-4 text-left transition hover:border-accent-primary/30 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent-primary/25 sm:flex-row sm:items-center sm:gap-4 sm:px-5";
 
 export const relatorioSemanaCardDataClass =
   "flex min-w-0 shrink-0 flex-col gap-1.5 sm:w-[140px] md:w-[160px]";
@@ -143,10 +143,10 @@ export const relatorioDocumentoHeaderClass =
   "relative border-b border-border-primary/20 bg-gradient-to-br from-white via-white to-accent-primary/[0.04] px-5 py-5 sm:px-6 sm:py-6";
 
 export const relatorioDocumentoMetaGridClass =
-  "mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4";
+  "mt-4 grid gap-2 sm:grid-cols-3";
 
 export const relatorioDocumentoMetaChipClass =
-  "rounded-xl border border-border-primary/20 bg-white/80 px-3 py-2.5 shadow-sm ring-1 ring-black/[0.02]";
+  "min-w-0 rounded-xl border border-border-primary/20 bg-white/80 px-3 py-2.5 shadow-sm ring-1 ring-black/[0.02]";
 
 export const relatorioDocumentoMetaChipLabelClass =
   "text-[10px] font-semibold uppercase tracking-wide text-text-muted";
@@ -169,10 +169,10 @@ export const relatorioDocumentoStatusPillVazioClass =
 export const relatorioDocumentoCorpoClass = "divide-y divide-border-primary/15";
 
 export const relatorioDocumentoSecaoClass =
-  "scroll-mt-24 px-5 py-5 sm:px-6 sm:py-6";
+  "scroll-mt-24 px-5 py-4 sm:px-6 sm:py-5";
 
 export const relatorioDocumentoSecaoHeaderClass =
-  "mb-4 flex flex-wrap items-start justify-between gap-3";
+  "mb-3 flex flex-wrap items-start justify-between gap-3";
 
 export const relatorioDocumentoRodapeClass =
   "border-t border-border-primary/10 bg-[#FAFAFA]/50 px-5 py-3 text-center text-xs text-text-muted sm:px-6";

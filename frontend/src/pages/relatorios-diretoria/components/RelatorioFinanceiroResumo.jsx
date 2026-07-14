@@ -1,7 +1,10 @@
 import BaseCard from "../../../components/cards/BaseCard";
 import { formatarMoeda } from "../../obras/detalhe/utils/formatters";
 import { TIPOS_EXTRATO } from "../relatorioFinanceiroUtils";
-import { relatorioFinanceiroMetricGridClass } from "../relatoriosDiretoriaUi";
+import {
+  relatorioAutoFitGridClass,
+  relatorioFinanceiroMetricGridClass,
+} from "../relatoriosDiretoriaUi";
 
 export default function RelatorioFinanceiroResumo({ totais, porCategoria = {} }) {
   const cards = [
@@ -57,7 +60,7 @@ export default function RelatorioFinanceiroResumo({ totais, porCategoria = {} })
           <p className="mt-1 text-xs text-text-muted">
             Subtotais da semana por tipo de lançamento
           </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={`mt-3 ${relatorioAutoFitGridClass}`}>
             {categoriasAtivas.map((tipo) => {
               const cat = porCategoria[tipo];
               return (

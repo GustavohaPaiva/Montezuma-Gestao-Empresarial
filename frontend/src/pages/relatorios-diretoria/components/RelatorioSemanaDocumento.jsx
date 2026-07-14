@@ -50,7 +50,7 @@ export default function RelatorioSemanaDocumento({
 
       <header className={relatorioDocumentoHeaderClass}>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <span className={relatorioSecaoLabelAccentClass}>Relatório</span>
             <h2
               className={`${relatorioSecaoTituloClass} mt-1 text-lg sm:text-xl`}
@@ -59,7 +59,7 @@ export default function RelatorioSemanaDocumento({
             </h2>
             <div className={relatorioSecaoAccentLineClass} aria-hidden />
             <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-text-primary">
-              <CalendarDays className="h-4 w-4 text-accent-primary" />
+              <CalendarDays className="h-4 w-4 shrink-0 text-accent-primary" />
               {label}
             </p>
           </div>

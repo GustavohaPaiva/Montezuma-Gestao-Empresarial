@@ -71,7 +71,7 @@ export default function RelatorioSemanaCard({
         isSemanaAtual ? relatorioSemanaCardAtivoClass : ""
       } ${relatorioSemanaCardRowClass}`}
     >
-      <div className={`px-4 py-4 sm:px-5 ${relatorioSemanaCardDataClass}`}>
+      <div className={relatorioSemanaCardDataClass}>
         <p className="text-sm font-bold leading-tight text-text-primary sm:text-base">
           {label}
         </p>
@@ -85,7 +85,7 @@ export default function RelatorioSemanaCard({
         </div>
       </div>
 
-      <div className="min-w-0 flex-1 space-y-2.5 px-4 pb-4 sm:px-0 sm:pb-0">
+      <div className="min-w-0 flex-1 space-y-2.5">
         <div className="flex flex-wrap gap-1.5">
           {MODALIDADES_RELATORIO.map((mod) => {
             const theme = themeModalidade(mod.colorTheme);
@@ -131,15 +131,13 @@ export default function RelatorioSemanaCard({
         </div>
       </div>
 
-      <div className="flex flex-col justify-center items-center gap-2">
+      <div className="flex shrink-0 flex-col items-end justify-center gap-1.5 self-end sm:self-center">
         {isSemanaAtual ? (
           <span className="inline-flex rounded-full border border-accent-primary/25 bg-accent-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent-primary">
             Semana atual
           </span>
         ) : null}
-        <div
-          className={`px-4 pb-4 sm:px-5 sm:pb-0 ${relatorioSemanaCardAcaoClass}`}
-        >
+        <div className={relatorioSemanaCardAcaoClass}>
           <span className="hidden sm:inline">Abrir relatório</span>
           <ChevronRight
             className="h-5 w-5 shrink-0 transition"

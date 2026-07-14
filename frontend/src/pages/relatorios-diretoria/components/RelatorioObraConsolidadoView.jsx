@@ -4,6 +4,7 @@ import {
   ordenarItensObra,
 } from "../relatoriosDiretoriaUtils";
 import {
+  relatorioAutoFitGridClass,
   relatorioItemLeituraClass,
   relatorioItemListaClass,
   relatorioObraItemPrazoChipClass,
@@ -16,15 +17,19 @@ export default function RelatorioObraConsolidadoView({
   topicos,
   layout = "stack",
 }) {
+  const topicosPreenchidos = TOPICOS_RELATORIO_OBRA.map((topico) => ({
+    topico,
+    itens: ordenarItensObra(topicos?.[topico.id] || []),
+  })).filter(({ itens }) => itens.length > 0);
+
+  if (topicosPreenchidos.length === 0) return null;
+
   const containerClass =
-    layout === "grid"
-      ? "grid gap-6 lg:grid-cols-2"
-      : relatorioTopicoStackClass;
+    layout === "grid" ? relatorioAutoFitGridClass : relatorioTopicoStackClass;
 
   return (
     <div className={containerClass}>
-      {TOPICOS_RELATORIO_OBRA.map((topico) => {
-        const itens = ordenarItensObra(topicos?.[topico.id] || []);
+      {topicosPreenchidos.map(({ topico, itens }) => {
         const conteudo = (
           <>
             <div className="mb-3 flex items-baseline justify-between gap-2 border-b border-border-primary/15 pb-2">
@@ -34,44 +39,37 @@ export default function RelatorioObraConsolidadoView({
               </span>
             </div>
 
-            {itens.length === 0 ? (
-              <p className="text-sm italic text-text-muted">
-                Nenhum item registrado.
-              </p>
-            ) : (
-              <ul className={relatorioItemListaClass}>
-                {itens.map((item) => (
-                  <li key={item.id} className={relatorioItemLeituraClass}>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-primary">
-                      {item.texto}
-                    </p>
-                    {item.prazo ? (
-                      <div className="mt-2 flex justify-end">
-                        <span className={relatorioObraItemPrazoChipClass}>
-                          Prazo: {formatarPrazoObra(item.prazo)}
-                        </span>
-                      </div>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ul className={relatorioItemListaClass}>
+              {itens.map((item) => (
+                <li key={item.id} className={relatorioItemLeituraClass}>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-primary">
+                    {item.texto}
+                  </p>
+                  {item.prazo ? (
+                    <div className="mt-2 flex justify-end">
+                      <span className={relatorioObraItemPrazoChipClass}>
+                        Prazo: {formatarPrazoObra(item.prazo)}
+                      </span>
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
           </>
         );
 
         if (layout === "grid") {
           return (
-            <section key={topico.id} className={`${relatorioTopicoSecaoClass} p-4 sm:p-5`}>
+            <section
+              key={topico.id}
+              className={`${relatorioTopicoSecaoClass} p-4 sm:p-5`}
+            >
               {conteudo}
             </section>
           );
         }
 
-        return (
-          <section key={topico.id}>
-            {conteudo}
-          </section>
-        );
+        return <section key={topico.id}>{conteudo}</section>;
       })}
     </div>
   );

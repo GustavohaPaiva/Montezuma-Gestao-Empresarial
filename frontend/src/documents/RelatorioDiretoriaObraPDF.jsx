@@ -156,6 +156,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: COR_MUTED,
     fontStyle: "italic",
+    marginBottom: 12,
   },
   footer: {
     position: "absolute",
@@ -198,6 +199,10 @@ export default function RelatorioDiretoriaObraPDF({
     minute: "2-digit",
   });
 
+  const topicosPreenchidos = topicos.filter(
+    (topico) => (topico.itens?.length || 0) > 0,
+  );
+
   return (
     <Document title={titulo} author="Montezuma Gestão Empresarial">
       <Page size="A4" orientation="portrait" style={styles.page}>
@@ -231,20 +236,20 @@ export default function RelatorioDiretoriaObraPDF({
           ) : null}
         </View>
 
-        {topicos.map((topico) => (
-          <View key={topico.id} style={styles.topicoSection}>
-            <View style={styles.topicoHeader}>
-              <Text style={styles.topicoTitle}>{topico.label}</Text>
-              <Text style={styles.topicoCount}>
-                {topico.itens.length} item
-                {topico.itens.length !== 1 ? "s" : ""}
-              </Text>
-            </View>
-            <View style={styles.topicoBody}>
-              {topico.itens.length === 0 ? (
-                <Text style={styles.empty}>Nenhum item registrado.</Text>
-              ) : (
-                topico.itens.map((item) => (
+        {topicosPreenchidos.length === 0 ? (
+          <Text style={styles.empty}>Nenhum item registrado nesta semana.</Text>
+        ) : (
+          topicosPreenchidos.map((topico) => (
+            <View key={topico.id} style={styles.topicoSection}>
+              <View style={styles.topicoHeader}>
+                <Text style={styles.topicoTitle}>{topico.label}</Text>
+                <Text style={styles.topicoCount}>
+                  {topico.itens.length} item
+                  {topico.itens.length !== 1 ? "s" : ""}
+                </Text>
+              </View>
+              <View style={styles.topicoBody}>
+                {topico.itens.map((item) => (
                   <View key={item.id} style={styles.item}>
                     <Text style={styles.itemText}>{item.texto}</Text>
                     {item.prazoLabel ? (
@@ -253,11 +258,11 @@ export default function RelatorioDiretoriaObraPDF({
                       </Text>
                     ) : null}
                   </View>
-                ))
-              )}
+                ))}
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
 
         <Text
           style={styles.footer}
