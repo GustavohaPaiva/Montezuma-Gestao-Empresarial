@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import BaseModal from "../gerais/BaseModal";
 import BaseButton from "../gerais/BaseButton";
-import BaseInput from "../gerais/BaseInput";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import BaseSelect from "../gerais/BaseSelect";
 import ModalPortal from "../gerais/ModalPortal";
 import { useAuth } from "../../contexts/AuthContext";
@@ -192,8 +192,7 @@ export default function ModalNovaOrdemServico({
       </div>
       <div>
         <label className={labelClass}>Data de emissão</label>
-        <BaseInput
-          type="date"
+        <BaseDatePicker
           value={form.data_emissao}
           onChange={(e) => setField("data_emissao", e.target.value)}
           variant={isVk ? "escritorio" : "default"}

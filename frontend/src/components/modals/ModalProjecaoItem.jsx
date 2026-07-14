@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import BaseModal from "../gerais/BaseModal";
 import BaseButton from "../gerais/BaseButton";
 import BaseInput from "../gerais/BaseInput";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import BaseSelect from "../gerais/BaseSelect";
 import { labelCampoClass } from "../../pages/projecoes/projecoesUi";
 import {
@@ -141,16 +142,14 @@ export default function ModalProjecaoItem({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelCampoClass}>Data de início</label>
-            <BaseInput
-              type="date"
+            <BaseDatePicker
               value={dataInicio}
               onChange={(e) => setDataInicio(e.target.value)}
             />
           </div>
           <div>
             <label className={labelCampoClass}>Data de fim</label>
-            <BaseInput
-              type="date"
+            <BaseDatePicker
               min={dataInicio || undefined}
               value={dataFim}
               onChange={(e) => setDataFim(e.target.value)}

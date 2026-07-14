@@ -3,6 +3,7 @@ import { Plus, Send, Trash2 } from "lucide-react";
 import { UNIDADES_MEDIDA_PEDIDO } from "../../constants/pedidos";
 import ButtonDefault from "../gerais/ButtonDefault";
 import BaseSelect from "../gerais/BaseSelect";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import { formatarDataBR } from "../../pages/obras/detalhe/utils/formatters";
 import {
   formatarQuantidadePedido,
@@ -157,11 +158,10 @@ export default function PedidoFormComposer({
                   />
                 </CampoForm>
                 <CampoForm label="Data de entrega" className="md:col-span-6">
-                  <input
-                    type="date"
+                  <BaseDatePicker
                     value={dataEntrega}
                     onChange={(e) => setDataEntrega(e.target.value)}
-                    className={inputPremium}
+                    triggerClassName={inputPremium}
                   />
                 </CampoForm>
               </div>

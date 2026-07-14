@@ -8,6 +8,7 @@ import {
   Wallet,
 } from "lucide-react";
 import BaseInput from "../gerais/BaseInput";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import BaseSelect from "../gerais/BaseSelect";
 import OrdemServicoSecaoPainel from "./OrdemServicoSecaoPainel";
 import CampoMultiLancamento from "./CampoMultiLancamento";
@@ -121,8 +122,7 @@ export default function OrdemServicoFormCorpo({
             />
           </CampoForm>
           <CampoForm label="Data de Emissão" isVk={isVk}>
-            <BaseInput
-              type="date"
+            <BaseDatePicker
               value={form.data_emissao}
               onChange={(e) => setField("data_emissao", e.target.value)}
               disabled={somenteLeitura}
@@ -302,8 +302,7 @@ export default function OrdemServicoFormCorpo({
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoForm label="Data de Início" isVk={isVk}>
-            <BaseInput
-              type="date"
+            <BaseDatePicker
               value={form.data_inicio}
               onChange={(e) => setField("data_inicio", e.target.value)}
               disabled={somenteLeitura}
@@ -311,8 +310,7 @@ export default function OrdemServicoFormCorpo({
             />
           </CampoForm>
           <CampoForm label="Data Prevista para Entrega" isVk={isVk}>
-            <BaseInput
-              type="date"
+            <BaseDatePicker
               value={form.data_entrega_prevista}
               onChange={(e) =>
                 setField("data_entrega_prevista", e.target.value)

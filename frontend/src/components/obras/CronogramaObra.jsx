@@ -11,6 +11,7 @@ import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import BaseModal from "../gerais/BaseModal";
 import FeedbackModal from "../gerais/FeedbackModal";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import { gerarPdfRelatorioCronograma } from "../../pages/obras/detalhe/utils/obraDetalhePdf";
 import { montarDadosRelatorioCronograma } from "../../utils/cronogramaRelatorioPdfData";
 
@@ -1087,12 +1088,10 @@ const CronogramaObra = forwardRef(function CronogramaObra(
             >
               Data
             </label>
-            <input
+            <BaseDatePicker
               id="cronograma-data"
-              type="date"
               value={lancData}
               onChange={(e) => setLancData(e.target.value)}
-              className="w-full rounded-2xl border border-border-primary bg-surface-alt px-4 py-3 text-sm font-medium text-text-primary transition focus:border-accent-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
             />
           </div>
           <div>
@@ -1102,13 +1101,11 @@ const CronogramaObra = forwardRef(function CronogramaObra(
             >
               Data de fim
             </label>
-            <input
+            <BaseDatePicker
               id="cronograma-data-fim"
-              type="date"
               value={lancDataFim}
               onChange={(e) => setLancDataFim(e.target.value)}
               min={lancData}
-              className="w-full rounded-2xl border border-border-primary bg-surface-alt px-4 py-3 text-sm font-medium text-text-primary transition focus:border-accent-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
             />
           </div>
           <div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import ButtonDefault from "../gerais/ButtonDefault";
 import BaseSelect from "../gerais/BaseSelect";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import ModalPortal from "../gerais/ModalPortal";
 import { ID_MONTEZUMA } from "../../constants/escritorios";
 import {
@@ -136,10 +137,8 @@ export default function ModalFinanceiroEntrada({
                 <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   Data
                 </label>
-                <input
-                  type="date"
+                <BaseDatePicker
                   placeholder="Data da Entrada"
-                  className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                   value={formData.data}
                   onChange={(e) =>
                     setFormData({ ...formData, data: e.target.value })

@@ -1,11 +1,11 @@
 import { GripVertical, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
+import BaseDatePicker from "../../../components/gerais/BaseDatePicker";
 import { textareaCampoClass } from "../../projecoes/projecoesUi";
 import {
   relatorioObraItemAcaoClass,
   relatorioObraItemEditorClass,
   relatorioObraItemRemoverClass,
-  relatorioObraItemPrazoClass,
   relatorioObraItemToolbarClass,
 } from "../relatoriosDiretoriaUi";
 import RelatorioObraItemAssistente from "./RelatorioObraItemAssistente";
@@ -45,8 +45,8 @@ export default function RelatorioObraItemRow({
           </button>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <input
-              type="date"
+            <BaseDatePicker
+              size="compact"
               value={item.prazo || ""}
               onChange={(e) =>
                 onChange({
@@ -54,7 +54,7 @@ export default function RelatorioObraItemRow({
                   prazo: e.target.value || null,
                 })
               }
-              className={relatorioObraItemPrazoClass}
+              wrapperClassName="w-auto shrink-0"
             />
             <button
               type="button"

@@ -15,6 +15,7 @@ import { pdf } from "@react-pdf/renderer";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import BaseSelect from "../../components/gerais/BaseSelect";
+import BaseDatePicker from "../../components/gerais/BaseDatePicker";
 import { api } from "../../services/api";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import FichaClientePDF from "../../documents/FichaClientePDF";
@@ -333,20 +334,30 @@ export default function ProcessosDetalhes() {
           className="flex flex-wrap items-center justify-center gap-2"
           key={campo}
         >
-          <input
-            type={tipoInput}
-            value={valorEdicao}
-            onChange={(e) => {
-              const v = FORMATADORES_POR_CAMPO[campo]
-                ? formatClienteCampo(campo, e.target.value)
-                : e.target.value;
-              setValorEdicao(v);
-            }}
-            className={`rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-sm text-gray-900 shadow-inner outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-500/20 ${
-              tipoInput === "text" ? "min-w-[150px]" : "min-w-[130px]"
-            }`}
-            autoFocus
-          />
+          {tipoInput === "date" ? (
+            <BaseDatePicker
+              size="compact"
+              value={valorEdicao}
+              onChange={(e) => setValorEdicao(e.target.value)}
+              autoFocus
+              wrapperClassName="min-w-[130px] w-auto"
+            />
+          ) : (
+            <input
+              type={tipoInput}
+              value={valorEdicao}
+              onChange={(e) => {
+                const v = FORMATADORES_POR_CAMPO[campo]
+                  ? formatClienteCampo(campo, e.target.value)
+                  : e.target.value;
+                setValorEdicao(v);
+              }}
+              className={`rounded-xl border border-gray-200 bg-white px-3 py-2 text-center text-sm text-gray-900 shadow-inner outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-500/20 ${
+                tipoInput === "text" ? "min-w-[150px]" : "min-w-[130px]"
+              }`}
+              autoFocus
+            />
+          )}
           <button
             type="button"
             onClick={() => salvarEdicao(campo, tipoInput)}

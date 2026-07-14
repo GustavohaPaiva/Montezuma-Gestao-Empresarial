@@ -1,5 +1,6 @@
 import React, { useState, useCallback, memo } from "react";
 import { Check, HardHat, ListTree } from "lucide-react";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 
 const EtapaCard = memo(
   ({ etapa, index, isCliente, indicePrimeiraPendente, onChange }) => {
@@ -56,9 +57,6 @@ const EtapaCard = memo(
         : statusExibicao === "em andamento"
           ? "bg-amber-500/15 text-amber-950 ring-amber-400/35"
           : "bg-slate-500/10 text-slate-700 ring-slate-400/25";
-
-    const inputDataClass =
-      "h-9 w-full min-w-0 max-w-full rounded-lg border border-border-primary/50 bg-white px-2.5 text-xs text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20 disabled:cursor-not-allowed disabled:opacity-60";
 
     return (
       <div
@@ -174,28 +172,27 @@ const EtapaCard = memo(
               <label className="text-[10px] font-semibold text-text-muted">
                 Início
               </label>
-              <input
-                type="date"
+              <BaseDatePicker
+                size="compact"
                 value={etapa.data_inicio || ""}
                 disabled={isCliente}
                 onChange={(e) =>
                   onChange(etapa.nome, "data_inicio", e.target.value)
                 }
-                className={inputDataClass}
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-semibold text-text-muted">
                 Conclusão
               </label>
-              <input
-                type="date"
+              <BaseDatePicker
+                size="compact"
                 value={etapa.data_conclusao || ""}
+                min={etapa.data_inicio || undefined}
                 disabled={isCliente}
                 onChange={(e) =>
                   onChange(etapa.nome, "data_conclusao", e.target.value)
                 }
-                className={inputDataClass}
               />
             </div>
           </div>
@@ -254,9 +251,10 @@ export default function ListaEtapas({
             if (progressoNum === 100) {
               etapaAtualizada.status = "concluído";
               if (!etapaAtualizada.data_conclusao) {
-                etapaAtualizada.data_conclusao = new Date()
-                  .toISOString()
-                  .split("T")[0];
+                const hoje = new Date().toISOString().split("T")[0];
+                const inicio = etapaAtualizada.data_inicio;
+                etapaAtualizada.data_conclusao =
+                  inicio && hoje < inicio ? inicio : hoje;
               }
             } else if (progressoNum > 0) {
               etapaAtualizada.status = "em andamento";
@@ -280,20 +278,35 @@ export default function ListaEtapas({
                 : etapaAtualizada.progresso;
 
             if (concluido && !etapaAtualizada.data_conclusao) {
-              etapaAtualizada.data_conclusao = new Date()
-                .toISOString()
-                .split("T")[0];
+              const hoje = new Date().toISOString().split("T")[0];
+              const inicio = etapaAtualizada.data_inicio;
+              etapaAtualizada.data_conclusao =
+                inicio && hoje < inicio ? inicio : hoje;
             } else if (!concluido) {
               etapaAtualizada.data_conclusao = "";
             }
           }
 
+          if (campo === "data_inicio") {
+            if (etapaAtualizada.status === "pendente" && valor) {
+              etapaAtualizada.status = "em andamento";
+            }
+            if (
+              valor &&
+              etapaAtualizada.data_conclusao &&
+              etapaAtualizada.data_conclusao < valor
+            ) {
+              etapaAtualizada.data_conclusao = "";
+            }
+          }
+
           if (
-            campo === "data_inicio" &&
-            etapaAtualizada.status === "pendente" &&
-            valor
+            campo === "data_conclusao" &&
+            valor &&
+            etapaAtualizada.data_inicio &&
+            valor < etapaAtualizada.data_inicio
           ) {
-            etapaAtualizada.status = "em andamento";
+            return etapa;
           }
 
           return etapaAtualizada;

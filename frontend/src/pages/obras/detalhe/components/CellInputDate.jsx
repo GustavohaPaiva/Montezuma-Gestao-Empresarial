@@ -1,16 +1,17 @@
 import { useState } from "react";
+import BaseDatePicker from "../../../../components/gerais/BaseDatePicker";
 
 export default function CellInputDate({ valorInicial, onSave, onCancel }) {
   const [val, setVal] = useState(valorInicial || "");
 
   return (
     <div className="flex items-center gap-1">
-      <input
-        type="date"
+      <BaseDatePicker
+        size="compact"
         value={val}
         onChange={(e) => setVal(e.target.value)}
-        className="w-[150px] min-w-0 rounded-xl border border-border-primary/55 bg-white px-2 py-1.5 text-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
         autoFocus
+        wrapperClassName="w-[150px]"
       />
       <button
         onClick={() => onSave(val || null)}

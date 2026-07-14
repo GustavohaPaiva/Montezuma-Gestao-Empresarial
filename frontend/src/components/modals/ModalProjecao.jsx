@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BaseModal from "../gerais/BaseModal";
 import BaseButton from "../gerais/BaseButton";
 import BaseInput from "../gerais/BaseInput";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import BaseSelect from "../gerais/BaseSelect";
 import {
   labelCampoClass,
@@ -113,8 +114,7 @@ export default function ModalProjecao({
           </div>
           <div>
             <label className={labelCampoClass}>Data da proposta</label>
-            <BaseInput
-              type="date"
+            <BaseDatePicker
               value={dataProposta}
               onChange={(e) => setDataProposta(e.target.value)}
             />

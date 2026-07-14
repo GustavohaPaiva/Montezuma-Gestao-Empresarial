@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
 import BaseSelect from "../gerais/BaseSelect";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import { ID_VOGELKOP } from "../../constants/escritorios";
 import {
   FORMA_PAGAMENTO_OPCOES,
@@ -123,9 +124,8 @@ export default function ModalSaidaEscritorio({
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Data
                 </label>
-                <input
-                  type="date"
-                  className={fieldClass}
+                <BaseDatePicker
+                  variant="escritorio"
                   value={formData.data}
                   onChange={(e) =>
                     setFormData({ ...formData, data: e.target.value })

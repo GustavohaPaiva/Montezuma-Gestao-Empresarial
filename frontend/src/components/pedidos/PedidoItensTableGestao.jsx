@@ -6,6 +6,7 @@ import { formatarMoeda } from "../../pages/obras/detalhe/utils/formatters";
 import { etapasParaSelectOptions } from "../../pages/obras/detalhe/utils/etapasLancamento";
 import { normalizarNomeMaterial } from "../../utils/pedidosUtils";
 import BaseSelect from "../gerais/BaseSelect";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import ButtonDefault from "../gerais/ButtonDefault";
 import {
   btnAccentPremium,
@@ -334,8 +335,8 @@ export default function PedidoItensTableGestao({
                     />
                   </td>
                   <td className="px-3 py-2 align-middle">
-                    <input
-                      type="date"
+                    <BaseDatePicker
+                      size="compact"
                       value={dataInputValue(item.data_entrega)}
                       disabled={!item.id}
                       onChange={(e) => {
@@ -344,6 +345,7 @@ export default function PedidoItensTableGestao({
                         salvarCampo(item.id, { data_entrega: val });
                       }}
                       className={`${inputTabelaGestao} max-w-[9.5rem] mx-auto`}
+                      wrapperClassName="max-w-[9.5rem] mx-auto"
                     />
                   </td>
                   <td className="px-3 py-2 align-middle">
@@ -418,8 +420,8 @@ export default function PedidoItensTableGestao({
                   </td>
                   <td className="px-3 py-2 align-middle">
                     <div className="relative mx-auto flex max-w-[9.5rem] items-center justify-center">
-                      <input
-                        type="date"
+                      <BaseDatePicker
+                        size="compact"
                         value={dataInputValue(item.data_pagamento)}
                         disabled={!item.id}
                         onChange={(e) => {
@@ -427,7 +429,7 @@ export default function PedidoItensTableGestao({
                           atualizarLinha(item.id, { data_pagamento: val });
                           salvarCampo(item.id, { data_pagamento: val });
                         }}
-                        className={inputTabelaGestao}
+                        triggerClassName={inputTabelaGestao}
                       />
                       {salvando ? (
                         <Loader2 className="pointer-events-none absolute -right-1 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-accent-primary/70" />

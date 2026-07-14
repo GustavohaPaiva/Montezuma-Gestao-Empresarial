@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Calendar, Loader2, X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
 import BaseSelect from "../gerais/BaseSelect";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import { ID_VOGELKOP } from "../../constants/escritorios";
 import { api } from "../../services/api";
 import {
@@ -19,7 +20,6 @@ const STATUS_VALIDOS = new Set([
 
 const FIELD_CLASS =
   "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:bg-black/60 focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque";
-const DATE_FIELD_CLASS = `${FIELD_CLASS} calendar-icon-esc`;
 
 const TABS = [
   { id: "visao-geral", label: "Visão Geral" },
@@ -403,9 +403,9 @@ export default function ModalTarefaEscritorio({
                     <Calendar className="h-3.5 w-3.5 text-esc-destaque" />
                     Data
                   </label>
-                  <input
-                    type="date"
-                    className={`${DATE_FIELD_CLASS} mt-2`}
+                  <BaseDatePicker
+                    variant="escritorio"
+                    wrapperClassName="mt-2 w-full"
                     value={form.data_conclusao}
                     onChange={(e) =>
                       setForm({ ...form, data_conclusao: e.target.value })
@@ -637,9 +637,9 @@ export default function ModalTarefaEscritorio({
                         <Calendar className="h-3.5 w-3.5 text-esc-destaque" />
                         Data de Vencimento
                       </label>
-                      <input
-                        type="date"
-                        className={`${DATE_FIELD_CLASS} mt-2`}
+                      <BaseDatePicker
+                        variant="escritorio"
+                        wrapperClassName="mt-2 w-full"
                         value={form.data_conclusao}
                         onChange={(e) =>
                           setForm({ ...form, data_conclusao: e.target.value })

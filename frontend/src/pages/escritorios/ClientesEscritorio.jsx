@@ -12,6 +12,7 @@ import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalClienteEscritorio from "../../components/modals/ModalClienteEscritorio";
 import StatusSelectBadge from "../../components/gerais/StatusSelectBadge";
 import BaseSelect from "../../components/gerais/BaseSelect";
+import BaseDatePicker from "../../components/gerais/BaseDatePicker";
 import { STATUS_CLIENTE_OPCOES } from "../../components/gerais/statusSelectOptions";
 
 const STATUS_FILTRO = [
@@ -40,9 +41,6 @@ const formatarMoeda = (valor) => {
 
 const inputBarClass =
   "w-full rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 py-2.5 text-sm text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 placeholder:text-esc-muted/60 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
-
-const inputDateBarClass =
-  "w-full min-w-0 rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 py-2.5 text-sm text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
 
 function clienteEstaFinalizado(status) {
   const s = (status || "").trim().toLowerCase();
@@ -380,22 +378,20 @@ export default function ClientesEscritorio() {
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-esc-muted">
                 Data de
               </label>
-              <input
-                type="date"
+              <BaseDatePicker
+                variant="escritorioBar"
                 value={filtroDataInicio}
                 onChange={(e) => setFiltroDataInicio(e.target.value)}
-                className={inputDateBarClass}
               />
             </div>
             <div className="min-w-0 sm:min-w-[8.5rem] w-full">
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-esc-muted">
                 Até
               </label>
-              <input
-                type="date"
+              <BaseDatePicker
+                variant="escritorioBar"
                 value={filtroDataFim}
                 onChange={(e) => setFiltroDataFim(e.target.value)}
-                className={inputDateBarClass}
               />
             </div>
           </div>

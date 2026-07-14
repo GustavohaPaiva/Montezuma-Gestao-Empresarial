@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../../components/navbar/Navbar";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import BaseSelect from "../../components/gerais/BaseSelect";
+import BaseDatePicker from "../../components/gerais/BaseDatePicker";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../services/supabase";
@@ -1405,9 +1406,7 @@ export default function ListaTarefas({
                     <label className="mb-1.5 block text-xs font-bold uppercase text-gray-500">
                       Prazo
                     </label>
-                    <input
-                      type="date"
-                      className="h-12 w-full rounded-xl border border-border-primary/50 bg-[#FAFAFA] px-3 text-sm shadow-sm transition-all focus:border-accent-primary/35 focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+                    <BaseDatePicker
                       value={form.data_conclusao}
                       onChange={(e) =>
                         setForm((f) => ({

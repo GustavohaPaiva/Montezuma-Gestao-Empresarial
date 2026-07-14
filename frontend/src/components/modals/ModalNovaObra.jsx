@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BaseModal from "../gerais/BaseModal";
 import BaseButton from "../gerais/BaseButton";
 import BaseInput from "../gerais/BaseInput";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import BaseSelect from "../gerais/BaseSelect";
 import { supabase } from "../../services/supabase";
 import { api } from "../../services/api";
@@ -171,9 +172,8 @@ export default function ModalNovaObra({
           >
             Data de início
           </label>
-          <BaseInput
+          <BaseDatePicker
             id="data_inicio"
-            type="date"
             value={formData.data}
             onChange={(event) =>
               setFormData((prev) => ({ ...prev, data: event.target.value }))

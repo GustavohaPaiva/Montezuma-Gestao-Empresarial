@@ -3,7 +3,6 @@ import {
   X,
   Search,
   Loader2,
-  Calendar,
   Clock,
   Check,
   Repeat,
@@ -11,6 +10,7 @@ import {
 import { addMonths, addYears, addDays } from "date-fns";
 import ModalPortal from "../gerais/ModalPortal";
 import BaseSelect from "../gerais/BaseSelect";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import { ID_VOGELKOP } from "../../constants/escritorios";
 import { api } from "../../services/api";
 
@@ -38,10 +38,6 @@ const fieldClass =
   "w-full rounded-xl border border-gray-600/55 bg-esc-bg/75 px-4 py-3 text-sm text-gray-200 shadow-inner transition-all duration-300 placeholder:text-esc-muted/45 focus:border-[var(--esc-destaque)] focus:bg-esc-bg focus:outline-none focus:ring-1 focus:ring-[var(--esc-destaque)] disabled:cursor-not-allowed disabled:opacity-50";
 
 const selectClass = `${fieldClass} cursor-pointer pr-9`;
-
-const fieldRecCompact =
-  "w-full rounded-lg border border-gray-600/45 bg-esc-bg/65 px-2 py-1 text-sm text-gray-200 shadow-inner transition-all duration-300 focus:border-[var(--esc-destaque)] focus:bg-esc-bg/80 focus:outline-none focus:ring-1 focus:ring-[var(--esc-destaque)]";
-const selectRecCompact = `${fieldRecCompact} cursor-pointer`;
 
 const nativePickerHidden =
   "[&::-webkit-calendar-picker-indicator]:hidden [&::-moz-calendar-picker-indicator]:hidden appearance-none";
@@ -174,9 +170,7 @@ export default function ModalCompromissoEscritorio({
   const [painelRecorrenciaAberto, setPainelRecorrenciaAberto] = useState(false);
 
   const buscaRef = useRef(null);
-  const dataInputRef = useRef(null);
   const horaInputRef = useRef(null);
-  const dataFinalInputRef = useRef(null);
 
   const temaClasse =
     escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
@@ -524,25 +518,11 @@ export default function ModalCompromissoEscritorio({
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Data
                 </label>
-                <div className="relative">
-                  <input
-                    ref={dataInputRef}
-                    type="date"
-                    className={`${fieldClass} pr-10 ${nativePickerHidden}`}
-                    value={data}
-                    onChange={(e) => setData(e.target.value)}
-                  />
-                  <div
-                    className="absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer items-center justify-center py-2 pl-2"
-                    onClick={() => void dataInputRef.current?.showPicker?.()}
-                    role="presentation"
-                  >
-                    <Calendar
-                      className="pointer-events-none h-4 w-4 text-[var(--esc-destaque)] opacity-90"
-                      aria-hidden
-                    />
-                  </div>
-                </div>
+                <BaseDatePicker
+                  variant="escritorio"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
@@ -623,31 +603,16 @@ export default function ModalCompromissoEscritorio({
                           <label className="text-xs font-medium text-esc-muted">
                             Data final
                           </label>
-                          <div className="relative">
-                            <input
-                              ref={dataFinalInputRef}
-                              type="date"
-                              className={`${fieldRecCompact} pr-7 ${nativePickerHidden}`}
-                              value={dataFinalRecorrencia}
-                              min={data || undefined}
-                              max={maxDataRecorrencia}
-                              onChange={(e) =>
-                                setDataFinalRecorrencia(e.target.value)
-                              }
-                            />
-                            <div
-                              className="absolute right-1.5 top-1/2 flex -translate-y-1/2 cursor-pointer items-center justify-center py-1 pl-1"
-                              onClick={() =>
-                                void dataFinalInputRef.current?.showPicker?.()
-                              }
-                              role="presentation"
-                            >
-                              <Calendar
-                                className="pointer-events-none h-3.5 w-3.5 text-[var(--esc-destaque)]/90"
-                                aria-hidden
-                              />
-                            </div>
-                          </div>
+                          <BaseDatePicker
+                            size="compact"
+                            variant="escritorio"
+                            value={dataFinalRecorrencia}
+                            min={data || undefined}
+                            max={maxDataRecorrencia}
+                            onChange={(e) =>
+                              setDataFinalRecorrencia(e.target.value)
+                            }
+                          />
                         </div>
                       </div>
 
