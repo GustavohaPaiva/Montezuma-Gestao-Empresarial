@@ -1,7 +1,7 @@
 /** Utilizador que gere pedidos no Home (gestão global). */
 export const GESTOR_PEDIDOS_USER_ID = "gestor_pedidos";
 
-/** Unidades de medida permitidas no lançamento de pedidos (alinhado a ModalMateriais). */
+/** Unidades de medida permitidas no lançamento de pedidos. */
 export const UNIDADES_MEDIDA_PEDIDO = [
   "Sc.",
   "Kg.",

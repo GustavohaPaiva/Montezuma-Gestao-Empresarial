@@ -8,7 +8,6 @@ import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../services/api";
-import ModalMateriais from "../../components/modals/ModalMateriais";
 import ModalMaoDeObra from "../../components/modals/ModalMaoDeObra";
 import ModalLocacoes from "../../components/modals/ModalLocacoes";
 import ModalEtapas from "../../components/modals/ModalEtapas";
@@ -77,7 +76,6 @@ export default function ObrasDetalhe() {
   const [subDiarioHistorico, setSubDiarioHistorico] = useState("diario");
 
   const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
-  const [modalMateriaisOpen, setModalMateriaisOpen] = useState(false);
   const [modalLocacoesOpen, setModalLocacoesOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
   const [modalRelatorioPrestadorOpen, setModalRelatorioPrestadorOpen] =
@@ -311,31 +309,6 @@ export default function ObrasDetalhe() {
       showFeedback("Erro ao guardar as etapas na base de dados.");
     }
   };
-
-  const handleSaveMaterial = useCallback(
-    async (dados) => {
-      const dataAtual = new Date().toISOString().split("T")[0];
-      try {
-        await api.addMaterial({
-          obra_id: id,
-          material: dados.material,
-          fornecedor_id: dados.fornecedor_id,
-          valor: 0,
-          quantidade: `${dados.quantidade} ${dados.unidade || "Un."}`,
-          data_solicitacao: dataAtual,
-          data_vencimento: dados.data_vencimento || null,
-          status_financeiro: "Aguardando pagamento",
-          etapa_nome: dados.etapa_nome || null,
-        });
-        await fetchDados();
-        setModalMateriaisOpen(false);
-      } catch (err) {
-        console.error("Erro ao salvar material:", err);
-        showFeedback("Erro ao salvar material.");
-      }
-    },
-    [id, fetchDados, showFeedback],
-  );
 
   const salvarValorMaterial = useCallback(
     async (materialId, novoValor) => {
@@ -1375,9 +1348,7 @@ export default function ObrasDetalhe() {
         obra={obra}
         isReforma={isReforma}
         isMobile={isMobile}
-        isEncarregado={isEncarregado}
         isSecretaria={isSecretaria}
-        onNovoMaterial={() => setModalMateriaisOpen(true)}
         onNovaMaoDeObra={() => setModalMaoDeObraOpen(true)}
       />
       <main className="mt-3 w-full px-[5%] sm:mt-4">
@@ -1723,13 +1694,6 @@ export default function ObrasDetalhe() {
                         className={`${selectPremium} w-full`}
                         options={opcoesEtapasObra}
                       />
-                      <ButtonDefault
-                        type="button"
-                        onClick={() => setModalMateriaisOpen(true)}
-                        className={`${btnAccentPremium} shrink-0 lg:!w-auto`}
-                      >
-                        Novo material
-                      </ButtonDefault>
                     </div>
                   </div>
                   <TabelaSimples
@@ -2184,13 +2148,6 @@ export default function ObrasDetalhe() {
         nomeObra={obra.local}
         onSave={handleSaveEtapas}
         etapasSalvas={obra.etapas_selecionadas || []}
-      />
-      <ModalMateriais
-        isOpen={modalMateriaisOpen}
-        onClose={() => setModalMateriaisOpen(false)}
-        nomeObra={obra.local}
-        obra={obra}
-        onSave={handleSaveMaterial}
       />
       <ModalLocacoes
         isOpen={modalLocacoesOpen}

@@ -2002,27 +2002,6 @@ export const api = {
     return { fotoUrl: json.fotoUrl };
   },
 
-  addMaterial: async (dados) => {
-    const { data, error } = await supabase
-      .from("relatorio_materiais")
-      .insert([
-        {
-          obra_id: dados.obra_id,
-          material: normalizarNomeMaterial(dados.material),
-          quantidade: dados.quantidade,
-          valor: dados.valor,
-          fornecedor_id: dados.fornecedor_id,
-          data_solicitacao: dados.data_solicitacao,
-          data_vencimento: dados.data_vencimento ?? null,
-          status_financeiro: "Aguardando pagamento",
-          etapa_nome: dados.etapa_nome || null,
-        },
-      ])
-      .select();
-    if (error) throw error;
-    return data[0];
-  },
-
   updateMaterialDataVencimento: async (id, dataVencimento) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")

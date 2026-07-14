@@ -1,13 +1,11 @@
-import { ArrowLeft, HardHat, Package } from "lucide-react";
+import { ArrowLeft, HardHat } from "lucide-react";
 
 export default function ObraDetalheHeader({
   navigate,
   obra,
   isReforma,
   isMobile,
-  isEncarregado,
   isSecretaria,
-  onNovoMaterial,
   onNovaMaoDeObra,
 }) {
   const nomeCliente = obra.clientes?.nome || obra.cliente;
@@ -16,9 +14,6 @@ export default function ObraDetalheHeader({
   const acoesClasse = isMobile
     ? "flex w-full flex-col gap-2"
     : "flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end";
-
-  const botaoSecundario =
-    "inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border-primary/45 bg-white px-3 text-xs font-semibold text-text-primary shadow-sm transition-all hover:border-accent-primary/35 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent-primary/25 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[140px]";
 
   const botaoPrimario =
     "inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-accent-primary/25 bg-accent-primary px-3 text-xs font-semibold text-white shadow-sm shadow-accent-primary/20 transition-all hover:bg-accent-primary-dark hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent-primary/35 focus:ring-offset-1 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[140px]";
@@ -59,16 +54,6 @@ export default function ObraDetalheHeader({
         </div>
 
         <div className={`${acoesClasse} shrink-0 md:w-auto`}>
-          {!isEncarregado && !isSecretaria && onNovoMaterial ? (
-            <button
-              type="button"
-              onClick={onNovoMaterial}
-              className={botaoSecundario}
-            >
-              <Package className="h-3.5 w-3.5 shrink-0 text-accent-primary" />
-              Novo material
-            </button>
-          ) : null}
           {!isSecretaria && onNovaMaoDeObra ? (
             <button
               type="button"
