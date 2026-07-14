@@ -52,8 +52,8 @@ const ABAS = [
 function badgeStatusVk(status) {
   const concluida = status === OS_STATUS.concluida;
   return concluida
-    ? "border border-emerald-400/30 bg-emerald-400/15 text-emerald-300"
-    : "border border-amber-400/30 bg-amber-400/15 text-amber-300";
+    ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
+    : "border border-amber-300 bg-amber-50 text-amber-800";
 }
 
 export default function OrdensServicoLista({ variant = "montezuma" }) {
@@ -208,7 +208,7 @@ export default function OrdensServicoLista({ variant = "montezuma" }) {
               {os.status === OS_STATUS.concluida ? "Concluída" : "Pendente"}
             </span>
             {incompleta && os.status !== OS_STATUS.concluida ? (
-              <span className="text-[10px] font-medium text-indigo-300">
+              <span className="text-[10px] font-medium text-indigo-700">
                 Em preenchimento
               </span>
             ) : null}
@@ -224,7 +224,7 @@ export default function OrdensServicoLista({ variant = "montezuma" }) {
         <div
           className={
             isVk
-              ? "rounded-2xl border border-dashed border-white/15 px-6 py-14 text-center"
+              ? "rounded-2xl border border-dashed border-esc-border px-6 py-14 text-center"
               : "rounded-2xl border border-dashed border-border-primary/40 bg-white px-6 py-14 text-center shadow-sm ring-1 ring-black/[0.03]"
           }
         >
@@ -266,7 +266,7 @@ export default function OrdensServicoLista({ variant = "montezuma" }) {
         <p
           className={
             isVk
-              ? "rounded-2xl border border-dashed border-white/15 px-4 py-10 text-center text-sm text-esc-muted"
+              ? "rounded-2xl border border-dashed border-esc-border px-4 py-10 text-center text-sm text-esc-muted"
               : "rounded-2xl border border-dashed border-border-primary/40 bg-white px-4 py-10 text-center text-sm text-text-muted shadow-sm ring-1 ring-black/[0.03]"
           }
         >
@@ -385,7 +385,7 @@ export default function OrdensServicoLista({ variant = "montezuma" }) {
                   className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                     aba === item.id
                       ? "border-esc-destaque/50 bg-esc-destaque/15 text-esc-destaque"
-                      : "border-white/10 bg-white/5 text-esc-muted hover:text-esc-text"
+                      : "border-esc-border bg-esc-bg text-esc-muted hover:text-esc-text"
                   }`}
                 >
                   {item.label}
@@ -402,13 +402,13 @@ export default function OrdensServicoLista({ variant = "montezuma" }) {
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Buscar por nº, cliente ou responsável…"
-                className="w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-10 pr-3 text-sm text-esc-text placeholder:text-esc-muted focus:border-esc-destaque focus:outline-none"
+                className="w-full rounded-xl border border-esc-border bg-esc-card py-2.5 pl-10 pr-3 text-sm text-esc-text placeholder:text-esc-muted focus:border-esc-destaque focus:outline-none"
               />
             </div>
           </div>
 
           {erro ? (
-            <p className="mb-4 rounded-xl border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-300">
+            <p className="mb-4 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700">
               {erro}
             </p>
           ) : null}

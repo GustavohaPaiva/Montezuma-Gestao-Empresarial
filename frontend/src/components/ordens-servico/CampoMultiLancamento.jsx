@@ -32,7 +32,7 @@ export default function CampoMultiLancamento({
   };
 
   const chipClass = isVk
-    ? "inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-sm text-esc-text"
+    ? "inline-flex items-center gap-1.5 rounded-lg border border-esc-border bg-esc-bg px-2.5 py-1 text-sm text-esc-text"
     : "inline-flex items-center gap-1.5 rounded-lg border border-border-primary/30 bg-white px-2.5 py-1 text-sm text-text-primary";
 
   return (

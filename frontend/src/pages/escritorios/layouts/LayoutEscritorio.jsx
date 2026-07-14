@@ -41,7 +41,7 @@ export default function LayoutEscritorio() {
       <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[min(100vw,42rem)] w-[min(100vw,42rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-esc-destaque/10 opacity-50 blur-[100px]" />
 
       <div
-        className={`fixed inset-0 z-[100] bg-black transition-opacity duration-1000 ease-out ${
+        className={`fixed inset-0 z-[100] bg-esc-bg transition-opacity duration-1000 ease-out ${
           isEntering ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         aria-hidden
@@ -49,13 +49,13 @@ export default function LayoutEscritorio() {
 
       <header
         title={nomeEscritorio}
-        className="box-border sticky top-0 z-50 border-b border-esc-border/50 bg-esc-bg/60 px-6 backdrop-blur-xl md:px-12"
+        className="box-border sticky top-0 z-50 border-b border-esc-border/50 bg-esc-bg/80 px-6 backdrop-blur-xl md:px-12"
       >
         <div className="flex w-full items-center justify-between py-3">
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="flex cursor-pointer flex-row items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm font-semibold text-esc-text backdrop-blur-md transition-all duration-300 hover:bg-white/10 md:px-4 md:py-2"
+            className="flex cursor-pointer flex-row items-center justify-center gap-2 rounded-lg border border-esc-border bg-esc-card px-3 py-1 text-sm font-semibold text-esc-text shadow-sm transition-all duration-300 hover:bg-esc-bg md:px-4 md:py-2"
           >
             <img src={logo} alt="Logo Montezuma" className="w-6 h-6" />{" "}
             Montezuma

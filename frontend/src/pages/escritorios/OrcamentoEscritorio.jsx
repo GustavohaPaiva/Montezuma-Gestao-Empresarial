@@ -274,7 +274,7 @@ export default function OrcamentoEscritorio() {
         {
           texto: "Cancelar",
           className:
-            "rounded-xl border border-white/10 bg-transparent text-esc-text hover:bg-white/5",
+            "rounded-xl border border-esc-border bg-transparent text-esc-text hover:bg-esc-bg",
           onClick: fecharDialogo,
         },
         {
@@ -306,7 +306,7 @@ export default function OrcamentoEscritorio() {
           <div
             className={`${temaClasse} fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md transition-opacity`}
           >
-            <div className="animate-premium-reveal relative flex w-full max-w-md flex-col gap-5 overflow-hidden rounded-2xl border border-white/20 bg-esc-card p-7 text-center shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
+            <div className="animate-premium-reveal relative flex w-full max-w-md flex-col gap-5 overflow-hidden rounded-2xl border border-esc-border bg-esc-card p-7 text-center shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
               <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]"></div>
               <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/10 blur-[70px]"></div>
 
@@ -385,7 +385,7 @@ export default function OrcamentoEscritorio() {
         </button>
       </header>
 
-      <section className="mb-6 w-full rounded-2xl border border-esc-border/70 bg-esc-card/80 p-4 shadow-lg backdrop-blur-md md:p-5">
+      <section className="mb-6 w-full rounded-2xl border border-esc-border/70 bg-esc-card p-4 shadow-lg backdrop-blur-md md:p-5">
         <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-end lg:gap-3">
           <div className="w-full min-w-0 lg:min-w-0 lg:flex-1">
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-esc-muted">
@@ -440,11 +440,11 @@ export default function OrcamentoEscritorio() {
         aria-label="Resumo dos orçamentos filtrados"
         className="mb-6 grid auto-rows-[110px] grid-cols-2 gap-3 lg:grid-cols-4"
       >
-        <article className="flex flex-col justify-between overflow-hidden rounded-lg border border-emerald-400/25 bg-esc-card/80 px-4 py-3 shadow-sm backdrop-blur-md">
+        <article className="flex flex-col justify-between overflow-hidden rounded-lg border border-emerald-400/25 bg-esc-card px-4 py-3 shadow-sm backdrop-blur-md">
           <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
             Total Fechado
           </p>
-          <p className="truncate text-xl font-bold tabular-nums text-emerald-300">
+          <p className="truncate text-xl font-bold tabular-nums text-emerald-700">
             {formatarBRL(metricas.totalFechado)}
           </p>
           <p className="text-[10px] text-esc-muted">
@@ -453,7 +453,7 @@ export default function OrcamentoEscritorio() {
           </p>
         </article>
 
-        <article className="flex flex-col justify-between overflow-hidden rounded-lg border border-red-400/25 bg-esc-card/80 px-4 py-3 shadow-sm backdrop-blur-md">
+        <article className="flex flex-col justify-between overflow-hidden rounded-lg border border-red-400/25 bg-esc-card px-4 py-3 shadow-sm backdrop-blur-md">
           <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
             Total Não Fechado
           </p>
@@ -466,11 +466,11 @@ export default function OrcamentoEscritorio() {
           </p>
         </article>
 
-        <article className="flex flex-col justify-between overflow-hidden rounded-lg border border-orange-400/25 bg-esc-card/80 px-4 py-3 shadow-sm backdrop-blur-md">
+        <article className="flex flex-col justify-between overflow-hidden rounded-lg border border-orange-400/25 bg-esc-card px-4 py-3 shadow-sm backdrop-blur-md">
           <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
             Em Análise
           </p>
-          <p className="truncate text-xl font-bold tabular-nums text-orange-300">
+          <p className="truncate text-xl font-bold tabular-nums text-orange-700">
             {formatarBRL(metricas.totalPendente)}
           </p>
           <p className="text-[10px] text-esc-muted">
@@ -480,7 +480,7 @@ export default function OrcamentoEscritorio() {
         </article>
 
         <article
-          className={`flex flex-col justify-between overflow-hidden rounded-lg border bg-esc-card/80 px-4 py-3 shadow-sm backdrop-blur-md ${
+          className={`flex flex-col justify-between overflow-hidden rounded-lg border bg-esc-card px-4 py-3 shadow-sm backdrop-blur-md ${
             metricas.taxaConversao > 50
               ? "border-emerald-400/40 shadow-[0_0_20px_-12px_rgba(52,211,153,0.6)]"
               : "border-esc-border/70"
@@ -491,14 +491,14 @@ export default function OrcamentoEscritorio() {
           </p>
           <p
             className={`text-xl font-bold tabular-nums ${
-              metricas.taxaConversao > 50 ? "text-emerald-300" : "text-esc-text"
+              metricas.taxaConversao > 50 ? "text-emerald-700" : "text-esc-text"
             }`}
           >
             {metricas.taxaConversao}
             <span
               className={`ml-1 text-base font-semibold ${
                 metricas.taxaConversao > 50
-                  ? "text-emerald-300/70"
+                  ? "text-emerald-700/80"
                   : "text-esc-muted"
               }`}
             >
@@ -511,7 +511,7 @@ export default function OrcamentoEscritorio() {
         </article>
       </section>
 
-      <div className="w-full overflow-hidden rounded-xl border border-white/5 bg-esc-card backdrop-blur-md">
+      <div className="w-full overflow-hidden rounded-xl border border-esc-border bg-esc-card backdrop-blur-md">
         {loading ? (
           <div
             className="flex min-h-[220px] flex-col items-center justify-center gap-3 p-8"
@@ -531,14 +531,14 @@ export default function OrcamentoEscritorio() {
             Nenhum orçamento encontrado para {nomeEscritorio}.
           </div>
         ) : (
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-esc-border">
             {linhas.map((o) => (
               <li
                 key={o.id}
                 className={`flex flex-col gap-3 p-4 transition-colors sm:flex-row sm:items-center sm:justify-between ${
                   currentEscritorioId === ID_VOGELKOP
-                    ? "cursor-pointer hover:bg-white/[0.04]"
-                    : "hover:bg-white/[0.02]"
+                    ? "cursor-pointer hover:bg-esc-bg"
+                    : "hover:bg-esc-bg"
                 }`}
                 onClick={
                   currentEscritorioId === ID_VOGELKOP
@@ -603,7 +603,7 @@ export default function OrcamentoEscritorio() {
                     <button
                       type="button"
                       onClick={() => abrirExcluirOrcamento(o)}
-                      className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted transition-all hover:border-esc-border hover:bg-white/5 hover:text-esc-destaque"
+                      className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted transition-all hover:border-esc-border hover:bg-esc-bg hover:text-esc-destaque"
                       aria-label="Excluir orçamento"
                       title="Excluir"
                     >

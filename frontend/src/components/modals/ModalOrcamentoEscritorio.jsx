@@ -21,12 +21,12 @@ export default function ModalOrcamentoEscritorio({
     escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
 
   const fieldClass =
-    "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:border-esc-destaque focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-esc-destaque";
+    "w-full rounded-xl border border-esc-border bg-esc-card px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:border-esc-destaque focus:bg-esc-bg focus:outline-none focus:ring-1 focus:ring-esc-destaque";
 
   const modalOverlayClass = `${temaClasse} fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md`;
 
   const modalPanelClass =
-    "animate-premium-reveal relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/20 bg-esc-card shadow-[0_0_40px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl";
+    "animate-premium-reveal relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-esc-border bg-esc-card shadow-[0_0_40px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -77,14 +77,14 @@ export default function ModalOrcamentoEscritorio({
           <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]"></div>
           <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/10 blur-[70px]"></div>
 
-          <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-6 py-4">
+          <div className="flex items-center justify-between border-b border-esc-border bg-esc-bg px-6 py-4">
             <h2 className="text-xl font-bold tracking-tight text-esc-text">
               {modoEdicao ? "Editar Orçamento" : "Novo Orçamento"}
             </h2>
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-esc-muted transition-all duration-300 hover:bg-white/10 hover:text-esc-text"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-esc-bg text-esc-muted transition-all duration-300 hover:bg-esc-bg hover:text-esc-text"
               aria-label="Fechar"
             >
               <X className="h-4 w-4" />
@@ -132,11 +132,11 @@ export default function ModalOrcamentoEscritorio({
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-white/10 bg-white/[0.02] px-6 py-5 sm:flex-row sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-esc-border bg-esc-bg px-6 py-5 sm:flex-row sm:justify-between">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-white/10 bg-transparent px-6 py-2.5 text-sm font-semibold text-esc-text transition-all duration-300 hover:bg-white/5 w-full"
+              className="rounded-xl border border-esc-border bg-transparent px-6 py-2.5 text-sm font-semibold text-esc-text transition-all duration-300 hover:bg-esc-bg w-full"
             >
               Cancelar
             </button>

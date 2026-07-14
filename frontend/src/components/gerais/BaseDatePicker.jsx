@@ -383,10 +383,10 @@ export default function BaseDatePicker({
     ? "border-esc-border/60"
     : "border-slate-100";
   const navBtnClass = isEscritorioVariant
-    ? "rounded-lg p-1.5 text-esc-muted transition-colors hover:bg-white/10 hover:text-esc-text"
+    ? "rounded-lg p-1.5 text-esc-muted transition-colors hover:bg-esc-bg hover:text-esc-text"
     : "rounded-lg p-1.5 text-text-muted transition-colors hover:bg-slate-100 hover:text-text-primary";
   const titleBtnClass = isEscritorioVariant
-    ? "min-w-0 flex-1 truncate rounded-lg px-2 py-1 text-center text-sm font-medium capitalize text-esc-text transition-colors hover:bg-white/10"
+    ? "min-w-0 flex-1 truncate rounded-lg px-2 py-1 text-center text-sm font-medium capitalize text-esc-text transition-colors hover:bg-esc-bg"
     : "min-w-0 flex-1 truncate rounded-lg px-2 py-1 text-center text-sm font-medium capitalize text-text-primary transition-colors hover:bg-slate-100";
   const footerBtnClass = isEscritorioVariant
     ? "flex-1 rounded-xl px-3 py-2 text-sm transition-colors"
@@ -395,10 +395,10 @@ export default function BaseDatePicker({
     ? `${footerBtnClass} text-esc-destaque hover:bg-esc-destaque/15`
     : `${footerBtnClass} text-accent-primary hover:bg-accent-primary/10`;
   const clearBtnClass = isEscritorioVariant
-    ? `${footerBtnClass} text-esc-muted hover:bg-white/10 hover:text-esc-text`
+    ? `${footerBtnClass} text-esc-muted hover:bg-esc-bg hover:text-esc-text`
     : `${footerBtnClass} text-text-muted hover:bg-slate-100 hover:text-text-primary`;
   const cellIdleHover = isEscritorioVariant
-    ? "hover:bg-white/10"
+    ? "hover:bg-esc-bg"
     : "hover:bg-slate-100";
   const cellSelected = isEscritorioVariant
     ? "bg-esc-destaque/25 font-medium text-esc-destaque"

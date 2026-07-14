@@ -47,7 +47,7 @@ function CheckboxGroup({ opcoes, valores, onChange, isVk, disabled }) {
               isVk
                 ? checked
                   ? "border-esc-destaque/40 bg-esc-destaque/10 text-esc-text"
-                  : "border-white/10 bg-white/5 text-esc-muted"
+                  : "border-esc-border bg-esc-bg text-esc-muted"
                 : checked
                   ? "border-accent-primary/40 bg-accent-soft text-text-primary"
                   : "border-border-primary/30 bg-white text-text-muted"

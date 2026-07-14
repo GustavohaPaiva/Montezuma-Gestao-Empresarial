@@ -33,20 +33,20 @@ function classesCliente(status) {
   const s = (status || "").trim().toLowerCase();
   const base = BASE_BADGE;
   if (!s)
-    return `${base} border-esc-border bg-esc-bg/70 text-esc-muted focus:ring-esc-destaque/25`;
+    return `${base} border-esc-border bg-esc-bg text-esc-muted focus:ring-esc-destaque/25`;
   if (s.includes("finaliz"))
-    return `${base} border-status-concluida-text/45 bg-black/50 text-status-concluida-text focus:ring-status-concluida-text/30`;
+    return `${base} border-status-concluida-text/45 bg-status-concluida-bg text-status-concluida-text focus:ring-status-concluida-text/30`;
   if (s === "produção" || s === "producao")
-    return `${base} border-purple-700/60 bg-black/50 text-purple-400 focus:ring-purple-500/30`;
+    return `${base} border-purple-300 bg-purple-50 text-purple-700 focus:ring-purple-500/30`;
   if (s === "prefeitura")
-    return `${base} border-status-andamento-text/45 bg-black/50 text-status-andamento-text focus:ring-status-andamento-text/30`;
+    return `${base} border-status-andamento-text/45 bg-status-andamento-bg text-status-andamento-text focus:ring-status-andamento-text/30`;
   if (s === "caixa")
-    return `${base} border-teal-700/60 bg-black/50 text-teal-400 focus:ring-teal-500/30`;
+    return `${base} border-teal-300 bg-teal-50 text-teal-700 focus:ring-teal-500/30`;
   if (s === "cartorio" || s === "cartório")
-    return `${base} border-rose-600/60 bg-black/50 text-rose-400 focus:ring-rose-500/30`;
+    return `${base} border-rose-300 bg-rose-50 text-rose-700 focus:ring-rose-500/30`;
   if (s === "obra")
-    return `${base} border-blue-700/60 bg-black/50 text-blue-400 focus:ring-blue-500/30`;
-  return `${base} border-esc-border/80 bg-black/50 text-esc-muted focus:ring-esc-destaque/25`;
+    return `${base} border-blue-300 bg-blue-50 text-blue-700 focus:ring-blue-500/30`;
+  return `${base} border-esc-border bg-esc-bg text-esc-muted focus:ring-esc-destaque/25`;
 }
 
 function classesOrcamento(status) {
@@ -57,14 +57,14 @@ function classesOrcamento(status) {
     .replace(/[\u0300-\u036f]/g, "");
   const base = BASE_BADGE;
   if (!s)
-    return `${base} border-esc-border bg-esc-bg/70 text-esc-muted focus:ring-esc-destaque/25`;
+    return `${base} border-esc-border bg-esc-bg text-esc-muted focus:ring-esc-destaque/25`;
   if (s.includes("andamento"))
-    return `${base} border-orange-400/45 bg-black/50 text-orange-400 focus:ring-orange-400/30`;
+    return `${base} border-orange-300 bg-orange-50 text-orange-700 focus:ring-orange-400/30`;
   if (s.includes("nao fechado"))
-    return `${base} border-red-400/45 bg-black/50 text-red-400 focus:ring-red-400/30`;
+    return `${base} border-red-300 bg-red-50 text-red-700 focus:ring-red-400/30`;
   if (s === "fechado")
-    return `${base} border-green-400/45 bg-black/50 text-green-400 focus:ring-green-400/30`;
-  return `${base} border-esc-destaque/45 bg-black/50 text-esc-destaque focus:ring-esc-destaque/25`;
+    return `${base} border-green-300 bg-green-50 text-green-700 focus:ring-green-400/30`;
+  return `${base} border-esc-destaque/45 bg-esc-destaque/10 text-esc-destaque focus:ring-esc-destaque/25`;
 }
 
 function classesObra(status) {

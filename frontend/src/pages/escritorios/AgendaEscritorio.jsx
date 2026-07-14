@@ -70,10 +70,10 @@ function badgeTipoClasses(tipo) {
 function badgeStatusClasses(status) {
   const s = String(status || "").toLowerCase();
   if (s === "realizado")
-    return "border-emerald-400/40 bg-emerald-400/10 text-emerald-300";
+    return "border-emerald-300 bg-emerald-50 text-emerald-700";
   if (s === "cancelado")
-    return "border-rose-400/40 bg-rose-400/10 text-rose-300";
-  return "border-white/15 bg-white/5 text-esc-muted";
+    return "border-rose-300 bg-rose-50 text-rose-700";
+  return "border-esc-border bg-esc-bg text-esc-muted";
 }
 
 function pad2(n) {
@@ -510,8 +510,8 @@ export default function AgendaEscritorio() {
         </div>
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <article className="rounded-xl border border-white/5 bg-esc-card/40 shadow-sm backdrop-blur-sm lg:col-span-2">
-            <header className="relative flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-5 py-4">
+          <article className="rounded-xl border border-esc-border bg-esc-card shadow-sm lg:col-span-2">
+            <header className="relative flex flex-wrap items-center justify-between gap-3 border-b border-esc-border px-5 py-4">
               <div className="relative flex items-center gap-2">
                 <button
                   type="button"
@@ -524,7 +524,7 @@ export default function AgendaEscritorio() {
                   className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${
                     miniCalAberto
                       ? "border-esc-destaque/60 bg-esc-destaque/20 text-esc-destaque"
-                      : "border-white/10 bg-white/5 text-esc-destaque hover:border-esc-destaque/40 hover:bg-esc-destaque/15"
+                      : "border-esc-border bg-esc-bg text-esc-destaque hover:border-esc-destaque/40 hover:bg-esc-destaque/15"
                   }`}
                 >
                   <CalendarDays className="h-4 w-4" aria-hidden />
@@ -538,13 +538,13 @@ export default function AgendaEscritorio() {
                     ref={miniCalRef}
                     role="dialog"
                     aria-label="Seletor de mês e ano"
-                    className="absolute left-0 top-full z-30 mt-2 w-[280px] rounded-xl border border-white/10 bg-esc-card shadow-[0_0_40px_-15px_var(--color-esc-destaque)] backdrop-blur-xl"
+                    className="absolute left-0 top-full z-30 mt-2 w-[280px] rounded-xl border border-esc-border bg-esc-card shadow-[0_0_40px_-15px_var(--color-esc-destaque)] backdrop-blur-xl"
                   >
-                    <div className="flex items-center justify-between border-b border-white/10 px-3 py-2.5">
+                    <div className="flex items-center justify-between border-b border-esc-border px-3 py-2.5">
                       <button
                         type="button"
                         onClick={() => setMiniCalAno((a) => a - 10)}
-                        className="inline-flex items-center justify-center rounded-md px-2 py-1 text-[11px] font-bold text-esc-muted transition hover:bg-white/5 hover:text-esc-text"
+                        className="inline-flex items-center justify-center rounded-md px-2 py-1 text-[11px] font-bold text-esc-muted transition hover:bg-esc-bg hover:text-esc-text"
                         aria-label="10 anos antes"
                         title="10 anos antes"
                       >
@@ -553,7 +553,7 @@ export default function AgendaEscritorio() {
                       <button
                         type="button"
                         onClick={() => setMiniCalAno((a) => a - 1)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-esc-muted transition hover:bg-white/5 hover:text-esc-text"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-esc-muted transition hover:bg-esc-bg hover:text-esc-text"
                         aria-label="Ano anterior"
                       >
                         <ChevronLeft className="h-4 w-4" aria-hidden />
@@ -564,7 +564,7 @@ export default function AgendaEscritorio() {
                       <button
                         type="button"
                         onClick={() => setMiniCalAno((a) => a + 1)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-esc-muted transition hover:bg-white/5 hover:text-esc-text"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-esc-muted transition hover:bg-esc-bg hover:text-esc-text"
                         aria-label="Próximo ano"
                       >
                         <ChevronRight className="h-4 w-4" aria-hidden />
@@ -572,7 +572,7 @@ export default function AgendaEscritorio() {
                       <button
                         type="button"
                         onClick={() => setMiniCalAno((a) => a + 10)}
-                        className="inline-flex items-center justify-center rounded-md px-2 py-1 text-[11px] font-bold text-esc-muted transition hover:bg-white/5 hover:text-esc-text"
+                        className="inline-flex items-center justify-center rounded-md px-2 py-1 text-[11px] font-bold text-esc-muted transition hover:bg-esc-bg hover:text-esc-text"
                         aria-label="10 anos depois"
                         title="10 anos depois"
                       >
@@ -597,8 +597,8 @@ export default function AgendaEscritorio() {
                               ehAtual
                                 ? "border-esc-destaque/60 bg-esc-destaque/20 text-esc-destaque"
                                 : ehHoje
-                                  ? "border-esc-destaque/30 bg-white/5 text-esc-text hover:bg-white/10"
-                                  : "border-white/5 bg-white/[0.03] text-esc-muted hover:border-white/15 hover:bg-white/10 hover:text-esc-text"
+                                  ? "border-esc-destaque/30 bg-esc-bg text-esc-text hover:bg-esc-bg"
+                                  : "border-esc-border bg-esc-bg text-esc-muted hover:border-esc-border hover:bg-esc-bg hover:text-esc-text"
                             }`}
                           >
                             {nome}
@@ -607,7 +607,7 @@ export default function AgendaEscritorio() {
                       })}
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 border-t border-white/10 px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-2 border-t border-esc-border px-3 py-2.5">
                       <button
                         type="button"
                         onClick={() => {
@@ -624,7 +624,7 @@ export default function AgendaEscritorio() {
                       <button
                         type="button"
                         onClick={() => setMiniCalAberto(false)}
-                        className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-esc-muted transition hover:bg-white/10 hover:text-esc-text"
+                        className="inline-flex items-center rounded-lg border border-esc-border bg-esc-bg px-2.5 py-1 text-[11px] font-semibold text-esc-muted transition hover:bg-esc-bg hover:text-esc-text"
                       >
                         Fechar
                       </button>
@@ -644,7 +644,7 @@ export default function AgendaEscritorio() {
                       ),
                     )
                   }
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-esc-border bg-esc-bg text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
                   aria-label="Mês anterior"
                 >
                   <ChevronLeft className="h-4 w-4" aria-hidden />
@@ -652,7 +652,7 @@ export default function AgendaEscritorio() {
                 <button
                   type="button"
                   onClick={irProMesHoje}
-                  className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
+                  className="inline-flex items-center gap-1 rounded-lg border border-esc-border bg-esc-bg px-3 py-1.5 text-[11px] font-semibold text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
                 >
                   Hoje
                 </button>
@@ -667,7 +667,7 @@ export default function AgendaEscritorio() {
                       ),
                     )
                   }
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-esc-border bg-esc-bg text-esc-muted transition hover:border-esc-destaque/40 hover:bg-esc-destaque/10 hover:text-esc-destaque"
                   aria-label="Próximo mês"
                 >
                   <ChevronRight className="h-4 w-4" aria-hidden />
@@ -689,7 +689,7 @@ export default function AgendaEscritorio() {
 
               <div className="relative">
                 {loading ? (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-esc-card/30 backdrop-blur-[2px]">
+                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-esc-card backdrop-blur-[2px]">
                     <Loader2
                       className="h-5 w-5 animate-spin text-esc-muted"
                       aria-hidden
@@ -754,7 +754,7 @@ export default function AgendaEscritorio() {
                             ? "border-esc-destaque/70 bg-esc-destaque/15 ring-1 ring-esc-destaque/40"
                             : isSel
                               ? "border-esc-destaque/60 bg-esc-destaque/10 shadow-[0_0_20px_-10px_var(--color-esc-destaque)]"
-                              : "border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]"
+                              : "border-esc-border bg-esc-bg hover:border-esc-border hover:bg-esc-bg"
                         } ${isOutro ? "opacity-40" : ""}`}
                       >
                         <span
@@ -784,12 +784,12 @@ export default function AgendaEscritorio() {
                                   selecionarDia();
                                 }}
                                 title={`${horaBR(item.data_hora)} — ${item.titulo}`}
-                                className={`flex min-w-0 cursor-grab items-center gap-1 rounded border border-white/10 border-l-[3px] bg-white/[0.07] px-1 py-0.5 text-left active:cursor-grabbing ${bordaEsquerdaTipo(
+                                className={`flex min-w-0 cursor-grab items-center gap-1 rounded border border-esc-border border-l-[3px] bg-esc-bg px-1 py-0.5 text-left active:cursor-grabbing ${bordaEsquerdaTipo(
                                   item.tipo,
                                 )} ${
                                   arrastando || movendo
                                     ? "opacity-40"
-                                    : "hover:bg-white/12"
+                                    : "hover:bg-esc-card"
                                 }`}
                               >
                                 <span className="shrink-0 text-[8px] font-bold tabular-nums text-esc-muted sm:text-[9px]">
@@ -819,9 +819,9 @@ export default function AgendaEscritorio() {
                 </div>
               </div>
               {erro ? (
-                <p className="mt-3 text-[11px] text-rose-300/80">{erro}</p>
+                <p className="mt-3 text-[11px] text-rose-600/90">{erro}</p>
               ) : null}
-              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/5 pt-3 text-[11px] text-esc-muted">
+              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-esc-border pt-3 text-[11px] text-esc-muted">
                 <span className="w-full text-[10px] text-esc-muted/90 sm:w-auto">
                   Arraste um compromisso para outro dia para remarcar (o horário
                   é mantido).
@@ -846,8 +846,8 @@ export default function AgendaEscritorio() {
             </div>
           </article>
 
-          <aside className="flex max-h-[675px] flex-col self-start rounded-xl border border-white/5 bg-esc-card/40 shadow-sm backdrop-blur-sm">
-            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4">
+          <aside className="flex max-h-[675px] flex-col self-start rounded-xl border border-esc-border bg-esc-card shadow-sm">
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-esc-border px-5 py-4">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider text-esc-muted">
                   {diaSelecionado.toLocaleDateString("pt-BR", {
@@ -862,7 +862,7 @@ export default function AgendaEscritorio() {
                   })}
                 </h3>
               </div>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-esc-muted">
+              <span className="rounded-full border border-esc-border bg-esc-bg px-2 py-0.5 text-[10px] font-semibold text-esc-muted">
                 {itensDoDia.length} {itensDoDia.length === 1 ? "item" : "itens"}
               </span>
             </header>
@@ -874,7 +874,7 @@ export default function AgendaEscritorio() {
                   Carregando…
                 </p>
               ) : itensDoDia.length === 0 ? (
-                <p className="rounded-lg border border-white/5 bg-white/[0.03] px-3 py-4 text-center text-[11px] text-esc-muted">
+                <p className="rounded-lg border border-esc-border bg-esc-bg px-3 py-4 text-center text-[11px] text-esc-muted">
                   Nenhum compromisso neste dia.
                 </p>
               ) : (
@@ -884,7 +884,7 @@ export default function AgendaEscritorio() {
                   return (
                     <article
                       key={item.id}
-                      className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                      className="rounded-xl border border-esc-border bg-esc-bg p-3"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
@@ -931,11 +931,11 @@ export default function AgendaEscritorio() {
                         </div>
                       </div>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/5 pt-2.5">
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-esc-border pt-2.5">
                         <button
                           type="button"
                           onClick={() => abrirEdicao(item)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold text-esc-muted transition hover:border-esc-destaque/30 hover:bg-esc-destaque/10 hover:text-esc-destaque"
+                          className="inline-flex items-center gap-1 rounded-lg border border-esc-border bg-esc-bg px-2 py-1 text-[11px] font-semibold text-esc-muted transition hover:border-esc-destaque/30 hover:bg-esc-destaque/10 hover:text-esc-destaque"
                         >
                           <Pencil className="h-3 w-3" aria-hidden />
                           Editar
@@ -945,7 +945,7 @@ export default function AgendaEscritorio() {
                             type="button"
                             onClick={() => mudarStatus(item, "Realizado")}
                             disabled={statusAcao}
-                            className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-400/20 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50"
                           >
                             {statusAcao ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -960,7 +960,7 @@ export default function AgendaEscritorio() {
                             type="button"
                             onClick={() => mudarStatus(item, "Cancelado")}
                             disabled={statusAcao}
-                            className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold text-esc-muted transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-300 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded-lg border border-esc-border bg-esc-bg px-2 py-1 text-[11px] font-semibold text-esc-muted transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
                           >
                             <X className="h-3 w-3" aria-hidden />
                             Cancelar
@@ -970,7 +970,7 @@ export default function AgendaEscritorio() {
                           type="button"
                           onClick={() => excluir(item)}
                           disabled={delAcao}
-                          className="ml-auto inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold text-esc-muted transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-300 disabled:opacity-50"
+                          className="ml-auto inline-flex items-center gap-1 rounded-lg border border-esc-border bg-esc-bg px-2 py-1 text-[11px] font-semibold text-esc-muted transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
                         >
                           {delAcao ? (
                             <Loader2 className="h-3 w-3 animate-spin" />

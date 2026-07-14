@@ -293,7 +293,7 @@ export default function FinanceiroEscritorio() {
           {
             texto: "Apenas Esta Parcela",
             className:
-              "rounded-xl border border-esc-border bg-black/40 text-esc-text hover:bg-white/5",
+              "rounded-xl border border-esc-border bg-esc-card text-esc-text hover:bg-esc-bg",
             onClick: () => {
               executarExclusao(tabela, item.id, false);
               fecharDialogo();
@@ -311,7 +311,7 @@ export default function FinanceiroEscritorio() {
           {
             texto: "Cancelar",
             className:
-              "rounded-xl border border-white/10 bg-transparent text-esc-muted hover:bg-white/5",
+              "rounded-xl border border-esc-border bg-transparent text-esc-muted hover:bg-esc-bg",
             onClick: fecharDialogo,
           },
         ],
@@ -326,7 +326,7 @@ export default function FinanceiroEscritorio() {
           {
             texto: "Cancelar",
             className:
-              "rounded-xl border border-white/10 bg-transparent text-esc-text hover:bg-white/5",
+              "rounded-xl border border-esc-border bg-transparent text-esc-text hover:bg-esc-bg",
             onClick: fecharDialogo,
           },
           {
@@ -382,7 +382,7 @@ export default function FinanceiroEscritorio() {
         {
           texto: "Cancelar",
           className:
-            "rounded-xl border border-white/10 bg-transparent text-esc-text hover:bg-white/5",
+            "rounded-xl border border-esc-border bg-transparent text-esc-text hover:bg-esc-bg",
           onClick: fecharDialogo,
         },
         {
@@ -441,7 +441,7 @@ export default function FinanceiroEscritorio() {
               {
                 texto: "Aplicar valor fixo nas restantes",
                 className:
-                  "rounded-xl border border-white/10 bg-black/40 text-esc-text hover:bg-white/5",
+                  "rounded-xl border border-esc-border bg-esc-card text-esc-text hover:bg-esc-bg",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -465,7 +465,7 @@ export default function FinanceiroEscritorio() {
               {
                 texto: `Ratear diferença nas restantes`,
                 className:
-                  "rounded-xl border border-white/10 bg-transparent text-esc-text hover:bg-white/5",
+                  "rounded-xl border border-esc-border bg-transparent text-esc-text hover:bg-esc-bg",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -477,7 +477,7 @@ export default function FinanceiroEscritorio() {
               {
                 texto: "Alterar apenas esta parcela",
                 className:
-                  "rounded-xl border border-white/10 bg-transparent text-esc-muted hover:bg-white/5",
+                  "rounded-xl border border-esc-border bg-transparent text-esc-muted hover:bg-esc-bg",
                 onClick: () => {
                   executarSalvarEdicao(tabela, itemOriginal.id, {
                     [campo]: valorFinal,
@@ -488,7 +488,7 @@ export default function FinanceiroEscritorio() {
               {
                 texto: "Cancelar Alteração",
                 className:
-                  "rounded-xl border border-esc-border bg-black/60 text-esc-muted hover:bg-white/5",
+                  "rounded-xl border border-esc-border bg-esc-bg text-esc-muted hover:bg-esc-card",
                 onClick: () => {
                   cancelarEdicao();
                   fecharDialogo();
@@ -590,7 +590,7 @@ export default function FinanceiroEscritorio() {
                 type="number"
                 value={valorEditado}
                 onChange={(e) => setValorEditado(e.target.value)}
-                className="w-24 rounded-lg border border-esc-border bg-black/40 px-2 py-1 text-center text-sm text-esc-text focus:outline-none focus:ring-1 focus:ring-esc-destaque"
+                className="w-24 rounded-lg border border-esc-border bg-esc-card px-2 py-1 text-center text-sm text-esc-text focus:outline-none focus:ring-1 focus:ring-esc-destaque"
                 autoFocus
               />
               <button
@@ -636,7 +636,7 @@ export default function FinanceiroEscritorio() {
             type="button"
             title="Jogar para o próximo mês"
             onClick={() => handleAdiarMes(nomeTabela, item)}
-            className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted opacity-0 transition-all hover:border-esc-border hover:bg-white/5 group-hover:opacity-100"
+            className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted opacity-0 transition-all hover:border-esc-border hover:bg-esc-bg group-hover:opacity-100"
           >
             <CalendarClock className="h-4 w-4" aria-hidden />
           </button>
@@ -645,7 +645,7 @@ export default function FinanceiroEscritorio() {
               type="button"
               title="Excluir"
               onClick={() => handleDelete(nomeTabela, item)}
-              className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted opacity-0 transition-all hover:border-esc-border hover:bg-white/5 hover:text-esc-destaque group-hover:opacity-100"
+              className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted opacity-0 transition-all hover:border-esc-border hover:bg-esc-bg hover:text-esc-destaque group-hover:opacity-100"
             >
               <Trash2 className="h-4 w-4" aria-hidden />
             </button>
@@ -673,7 +673,7 @@ export default function FinanceiroEscritorio() {
           <div
             className={`${temaClasse} fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md transition-opacity`}
           >
-            <div className="animate-premium-reveal relative flex w-full max-w-md flex-col gap-5 overflow-hidden rounded-2xl border border-white/20 bg-esc-card p-7 text-center shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
+            <div className="animate-premium-reveal relative flex w-full max-w-md flex-col gap-5 overflow-hidden rounded-2xl border border-esc-border bg-esc-card p-7 text-center shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
               <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]"></div>
               <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/10 blur-[70px]"></div>
 
@@ -779,7 +779,7 @@ export default function FinanceiroEscritorio() {
 
       {isAdmin && (
         <div className="mb-6 w-full">
-          <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-esc-card/90 p-6 shadow-lg backdrop-blur-md md:flex-row md:items-center md:justify-between relative overflow-hidden">
+          <div className="flex flex-col gap-4 rounded-2xl border border-esc-border bg-esc-card/90 p-6 shadow-lg backdrop-blur-md md:flex-row md:items-center md:justify-between relative overflow-hidden">
             <div className="pointer-events-none absolute top-1/2 left-0 -z-10 h-32 w-32 -translate-y-1/2 rounded-full bg-esc-destaque/10 blur-[50px]"></div>
 
             <div className="text-center md:text-left z-10">
@@ -801,7 +801,7 @@ export default function FinanceiroEscritorio() {
 
       <div className="w-full">
         {isAdmin && (
-          <div className="mb-6 rounded-2xl border border-white/10 bg-esc-card p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
+          <div className="mb-6 rounded-2xl border border-esc-border bg-esc-card p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
             <div className="pointer-events-none absolute top-0 right-0 -z-10 h-40 w-40 rounded-full bg-esc-destaque/5 blur-[60px]"></div>
             <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <h2 className="text-2xl font-bold text-esc-destaque md:text-3xl">
@@ -813,7 +813,7 @@ export default function FinanceiroEscritorio() {
                   placeholder="Pesquisar..."
                   value={buscaEntrada}
                   onChange={(e) => setBuscaEntrada(e.target.value)}
-                  className="h-10 w-full md:max-w-120 rounded-lg border border-white/10 bg-black/40 px-3 text-sm text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
+                  className="h-10 w-full md:max-w-120 rounded-lg border border-esc-border bg-esc-card px-3 text-sm text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
                 />
                 <button
                   type="button"
@@ -830,7 +830,7 @@ export default function FinanceiroEscritorio() {
               dados={gerarLinhasTabela(entradas, buscaEntrada, "entradas")}
             />
             <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-black/40 p-3 shadow-inner">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-esc-border bg-esc-card p-3 shadow-inner">
                 <span className="text-xs font-semibold uppercase text-esc-muted">
                   Total Lançado:
                 </span>
@@ -838,7 +838,7 @@ export default function FinanceiroEscritorio() {
                   R$ {formatarMoeda(somaTotalEntradas)}
                 </span>
               </div>
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-status-concluida-text/20 bg-black/40 p-3 shadow-inner">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-status-concluida-text/20 bg-esc-card p-3 shadow-inner">
                 <span className="text-xs font-semibold uppercase text-esc-muted">
                   Total Validado:
                 </span>
@@ -850,7 +850,7 @@ export default function FinanceiroEscritorio() {
           </div>
         )}
 
-        <div className="mb-6 mt-6 rounded-2xl border border-white/10 bg-esc-card p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
+        <div className="mb-6 mt-6 rounded-2xl border border-esc-border bg-esc-card p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
           <div className="pointer-events-none absolute top-0 right-0 -z-10 h-40 w-40 rounded-full bg-esc-destaque/5 blur-[60px]"></div>
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h2 className="text-2xl font-bold text-esc-destaque md:text-3xl">
@@ -862,7 +862,7 @@ export default function FinanceiroEscritorio() {
                 placeholder="Pesquisar..."
                 value={buscaSaida}
                 onChange={(e) => setBuscaSaida(e.target.value)}
-                className="h-10 w-full md:max-w-120 rounded-lg border border-white/10 bg-black/40 px-3 text-sm text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
+                className="h-10 w-full md:max-w-120 rounded-lg border border-esc-border bg-esc-card px-3 text-sm text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
               />
 
               <button
@@ -880,7 +880,7 @@ export default function FinanceiroEscritorio() {
             dados={gerarLinhasTabela(saidas, buscaSaida, "saida")}
           />
           <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-black/40 p-3 shadow-inner">
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-esc-border bg-esc-card p-3 shadow-inner">
               <span className="text-xs font-semibold uppercase text-esc-muted">
                 Total Lançado:
               </span>
@@ -888,7 +888,7 @@ export default function FinanceiroEscritorio() {
                 R$ {formatarMoeda(somaTotalSaidas)}
               </span>
             </div>
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-status-aguardando-text/20 bg-black/40 p-3 shadow-inner">
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-status-aguardando-text/20 bg-esc-card p-3 shadow-inner">
               <span className="text-xs font-semibold uppercase text-esc-muted">
                 Total Validado:
               </span>
@@ -900,7 +900,7 @@ export default function FinanceiroEscritorio() {
         </div>
 
         {isAdmin && (
-          <div className="mb-10 rounded-2xl border border-white/10 bg-esc-card p-6 shadow-lg backdrop-blur-md">
+          <div className="mb-10 rounded-2xl border border-esc-border bg-esc-card p-6 shadow-lg backdrop-blur-md">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-xl font-bold text-esc-destaque md:text-3xl">
                 Controle Anual
@@ -909,7 +909,7 @@ export default function FinanceiroEscritorio() {
                 type="number"
                 value={anoFiltroAnual}
                 onChange={(e) => setAnoFiltroAnual(e.target.value)}
-                className="h-10 w-full rounded-lg border border-white/10 bg-black/40 px-3 text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque sm:w-auto"
+                className="h-10 w-full rounded-lg border border-esc-border bg-esc-card px-3 text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque sm:w-auto"
               />
             </div>
             <TabelaSimples
@@ -917,7 +917,7 @@ export default function FinanceiroEscritorio() {
               colunas={["Mês", "Entrada", "Saida", "Balanço"]}
               dados={dadosAnuais}
             />
-            <div className="mt-4 flex flex-col gap-6 rounded-xl border border-white/5 bg-black/40 p-4 shadow-inner lg:flex-row lg:items-center lg:justify-center">
+            <div className="mt-4 flex flex-col gap-6 rounded-xl border border-esc-border bg-esc-card p-4 shadow-inner lg:flex-row lg:items-center lg:justify-center">
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <span className="text-xs font-semibold uppercase text-esc-muted">
                   Balanço Validado do Ano:

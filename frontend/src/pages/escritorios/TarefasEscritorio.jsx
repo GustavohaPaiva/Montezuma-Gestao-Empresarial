@@ -34,12 +34,12 @@ function formatDataCard(dateStr) {
 
 function prioridadeBadge(pri) {
   if (pri === "Alta") {
-    return "border border-red-500/50 bg-red-500/20 text-red-400";
+    return "border border-rose-300 bg-rose-50 text-rose-700";
   }
   if (pri === "Média") {
-    return "border border-amber-500/50 bg-amber-500/20 text-amber-400";
+    return "border border-amber-300 bg-amber-50 text-amber-800";
   }
-  return "border border-white/10 bg-white/5 text-esc-muted";
+  return "border border-esc-border bg-esc-bg text-esc-muted";
 }
 
 function prioridadeBorda(pri) {
@@ -211,7 +211,7 @@ export default function TarefasEscritorio() {
           </button>
         </div>
 
-        <div className="mb-6 rounded-2xl border border-white/5 bg-esc-card/30 p-4 backdrop-blur-md">
+        <div className="mb-6 rounded-2xl border border-esc-border bg-esc-card p-4 backdrop-blur-md">
           <div className="flex flex-wrap gap-2">
             {PILLS.map((pill) => {
               const ativa =
@@ -225,7 +225,7 @@ export default function TarefasEscritorio() {
                   className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-300 ${
                     ativa
                       ? "border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque"
-                      : "border-white/10 bg-white/5 text-esc-muted hover:bg-white/10 hover:text-esc-text"
+                      : "border-esc-border bg-esc-bg text-esc-muted hover:bg-esc-bg hover:text-esc-text"
                   }`}
                 >
                   {pill.label}
@@ -233,7 +233,7 @@ export default function TarefasEscritorio() {
               );
             })}
           </div>
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-white/10 bg-black/40 px-3 py-2.5">
+          <div className="mt-4 flex items-center gap-2 rounded-xl border border-esc-border bg-esc-card px-3 py-2.5">
             <Search className="h-4 w-4 text-esc-muted" aria-hidden />
             <input
               type="search"
@@ -247,18 +247,18 @@ export default function TarefasEscritorio() {
 
         {loading ? (
           <div
-            className="flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/5 bg-esc-card/30 p-10 backdrop-blur-sm"
+            className="flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-2xl border border-esc-border bg-esc-card p-10 backdrop-blur-sm"
             role="status"
           >
             <Loader2 className="h-10 w-10 animate-spin text-esc-destaque" />
             <span className="text-sm text-esc-muted">Carregando tarefas…</span>
           </div>
         ) : erro ? (
-          <div className="rounded-2xl border border-white/5 bg-esc-card/40 p-8 text-center text-sm text-esc-muted backdrop-blur-md">
+          <div className="rounded-2xl border border-esc-border bg-esc-card p-8 text-center text-sm text-esc-muted backdrop-blur-md">
             {erro}
           </div>
         ) : tarefasFiltradas.length === 0 ? (
-          <div className="rounded-2xl border border-white/5 bg-esc-card/30 p-10 text-center text-sm text-esc-muted backdrop-blur-md">
+          <div className="rounded-2xl border border-esc-border bg-esc-card p-10 text-center text-sm text-esc-muted backdrop-blur-md">
             Nenhuma tarefa encontrada para este filtro.
           </div>
         ) : (
@@ -275,7 +275,7 @@ export default function TarefasEscritorio() {
                     setTarefaEdicao(t);
                     setModalAberto(true);
                   }}
-                  className={`group w-full rounded-xl border border-white/5 bg-esc-card/40 p-4 text-left shadow-inner backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-esc-destaque/40 ${prioridadeBorda(pri)}`}
+                  className={`group w-full rounded-xl border border-esc-border bg-esc-card p-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-esc-destaque/40 ${prioridadeBorda(pri)}`}
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
@@ -290,7 +290,7 @@ export default function TarefasEscritorio() {
                       >
                         {pri}
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-esc-muted">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-esc-border bg-esc-bg px-2 py-0.5 text-[10px] font-semibold text-esc-muted">
                         <Calendar className="h-3.5 w-3.5" />
                         {formatDataCard(t.data_conclusao)}
                       </span>

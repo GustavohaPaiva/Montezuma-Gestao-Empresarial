@@ -394,7 +394,7 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
       <div
         className={
           isVk
-            ? "py-8 text-center text-sm text-rose-300"
+            ? "py-8 text-center text-sm text-rose-600"
             : "flex min-h-[40vh] flex-col items-center justify-center px-[5%] text-sm text-danger-primary"
         }
       >
@@ -597,7 +597,7 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
                       ) : null}
                     </div>
                     {somenteLeitura && os.data_conclusao ? (
-                      <p className="mt-2 text-sm text-emerald-300">
+                      <p className="mt-2 text-sm text-emerald-700">
                         Concluída em {formatarDataListaOS(os.data_conclusao)}
                         {os.concluido_por?.nome
                           ? ` por ${os.concluido_por.nome}`
@@ -627,8 +627,8 @@ export default function OrdemServicoDetalhe({ variant = "montezuma" }) {
         {modalExcluir ? (
           <ModalPortal>
             <div className="theme-vogelkop fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
-              <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/20 bg-esc-card shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
-                <div className="border-b border-white/10 bg-white/[0.02] px-6 py-4">
+              <div className="w-full max-w-md overflow-hidden rounded-2xl border border-esc-border bg-esc-card shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
+                <div className="border-b border-esc-border bg-esc-bg px-6 py-4">
                   <h2 className="text-lg font-bold text-esc-text">
                     Excluir ordem de serviço
                   </h2>

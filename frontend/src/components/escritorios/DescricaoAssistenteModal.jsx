@@ -66,8 +66,8 @@ export default function DescricaoAssistenteModal({
       <div
         className={`${temaClasse} fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md`}
       >
-        <div className="animate-premium-reveal relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/20 bg-esc-card shadow-[0_0_40px_-15px_var(--color-esc-destaque)]">
-          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="animate-premium-reveal relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-esc-border bg-esc-card shadow-[0_0_40px_-15px_var(--color-esc-destaque)]">
+          <div className="flex items-center justify-between border-b border-esc-border px-5 py-4">
             <div>
               <h3 className="text-base font-bold text-esc-text">
                 Assistente de descrição
@@ -80,7 +80,7 @@ export default function DescricaoAssistenteModal({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-esc-muted transition hover:bg-white/10 hover:text-esc-text"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-esc-bg text-esc-muted transition hover:bg-esc-bg hover:text-esc-text"
               aria-label="Fechar"
             >
               <X className="h-4 w-4" />
@@ -106,7 +106,7 @@ export default function DescricaoAssistenteModal({
                   </p>
                 </div>
                 {aviso ? (
-                  <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-esc-muted">
+                  <p className="rounded-lg border border-esc-border bg-esc-bg px-3 py-2 text-xs text-esc-muted">
                     {aviso}
                   </p>
                 ) : null}
@@ -117,7 +117,7 @@ export default function DescricaoAssistenteModal({
                   <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-esc-muted">
                     Original
                   </p>
-                  <div className="min-h-[10rem] whitespace-pre-wrap rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-esc-muted">
+                  <div className="min-h-[10rem] whitespace-pre-wrap rounded-xl border border-esc-border bg-esc-bg p-3 text-sm text-esc-muted">
                     {rascunho || "—"}
                   </div>
                 </div>
@@ -145,11 +145,11 @@ export default function DescricaoAssistenteModal({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/10 bg-white/[0.02] px-5 py-4">
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-esc-border bg-esc-bg px-5 py-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-esc-muted transition hover:bg-white/5"
+              className="rounded-xl border border-esc-border px-4 py-2 text-sm font-semibold text-esc-muted transition hover:bg-esc-bg"
             >
               Cancelar
             </button>
@@ -158,7 +158,7 @@ export default function DescricaoAssistenteModal({
                 <button
                   type="button"
                   onClick={() => aplicar(rascunho)}
-                  className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-esc-text transition hover:bg-white/10"
+                  className="rounded-xl border border-esc-border bg-esc-bg px-4 py-2 text-sm font-semibold text-esc-text transition hover:bg-esc-bg"
                 >
                   Usar sem revisar
                 </button>
@@ -181,7 +181,7 @@ export default function DescricaoAssistenteModal({
                 <button
                   type="button"
                   onClick={() => setModo("editar")}
-                  className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-esc-text transition hover:bg-white/10"
+                  className="rounded-xl border border-esc-border bg-esc-bg px-4 py-2 text-sm font-semibold text-esc-text transition hover:bg-esc-bg"
                 >
                   Voltar ao original
                 </button>

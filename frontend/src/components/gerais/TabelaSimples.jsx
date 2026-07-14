@@ -113,7 +113,7 @@ export default function TabelaSimples({
                 highlightedRowId != null &&
                 String(rowId) === String(highlightedRowId);
               const baseRowClass = esc
-                ? "border-b border-esc-border/60 last:border-0 hover:bg-white/[0.03]"
+                ? "border-b border-esc-border/60 last:border-0 hover:bg-esc-bg"
                 : obraDetalhe
                   ? compact
                     ? "border-b border-border-primary/15 transition-colors last:border-0 hover:bg-[#FAFAFA]/90"

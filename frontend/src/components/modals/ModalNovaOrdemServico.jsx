@@ -228,13 +228,13 @@ export default function ModalNovaOrdemServico({
     const overlayClass =
       "theme-vogelkop fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md sm:p-6";
     const panelClass =
-      "animate-premium-reveal relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/20 bg-esc-card shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl";
+      "animate-premium-reveal relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-esc-border bg-esc-card shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl";
     return (
       <ModalPortal>
         <div className={overlayClass}>
           <div className={panelClass}>
             <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]" />
-            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-6 py-4">
+            <div className="flex items-center justify-between border-b border-esc-border bg-esc-bg px-6 py-4">
               <h2 className="text-lg font-bold tracking-tight text-esc-text">
                 Nova Ordem de Serviço
               </h2>

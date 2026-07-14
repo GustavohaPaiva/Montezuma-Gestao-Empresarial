@@ -17,7 +17,7 @@ export default function LoadingPainel({
       <div
         className={`flex min-h-[42vh] w-full items-center justify-center px-4 py-16 ${className}`.trim()}
       >
-        <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-esc-card/40 px-8 py-10 text-center backdrop-blur-md">
+        <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-esc-border bg-esc-card px-8 py-10 text-center shadow-sm">
           <div
             className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-esc-destaque/10"
             aria-hidden

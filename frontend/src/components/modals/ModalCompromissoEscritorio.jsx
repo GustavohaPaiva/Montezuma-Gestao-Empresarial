@@ -35,7 +35,7 @@ function normalizarTipo(raw) {
 }
 
 const fieldClass =
-  "w-full rounded-xl border border-gray-600/55 bg-esc-bg/75 px-4 py-3 text-sm text-gray-200 shadow-inner transition-all duration-300 placeholder:text-esc-muted/45 focus:border-[var(--esc-destaque)] focus:bg-esc-bg focus:outline-none focus:ring-1 focus:ring-[var(--esc-destaque)] disabled:cursor-not-allowed disabled:opacity-50";
+  "w-full rounded-xl border border-esc-border bg-esc-bg/75 px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/45 focus:border-[var(--esc-destaque)] focus:bg-esc-bg focus:outline-none focus:ring-1 focus:ring-[var(--esc-destaque)] disabled:cursor-not-allowed disabled:opacity-50";
 
 const selectClass = `${fieldClass} cursor-pointer pr-9`;
 
@@ -177,7 +177,7 @@ export default function ModalCompromissoEscritorio({
 
   const modalOverlayClass = `${temaClasse} fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md`;
   const modalPanelClass =
-    "scheme-dark animate-premium-reveal relative flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-white/20 bg-esc-card shadow-[0_0_40px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl";
+    "animate-premium-reveal relative flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-esc-border bg-esc-card shadow-[0_0_40px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl";
 
   const carregarClientes = useCallback(async () => {
     if (!escritorioId) return;
@@ -443,14 +443,14 @@ export default function ModalCompromissoEscritorio({
           <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]" />
           <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/10 blur-[70px]" />
 
-          <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-6 py-4">
+          <div className="flex items-center justify-between border-b border-esc-border bg-esc-bg px-6 py-4">
             <h2 className="text-xl font-bold tracking-tight text-esc-text">
               {modoEdicao ? "Editar Compromisso" : "Novo Compromisso"}
             </h2>
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-esc-muted transition-all duration-300 hover:bg-white/10 hover:text-esc-text"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-esc-bg text-esc-muted transition-all duration-300 hover:bg-esc-bg hover:text-esc-text"
               aria-label="Fechar"
             >
               <X className="h-4 w-4" />
@@ -561,10 +561,10 @@ export default function ModalCompromissoEscritorio({
                   className="group inline-flex max-w-full items-center gap-1.5 rounded-md px-0 py-0.5 text-left transition-colors duration-300 hover:bg-transparent"
                 >
                   <Repeat
-                    className="h-3.5 w-3.5 shrink-0 text-gray-400 transition-colors duration-300 group-hover:text-[var(--esc-destaque)]"
+                    className="h-3.5 w-3.5 shrink-0 text-esc-muted transition-colors duration-300 group-hover:text-[var(--esc-destaque)]"
                     aria-hidden
                   />
-                  <span className="text-xs text-gray-400 transition-colors duration-300 group-hover:text-[var(--esc-destaque)]">
+                  <span className="text-xs text-esc-muted transition-colors duration-300 group-hover:text-[var(--esc-destaque)]">
                     {repetirCompromisso
                       ? `Repete ${rotuloFrequenciaResumo(frequenciaRecorrencia)}`
                       : "Não se repete"}
@@ -579,7 +579,7 @@ export default function ModalCompromissoEscritorio({
                   }`}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    <div className="rounded-lg border border-white/10 bg-white/[0.02] p-2.5 transition-all duration-300">
+                    <div className="rounded-lg border border-esc-border bg-esc-bg p-2.5 transition-all duration-300">
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex min-w-0 flex-col gap-1">
                           <label className="text-xs font-medium text-esc-muted">
@@ -634,7 +634,7 @@ export default function ModalCompromissoEscritorio({
                                   className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold transition-colors duration-200 ${
                                     ativo
                                       ? "bg-[var(--esc-destaque)]/20 text-[var(--esc-destaque)]"
-                                      : "border border-white/10 bg-white/[0.04] text-esc-muted hover:border-white/15 hover:text-esc-text"
+                                      : "border border-esc-border bg-esc-bg text-esc-muted hover:border-esc-border hover:text-esc-text"
                                   }`}
                                 >
                                   {dia.label}
@@ -648,7 +648,7 @@ export default function ModalCompromissoEscritorio({
                       <button
                         type="button"
                         onClick={desativarRecorrencia}
-                        className="mt-2 text-[11px] text-gray-500 underline-offset-2 transition-colors hover:text-[var(--esc-destaque)] hover:underline"
+                        className="mt-2 text-[11px] text-esc-muted underline-offset-2 transition-colors hover:text-[var(--esc-destaque)] hover:underline"
                       >
                         Não repetir
                       </button>
@@ -686,7 +686,7 @@ export default function ModalCompromissoEscritorio({
                   <button
                     type="button"
                     onClick={limparCliente}
-                    className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-esc-muted transition-all hover:bg-white/10 hover:text-esc-text"
+                    className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-esc-muted transition-all hover:bg-esc-bg hover:text-esc-text"
                     aria-label="Limpar cliente"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -694,14 +694,14 @@ export default function ModalCompromissoEscritorio({
                 ) : null}
               </div>
               {focoBusca && clientesFiltrados.length > 0 ? (
-                <ul className="absolute top-full left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-esc-card/95 p-1 shadow-lg backdrop-blur-md">
+                <ul className="absolute top-full left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-esc-border bg-esc-card/95 p-1 shadow-lg backdrop-blur-md">
                   {clientesFiltrados.map((c) => (
                     <li key={c.id}>
                       <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => selecionarCliente(c)}
-                        className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-esc-text transition hover:bg-white/10"
+                        className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-esc-text transition hover:bg-esc-bg"
                       >
                         <span className="truncate">{c.nome}</span>
                         {clienteId === c.id ? (
@@ -734,18 +734,18 @@ export default function ModalCompromissoEscritorio({
             </div>
 
             {erro ? (
-              <p className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">
+              <p className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                 {erro}
               </p>
             ) : null}
           </div>
 
-          <div className="flex gap-3 border-t border-white/10 bg-white/[0.02] px-6 py-4">
+          <div className="flex gap-3 border-t border-esc-border bg-esc-bg px-6 py-4">
             <button
               type="button"
               onClick={onClose}
               disabled={salvando}
-              className="w-full rounded-xl border border-white/10 py-3 text-sm font-semibold text-esc-muted transition-colors hover:bg-white/5 hover:text-esc-text disabled:opacity-50"
+              className="w-full rounded-xl border border-esc-border py-3 text-sm font-semibold text-esc-muted transition-colors hover:bg-esc-bg hover:text-esc-text disabled:opacity-50"
             >
               Cancelar
             </button>

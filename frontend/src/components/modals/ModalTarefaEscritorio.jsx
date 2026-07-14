@@ -19,7 +19,7 @@ const STATUS_VALIDOS = new Set([
 ]);
 
 const FIELD_CLASS =
-  "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:bg-black/60 focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque";
+  "w-full rounded-xl border border-esc-border bg-esc-card px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:bg-esc-bg focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque";
 
 const TABS = [
   { id: "visao-geral", label: "Visão Geral" },
@@ -353,18 +353,18 @@ export default function ModalTarefaEscritorio({
     <ModalPortal>
       <div className={overlayClass} role="dialog" aria-modal="true">
         {modoCriacao ? (
-          <div className="animate-premium-reveal relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/20 bg-esc-card shadow-[0_0_80px_-15px_var(--color-esc-destaque)]">
+          <div className="animate-premium-reveal relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-esc-border bg-esc-card shadow-[0_0_80px_-15px_var(--color-esc-destaque)]">
             <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]" />
             <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]" />
 
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-esc-border px-6 py-4">
               <h2 className="text-lg font-bold tracking-tight text-esc-text">
                 Nova tarefa
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-esc-muted transition-all hover:bg-white/10 hover:text-esc-text"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-esc-border bg-esc-bg text-esc-muted transition-all hover:bg-esc-bg hover:text-esc-text"
                 aria-label="Fechar"
               >
                 <X className="h-5 w-5" />
@@ -432,7 +432,7 @@ export default function ModalTarefaEscritorio({
                 <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                   Responsáveis
                 </label>
-                <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-white/10 bg-black/30 p-3">
+                <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-esc-border bg-esc-card p-3">
                   {equipe.map((u) => {
                     const uid = String(u.id);
                     const checked = form.responsaveis.map(String).includes(uid);
@@ -445,7 +445,7 @@ export default function ModalTarefaEscritorio({
                         className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
                           checked
                             ? "border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque"
-                            : "border-white/10 bg-white/5 text-esc-muted hover:bg-white/10 hover:text-esc-text"
+                            : "border-esc-border bg-esc-bg text-esc-muted hover:bg-esc-bg hover:text-esc-text"
                         } disabled:cursor-not-allowed disabled:opacity-60`}
                       >
                         {u.nome || "—"}
@@ -461,11 +461,11 @@ export default function ModalTarefaEscritorio({
               </div>
             </div>
 
-            <div className="flex gap-3 border-t border-white/10 px-6 py-4">
+            <div className="flex gap-3 border-t border-esc-border px-6 py-4">
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full rounded-xl border border-white/10 py-3 text-sm font-semibold text-esc-muted transition-colors hover:bg-white/5 hover:text-esc-text"
+                className="w-full rounded-xl border border-esc-border py-3 text-sm font-semibold text-esc-muted transition-colors hover:bg-esc-bg hover:text-esc-text"
               >
                 Cancelar
               </button>
@@ -480,12 +480,12 @@ export default function ModalTarefaEscritorio({
             </div>
           </div>
         ) : (
-          <div className="animate-premium-reveal relative flex h-[95vh] w-[95vw] max-w-7xl flex-col overflow-hidden rounded-3xl border border-white/20 bg-esc-card shadow-[0_0_80px_-15px_var(--color-esc-destaque)] md:flex-row">
+          <div className="animate-premium-reveal relative flex h-[95vh] w-[95vw] max-w-7xl flex-col overflow-hidden rounded-3xl border border-esc-border bg-esc-card shadow-[0_0_80px_-15px_var(--color-esc-destaque)] md:flex-row">
             <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]" />
             <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]" />
 
             <div className="custom-scrollbar flex flex-1 flex-col overflow-y-auto p-6 md:p-10">
-              <div className="mb-6 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="mb-6 flex items-center justify-between gap-3 border-b border-esc-border pb-4">
                 <div className="flex flex-wrap items-center gap-2">
                   {TABS.map((tab) => {
                     const ativa = activeTab === tab.id;
@@ -497,7 +497,7 @@ export default function ModalTarefaEscritorio({
                         className={`rounded-full border px-4 py-2 text-xs font-semibold transition-all ${
                           ativa
                             ? "border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque shadow-[0_0_16px_-8px_var(--color-esc-destaque)]"
-                            : "border-white/10 bg-white/5 text-esc-muted hover:bg-white/10 hover:text-esc-text"
+                            : "border-esc-border bg-esc-bg text-esc-muted hover:bg-esc-bg hover:text-esc-text"
                         }`}
                       >
                         {tab.label}
@@ -508,7 +508,7 @@ export default function ModalTarefaEscritorio({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-esc-muted transition-all hover:bg-white/10 hover:text-esc-text"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-esc-border bg-esc-bg text-esc-muted transition-all hover:bg-esc-bg hover:text-esc-text"
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5" />
@@ -517,7 +517,7 @@ export default function ModalTarefaEscritorio({
 
               {activeTab === "visao-geral" ? (
                 <>
-                  <div className="space-y-3 border-b border-white/10 pb-8">
+                  <div className="space-y-3 border-b border-esc-border pb-8">
                     <h1 className="text-3xl font-semibold tracking-tight text-esc-text md:text-4xl">
                       {form.titulo || "Sem título"}
                     </h1>
@@ -535,7 +535,7 @@ export default function ModalTarefaEscritorio({
                     </p>
                   </div>
 
-                  <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-sm">
+                  <div className="mt-10 rounded-2xl border border-esc-border bg-esc-bg p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-sm">
                     <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-esc-text">
                       Diário de Progresso
                     </h3>
@@ -550,14 +550,14 @@ export default function ModalTarefaEscritorio({
                         progressoFeed.map((item) => (
                           <div
                             key={item.id}
-                            className="mb-3 flex flex-col gap-2 rounded-xl border border-white/10 bg-white/5 p-3 last:mb-0"
+                            className="mb-3 flex flex-col gap-2 rounded-xl border border-esc-border bg-esc-bg p-3 last:mb-0"
                           >
                             <div className="flex items-start gap-3">
-                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-esc-text ring-1 ring-white/10">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-esc-bg text-xs font-bold text-esc-text ring-1 ring-esc-border/60">
                                 {iniciaisNome(item.usuarios?.nome)}
                               </span>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-white">
+                                <p className="truncate text-sm font-semibold text-esc-text">
                                   {item.usuarios?.nome ?? "Usuário"}
                                 </p>
                                 <p className="text-xs text-esc-muted">
@@ -565,16 +565,16 @@ export default function ModalTarefaEscritorio({
                                 </p>
                               </div>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap text-gray-300">
+                            <p className="text-sm whitespace-pre-wrap text-esc-muted">
                               {item.mensagem}
                             </p>
                           </div>
                         ))
                       )}
                     </div>
-                    <div className="mt-5 border-t border-white/10 pt-5">
+                    <div className="mt-5 border-t border-esc-border pt-5">
                       <textarea
-                        className="min-h-[80px] w-full rounded-xl border border-white/10 bg-black/40 p-3 text-white focus:ring-1 focus:ring-esc-destaque focus:outline-none"
+                        className="min-h-[80px] w-full rounded-xl border border-esc-border bg-esc-card p-3 text-esc-text focus:ring-1 focus:ring-esc-destaque focus:outline-none"
                         placeholder="Escreva uma nova atualização…"
                         value={textoNovoProgresso}
                         onChange={(e) => setTextoNovoProgresso(e.target.value)}
@@ -694,7 +694,7 @@ export default function ModalTarefaEscritorio({
                     <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                       Responsáveis
                     </label>
-                    <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-white/10 bg-black/30 p-3">
+                    <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-esc-border bg-esc-card p-3">
                       {equipe.map((u) => {
                         const uid = String(u.id);
                         const checked = form.responsaveis
@@ -709,7 +709,7 @@ export default function ModalTarefaEscritorio({
                             className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
                               checked
                                 ? "border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque"
-                                : "border-white/10 bg-white/5 text-esc-muted hover:bg-white/10 hover:text-esc-text"
+                                : "border-esc-border bg-esc-bg text-esc-muted hover:bg-esc-bg hover:text-esc-text"
                             } disabled:cursor-not-allowed disabled:opacity-60`}
                           >
                             {u.nome || "—"}
@@ -740,7 +740,7 @@ export default function ModalTarefaEscritorio({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="w-full rounded-xl border border-white/10 py-3 text-sm font-semibold text-esc-muted transition-colors hover:bg-white/5 hover:text-esc-text"
+                    className="w-full rounded-xl border border-esc-border py-3 text-sm font-semibold text-esc-muted transition-colors hover:bg-esc-bg hover:text-esc-text"
                   >
                     Cancelar
                   </button>
@@ -749,14 +749,14 @@ export default function ModalTarefaEscritorio({
                       type="button"
                       onClick={excluirTarefa}
                       disabled={salvando}
-                      className="w-full rounded-xl border border-white/10 py-3 text-sm font-semibold text-esc-muted transition-colors hover:border-esc-destaque/35 hover:bg-white/5 hover:text-esc-destaque disabled:opacity-50"
+                      className="w-full rounded-xl border border-esc-border py-3 text-sm font-semibold text-esc-muted transition-colors hover:border-esc-destaque/35 hover:bg-esc-bg hover:text-esc-destaque disabled:opacity-50"
                     >
                       Excluir tarefa
                     </button>
                   ) : null}
                 </div>
               )}
-              <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-5">
+              <div className="mt-8 flex flex-col gap-3 border-t border-esc-border pt-5">
                 {activeTab === "visao-geral" &&
                 form.status === TAREFA_STATUS.pendente ? (
                   donoSemBurocracia ? (
@@ -797,7 +797,7 @@ export default function ModalTarefaEscritorio({
                       Validar e Concluir Tarefa
                     </button>
                   ) : (
-                    <p className="rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-center text-xs text-esc-muted">
+                    <p className="rounded-xl border border-esc-border bg-esc-card px-4 py-3 text-center text-xs text-esc-muted">
                       Aguardando validação do Gestor
                     </p>
                   )

@@ -53,12 +53,12 @@ function ListaSkeleton() {
       {[1, 2, 3, 4, 5].map((i) => (
         <div
           key={i}
-          className="flex animate-pulse items-center gap-4 rounded-xl border border-white/5 bg-esc-card/50 p-4 backdrop-blur-md"
+          className="flex animate-pulse items-center gap-4 rounded-xl border border-esc-border bg-esc-card/50 p-4 backdrop-blur-md"
         >
-          <div className="h-12 w-12 shrink-0 rounded-lg bg-white/5" />
+          <div className="h-12 w-12 shrink-0 rounded-lg bg-esc-bg" />
           <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-4 w-1/3 rounded bg-white/5" />
-            <div className="h-3 w-1/2 rounded bg-white/5" />
+            <div className="h-4 w-1/3 rounded bg-esc-bg" />
+            <div className="h-3 w-1/2 rounded bg-esc-bg" />
           </div>
         </div>
       ))}
@@ -236,7 +236,7 @@ export default function ClientesEscritorio() {
         {
           texto: "Cancelar",
           className:
-            "rounded-xl border border-white/10 bg-transparent text-esc-text hover:bg-white/5",
+            "rounded-xl border border-esc-border bg-transparent text-esc-text hover:bg-esc-bg",
           onClick: fecharDialogo,
         },
         {
@@ -268,7 +268,7 @@ export default function ClientesEscritorio() {
           <div
             className={`${temaClasse} fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md transition-opacity`}
           >
-            <div className="animate-premium-reveal relative flex w-full max-w-md flex-col gap-5 overflow-hidden rounded-2xl border border-white/20 bg-esc-card p-7 text-center shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
+            <div className="animate-premium-reveal relative flex w-full max-w-md flex-col gap-5 overflow-hidden rounded-2xl border border-esc-border bg-esc-card p-7 text-center shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl">
               <div className="pointer-events-none absolute -top-20 -right-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/20 blur-[70px]"></div>
               <div className="pointer-events-none absolute -bottom-20 -left-20 -z-10 h-64 w-64 rounded-full bg-esc-destaque/10 blur-[70px]"></div>
 
@@ -347,7 +347,7 @@ export default function ClientesEscritorio() {
         </button>
       </header>
 
-      <section className="mb-6 w-full rounded-2xl border border-esc-border/70 bg-esc-card/80 p-4 shadow-lg backdrop-blur-md md:p-5">
+      <section className="mb-6 w-full rounded-2xl border border-esc-border/70 bg-esc-card p-4 shadow-lg backdrop-blur-md md:p-5">
         <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-end lg:gap-3">
           <div className="w-full min-w-0 lg:min-w-0 lg:flex-1">
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-esc-muted">
@@ -398,7 +398,7 @@ export default function ClientesEscritorio() {
         </div>
       </section>
 
-      <div className="w-full overflow-hidden rounded-xl border border-white/5 bg-esc-card backdrop-blur-md">
+      <div className="w-full overflow-hidden rounded-xl border border-esc-border bg-esc-card backdrop-blur-md">
         {loading ? (
           <div className="p-4">
             <ListaSkeleton />
@@ -410,11 +410,11 @@ export default function ClientesEscritorio() {
             Nenhum cliente encontrado para {nomeEscritorio}.
           </div>
         ) : (
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-esc-border">
             {linhas.map((c) => (
               <li
                 key={c.id}
-                className="flex flex-col gap-3 p-4 transition-colors hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 p-4 transition-colors hover:bg-esc-bg sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-esc-border bg-esc-bg text-esc-destaque">
@@ -474,7 +474,7 @@ export default function ClientesEscritorio() {
                     <button
                       type="button"
                       onClick={() => abrirExcluirCliente(c)}
-                      className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted transition-all hover:border-esc-border hover:bg-white/5 hover:text-esc-destaque"
+                      className="cursor-pointer rounded-full border border-transparent p-2 text-esc-muted transition-all hover:border-esc-border hover:bg-esc-bg hover:text-esc-destaque"
                       aria-label="Excluir cliente"
                       title="Excluir"
                     >

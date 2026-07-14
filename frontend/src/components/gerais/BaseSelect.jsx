@@ -7,7 +7,7 @@
  * - searchable: true | false | omitido (auto: busca quando options.length > 8)
  * - searchPlaceholder, emptyMessage, size ("default" | "compact"), loading
  * - wrapperClassName, triggerClassName, hideChevron, optionsCentered (badges/status)
- * - variant: "default" | "escritorio" | "escritorioBar" (tema escuro dos escritórios)
+ * - variant: "default" | "escritorio" | "escritorioBar" (tema dos escritórios)
  * - onCreateOption: async (query) => value — cadastro rápido quando a busca não encontra resultado
  * - createOptionLabel: (query) => string — rótulo da linha de criação (default: Cadastrar "query")
  *

@@ -1,8 +1,8 @@
 export const orcSecaoClass =
-  "overflow-hidden rounded-xl border border-white/5 bg-esc-card/40 shadow-sm backdrop-blur-sm";
+  "overflow-hidden rounded-xl border border-esc-border bg-esc-card shadow-sm";
 
 export const orcSecaoCabecalhoClass =
-  "border-b border-white/5 px-5 py-4";
+  "border-b border-esc-border px-5 py-4";
 
 export const orcSecaoIconClass =
   "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-esc-destaque/25 bg-esc-destaque/10 text-esc-destaque";
@@ -15,16 +15,16 @@ export const orcSecaoDescricaoClass =
 export const orcSecaoCorpoClass = "p-5";
 
 export const orcInputClass =
-  "w-full rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 py-2.5 text-sm text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 placeholder:text-esc-muted/60 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
+  "w-full rounded-xl border border-esc-border bg-esc-card px-3 py-2.5 text-sm text-esc-text shadow-sm transition-all duration-300 placeholder:text-esc-muted/70 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
 
 export const orcTextareaClass =
-  "min-h-[10.5rem] w-full resize-y rounded-xl border border-esc-border/70 bg-esc-bg/35 px-3 py-2.5 text-sm leading-relaxed text-esc-text shadow-inner backdrop-blur-md transition-all duration-300 placeholder:text-esc-muted/60 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
+  "min-h-[10.5rem] w-full resize-y rounded-xl border border-esc-border bg-esc-card px-3 py-2.5 text-sm leading-relaxed text-esc-text shadow-sm transition-all duration-300 placeholder:text-esc-muted/70 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20";
 
 export const orcCheckboxCardClass =
-  "flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2.5 transition hover:border-esc-destaque/30 hover:bg-white/[0.05] has-[:checked]:border-esc-destaque/45 has-[:checked]:bg-esc-destaque/10";
+  "flex cursor-pointer items-start gap-2.5 rounded-lg border border-esc-border bg-esc-bg px-3 py-2.5 transition hover:border-esc-destaque/30 hover:bg-esc-card has-[:checked]:border-esc-destaque/45 has-[:checked]:bg-esc-destaque/10";
 
 export const orcCheckboxInputClass =
-  "mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-esc-border/70 bg-esc-bg/50 text-esc-destaque focus:ring-esc-destaque/30";
+  "mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-esc-border bg-esc-card text-esc-destaque focus:ring-esc-destaque/30";
 
 export const orcGridCheckboxesClass =
   "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3";

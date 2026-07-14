@@ -135,7 +135,7 @@ export default function PdfPreviewModal({
     : "fixed inset-0 z-[100] flex flex-col bg-slate-900/40 backdrop-blur-[2px]";
 
   const headerClass = temaEscritorio
-    ? "flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-esc-card px-4 py-3 shadow-[0_0_40px_-15px_var(--color-esc-destaque)] sm:px-6 sm:py-4"
+    ? "flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-esc-border bg-esc-card px-4 py-3 shadow-[0_0_40px_-15px_var(--color-esc-destaque)] sm:px-6 sm:py-4"
     : "flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-4 py-3 shadow-sm sm:px-6 sm:py-4";
 
   const iconWrapClass = temaEscritorio
@@ -151,7 +151,7 @@ export default function PdfPreviewModal({
     : "truncate text-xs text-slate-500";
 
   const btnOutlineClass = temaEscritorio
-    ? "min-h-[44px] flex-1 border-white/15 bg-black/40 text-esc-text hover:bg-black/60 sm:flex-initial"
+    ? "min-h-[44px] flex-1 border-esc-border bg-esc-card text-esc-text hover:bg-esc-bg sm:flex-initial"
     : "min-h-[44px] flex-1 sm:flex-initial";
 
   const btnPrimaryClass = temaEscritorio
@@ -159,7 +159,7 @@ export default function PdfPreviewModal({
     : "min-h-[44px] flex-1 shadow-[0_4px_14px_rgba(220,59,11,0.25)] sm:flex-initial";
 
   const closeBtnClass = temaEscritorio
-    ? "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/15 bg-black/40 text-esc-muted shadow-sm transition hover:bg-black/60 hover:text-esc-text"
+    ? "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-esc-border bg-esc-card text-esc-muted shadow-sm transition hover:bg-esc-bg hover:text-esc-text"
     : "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-800";
 
   const bodyClass = temaEscritorio
@@ -179,11 +179,11 @@ export default function PdfPreviewModal({
     : "text-sm font-semibold text-slate-700";
 
   const erroCardClass = temaEscritorio
-    ? "max-w-md rounded-2xl border border-red-500/30 bg-esc-card p-8 shadow-lg shadow-black/40"
+    ? "max-w-md rounded-2xl border border-red-500/30 bg-esc-card p-8 shadow-lg shadow-black/10"
     : "max-w-md rounded-2xl border border-red-100 bg-white p-8 shadow-lg shadow-red-900/5";
 
   const iframeClass = temaEscritorio
-    ? "h-full w-full rounded-xl border border-white/10 bg-white shadow-md ring-1 ring-esc-destaque/10"
+    ? "h-full w-full rounded-xl border border-esc-border bg-white shadow-md ring-1 ring-esc-destaque/10"
     : "h-full w-full rounded-xl border border-slate-200/80 bg-white shadow-md ring-1 ring-black/[0.04]";
 
   return (
@@ -271,7 +271,7 @@ export default function PdfPreviewModal({
                   onClick={onClose}
                   className={
                     temaEscritorio
-                      ? "mt-4 border-white/15 bg-black/40 text-esc-text hover:bg-black/60"
+                      ? "mt-4 border-esc-border bg-esc-card text-esc-text hover:bg-esc-bg"
                       : "mt-4"
                   }
                 >
