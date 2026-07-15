@@ -97,6 +97,7 @@ export function diasSemanaNoMes(inicio, ano, mes) {
 /**
  * Semanas de calendário (seg–dom) que intersectam o mês.
  * Semanas com menos de 4 dias no mês são omitidas (rolam para o mês seguinte).
+ * Retorna em ordem cronológica (mais antiga → mais recente).
  */
 export function semanasDoMes(ano, mes) {
   const primeiro = new Date(ano, mes - 1, 1, 12, 0, 0, 0);
@@ -143,6 +144,19 @@ export function semanasDoMes(ano, mes) {
   return semanas;
 }
 
+/**
+ * Semanas do mês já iniciadas (exclui futuras), para listagem e seleção.
+ * Por padrão: mais recente → mais antiga.
+ */
+export function semanasDisponiveisDoMes(ano, mes, { ordem = "desc" } = {}) {
+  const limite = semanaAtualInicio();
+  const filtradas = semanasDoMes(ano, mes).filter(
+    (semana) => semana.inicio <= limite,
+  );
+  if (ordem === "asc") return filtradas;
+  return [...filtradas].reverse();
+}
+
 export function labelSemanaFromInicio(semanaInicio) {
   const inicio = parseISODate(semanaInicio);
   if (!inicio) return "Semana";
@@ -169,15 +183,17 @@ export function labelSemana(ano, mes, semanaRef) {
 }
 
 export function opcoesSemanaSelect(ano, mes) {
-  return semanasDoMes(ano, mes).map((semana, i) => ({
-    value: semana.inicio,
-    label: labelSemanaFromInicio(semana.inicio),
-    ordem: i + 1,
-  }));
+  return semanasDisponiveisDoMes(ano, mes, { ordem: "desc" }).map(
+    (semana, i) => ({
+      value: semana.inicio,
+      label: labelSemanaFromInicio(semana.inicio),
+      ordem: i + 1,
+    }),
+  );
 }
 
 export function deslocarSemanaNoMes(ano, mes, semanaInicio, delta) {
-  const semanas = semanasDoMes(ano, mes);
+  const semanas = semanasDisponiveisDoMes(ano, mes, { ordem: "asc" });
   const idx = semanas.findIndex((s) => s.inicio === semanaInicio);
   if (idx < 0) return null;
   const alvo = semanas[idx + delta];

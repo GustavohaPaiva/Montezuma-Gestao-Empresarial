@@ -151,6 +151,16 @@ export function filtrarPedidos(pedidos, { busca = "", status = "Tudo" } = {}) {
   }
 
   return list.sort((a, b) => {
+    if (!status || status === "Tudo") {
+      const sa = a.status || STATUS_PEDIDO_PENDENTE;
+      const sb = b.status || STATUS_PEDIDO_PENDENTE;
+      const ia = STATUS_PEDIDO_OPCOES.indexOf(sa);
+      const ib = STATUS_PEDIDO_OPCOES.indexOf(sb);
+      const ordA = ia === -1 ? STATUS_PEDIDO_OPCOES.length : ia;
+      const ordB = ib === -1 ? STATUS_PEDIDO_OPCOES.length : ib;
+      if (ordA !== ordB) return ordA - ordB;
+    }
+
     const oa = String(a.obra_id ?? "");
     const ob = String(b.obra_id ?? "");
     if (oa !== ob) {

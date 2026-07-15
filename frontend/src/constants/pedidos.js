@@ -84,16 +84,11 @@ export const DADOS_EMITENTE_MONTEZUMA = {
 
 /** Cards informativos (métricas) — alinhado às cores de status do sistema. */
 export const PEDIDO_METRICAS_CONFIG = [
-  { id: "total", label: "Total de pedidos", colorTheme: "blue", filtro: "Tudo" },
   { id: "Pendente", label: "Pendente", colorTheme: "amber", filtro: "Pendente" },
   { id: "Em cotação", label: "Em cotação", colorTheme: "purple", filtro: "Em cotação" },
   { id: "Aprovado", label: "Aprovado", colorTheme: "indigo", filtro: "Aprovado" },
-  {
-    id: "Aguardando entrega",
-    label: "Aguardando entrega",
-    colorTheme: "blue",
-    filtro: "Aguardando entrega",
-  },
+  { id: "Aguardando entrega", label: "Aguardando entrega", colorTheme: "blue", filtro: "Aguardando entrega" },
   { id: "Entregue", label: "Entregue", colorTheme: "emerald", filtro: "Entregue" },
   { id: "Cancelado", label: "Cancelado", colorTheme: "pink", filtro: "Cancelado" },
+  { id: "total", label: "Total de pedidos", colorTheme: "blue", filtro: "Tudo" },
 ];

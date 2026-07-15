@@ -13,19 +13,30 @@ import { PEDIDO_METRICAS_CONFIG } from "../../constants/pedidos";
 import { calcularMetricasPedidos } from "../../utils/pedidosUtils";
 
 const ICONES_METRICA = {
-  total: Package,
+  
   Pendente: Clock,
   "Em cotação": FileSearch,
   Aprovado: CheckCircle2,
   "Aguardando entrega": Truck,
   Entregue: ClipboardList,
   Cancelado: Ban,
+  total: Package,
 };
 
 /**
- * @param {{ pedidos: object[], className?: string }} props
+ * @param {{
+ *   pedidos: object[],
+ *   className?: string,
+ *   filtroAtivo?: string,
+ *   onFiltroChange?: (filtro: string) => void,
+ * }} props
  */
-export default function PedidosMetricasResumo({ pedidos, className = "" }) {
+export default function PedidosMetricasResumo({
+  pedidos,
+  className = "",
+  filtroAtivo,
+  onFiltroChange,
+}) {
   const metricas = useMemo(() => calcularMetricasPedidos(pedidos), [pedidos]);
 
   if (!pedidos?.length) return null;
@@ -37,6 +48,7 @@ export default function PedidosMetricasResumo({ pedidos, className = "" }) {
       {PEDIDO_METRICAS_CONFIG.map((cfg) => {
         const Icon = ICONES_METRICA[cfg.id] || Package;
         const valor = metricas[cfg.id] ?? 0;
+        const selected = filtroAtivo === cfg.filtro;
 
         return (
           <BaseCard
@@ -46,6 +58,12 @@ export default function PedidosMetricasResumo({ pedidos, className = "" }) {
             value={valor}
             colorTheme={cfg.colorTheme}
             icon={<Icon className="h-5 w-5" />}
+            selected={selected}
+            onClick={
+              typeof onFiltroChange === "function"
+                ? () => onFiltroChange(cfg.filtro)
+                : undefined
+            }
           />
         );
       })}

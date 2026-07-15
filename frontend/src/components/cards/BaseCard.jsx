@@ -7,6 +7,7 @@ const THEME_STYLES = {
     leftHover: "group-hover:border-l-accent-primary",
     pill: "bg-accent-primary/10 text-accent-primary",
     actionHover: "hover:bg-accent-primary/5",
+    selectedRing: "ring-2 ring-accent-primary/45 shadow-md",
   },
   blue: {
     topBar: "bg-accent-blue-600",
@@ -16,6 +17,7 @@ const THEME_STYLES = {
     leftHover: "group-hover:border-l-accent-blue-600",
     pill: "bg-accent-blue-50 text-accent-blue-600",
     actionHover: "hover:bg-accent-blue-50",
+    selectedRing: "ring-2 ring-accent-blue-600/45 shadow-md",
   },
   emerald: {
     topBar: "bg-accent-emerald-600",
@@ -25,6 +27,7 @@ const THEME_STYLES = {
     leftHover: "group-hover:border-l-accent-emerald-600",
     pill: "bg-accent-emerald-50 text-accent-emerald-600",
     actionHover: "hover:bg-accent-emerald-50",
+    selectedRing: "ring-2 ring-accent-emerald-600/45 shadow-md",
   },
   purple: {
     topBar: "bg-accent-purple-600",
@@ -34,6 +37,7 @@ const THEME_STYLES = {
     leftHover: "group-hover:border-l-accent-purple-600",
     pill: "bg-accent-purple-50 text-accent-purple-600",
     actionHover: "hover:bg-accent-purple-50",
+    selectedRing: "ring-2 ring-accent-purple-600/45 shadow-md",
   },
   amber: {
     topBar: "bg-accent-amber-600",
@@ -43,6 +47,7 @@ const THEME_STYLES = {
     leftHover: "group-hover:border-l-accent-amber-600",
     pill: "bg-accent-amber-50 text-accent-amber-600",
     actionHover: "hover:bg-accent-amber-50",
+    selectedRing: "ring-2 ring-accent-amber-600/45 shadow-md",
   },
   pink: {
     topBar: "bg-accent-pink-600",
@@ -52,6 +57,7 @@ const THEME_STYLES = {
     leftHover: "group-hover:border-l-accent-pink-600",
     pill: "bg-accent-pink-50 text-accent-pink-600",
     actionHover: "hover:bg-accent-pink-50",
+    selectedRing: "ring-2 ring-accent-pink-600/45 shadow-md",
   },
   indigo: {
     topBar: "bg-accent-indigo-600",
@@ -61,6 +67,7 @@ const THEME_STYLES = {
     leftHover: "group-hover:border-l-accent-indigo-600",
     pill: "bg-accent-indigo-50 text-accent-indigo-600",
     actionHover: "hover:bg-accent-indigo-50",
+    selectedRing: "ring-2 ring-accent-indigo-600/45 shadow-md",
   },
 };
 
@@ -81,6 +88,8 @@ export default function BaseCard({
   children,
   /** Conteúdo à esquerda do título (ex.: avatar), só em variant="entity". */
   leading,
+  /** Destaque visual do card ativo (ex.: filtro selecionado). */
+  selected = false,
 }) {
   const palette = THEME_STYLES[colorTheme] || THEME_STYLES.primary;
   const isInteractive = typeof onClick === "function";
@@ -102,6 +111,7 @@ export default function BaseCard({
               },
             }
           : { type: "button" }),
+        ...(selected ? { "aria-pressed": true } : {}),
       }
     : {};
 
@@ -274,6 +284,7 @@ export default function BaseCard({
       className={joinClasses(
         "group relative h-full w-full flex flex-col overflow-hidden rounded-2xl bg-white p-5 text-left tracking-tight ring-1 ring-slate-900/5 shadow-sm transition-all duration-200",
         isInteractive && "cursor-pointer hover:shadow-md",
+        selected && palette.selectedRing,
       )}
     >
       <span

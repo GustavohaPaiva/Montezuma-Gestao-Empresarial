@@ -5,7 +5,7 @@ import {
   isSemanaAtual,
   labelSemanaFromInicio,
   opcoesSemanaSelect,
-  semanasDoMes,
+  semanasDisponiveisDoMes,
 } from "../relatoriosDiretoriaUtils";
 import {
   relatorioPeriodoCampoClass,
@@ -27,7 +27,7 @@ export default function RelatorioSemanaReferenciaCard({
   const label = labelSemanaFromInicio(semanaInicio);
   const semanaAtual = isSemanaAtual(semanaInicio);
   const opcoes = opcoesSemanaSelect(ano, mes);
-  const semanas = semanasDoMes(ano, mes);
+  const semanas = semanasDisponiveisDoMes(ano, mes, { ordem: "asc" });
   const idxAtual = semanas.findIndex((s) => s.inicio === semanaInicio);
 
   const podeAnterior = idxAtual > 0;

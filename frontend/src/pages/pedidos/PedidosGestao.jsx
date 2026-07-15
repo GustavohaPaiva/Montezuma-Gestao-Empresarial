@@ -19,7 +19,7 @@ export default function PedidosGestao() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
   const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("Tudo");
+  const [filtroStatus, setFiltroStatus] = useState("Pendente");
 
   const autorizado = isGestorPedidos(user);
 
@@ -96,7 +96,12 @@ export default function PedidosGestao() {
         ) : null}
 
         {!loading && pedidos.length > 0 ? (
-          <PedidosMetricasResumo className="mb-6" pedidos={pedidos} />
+          <PedidosMetricasResumo
+            className="mb-6"
+            pedidos={pedidos}
+            filtroAtivo={filtroStatus}
+            onFiltroChange={setFiltroStatus}
+          />
         ) : null}
 
         {!loading && pedidos.length > 0 ? (

@@ -24,7 +24,7 @@ import {
   rotaRelatorioFinanceiro,
   rotaRelatorioSemana,
   semanaAtualInicio,
-  semanasDoMes,
+  semanasDisponiveisDoMes,
 } from "./relatoriosDiretoriaUtils";
 import {
   relatorioHistoricoHeaderClass,
@@ -71,7 +71,7 @@ export default function RelatorioObraDetalhe() {
   );
 
   const semanas = useMemo(
-    () => semanasDoMes(periodo.ano, periodo.mes),
+    () => semanasDisponiveisDoMes(periodo.ano, periodo.mes),
     [periodo.ano, periodo.mes],
   );
 
@@ -208,7 +208,7 @@ export default function RelatorioObraDetalhe() {
 
           {semanas.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border-primary/40 bg-white px-4 py-8 text-center text-sm text-text-muted">
-              Nenhuma semana completa neste mês.
+              Nenhuma semana disponível neste mês.
             </p>
           ) : (
             <div className={relatorioHistoricoTimelineClass}>
