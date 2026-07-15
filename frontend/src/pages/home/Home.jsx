@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../services/api";
 import { homeDictionary } from "../../constants/dictionaries";
-import { getModulosPermitidos } from "./homeModules";
+import { getAcessoEscritorio, getModulosPermitidos } from "./homeModules";
 import { useHomeDashboard } from "./hooks/useHomeDashboard";
+import { useHomeReservasSala } from "./hooks/useHomeReservasSala";
 import { useScrollFadeIn } from "../../hooks/useScrollFadeIn";
 import {
   homePageClass,
@@ -11,11 +12,11 @@ import {
   getSaudacao,
   getPerfilLabel,
   userVeDashboard,
-  userEhEncarregado,
 } from "./homeUi";
 import HomeBackground from "./components/HomeBackground";
 import Navbar from "../../components/navbar/Navbar";
 import HomeWelcome from "./components/HomeWelcome";
+import HomeSalaReunioes from "./components/HomeSalaReunioes";
 import HomeWeeklyAgenda from "./components/HomeWeeklyAgenda";
 import HomeDashboardStrip from "./components/HomeDashboardStrip";
 import HomeModuleGrid from "./components/HomeModuleGrid";
@@ -34,9 +35,15 @@ export default function Home() {
   const [refMain, isMainVisible] = useScrollFadeIn();
 
   const modulosPermitidos = getModulosPermitidos(user);
+  const escritorioAcesso = getAcessoEscritorio(user);
   const { counts, loading, visible: dashboardVisible } = useHomeDashboard(user);
+  const {
+    reservas,
+    loading: loadingReservas,
+    visible: reservasVisible,
+    refetch: refetchReservas,
+  } = useHomeReservasSala(user);
   const veAgendaEDashboard = userVeDashboard(user?.tipo);
-  const ehEncarregado = userEhEncarregado(user?.tipo);
 
   const nomeUsuario =
     user?.nome ||
@@ -135,11 +142,19 @@ export default function Home() {
         }`}
       >
         <HomeWelcome
-          modulosCount={modulosPermitidos.length}
           nomeUsuario={nomeUsuario}
           saudacao={getSaudacao()}
-          acessoLimitado={ehEncarregado}
+          escritorioAcesso={escritorioAcesso}
+          modulosCount={modulosPermitidos.length}
+          perfilLabel={getPerfilLabel(user?.tipo)}
         />
+        {reservasVisible ? (
+          <HomeSalaReunioes
+            reservas={reservas}
+            loading={loadingReservas}
+            onChanged={refetchReservas}
+          />
+        ) : null}
         {veAgendaEDashboard ? <HomeWeeklyAgenda /> : null}
         {dashboardVisible ? (
           <HomeDashboardStrip counts={counts} loading={loading} />

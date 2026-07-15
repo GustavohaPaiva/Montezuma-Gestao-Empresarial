@@ -1,5 +1,4 @@
 import {
-  Building2,
   FolderOpen,
   HardHat,
   Wallet,
@@ -10,7 +9,11 @@ import {
   Users,
   CalendarRange,
 } from "lucide-react";
-import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
+import {
+  ESCRITORIO_NOME_POR_ID,
+  ID_VOGELKOP,
+  ID_YBYOCA,
+} from "../../constants/escritorios";
 import { homeDictionary } from "../../constants/dictionaries";
 import { isGestorPedidos } from "../../constants/pedidos";
 import { podeAcessarModuloOrdemServico } from "../../utils/ordemServicoPermissions";
@@ -22,18 +25,26 @@ const d = homeDictionary.modulos.descricoes;
 const c = homeDictionary.modulos.categorias;
 const dest = homeDictionary.modulos.destaques;
 
+/** Acesso ao workspace do escritório (fora da grade de módulos). */
+export function getAcessoEscritorio(user) {
+  const podeAcessar =
+    (user?.tipo === "diretoria" || user?.tipo === "gestor_master") &&
+    (user?.escritorio_id === ID_VOGELKOP || user?.escritorio_id === ID_YBYOCA);
+
+  if (!podeAcessar) return null;
+
+  const path =
+    user.escritorio_id === ID_VOGELKOP
+      ? "/escritorio/vogelkop"
+      : "/escritorio/ybyoca";
+
+  return {
+    path,
+    nome: ESCRITORIO_NOME_POR_ID[user.escritorio_id] ?? "Escritório",
+  };
+}
+
 export const MODULOS_HOME = [
-  {
-    id: 1,
-    titulo: m.meuEscritorio,
-    descricao: d.meuEscritorio,
-    categoria: c.escritorio,
-    destaques: dest.meuEscritorio,
-    colorTheme: "blue",
-    Icon: Building2,
-    path: null,
-    meuEscritorio: true,
-  },
   {
     id: 2,
     titulo: m.processos,
@@ -150,22 +161,6 @@ export function getModulosPermitidos(user) {
     if (modulo.gestaoUsuarios) {
       return podeGerenciarUsuarios(user);
     }
-    if (modulo.meuEscritorio) {
-      return (
-        (user?.tipo === "diretoria" || user?.tipo === "gestor_master") &&
-        (user?.escritorio_id === ID_VOGELKOP ||
-          user?.escritorio_id === ID_YBYOCA)
-      );
-    }
     return modulo.roles?.includes(user?.tipo);
-  }).map((modulo) => {
-    if (modulo.meuEscritorio) {
-      const path =
-        user?.escritorio_id === ID_VOGELKOP
-          ? "/escritorio/vogelkop"
-          : "/escritorio/ybyoca";
-      return { ...modulo, path };
-    }
-    return modulo;
   });
 }

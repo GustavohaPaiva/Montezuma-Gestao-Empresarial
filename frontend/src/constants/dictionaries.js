@@ -12,7 +12,6 @@ export const homeDictionary = {
     encarregado: "Encarregado",
   },
   modulos: {
-    meuEscritorio: "Meu Escritório",
     processos: "Processos",
     obras: "Obras",
     financeiro: "Financeiro",
@@ -25,7 +24,6 @@ export const homeDictionary = {
     ordensServico: "Ordens de Serviço",
     usuariosSistema: "Usuários do sistema",
     categorias: {
-      escritorio: "Escritório",
       administrativo: "Administrativo",
       operacional: "Operacional",
       financeiro: "Financeiro",
@@ -34,8 +32,6 @@ export const homeDictionary = {
       analise: "Análise",
     },
     descricoes: {
-      meuEscritorio:
-        "Acompanhe reuniões, visitas e compromissos dos escritórios Vogelkop e Ybyoca em tempo real.",
       processos:
         "Gerencie clientes, documentos e licitações com histórico completo e acompanhamento de status.",
       obras:
@@ -60,7 +56,6 @@ export const homeDictionary = {
         "Cadastre usuários internos, permissões de OS e assinaturas digitais para documentos.",
     },
     destaques: {
-      meuEscritorio: ["Agenda", "Reuniões", "Visitas"],
       processos: ["Clientes", "Documentos", "Licitações"],
       obras: ["Cronogramas", "Etapas", "Detalhes"],
       relatoriosSemanais: ["Semanal", "Geral", "Consolidado"],
@@ -101,16 +96,61 @@ export const homeDictionary = {
     subtitle:
       "Gestão integrada de obras, processos e finanças — tudo em um só lugar.",
   },
+  escritorioAcesso: {
+    label: "Meu escritório",
+    cta: "Ir ao escritório",
+  },
   session: {
-    title: "Sessão ativa",
+    title: "Sua sessão",
     modulesAvailable: "módulos disponíveis",
-    fullAccess: "Perfil com acesso completo",
-    limitedAccess: "Acesso operacional",
+    profileHint: "Use os módulos abaixo para navegar",
   },
   weeklyAgenda: {
     sectionLabel: "Rotina semanal",
     sectionTitle: "O que fazer esta semana",
     todayBadge: "Hoje",
+  },
+  salaReunioes: {
+    sectionLabel: "Sala única",
+    sectionTitle: "Sala de reuniões",
+    reservarCta: "Reservar",
+    hojeLabel: "Hoje",
+    proximasLabel: "Próximas",
+    verMais: "Ver mais",
+    verMenos: "Ver menos",
+    nenhumaHoje: "Nenhuma reunião hoje.",
+    nenhumaProxima: "Nenhuma reserva nos próximos dias.",
+    loading: "Carregando reservas…",
+    modal: {
+      createTitle: "Reservar sala",
+      editTitle: "Editar reserva",
+      tituloLabel: "Assunto",
+      tituloPlaceholder: "Ex.: alinhamento comercial",
+      clienteLabel: "Cliente (opcional)",
+      clientePlaceholder: "Selecione ou digite o cliente",
+      clienteVazio: "Nenhum cliente encontrado",
+      clienteUsar: 'Usar "{nome}"',
+      dataLabel: "Data",
+      inicioLabel: "Início",
+      fimLabel: "Fim",
+      obsLabel: "Observações (opcional)",
+      obsPlaceholder: "Pauta, participantes…",
+      fechar: "Fechar",
+      reservar: "Reservar",
+      salvar: "Salvar",
+      salvando: "Salvando…",
+      cancelarReserva: "Cancelar reserva",
+      cancelando: "Cancelando…",
+      confirmTitle: "Cancelar reserva",
+      confirmCancelar: "Tem certeza que deseja cancelar esta reserva da sala?",
+      confirmAction: "Confirmar",
+      tituloObrigatorio: "Informe o assunto da reunião.",
+      horarioObrigatorio: "Informe data e horários.",
+      fimAposInicio: "O horário de fim deve ser após o início.",
+      duracaoMinima: "A reunião deve ter no mínimo 30 minutos.",
+      erroSalvar: "Não foi possível salvar a reserva.",
+      erroCancelar: "Não foi possível cancelar a reserva.",
+    },
   },
   dashboard: {
     sectionTitle: "Resumo rápido",

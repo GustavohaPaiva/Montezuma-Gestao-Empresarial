@@ -1,4 +1,5 @@
-import { Building2 } from "lucide-react";
+import { ArrowRight, Building2, LayoutGrid } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { homeDictionary } from "../../../constants/dictionaries";
 import {
   homeWelcomeClass,
@@ -11,12 +12,16 @@ import {
 } from "../homeUi";
 
 export default function HomeWelcome({
-  modulosCount,
   nomeUsuario,
   saudacao,
-  acessoLimitado = false,
+  escritorioAcesso = null,
+  modulosCount = 0,
+  perfilLabel = "",
 }) {
+  const navigate = useNavigate();
   const dataHoje = formatDataHojeExtenso();
+  const escritorioCopy = homeDictionary.escritorioAcesso;
+  const sessionCopy = homeDictionary.session;
 
   return (
     <section className={homeWelcomeClass}>
@@ -57,9 +62,6 @@ export default function HomeWelcome({
               <div className="h-0.5 w-2 rounded-full bg-accent-primary/35" />
               <div className="h-0.5 w-1 rounded-full bg-accent-primary/20" />
             </div>
-            <p className="mt-2 text-xs text-text-muted lg:hidden">
-              {modulosCount} {homeDictionary.session.modulesAvailable}
-            </p>
           </div>
 
           <div
@@ -67,22 +69,48 @@ export default function HomeWelcome({
             aria-hidden
           />
 
-          <aside className={homeSessionPanelClass}>
-            <span className={homeSectionLabelClass}>
-              {homeDictionary.session.title}
-            </span>
-            <span className="text-lg font-bold text-accent-primary">
-              {modulosCount}
-            </span>
-            <span className="text-sm font-semibold text-text-primary">
-              {homeDictionary.session.modulesAvailable}
-            </span>
-            <span className="text-xs text-text-muted">
-              {acessoLimitado
-                ? homeDictionary.session.limitedAccess
-                : homeDictionary.session.fullAccess}
-            </span>
-          </aside>
+          {escritorioAcesso ? (
+            <aside className={homeSessionPanelClass}>
+              <span className={homeSectionLabelClass}>
+                {escritorioCopy.label}
+              </span>
+              <span className="text-base font-bold tracking-tight text-text-primary">
+                {escritorioAcesso.nome}
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate(escritorioAcesso.path)}
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-accent-primary bg-accent-primary px-4 py-2.5 text-sm font-semibold tracking-tight text-white shadow-sm shadow-accent-primary/25 transition hover:bg-accent-primary-dark hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
+              >
+                {escritorioCopy.cta}
+                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+              </button>
+            </aside>
+          ) : (
+            <aside className={homeSessionPanelClass}>
+              <span className={homeSectionLabelClass}>{sessionCopy.title}</span>
+              {perfilLabel ? (
+                <span className="text-base font-bold tracking-tight text-text-primary">
+                  {perfilLabel}
+                </span>
+              ) : null}
+              <div className="mt-1 flex items-center gap-2 text-sm text-text-muted">
+                <LayoutGrid
+                  className="h-4 w-4 shrink-0 text-accent-primary/70"
+                  aria-hidden
+                />
+                <span>
+                  <span className="font-semibold text-accent-primary">
+                    {modulosCount}
+                  </span>{" "}
+                  {sessionCopy.modulesAvailable}
+                </span>
+              </div>
+              <span className="mt-1 text-xs leading-relaxed text-text-muted">
+                {sessionCopy.profileHint}
+              </span>
+            </aside>
+          )}
         </div>
       </div>
     </section>

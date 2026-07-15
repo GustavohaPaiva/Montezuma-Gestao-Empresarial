@@ -41,6 +41,36 @@ function omitUndefined(obj) {
   return out;
 }
 
+function formatHoraPtBr(iso) {
+  try {
+    return new Date(iso).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
+function formatReservaSalaConflitoMessage(conflito) {
+  const label = conflito?.cliente_nome || conflito?.titulo || "outra reunião";
+  const de = formatHoraPtBr(conflito?.inicio);
+  const ate = formatHoraPtBr(conflito?.fim);
+  if (de && ate) {
+    return `Sala ocupada das ${de} às ${ate} por ${label}.`;
+  }
+  return `Sala ocupada neste horário por ${label}.`;
+}
+
+function isReservaSalaOverlapError(error) {
+  const msg = String(error?.message || error?.details || "");
+  const code = String(error?.code || "");
+  return (
+    code === "23P01" ||
+    /overlap|no_overlap|exclusion|reservas_sala_no_overlap/i.test(msg)
+  );
+}
+
 async function enrichOrdensServicoComUsuarios(rows) {
   const lista = Array.isArray(rows) ? rows : rows ? [rows] : [];
   if (lista.length === 0) return rows;
@@ -2757,6 +2787,16 @@ export const api = {
     return Array.isArray(data) ? data : [];
   },
 
+  /** Lista simples de todos os clientes (id + nome), ordenada por nome. */
+  listClientesSimples: async () => {
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("id, nome")
+      .order("nome", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
   getDiarioObras: async (obraId, limite, offset = 0) => {
     if (!obraId) return { rows: [], hasMore: false };
     const n = Math.max(1, Math.min(Number(limite) || 6, 100));
@@ -4336,5 +4376,171 @@ export const api = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  /**
+   * Reservas da sala única de reuniões.
+   * @param {{ from?: string, to?: string }} [opts] ISO timestamptz bounds
+   */
+  listReservasSala: async ({ from, to } = {}) => {
+    let query = supabase
+      .from("reservas_sala")
+      .select(
+        "id, titulo, cliente_nome, inicio, fim, criado_por, observacoes, created_at, updated_at",
+      )
+      .order("inicio", { ascending: true });
+
+    // Overlap com a janela [from, to): inicio < to AND fim > from
+    if (from) query = query.gt("fim", from);
+    if (to) query = query.lt("inicio", to);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  },
+
+  /**
+   * Busca reserva sobreposta ao intervalo [inicio, fim).
+   * @param {{ inicio: string, fim: string, excludeId?: string }}
+   */
+  findReservaSalaConflito: async ({ inicio, fim, excludeId } = {}) => {
+    if (!inicio || !fim) return null;
+
+    let query = supabase
+      .from("reservas_sala")
+      .select("id, titulo, cliente_nome, inicio, fim")
+      .lt("inicio", fim)
+      .gt("fim", inicio)
+      .limit(1);
+
+    if (excludeId) query = query.neq("id", excludeId);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return Array.isArray(data) && data.length > 0 ? data[0] : null;
+  },
+
+  createReservaSala: async (payload) => {
+    const titulo = String(payload?.titulo || "").trim();
+    const inicio = payload?.inicio;
+    const fim = payload?.fim;
+
+    if (!titulo) throw new Error("Título da reunião é obrigatório.");
+    if (!inicio || !fim) {
+      throw new Error("Horário de início e fim são obrigatórios.");
+    }
+    if (new Date(fim) <= new Date(inicio)) {
+      throw new Error("O horário de fim deve ser após o início.");
+    }
+    if (new Date(fim) - new Date(inicio) < 30 * 60 * 1000) {
+      throw new Error("A reunião deve ter no mínimo 30 minutos.");
+    }
+
+    const conflito = await api.findReservaSalaConflito({ inicio, fim });
+    if (conflito) {
+      throw new Error(formatReservaSalaConflitoMessage(conflito));
+    }
+
+    let criadoPor = payload?.criado_por;
+    if (!criadoPor) {
+      const { data: authData } = await supabase.auth.getUser();
+      criadoPor = authData?.user?.id ?? null;
+    }
+
+    const row = omitUndefined({
+      titulo,
+      cliente_nome: payload?.cliente_nome?.trim() || null,
+      inicio,
+      fim,
+      criado_por: criadoPor,
+      observacoes: payload?.observacoes?.trim() || null,
+    });
+
+    const { data, error } = await supabase
+      .from("reservas_sala")
+      .insert(row)
+      .select()
+      .single();
+
+    if (error) {
+      if (isReservaSalaOverlapError(error)) {
+        const again = await api.findReservaSalaConflito({ inicio, fim });
+        throw new Error(
+          again
+            ? formatReservaSalaConflitoMessage(again)
+            : "A sala já está reservada neste horário.",
+        );
+      }
+      throw error;
+    }
+    return data;
+  },
+
+  updateReservaSala: async (id, payload) => {
+    if (!id) throw new Error("ID da reserva é obrigatório.");
+
+    const titulo = String(payload?.titulo || "").trim();
+    const inicio = payload?.inicio;
+    const fim = payload?.fim;
+
+    if (!titulo) throw new Error("Título da reunião é obrigatório.");
+    if (!inicio || !fim) {
+      throw new Error("Horário de início e fim são obrigatórios.");
+    }
+    if (new Date(fim) <= new Date(inicio)) {
+      throw new Error("O horário de fim deve ser após o início.");
+    }
+    if (new Date(fim) - new Date(inicio) < 30 * 60 * 1000) {
+      throw new Error("A reunião deve ter no mínimo 30 minutos.");
+    }
+
+    const conflito = await api.findReservaSalaConflito({
+      inicio,
+      fim,
+      excludeId: id,
+    });
+    if (conflito) {
+      throw new Error(formatReservaSalaConflitoMessage(conflito));
+    }
+
+    const row = omitUndefined({
+      titulo,
+      cliente_nome: payload?.cliente_nome?.trim() || null,
+      inicio,
+      fim,
+      observacoes: payload?.observacoes?.trim() || null,
+      updated_at: new Date().toISOString(),
+    });
+
+    const { data, error } = await supabase
+      .from("reservas_sala")
+      .update(row)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      if (isReservaSalaOverlapError(error)) {
+        const again = await api.findReservaSalaConflito({
+          inicio,
+          fim,
+          excludeId: id,
+        });
+        throw new Error(
+          again
+            ? formatReservaSalaConflitoMessage(again)
+            : "A sala já está reservada neste horário.",
+        );
+      }
+      throw error;
+    }
+    return data;
+  },
+
+  deleteReservaSala: async (id) => {
+    if (!id) throw new Error("ID da reserva é obrigatório.");
+    const { error } = await supabase.from("reservas_sala").delete().eq("id", id);
+    if (error) throw error;
+    return true;
   },
 };

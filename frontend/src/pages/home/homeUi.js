@@ -159,6 +159,11 @@ export const homeKpiWrapClass =
 
 export const homeWeeklyAgendaClass = "mb-6";
 
+export const homeSalaReunioesClass = "mb-6";
+
+export const homeSalaReunioesPanelClass =
+  "relative w-full overflow-hidden rounded-2xl border border-accent-primary/15 bg-gradient-to-br from-white via-white to-accent-primary/[0.06] p-4 shadow-[0_10px_40px_-10px_rgba(220,59,11,0.14)] ring-1 ring-slate-900/5 md:p-6";
+
 export const homeWeeklyAgendaPanelClass =
   "relative w-full overflow-hidden rounded-2xl border border-accent-primary/15 bg-gradient-to-br from-white via-white to-accent-primary/[0.06] p-4 shadow-[0_10px_40px_-10px_rgba(220,59,11,0.14)] ring-1 ring-slate-900/5 md:p-6";
 
@@ -259,10 +264,6 @@ export function buildProcessosKpiHint(counts, dictionary) {
 
 export function userVeDashboard(tipo) {
   return tipo === "diretoria" || tipo === "gestor_master";
-}
-
-export function userEhEncarregado(tipo) {
-  return tipo === "encarregado";
 }
 
 /** Índice 0–5 para Seg–Sáb; -1 para domingo (fora da rotina). */
