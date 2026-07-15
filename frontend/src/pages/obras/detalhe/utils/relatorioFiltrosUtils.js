@@ -1,9 +1,13 @@
+import { SEM_FORNECEDOR_ID } from "./materiaisPorFornecedor";
+
 export function filtrarMateriaisLista(
   lista,
   { busca = "", fornecedorId = "", etapaNome = "" } = {},
 ) {
   let result = [...(lista || [])];
-  if (fornecedorId) {
+  if (fornecedorId === SEM_FORNECEDOR_ID) {
+    result = result.filter((m) => !m.fornecedor_id);
+  } else if (fornecedorId) {
     result = result.filter(
       (m) => String(m.fornecedor_id) === String(fornecedorId),
     );

@@ -51,6 +51,8 @@ import BaseButton from "../../components/gerais/BaseButton";
 import BaseSelect from "../../components/gerais/BaseSelect";
 import { useAuth } from "../../contexts/AuthContext";
 import {
+  ArrowLeft,
+  AlertCircle,
   CheckCircle2,
   ClipboardList,
   FileText,
@@ -59,8 +61,15 @@ import {
   MessageSquareText,
   Package,
   Send,
+  Wallet,
 } from "lucide-react";
 import BaseCard from "../../components/cards/BaseCard";
+import MateriaisFornecedoresHub from "./detalhe/components/MateriaisFornecedoresHub";
+import {
+  SEM_FORNECEDOR_ID,
+  agregarMateriaisPorFornecedor,
+  encontrarFornecedorIdDoMaterial,
+} from "./detalhe/utils/materiaisPorFornecedor";
 
 export default function ObrasDetalhe() {
   const { id } = useParams();
@@ -103,11 +112,11 @@ export default function ObrasDetalhe() {
 
   const [buscaMateriais, setBuscaMateriais] = useState("");
   const [buscaMaoDeObra, setBuscaMaoDeObra] = useState("");
-  const [filtroFornecedorId, setFiltroFornecedorId] = useState("");
+  /** null = hub de fornecedores; UUID ou SEM_FORNECEDOR_ID = detalhe */
+  const [fornecedorMateriaisSelecionadoId, setFornecedorMateriaisSelecionadoId] =
+    useState(null);
   const [filtroPrestadorId, setFiltroPrestadorId] = useState("");
-  const [listaFornecedores, setListaFornecedores] = useState([]);
   const [listaPrestadores, setListaPrestadores] = useState([]);
-  const [carregandoFornecedores, setCarregandoFornecedores] = useState(false);
   const [carregandoPrestadores, setCarregandoPrestadores] = useState(false);
   const [buscaLocacoes, setBuscaLocacoes] = useState("");
   const [filtroEtapaMateriais, setFiltroEtapaMateriais] = useState("");
@@ -224,7 +233,6 @@ export default function ObrasDetalhe() {
         setFiltroEtapaMaoDeObra("");
       } else {
         setBuscaMateriais("");
-        setFiltroFornecedorId("");
         setFiltroEtapaMateriais("");
       }
     }
@@ -232,23 +240,52 @@ export default function ObrasDetalhe() {
 
   useEffect(() => {
     const carregarListasFiltro = async () => {
-      setCarregandoFornecedores(true);
       setCarregandoPrestadores(true);
       try {
-        const [fornecedores, prestadores] = await Promise.all([
-          api.getFornecedoresSimples(),
-          api.getPrestadoresSimples(),
-        ]);
-        setListaFornecedores(fornecedores || []);
+        const prestadores = await api.getPrestadoresSimples();
         setListaPrestadores(prestadores || []);
       } catch (error) {
         console.error("Erro ao carregar listas de filtro:", error);
       } finally {
-        setCarregandoFornecedores(false);
         setCarregandoPrestadores(false);
       }
     };
     carregarListasFiltro();
+  }, []);
+
+  const { fornecedores: fornecedoresMateriaisHub, totaisObra: totaisMateriaisObra, qtdFornecedores: qtdFornecedoresMateriais } =
+    useMemo(
+      () => agregarMateriaisPorFornecedor(obra?.materiais || []),
+      [obra?.materiais],
+    );
+
+  const fornecedorMateriaisSelecionado = useMemo(() => {
+    if (fornecedorMateriaisSelecionadoId == null) return null;
+    return (
+      fornecedoresMateriaisHub.find(
+        (f) => String(f.id) === String(fornecedorMateriaisSelecionadoId),
+      ) || null
+    );
+  }, [fornecedorMateriaisSelecionadoId, fornecedoresMateriaisHub]);
+
+  // Deep link: ao destacar um material, abrir o detalhe do fornecedor correspondente
+  useEffect(() => {
+    const item = searchParams.get("item");
+    const sub = searchParams.get("sub");
+    if (!item || !obra?.materiais?.length) return;
+    if (sub && sub !== "materiais") return;
+    if (subRelatorio !== "materiais") return;
+
+    const fornId = encontrarFornecedorIdDoMaterial(obra.materiais, item);
+    if (fornId != null) {
+      setFornecedorMateriaisSelecionadoId(fornId);
+    }
+  }, [searchParams, obra?.materiais, subRelatorio]);
+
+  const voltarHubFornecedoresMateriais = useCallback(() => {
+    setFornecedorMateriaisSelecionadoId(null);
+    setBuscaMateriais("");
+    setFiltroEtapaMateriais("");
   }, []);
 
   const handleSortMateriais = (campo) => {
@@ -830,12 +867,19 @@ export default function ObrasDetalhe() {
       showFeedback("Nenhum material lançado nesta obra.", "info");
       return;
     }
+    if (fornecedorMateriaisSelecionadoId == null) {
+      showFeedback("Selecione um fornecedor para gerar o relatório.", "info");
+      return;
+    }
     abrirPdfPreview({
       titulo: "Relatório de Materiais",
       gerador: () =>
         gerarPdfRelatorioMateriais(
           obra,
-          { busca: buscaMateriais, fornecedorId: filtroFornecedorId },
+          {
+            busca: buscaMateriais,
+            fornecedorId: fornecedorMateriaisSelecionadoId,
+          },
           { retornarBlob: true },
         ),
       nomeFallback: "Relatorio_Materiais.pdf",
@@ -1203,7 +1247,7 @@ export default function ObrasDetalhe() {
   } = useObrasDetalheTableData({
     obra,
     buscaMateriais,
-    filtroFornecedorId,
+    filtroFornecedorId: fornecedorMateriaisSelecionadoId ?? "",
     filtroEtapaMateriais,
     sortConfig,
     editandoMaterial,
@@ -1618,7 +1662,14 @@ export default function ObrasDetalhe() {
                     <button
                       key={opt.id}
                       type="button"
-                      onClick={() => setSubRelatorio(opt.id)}
+                      onClick={() => {
+                        setSubRelatorio(opt.id);
+                        if (opt.id === "materiais") {
+                          setFornecedorMateriaisSelecionadoId(null);
+                          setBuscaMateriais("");
+                          setFiltroEtapaMateriais("");
+                        }
+                      }}
                       className={[
                         "flex w-full cursor-pointer flex-col items-start gap-1 rounded-2xl border p-4 text-left shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all sm:p-5",
                         on
@@ -1648,111 +1699,175 @@ export default function ObrasDetalhe() {
                 <div
                   className={`${reportCardShell} flex flex-col items-stretch gap-5 text-left sm:gap-6`}
                 >
-                  <div
-                    className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
-                  >
-                    <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
-                      Relatório de Materiais
-                    </h1>
-                    <div
-                      className={`flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-end`}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Buscar por material ou fornecedor..."
-                        value={buscaMateriais}
-                        onChange={(e) => setBuscaMateriais(e.target.value)}
-                        className={`${inputPremium} lg:max-w-[250px] lg:min-w-0 lg:flex-1`}
+                  {fornecedorMateriaisSelecionadoId == null ? (
+                    <>
+                      <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
+                        Relatório de Materiais
+                      </h1>
+                      <p className="-mt-2 text-sm text-text-muted">
+                        Escolha um fornecedor para ver os materiais lançados
+                        nesta obra.
+                      </p>
+                      <MateriaisFornecedoresHub
+                        fornecedores={fornecedoresMateriaisHub}
+                        totaisObra={totaisMateriaisObra}
+                        qtdFornecedores={qtdFornecedoresMateriais}
+                        onSelectFornecedor={setFornecedorMateriaisSelecionadoId}
                       />
-                      <BaseSelect
-                        searchable
-                        loading={carregandoFornecedores}
-                        value={filtroFornecedorId}
-                        onChange={(e) => setFiltroFornecedorId(e.target.value)}
-                        wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[220px]"
-                        className={`${selectPremium} w-full`}
-                        options={[
-                          {
-                            value: "",
-                            label: carregandoFornecedores
-                              ? "Carregando..."
-                              : "Todos os fornecedores",
-                          },
-                          ...listaFornecedores.map((f) => ({
-                            value: String(f.id),
-                            label: f.nome,
-                          })),
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
+                      >
+                        <div className="min-w-0 flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={voltarHubFornecedoresMateriais}
+                            className="inline-flex w-fit items-center gap-1.5 rounded-lg px-1 py-0.5 text-sm font-medium text-accent-primary transition hover:bg-accent-primary/10"
+                          >
+                            <ArrowLeft className="h-4 w-4" aria-hidden />
+                            Fornecedores
+                          </button>
+                          <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
+                            {fornecedorMateriaisSelecionado?.nome ||
+                              (fornecedorMateriaisSelecionadoId ===
+                              SEM_FORNECEDOR_ID
+                                ? "Sem fornecedor"
+                                : "Fornecedor")}
+                          </h1>
+                          {fornecedorMateriaisSelecionado && (
+                            <dl className="mt-1 flex flex-wrap gap-x-3 gap-y-2 text-xs sm:text-sm">
+                              <div className="flex flex-row items-center gap-1.5">
+                                <Wallet
+                                  className="h-3.5 w-3.5 text-orange-600/55"
+                                  aria-hidden
+                                />
+                                <dt className="text-text-muted">Comprado</dt>
+                                <dd className="font-semibold flex flex-row tabular-nums text-text-primary">
+                                  R${" "}
+                                  {formatarMoeda(
+                                    fornecedorMateriaisSelecionado.comprado,
+                                  )}
+                                </dd>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <CheckCircle2
+                                  className="h-3.5 w-3.5 text-orange-600/55"
+                                  aria-hidden
+                                />
+                                <dt className="text-text-muted">Pago</dt>
+                                <dd className="font-semibold tabular-nums text-text-primary">
+                                  R${" "}
+                                  {formatarMoeda(
+                                    fornecedorMateriaisSelecionado.pago,
+                                  )}
+                                </dd>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {fornecedorMateriaisSelecionado.pendente > 0 ? (
+                                  <AlertCircle
+                                    className="h-3.5 w-3.5 text-orange-600/55"
+                                    aria-hidden
+                                  />
+                                ) : (
+                                  <CheckCircle2
+                                    className="h-3.5 w-3.5 text-orange-600/55"
+                                    aria-hidden
+                                  />
+                                )}
+                                <dt className="text-text-muted">A pagar</dt>
+                                <dd className="font-semibold tabular-nums text-text-primary">
+                                  R${" "}
+                                  {formatarMoeda(
+                                    fornecedorMateriaisSelecionado.pendente,
+                                  )}
+                                </dd>
+                              </div>
+                            </dl>
+                          )}
+                        </div>
+                        <div
+                          className={`flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-end`}
+                        >
+                          <input
+                            type="text"
+                            placeholder="Buscar por material..."
+                            value={buscaMateriais}
+                            onChange={(e) => setBuscaMateriais(e.target.value)}
+                            className={`${inputPremium} lg:max-w-[250px] lg:min-w-0 lg:flex-1`}
+                          />
+                          <BaseSelect
+                            searchable
+                            value={filtroEtapaMateriais}
+                            onChange={(e) =>
+                              setFiltroEtapaMateriais(e.target.value)
+                            }
+                            wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
+                            className={`${selectPremium} w-full`}
+                            options={opcoesEtapasObra}
+                          />
+                        </div>
+                      </div>
+                      <TabelaSimples
+                        variant="obraDetalhe"
+                        dense
+                        rowIds={rowIdsMateriais}
+                        highlightedRowId={itemDestacadoId}
+                        colunas={[
+                          "Material",
+                          "Quantidade",
+                          "Valor Un.",
+                          "Valor",
+                          <span
+                            key="col-status"
+                            className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+                            onClick={() => handleSortMateriais("status")}
+                          >
+                            Status ↕
+                          </span>,
+                          <span
+                            key="col-forn"
+                            className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+                            onClick={() => handleSortMateriais("fornecedor")}
+                          >
+                            Fornecedor ↕
+                          </span>,
+                          "Etapa",
+                          <span
+                            key="col-data"
+                            className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+                            onClick={() => handleSortMateriais("data")}
+                          >
+                            Data ↕
+                          </span>,
+                          "Vencimento",
+                          "",
                         ]}
+                        dados={dadosMateriais}
                       />
-                      <BaseSelect
-                        searchable
-                        value={filtroEtapaMateriais}
-                        onChange={(e) =>
-                          setFiltroEtapaMateriais(e.target.value)
-                        }
-                        wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
-                        className={`${selectPremium} w-full`}
-                        options={opcoesEtapasObra}
-                      />
-                    </div>
-                  </div>
-                  <TabelaSimples
-                    variant="obraDetalhe"
-                    dense
-                    rowIds={rowIdsMateriais}
-                    highlightedRowId={itemDestacadoId}
-                    colunas={[
-                      "Material",
-                      "Quantidade",
-                      "Valor Un.",
-                      "Valor",
-                      <span
-                        key="col-status"
-                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
-                        onClick={() => handleSortMateriais("status")}
+                      <div
+                        className={`flex w-full flex-col items-stretch justify-between gap-4 sm:items-center md:flex-row md:flex-wrap md:justify-center`}
                       >
-                        Status ↕
-                      </span>,
-                      <span
-                        key="col-forn"
-                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
-                        onClick={() => handleSortMateriais("fornecedor")}
-                      >
-                        Fornecedor ↕
-                      </span>,
-                      "Etapa",
-                      <span
-                        key="col-data"
-                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
-                        onClick={() => handleSortMateriais("data")}
-                      >
-                        Data ↕
-                      </span>,
-                      "Vencimento",
-                      "",
-                    ]}
-                    dados={dadosMateriais}
-                  />
-                  <div
-                    className={`flex w-full flex-col items-stretch justify-between gap-4 sm:items-center md:flex-row md:flex-wrap md:justify-center`}
-                  >
-                    <ButtonDefault
-                      onClick={handleGerarRelatorioMateriais}
-                      className={`${btnAccentPremium} !w-full`}
-                    >
-                      Relatório Materiais
-                    </ButtonDefault>
-                    <div className={totalBarClass}>
-                      <span className="text-text-muted">
-                        {filtroEtapaMateriais
-                          ? `Total (${filtroEtapaMateriais}):`
-                          : "Total lançado:"}
-                      </span>
-                      <span className="font-bold tabular-nums text-text-primary">
-                        R$ {formatarMoeda(totaisMateriaisFiltrados)}
-                      </span>
-                    </div>
-                  </div>
+                        <ButtonDefault
+                          onClick={handleGerarRelatorioMateriais}
+                          className={`${btnAccentPremium} !w-full`}
+                        >
+                          Relatório Materiais
+                        </ButtonDefault>
+                        <div className={totalBarClass}>
+                          <span className="text-text-muted">
+                            {filtroEtapaMateriais
+                              ? `Total (${filtroEtapaMateriais}):`
+                              : "Total lançado:"}
+                          </span>
+                          <span className="font-bold tabular-nums text-text-primary">
+                            R$ {formatarMoeda(totaisMateriaisFiltrados)}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
