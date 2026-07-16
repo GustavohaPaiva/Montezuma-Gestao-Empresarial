@@ -22,6 +22,7 @@ import {
   Plus,
   Search,
 } from "lucide-react";
+import { agregarFinanceiroFornecedor } from "./fornecedorFinanceiro";
 
 const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -147,28 +148,18 @@ export default function Fornecedores() {
   const totaisGerais = useMemo(() => {
     let comprado = 0;
     let pago = 0;
+    let pendente = 0;
+    let vencido = 0;
 
     fornecedoresFiltrados.forEach((f) => {
-      const materiais = f.relatorio_materiais || [];
-      materiais.forEach((m) => {
-        const val = parseFloat(m.valor) || 0;
-        comprado += val;
-
-        const status = m.status_financeiro
-          ? m.status_financeiro.trim().toLowerCase()
-          : "";
-
-        if (status === "pago") {
-          pago += val;
-        }
-      });
+      const totais = agregarFinanceiroFornecedor(f.relatorio_materiais || []);
+      comprado += totais.comprado;
+      pago += totais.pago;
+      pendente += totais.pendente;
+      vencido += totais.vencido;
     });
 
-    return {
-      comprado,
-      pago,
-      pendente: comprado - pago,
-    };
+    return { comprado, pago, pendente, vencido };
   }, [fornecedoresFiltrados]);
 
   return (
@@ -266,7 +257,7 @@ export default function Fornecedores() {
                 Visão financeira
               </h2>
             </div>
-            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 text-left sm:grid-cols-3">
+            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 text-left sm:grid-cols-2 lg:grid-cols-4">
               <div className="min-w-0">
                 <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
                   <Wallet
@@ -308,6 +299,31 @@ export default function Fornecedores() {
                 </dt>
                 <dd className="mt-1 text-lg font-semibold tabular-nums text-text-primary sm:text-xl">
                   R$ {formatarMoeda(totaisGerais.pendente)}
+                </dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  {totaisGerais.vencido > 0 ? (
+                    <AlertCircle
+                      className="h-3.5 w-3.5 shrink-0 text-red-600/70"
+                      aria-hidden
+                    />
+                  ) : (
+                    <CheckCircle2
+                      className="h-3.5 w-3.5 shrink-0 text-orange-600/55"
+                      aria-hidden
+                    />
+                  )}
+                  Devendo (vencido)
+                </dt>
+                <dd
+                  className={`mt-1 text-lg font-semibold tabular-nums sm:text-xl ${
+                    totaisGerais.vencido > 0
+                      ? "text-red-700"
+                      : "text-text-primary"
+                  }`}
+                >
+                  R$ {formatarMoeda(totaisGerais.vencido)}
                 </dd>
               </div>
             </dl>
@@ -367,23 +383,11 @@ export default function Fornecedores() {
             >
               {fornecedoresFiltrados.map((f, index) => {
                 const materiais = f.relatorio_materiais || [];
-                const totalComprado = materiais.reduce(
-                  (acc, curr) => acc + (parseFloat(curr.valor) || 0),
-                  0,
-                );
-                const totalPago = materiais.reduce((acc, curr) => {
-                  const st = curr.status_financeiro
-                    ? String(curr.status_financeiro).trim().toLowerCase()
-                    : "";
-                  if (st === "pago") {
-                    return acc + (parseFloat(curr.valor) || 0);
-                  }
-                  return acc;
-                }, 0);
-                const pendente = totalComprado - totalPago;
+                const { comprado, pendente, vencido } =
+                  agregarFinanceiroFornecedor(materiais);
 
                 let linhaFinanceira;
-                if (materiais.length === 0 || totalComprado <= 0) {
+                if (materiais.length === 0 || comprado <= 0) {
                   linhaFinanceira = {
                     icon: (
                       <Building2
@@ -418,6 +422,31 @@ export default function Fornecedores() {
                   };
                 }
 
+                const linhaDevendo =
+                  materiais.length === 0 || comprado <= 0
+                    ? null
+                    : vencido > 0
+                      ? {
+                          icon: (
+                            <AlertCircle
+                              className="h-4 w-4 text-red-600/90"
+                              aria-hidden
+                            />
+                          ),
+                          label: `Devendo: R$ ${formatarMoeda(vencido)}`,
+                          textClass: "text-red-700 font-medium",
+                        }
+                      : {
+                          icon: (
+                            <CheckCircle2
+                              className="h-4 w-4 text-emerald-600/90"
+                              aria-hidden
+                            />
+                          ),
+                          label: "Sem atraso",
+                          textClass: "text-emerald-700 font-medium",
+                        };
+
                 const metadata = [
                   {
                     icon: (
@@ -438,6 +467,7 @@ export default function Fornecedores() {
                     label: f.email || "Sem e-mail",
                   },
                   linhaFinanceira,
+                  ...(linhaDevendo ? [linhaDevendo] : []),
                 ];
 
                 return (

@@ -21,6 +21,12 @@ import {
   ArrowLeft,
   Loader2,
 } from "lucide-react";
+import {
+  agregarFinanceiroFornecedor,
+  isPago,
+  isVencido,
+  parseDataLocal,
+} from "./fornecedorFinanceiro";
 
 const FILTRO_INPUT_CLASS =
   "box-border min-h-11 h-11 w-full min-w-0 shrink-0 rounded-xl border border-border-primary/55 bg-white px-3 text-sm text-text-primary shadow-sm transition-all placeholder:text-text-muted focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
@@ -28,7 +34,13 @@ const FILTRO_INPUT_CLASS =
 const FILTRO_SELECT_CLASS =
   "box-border min-h-11 h-11 w-full min-w-0 shrink-0 cursor-pointer rounded-xl border border-border-primary/55 bg-white px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
 
-const ORDEM_STATUS_FORNECEDOR = { pendente: 0, pago: 1 };
+const ORDEM_STATUS_FORNECEDOR = { vencido: 0, pendente: 1, pago: 2 };
+
+function statusFinanceiroItem(m) {
+  if (isPago(m.status_financeiro)) return "pago";
+  if (isVencido(m)) return "vencido";
+  return "pendente";
+}
 
 export default function FornecedorDetalhes() {
   const { id } = useParams();
@@ -135,31 +147,16 @@ export default function FornecedorDetalhes() {
   };
 
   const formatarData = (dataIso) => {
-    if (!dataIso) return "-";
-    const data = new Date(dataIso);
+    const data = parseDataLocal(dataIso);
+    if (!data) return "-";
     return data.toLocaleDateString("pt-BR");
   };
 
   const resumoFinanceiro = useMemo(() => {
-    if (!fornecedor || !fornecedor.relatorio_materiais)
-      return { comprado: 0, pago: 0, pendente: 0 };
-
-    let comprado = 0;
-    let pago = 0;
-
-    fornecedor.relatorio_materiais.forEach((m) => {
-      const val = parseFloat(m.valor) || 0;
-      comprado += val;
-      const status = m.status_financeiro
-        ? m.status_financeiro.trim().toLowerCase()
-        : "";
-
-      if (status === "pago") {
-        pago += val;
-      }
-    });
-
-    return { comprado, pago, pendente: comprado - pago };
+    if (!fornecedor || !fornecedor.relatorio_materiais) {
+      return { comprado: 0, pago: 0, pendente: 0, vencido: 0, qtdVencidos: 0 };
+    }
+    return agregarFinanceiroFornecedor(fornecedor.relatorio_materiais);
   }, [fornecedor]);
 
   const materiaisBrutos = fornecedor?.relatorio_materiais || [];
@@ -195,14 +192,12 @@ export default function FornecedorDetalhes() {
     const termo = busca.trim().toLowerCase();
 
     let lista = materiaisBrutos.filter((m) => {
-      const status = m.status_financeiro
-        ? m.status_financeiro.trim().toLowerCase()
-        : "";
-      const isPago = status === "pago";
+      const statusKey = statusFinanceiroItem(m);
 
       if (filtroObraId && String(m.obra_id) !== filtroObraId) return false;
-      if (filtroStatus === "pago" && !isPago) return false;
-      if (filtroStatus === "pendente" && isPago) return false;
+      if (filtroStatus === "pago" && statusKey !== "pago") return false;
+      if (filtroStatus === "pendente" && statusKey !== "pendente") return false;
+      if (filtroStatus === "vencido" && statusKey !== "vencido") return false;
 
       if (termo) {
         const obraNome = (m.obras?.cliente || "").toLowerCase();
@@ -225,6 +220,13 @@ export default function FornecedorDetalhes() {
         if (sortConfig.campo === "data") {
           valA = new Date(a.data_solicitacao || 0).getTime();
           valB = new Date(b.data_solicitacao || 0).getTime();
+        } else if (sortConfig.campo === "vencimento") {
+          valA =
+            parseDataLocal(a.data_vencimento)?.getTime() ??
+            Number.POSITIVE_INFINITY;
+          valB =
+            parseDataLocal(b.data_vencimento)?.getTime() ??
+            Number.POSITIVE_INFINITY;
         } else if (sortConfig.campo === "obra") {
           valA = (a.obras?.cliente || "").toLowerCase();
           valB = (b.obras?.cliente || "").toLowerCase();
@@ -235,16 +237,8 @@ export default function FornecedorDetalhes() {
           valA = parseFloat(a.valor) || 0;
           valB = parseFloat(b.valor) || 0;
         } else if (sortConfig.campo === "status") {
-          const statusA =
-            (a.status_financeiro || "").trim().toLowerCase() === "pago"
-              ? "pago"
-              : "pendente";
-          const statusB =
-            (b.status_financeiro || "").trim().toLowerCase() === "pago"
-              ? "pago"
-              : "pendente";
-          valA = ORDEM_STATUS_FORNECEDOR[statusA];
-          valB = ORDEM_STATUS_FORNECEDOR[statusB];
+          valA = ORDEM_STATUS_FORNECEDOR[statusFinanceiroItem(a)];
+          valB = ORDEM_STATUS_FORNECEDOR[statusFinanceiroItem(b)];
         } else {
           return 0;
         }
@@ -257,16 +251,18 @@ export default function FornecedorDetalhes() {
       });
     } else {
       lista.sort((a, b) => {
-        const statusA = a.status_financeiro
-          ? a.status_financeiro.trim().toLowerCase()
-          : "";
-        const statusB = b.status_financeiro
-          ? b.status_financeiro.trim().toLowerCase()
-          : "";
-        const isPagoA = statusA === "pago";
-        const isPagoB = statusB === "pago";
-        if (isPagoA && !isPagoB) return 1;
-        if (!isPagoA && isPagoB) return -1;
+        const ordemA = ORDEM_STATUS_FORNECEDOR[statusFinanceiroItem(a)];
+        const ordemB = ORDEM_STATUS_FORNECEDOR[statusFinanceiroItem(b)];
+        if (ordemA !== ordemB) return ordemA - ordemB;
+
+        const vencA =
+          parseDataLocal(a.data_vencimento)?.getTime() ??
+          Number.POSITIVE_INFINITY;
+        const vencB =
+          parseDataLocal(b.data_vencimento)?.getTime() ??
+          Number.POSITIVE_INFINITY;
+        if (vencA !== vencB) return vencA - vencB;
+
         return (
           new Date(b.data_solicitacao || 0) - new Date(a.data_solicitacao || 0)
         );
@@ -274,10 +270,19 @@ export default function FornecedorDetalhes() {
     }
 
     return lista.map((m) => {
-      const status = m.status_financeiro
-        ? m.status_financeiro.trim().toLowerCase()
-        : "";
-      const isPago = status === "pago";
+      const statusKey = statusFinanceiroItem(m);
+      const badgeClass =
+        statusKey === "pago"
+          ? "bg-emerald-50 text-emerald-800 ring-emerald-100"
+          : statusKey === "vencido"
+            ? "bg-red-50 text-red-800 ring-red-100"
+            : "bg-amber-50 text-amber-900 ring-amber-100";
+      const badgeLabel =
+        statusKey === "pago"
+          ? "PAGO"
+          : statusKey === "vencido"
+            ? "VENCIDO"
+            : "A PAGAR";
 
       return [
         <div
@@ -285,6 +290,14 @@ export default function FornecedorDetalhes() {
           className="whitespace-nowrap text-center font-medium text-text-primary"
         >
           {formatarData(m.data_solicitacao)}
+        </div>,
+        <div
+          key={`vencimento-${m.id}`}
+          className={`whitespace-nowrap text-center font-medium ${
+            statusKey === "vencido" ? "text-red-700" : "text-text-primary"
+          }`}
+        >
+          {formatarData(m.data_vencimento)}
         </div>,
         <div
           key={`obra-${m.id}`}
@@ -324,13 +337,9 @@ export default function FornecedorDetalhes() {
         </div>,
         <div key={`status-${m.id}`} className="flex justify-center">
           <span
-            className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold ring-1 ${
-              isPago
-                ? "bg-emerald-50 text-emerald-800 ring-emerald-100"
-                : "bg-amber-50 text-amber-900 ring-amber-100"
-            }`}
+            className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold ring-1 ${badgeClass}`}
           >
-            {isPago ? "PAGO" : "PENDENTE"}
+            {badgeLabel}
           </span>
         </div>,
       ];
@@ -352,6 +361,13 @@ export default function FornecedorDetalhes() {
       onClick={() => handleSort("data")}
     >
       Data {getSortIcon("data")}
+    </span>,
+    <span
+      key="col-vencimento"
+      className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+      onClick={() => handleSort("vencimento")}
+    >
+      Vencimento {getSortIcon("vencimento")}
     </span>,
     <span
       key="col-obra"
@@ -674,7 +690,7 @@ export default function FornecedorDetalhes() {
         </section>
 
         <div
-          className={`grid grid-cols-1 gap-4 transition-all delay-75 duration-700 ease-out sm:grid-cols-3 md:gap-6 ${
+          className={`grid grid-cols-1 gap-4 transition-all delay-75 duration-700 ease-out sm:grid-cols-2 xl:grid-cols-4 md:gap-6 ${
             showElements
               ? "translate-y-0 opacity-100"
               : "translate-y-6 opacity-0"
@@ -707,6 +723,19 @@ export default function FornecedorDetalhes() {
               )
             }
           />
+          <BaseCard
+            variant="metric"
+            title="Devendo (vencido)"
+            value={`R$ ${formatarMoeda(resumoFinanceiro.vencido)}`}
+            colorTheme={resumoFinanceiro.vencido > 0 ? "pink" : "indigo"}
+            icon={
+              resumoFinanceiro.vencido > 0 ? (
+                <AlertCircle className="h-5 w-5" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5" />
+              )
+            }
+          />
         </div>
 
         <section
@@ -720,7 +749,7 @@ export default function FornecedorDetalhes() {
           <div className="flex flex-col lg:flex-row gap-4">
           <h2 className="mb-0 lg:mb-4 flex items-center gap-2 text-lg font-bold tracking-tight w-full text-gray-900 sm:text-xl">
             <FileText className="h-5 w-5 text-orange-600" aria-hidden />
-            Histórico de relatórios
+            Solicitados
           </h2>
 
           {temLancamentos && (
@@ -751,7 +780,8 @@ export default function FornecedorDetalhes() {
                 options={[
                   { value: "", label: "Todos os status" },
                   { value: "pago", label: "Pago" },
-                  { value: "pendente", label: "Pendente" },
+                  { value: "pendente", label: "A pagar" },
+                  { value: "vencido", label: "Vencido" },
                 ]}
               />
             </div>

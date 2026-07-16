@@ -2171,7 +2171,8 @@ export const api = {
         *,
         relatorio_materiais (
           valor,
-          status_financeiro
+          status_financeiro,
+          data_vencimento
         )
       `,
       )
@@ -2187,7 +2188,7 @@ export const api = {
         `
         *,
         relatorio_materiais (
-          id, material, valor, status_financeiro, status, data_solicitacao, obra_id,
+          id, material, valor, status_financeiro, status, data_solicitacao, data_vencimento, obra_id,
           obras ( cliente, local )
         )
       `,
