@@ -6,12 +6,14 @@ import {
   Clock,
   Check,
   Repeat,
+  DoorOpen,
 } from "lucide-react";
 import { addMonths, addYears, addDays } from "date-fns";
 import ModalPortal from "../gerais/ModalPortal";
 import BaseSelect from "../gerais/BaseSelect";
 import BaseDatePicker from "../gerais/BaseDatePicker";
 import { ID_VOGELKOP } from "../../constants/escritorios";
+import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../services/api";
 
 const TIPOS_PADRAO = ["Reunião", "Visita", "Comprar Material", "Outro"];
@@ -89,6 +91,25 @@ function formatarDataInput(d) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function adicionarMinutosHora(horaStr, minutosAdd) {
+  const base = (horaStr || "09:00").slice(0, 5);
+  const [hRaw, mRaw] = base.split(":").map(Number);
+  if (!Number.isFinite(hRaw) || !Number.isFinite(mRaw)) return "10:00";
+  const total = ((hRaw * 60 + mRaw + minutosAdd) % (24 * 60) + 24 * 60) % (24 * 60);
+  return `${pad2(Math.floor(total / 60))}:${pad2(total % 60)}`;
+}
+
+function ehTipoReuniao(tipoValor) {
+  return String(tipoValor || "")
+    .trim()
+    .toLowerCase()
+    .includes("reuni");
+}
+
 function rotuloFrequenciaResumo(freq) {
   if (freq === "Semanal") return "semanalmente";
   if (freq === "Mensal") return "mensalmente";
@@ -145,6 +166,7 @@ export default function ModalCompromissoEscritorio({
   dataInicial,
   escopoRecorrencia = "evento",
 }) {
+  const { user } = useAuth();
   const modoEdicao = Boolean(compromissoEdicao?.id);
 
   const [titulo, setTitulo] = useState("");
@@ -152,6 +174,8 @@ export default function ModalCompromissoEscritorio({
   const [tipoCustom, setTipoCustom] = useState("");
   const [data, setData] = useState("");
   const [hora, setHora] = useState("09:00");
+  const [horaFimSala, setHoraFimSala] = useState("10:00");
+  const [reservarSala, setReservarSala] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [status, setStatus] = useState("Agendado");
   const [clienteId, setClienteId] = useState(null);
@@ -171,6 +195,7 @@ export default function ModalCompromissoEscritorio({
 
   const buscaRef = useRef(null);
   const horaInputRef = useRef(null);
+  const horaFimInputRef = useRef(null);
 
   const temaClasse =
     escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
@@ -209,6 +234,13 @@ export default function ModalCompromissoEscritorio({
       setTipoCustom(ehPadrao ? "" : tipoSalvo);
       setData(extrairData(compromissoEdicao.data_hora));
       setHora(extrairHora(compromissoEdicao.data_hora) || "09:00");
+      setHoraFimSala(
+        adicionarMinutosHora(
+          extrairHora(compromissoEdicao.data_hora) || "09:00",
+          60,
+        ),
+      );
+      setReservarSala(false);
       setDescricao(compromissoEdicao.descricao ?? "");
       setStatus(compromissoEdicao.status || "Agendado");
       setClienteId(compromissoEdicao.cliente_id ?? null);
@@ -227,6 +259,8 @@ export default function ModalCompromissoEscritorio({
       setTipoCustom("");
       setData(baseData);
       setHora("09:00");
+      setHoraFimSala("10:00");
+      setReservarSala(false);
       setDescricao("");
       setStatus("Agendado");
       setClienteId(null);
@@ -267,6 +301,31 @@ export default function ModalCompromissoEscritorio({
     modoEdicao,
     diasSemanaSelecionados.length,
   ]);
+
+  useEffect(() => {
+    if (modoEdicao) return;
+    setHoraFimSala((prev) => {
+      const minimo = adicionarMinutosHora(hora, 30);
+      if (!prev || prev <= hora) return adicionarMinutosHora(hora, 60);
+      if (prev < minimo) return minimo;
+      return prev;
+    });
+  }, [hora, modoEdicao]);
+
+  const tipoFinalPreview = useMemo(() => {
+    if (tipo === "Outro" && tipoCustom.trim()) return normalizarTipo(tipoCustom);
+    return tipo;
+  }, [tipo, tipoCustom]);
+
+  const podeReservarSala =
+    !modoEdicao && ehTipoReuniao(tipoFinalPreview) && !repetirCompromisso;
+
+  useEffect(() => {
+    if (!podeReservarSala && reservarSala) setReservarSala(false);
+  }, [podeReservarSala, reservarSala]);
+
+  const nomeResponsavel =
+    user?.nome?.trim() || user?.email?.trim() || "Você";
 
   const clientesFiltrados = useMemo(() => {
     const q = buscaCliente.trim().toLowerCase();
@@ -314,6 +373,7 @@ export default function ModalCompromissoEscritorio({
   const onGatilhoRecorrencia = () => {
     if (!repetirCompromisso) {
       setRepetirCompromisso(true);
+      setReservarSala(false);
       setPainelRecorrenciaAberto(true);
       return;
     }
@@ -346,6 +406,34 @@ export default function ModalCompromissoEscritorio({
       setErro("Informe o tipo do compromisso.");
       return;
     }
+
+    const deveReservarSala =
+      !modoEdicao &&
+      reservarSala &&
+      ehTipoReuniao(tipoFinal) &&
+      !repetirCompromisso;
+
+    let isoFimSala = null;
+    if (deveReservarSala) {
+      if (!horaFimSala) {
+        setErro("Informe o horário de término da sala.");
+        return;
+      }
+      isoFimSala = combinarDataHora(data, horaFimSala);
+      if (!isoFimSala) {
+        setErro("Horário de término inválido.");
+        return;
+      }
+      if (new Date(isoFimSala) <= new Date(isoDataHora)) {
+        setErro("O término da sala deve ser após o horário do compromisso.");
+        return;
+      }
+      if (new Date(isoFimSala) - new Date(isoDataHora) < 30 * 60 * 1000) {
+        setErro("A reserva da sala deve ter no mínimo 30 minutos.");
+        return;
+      }
+    }
+
     const payload = {
       titulo: titulo.trim(),
       tipo: tipoFinal,
@@ -381,6 +469,7 @@ export default function ModalCompromissoEscritorio({
       }
     }
     setSalvando(true);
+    let reservaCriadaId = null;
     try {
       if (modoEdicao) {
         if (
@@ -401,6 +490,18 @@ export default function ModalCompromissoEscritorio({
           );
         }
       } else {
+        if (deveReservarSala) {
+          const reserva = await api.createReservaSala({
+            titulo: titulo.trim(),
+            cliente_nome: clienteNome?.trim() || null,
+            inicio: isoDataHora,
+            fim: isoFimSala,
+            observacoes: descricao.trim() || null,
+            criado_por: user?.id || null,
+          });
+          reservaCriadaId = reserva?.id ?? null;
+        }
+
         if (repetirCompromisso) {
           const grupoRecorrenciaId = gerarUuid();
           const ocorrencias = gerarOcorrenciasRecorrentes(
@@ -410,6 +511,16 @@ export default function ModalCompromissoEscritorio({
             dataFinalRecorrencia,
           );
           if (!ocorrencias.length) {
+            if (reservaCriadaId) {
+              try {
+                await api.deleteReservaSala(reservaCriadaId);
+              } catch (rollbackErr) {
+                console.error(
+                  "[ModalCompromisso] rollback reserva:",
+                  rollbackErr,
+                );
+              }
+            }
             setErro(
               "Não foi possível gerar ocorrências para os critérios informados.",
             );
@@ -423,13 +534,23 @@ export default function ModalCompromissoEscritorio({
           }));
           await api.createCompromissosLote(lote);
         } else {
-          await api.createCompromisso(payload);
+          await api.createCompromisso({
+            ...payload,
+            reserva_sala_id: reservaCriadaId,
+          });
         }
       }
       onSaved?.();
       onClose?.();
     } catch (e) {
       console.error("[ModalCompromisso] salvar:", e);
+      if (reservaCriadaId) {
+        try {
+          await api.deleteReservaSala(reservaCriadaId);
+        } catch (rollbackErr) {
+          console.error("[ModalCompromisso] rollback reserva:", rollbackErr);
+        }
+      }
       setErro(e?.message || "Não foi possível salvar o compromisso.");
     } finally {
       setSalvando(false);
@@ -484,6 +605,7 @@ export default function ModalCompromissoEscritorio({
                   onChange={(e) => {
                     setTipo(e.target.value);
                     if (e.target.value !== "Outro") setTipoCustom("");
+                    if (!ehTipoReuniao(e.target.value)) setReservarSala(false);
                   }}
                   options={TIPOS_PADRAO.map((t) => ({ value: t, label: t }))}
                 />
@@ -549,6 +671,74 @@ export default function ModalCompromissoEscritorio({
                 </div>
               </div>
             </div>
+
+            {podeReservarSala ? (
+              <div className="rounded-xl border border-esc-border bg-esc-bg/60 p-3.5">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 rounded border-esc-border text-[var(--esc-destaque)] focus:ring-[var(--esc-destaque)]"
+                    checked={reservarSala}
+                    onChange={(e) => setReservarSala(e.target.checked)}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-esc-text">
+                      <DoorOpen
+                        className="h-4 w-4 text-[var(--esc-destaque)]"
+                        aria-hidden
+                      />
+                      Reservar sala
+                    </span>
+                    <span className="mt-0.5 block text-xs text-esc-muted">
+                      Cria automaticamente a reunião na sala única com você
+                      como responsável.
+                    </span>
+                  </span>
+                </label>
+
+                {reservarSala ? (
+                  <div className="mt-3 grid grid-cols-1 gap-3 border-t border-esc-border pt-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
+                        Término da sala
+                      </label>
+                      <div className="relative">
+                        <input
+                          ref={horaFimInputRef}
+                          type="time"
+                          className={`${fieldClass} pr-10 ${nativePickerHidden}`}
+                          value={horaFimSala}
+                          onChange={(e) => setHoraFimSala(e.target.value)}
+                        />
+                        <div
+                          className="absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer items-center justify-center py-2 pl-2"
+                          onClick={() =>
+                            void horaFimInputRef.current?.showPicker?.()
+                          }
+                          role="presentation"
+                        >
+                          <Clock
+                            className="pointer-events-none h-4 w-4 text-[var(--esc-destaque)] opacity-90"
+                            aria-hidden
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
+                        Responsável
+                      </label>
+                      <div
+                        className={`${fieldClass} flex items-center text-esc-text`}
+                        aria-readonly="true"
+                      >
+                        {nomeResponsavel}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {!modoEdicao ? (
               <div className="flex flex-col gap-1">
@@ -760,10 +950,14 @@ export default function ModalCompromissoEscritorio({
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {repetirCompromisso && !modoEdicao
                     ? "Gerando série..."
-                    : "Salvando..."}
+                    : reservarSala
+                      ? "Criando e reservando..."
+                      : "Salvando..."}
                 </>
               ) : modoEdicao ? (
                 "Salvar alterações"
+              ) : reservarSala ? (
+                "Criar e reservar sala"
               ) : (
                 "Criar Compromisso"
               )}

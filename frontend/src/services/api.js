@@ -71,6 +71,73 @@ function isReservaSalaOverlapError(error) {
   );
 }
 
+async function buscarCompromissosParaRemoverReserva(filtro) {
+  const selectCom = "id, titulo, data_hora, reserva_sala_id, status";
+  const selectSem = "id, titulo, data_hora, status";
+  let query = supabase.from("agenda").select(selectCom);
+  for (const [key, value] of Object.entries(filtro || {})) {
+    if (key === "gte_data_hora") {
+      query = query.gte("data_hora", value);
+    } else {
+      query = query.eq(key, value);
+    }
+  }
+  let { data, error } = await query;
+  if (error && /reserva_sala_id/i.test(String(error.message || error.details || ""))) {
+    let retry = supabase.from("agenda").select(selectSem);
+    for (const [key, value] of Object.entries(filtro || {})) {
+      if (key === "gte_data_hora") {
+        retry = retry.gte("data_hora", value);
+      } else {
+        retry = retry.eq(key, value);
+      }
+    }
+    ({ data, error } = await retry);
+  }
+  if (error) throw error;
+  return Array.isArray(data) ? data : data ? [data] : [];
+}
+
+async function removerReservasSalaDosCompromissos(compromissos) {
+  const lista = Array.isArray(compromissos)
+    ? compromissos.filter(Boolean)
+    : compromissos
+      ? [compromissos]
+      : [];
+  if (!lista.length) return;
+
+  const idsDiretos = [
+    ...new Set(
+      lista
+        .map((c) => c.reserva_sala_id)
+        .filter(Boolean)
+        .map(String),
+    ),
+  ];
+
+  const semVinculo = lista.filter(
+    (c) => !c.reserva_sala_id && c.titulo && c.data_hora,
+  );
+  const idsHeuristica = [];
+
+  for (const c of semVinculo) {
+    const { data, error } = await supabase
+      .from("reservas_sala")
+      .select("id")
+      .eq("titulo", String(c.titulo).trim())
+      .eq("inicio", c.data_hora)
+      .limit(1);
+    if (error) throw error;
+    if (data?.[0]?.id) idsHeuristica.push(String(data[0].id));
+  }
+
+  const ids = [...new Set([...idsDiretos, ...idsHeuristica])];
+  if (!ids.length) return;
+
+  const { error } = await supabase.from("reservas_sala").delete().in("id", ids);
+  if (error) throw error;
+}
+
 async function enrichOrdensServicoComUsuarios(rows) {
   const lista = Array.isArray(rows) ? rows : rows ? [rows] : [];
   if (lista.length === 0) return rows;
@@ -2632,16 +2699,26 @@ export const api = {
 
   getAgenda: async (escritorioId, inicioIso, fimIso) => {
     if (!escritorioId) return [];
-    let query = supabase
-      .from("agenda")
-      .select(
-        "id, escritorio_id, titulo, tipo, data_hora, descricao, cliente_id, status, grupo_recorrencia_id, cliente:clientes(id, nome)",
-      )
-      .eq("escritorio_id", escritorioId)
-      .order("data_hora", { ascending: true });
-    if (inicioIso) query = query.gte("data_hora", inicioIso);
-    if (fimIso) query = query.lte("data_hora", fimIso);
-    const { data, error } = await query;
+    const selectComVinculo =
+      "id, escritorio_id, titulo, tipo, data_hora, descricao, cliente_id, status, grupo_recorrencia_id, reserva_sala_id, cliente:clientes(id, nome)";
+    const selectSemVinculo =
+      "id, escritorio_id, titulo, tipo, data_hora, descricao, cliente_id, status, grupo_recorrencia_id, cliente:clientes(id, nome)";
+
+    const run = async (selectCols) => {
+      let query = supabase
+        .from("agenda")
+        .select(selectCols)
+        .eq("escritorio_id", escritorioId)
+        .order("data_hora", { ascending: true });
+      if (inicioIso) query = query.gte("data_hora", inicioIso);
+      if (fimIso) query = query.lte("data_hora", fimIso);
+      return query;
+    };
+
+    let { data, error } = await run(selectComVinculo);
+    if (error && /reserva_sala_id/i.test(String(error.message || error.details || ""))) {
+      ({ data, error } = await run(selectSemVinculo));
+    }
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   },
@@ -2662,12 +2739,25 @@ export const api = {
       cliente_id: payload.cliente_id ?? null,
       status: payload.status || "Agendado",
       grupo_recorrencia_id: payload.grupo_recorrencia_id ?? null,
+      reserva_sala_id: payload.reserva_sala_id ?? null,
     });
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("agenda")
       .insert(row)
       .select()
       .single();
+    if (
+      error &&
+      row.reserva_sala_id &&
+      /reserva_sala_id/i.test(String(error.message || error.details || ""))
+    ) {
+      const { reserva_sala_id: _ignored, ...semVinculo } = row;
+      ({ data, error } = await supabase
+        .from("agenda")
+        .insert(semVinculo)
+        .select()
+        .single());
+    }
     if (error) throw error;
     return data;
   },
@@ -2686,6 +2776,7 @@ export const api = {
               cliente_id: p.cliente_id ?? null,
               status: p.status || "Agendado",
               grupo_recorrencia_id: p.grupo_recorrencia_id ?? null,
+              reserva_sala_id: p.reserva_sala_id ?? null,
             }),
           )
       : [];
@@ -2706,6 +2797,16 @@ export const api = {
     delete limpo.escritorio_id;
     delete limpo.cliente;
     const cleaned = omitUndefined(limpo);
+
+    let atual = null;
+    if (cleaned.status === "Cancelado") {
+      const rows = await buscarCompromissosParaRemoverReserva({
+        id,
+        escritorio_id: escritorioId,
+      });
+      atual = rows[0] || null;
+    }
+
     const { data, error } = await supabase
       .from("agenda")
       .update(cleaned)
@@ -2714,6 +2815,15 @@ export const api = {
       .select()
       .single();
     if (error) throw error;
+
+    if (cleaned.status === "Cancelado" && atual?.status !== "Cancelado") {
+      try {
+        await removerReservasSalaDosCompromissos(atual || data);
+      } catch (errReserva) {
+        console.error("[updateCompromisso] remover reserva sala:", errReserva);
+      }
+    }
+
     return data;
   },
 
@@ -2721,6 +2831,19 @@ export const api = {
     if (!escritorioId) {
       throw new Error("escritorio_id obrigatório em deleteCompromisso");
     }
+    const atuais = await buscarCompromissosParaRemoverReserva({
+      id,
+      escritorio_id: escritorioId,
+    });
+
+    if (atuais.length) {
+      try {
+        await removerReservasSalaDosCompromissos(atuais);
+      } catch (errReserva) {
+        console.error("[deleteCompromisso] remover reserva sala:", errReserva);
+      }
+    }
+
     const { error } = await supabase
       .from("agenda")
       .delete()
@@ -2746,6 +2869,17 @@ export const api = {
     delete limpo.escritorio_id;
     delete limpo.cliente;
     const cleaned = omitUndefined(limpo);
+
+    let aCancelar = [];
+    if (cleaned.status === "Cancelado") {
+      const rows = await buscarCompromissosParaRemoverReserva({
+        escritorio_id: escritorioId,
+        grupo_recorrencia_id: grupoRecorrenciaId,
+        gte_data_hora: dataHoraOrigemIso,
+      });
+      aCancelar = rows.filter((r) => r.status !== "Cancelado");
+    }
+
     const { data, error } = await supabase
       .from("agenda")
       .update(cleaned)
@@ -2754,6 +2888,18 @@ export const api = {
       .gte("data_hora", dataHoraOrigemIso)
       .select();
     if (error) throw error;
+
+    if (cleaned.status === "Cancelado" && aCancelar.length) {
+      try {
+        await removerReservasSalaDosCompromissos(aCancelar);
+      } catch (errReserva) {
+        console.error(
+          "[updateCompromissosFuturos] remover reserva sala:",
+          errReserva,
+        );
+      }
+    }
+
     return Array.isArray(data) ? data : [];
   },
 
@@ -2768,6 +2914,24 @@ export const api = {
     if (!grupoRecorrenciaId || !dataHoraOrigemIso) {
       throw new Error("grupo_recorrencia_id e data_hora são obrigatórios");
     }
+
+    const rows = await buscarCompromissosParaRemoverReserva({
+      escritorio_id: escritorioId,
+      grupo_recorrencia_id: grupoRecorrenciaId,
+      gte_data_hora: dataHoraOrigemIso,
+    });
+
+    if (rows.length) {
+      try {
+        await removerReservasSalaDosCompromissos(rows);
+      } catch (errReserva) {
+        console.error(
+          "[deleteCompromissosFuturos] remover reserva sala:",
+          errReserva,
+        );
+      }
+    }
+
     const { error } = await supabase
       .from("agenda")
       .delete()
@@ -4397,7 +4561,30 @@ export const api = {
 
     const { data, error } = await query;
     if (error) throw error;
-    return Array.isArray(data) ? data : [];
+    const rows = Array.isArray(data) ? data : [];
+    if (!rows.length) return rows;
+
+    const ids = [
+      ...new Set(rows.map((r) => r.criado_por).filter(Boolean).map(String)),
+    ];
+    if (!ids.length) {
+      return rows.map((r) => ({ ...r, responsavel: null }));
+    }
+
+    const { data: usuarios, error: errUsuarios } = await supabase
+      .from("usuarios")
+      .select("id, nome")
+      .in("id", ids);
+    if (errUsuarios) throw errUsuarios;
+
+    const porId = Object.fromEntries(
+      (usuarios || []).map((u) => [String(u.id), { id: u.id, nome: u.nome }]),
+    );
+
+    return rows.map((r) => ({
+      ...r,
+      responsavel: r.criado_por ? porId[String(r.criado_por)] || null : null,
+    }));
   },
 
   /**

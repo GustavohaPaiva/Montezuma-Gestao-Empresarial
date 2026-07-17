@@ -4,6 +4,7 @@ import BaseButton from "../../../components/gerais/BaseButton";
 import BaseDatePicker from "../../../components/gerais/BaseDatePicker";
 import BaseSelect from "../../../components/gerais/BaseSelect";
 import FeedbackModal from "../../../components/gerais/FeedbackModal";
+import { useAuth } from "../../../contexts/AuthContext";
 import { api } from "../../../services/api";
 import { homeDictionary } from "../../../constants/dictionaries";
 import DigitalTimePicker from "./DigitalTimePicker";
@@ -105,8 +106,20 @@ export default function ModalReservaSala({
   onDelete,
   reservaEdicao = null,
 }) {
+  const { user } = useAuth();
   const copy = homeDictionary.salaReunioes;
   const modoEdicao = Boolean(reservaEdicao?.id);
+
+  const nomeResponsavel = useMemo(() => {
+    if (modoEdicao) {
+      return (
+        reservaEdicao?.responsavel?.nome?.trim() ||
+        reservaEdicao?.criado_por_nome?.trim() ||
+        "—"
+      );
+    }
+    return user?.nome?.trim() || user?.email?.trim() || "—";
+  }, [modoEdicao, reservaEdicao, user]);
 
   const [form, setForm] = useState(emptyForm);
   const [clientes, setClientes] = useState([]);
@@ -258,6 +271,7 @@ export default function ModalReservaSala({
         inicio,
         fim,
         observacoes: form.observacoes.trim() || null,
+        criado_por: modoEdicao ? undefined : user?.id || null,
       });
       onClose();
     } catch (err) {
@@ -328,6 +342,20 @@ export default function ModalReservaSala({
               createOptionLabel={(q) =>
                 copy.modal.clienteUsar.replace("{nome}", q)
               }
+            />
+          </div>
+
+          <div>
+            <label className={labelClass} htmlFor="reserva-responsavel">
+              {copy.modal.responsavelLabel}
+            </label>
+            <input
+              id="reserva-responsavel"
+              type="text"
+              className={`${fieldClass} bg-slate-50 text-text-muted`}
+              value={nomeResponsavel}
+              readOnly
+              tabIndex={-1}
             />
           </div>
 

@@ -44,6 +44,7 @@ function ReservaItem({ reserva, onClick, showDate = false }) {
   const titulo =
     reserva.cliente_nome?.trim() || reserva.titulo || "Reunião";
   const horario = `${formatHora(reserva.inicio)} – ${formatHora(reserva.fim)}`;
+  const responsavel = reserva.responsavel?.nome?.trim();
 
   return (
     <button
@@ -63,6 +64,9 @@ function ReservaItem({ reserva, onClick, showDate = false }) {
           <span className="font-medium text-accent-primary/90">{horario}</span>
           {reserva.cliente_nome && reserva.titulo ? (
             <span className="truncate">{reserva.titulo}</span>
+          ) : null}
+          {responsavel ? (
+            <span className="truncate">Resp.: {responsavel}</span>
           ) : null}
         </span>
       </span>

@@ -130,6 +130,7 @@ export const homeDictionary = {
       clientePlaceholder: "Selecione ou digite o cliente",
       clienteVazio: "Nenhum cliente encontrado",
       clienteUsar: 'Usar "{nome}"',
+      responsavelLabel: "Responsável",
       dataLabel: "Data",
       inicioLabel: "Início",
       fimLabel: "Fim",
