@@ -1186,7 +1186,7 @@ export const api = {
     let query = supabase
       .from("obras")
       .select(
-        "*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), locacoes:relatorio_locacoes(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome, tipo)",
+        "*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*, prestadores(nome)), locacoes:relatorio_locacoes(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome, tipo)",
       )
       .eq("active", true)
       .order("created_at", { ascending: false });
@@ -1505,7 +1505,7 @@ export const api = {
     const { data, error } = await supabase
       .from("obras")
       .select(
-        `*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*), locacoes:relatorio_locacoes(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
+        `*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*, prestadores(nome)), locacoes:relatorio_locacoes(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
       )
       .eq("id", id)
       .maybeSingle();

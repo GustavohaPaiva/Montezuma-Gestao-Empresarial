@@ -1,34 +1,45 @@
+function isStatusPago(statusFinanceiro) {
+  return (statusFinanceiro || "").toLowerCase().trim() === "pago";
+}
+
+/**
+ * Status financeiro do card na listagem de obras.
+ * Alinhado aos hubs / extrato do detalhe:
+ * - extrato: todos os lançamentos "Pago"
+ * - materiais / locações: status_financeiro "Pago" (quando há valor)
+ *
+ * A regra antiga também exigia (1) material presente no extrato e
+ * (2) mão de obra com valor_orcado > valor_pago sem extrato vinculado.
+ * Isso marcava "Pendente" em obras cujo extrato e materiais já estavam
+ * pagos — a MdO só entra no fluxo de pagamento ao gerar extrato.
+ */
 export function verificarStatusPagamento(obra) {
   const extrato = obra.extrato || obra.relatorioExtrato || [];
-  const mdo = obra.maoDeObra || [];
   const mat = obra.materiais || [];
+  const loc = obra.locacoes || [];
+  const mdo = obra.maoDeObra || [];
 
-  if (extrato.length === 0 && mdo.length === 0 && mat.length === 0) {
+  if (
+    extrato.length === 0 &&
+    mdo.length === 0 &&
+    mat.length === 0 &&
+    loc.length === 0
+  ) {
     return true;
   }
 
-  for (let e of extrato) {
-    if ((e.status_financeiro || "").toLowerCase().trim() !== "pago") {
+  for (const e of extrato) {
+    if (!isStatusPago(e.status_financeiro)) return false;
+  }
+
+  for (const m of mat) {
+    if ((parseFloat(m.valor) || 0) > 0 && !isStatusPago(m.status_financeiro)) {
       return false;
     }
   }
 
-  for (let m of mdo) {
-    const orcado = parseFloat(m.valor_orcado) || 0;
-    const pago = parseFloat(m.valor_pago) || 0;
-    if (
-      orcado - pago > 0.01 &&
-      !extrato.some((e) => e.mao_de_obra_id === m.id)
-    ) {
-      return false;
-    }
-  }
-
-  for (let m of mat) {
-    if (
-      (parseFloat(m.valor) || 0) > 0 &&
-      !extrato.some((e) => e.material_id === m.id)
-    ) {
+  for (const l of loc) {
+    if ((parseFloat(l.valor) || 0) > 0 && !isStatusPago(l.status_financeiro)) {
       return false;
     }
   }

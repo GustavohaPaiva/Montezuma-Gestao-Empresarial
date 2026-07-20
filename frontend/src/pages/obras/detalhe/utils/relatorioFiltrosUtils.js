@@ -1,4 +1,5 @@
 import { SEM_FORNECEDOR_ID } from "./materiaisPorFornecedor";
+import { SEM_PRESTADOR_ID } from "./maoDeObraPorPrestador";
 
 export function filtrarMateriaisLista(
   lista,
@@ -33,7 +34,9 @@ export function filtrarMaoDeObraLista(
   { busca = "", prestadorId = "", etapaNome = "" } = {},
 ) {
   let result = [...(lista || [])];
-  if (prestadorId) {
+  if (prestadorId === SEM_PRESTADOR_ID) {
+    result = result.filter((m) => !m.prestador_id);
+  } else if (prestadorId) {
     result = result.filter(
       (m) => String(m.prestador_id) === String(prestadorId),
     );
@@ -47,6 +50,7 @@ export function filtrarMaoDeObraLista(
       (m) =>
         m.tipo?.toLowerCase().includes(term) ||
         m.profissional?.toLowerCase().includes(term) ||
+        m.prestadores?.nome?.toLowerCase().includes(term) ||
         m.etapa_nome?.toLowerCase().includes(term),
     );
   }

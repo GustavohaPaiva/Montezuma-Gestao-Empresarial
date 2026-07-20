@@ -128,18 +128,39 @@ export function useObrasDetalheTableData({
     let listaMateriais = [...listaMateriaisFiltrada];
 
     if (sortConfig.campo) {
-      listaMateriais.sort((a, b) => {
-        let valA, valB;
-        if (sortConfig.campo === "fornecedor") {
-          valA = (a.fornecedores?.nome || a.fornecedor || "").toLowerCase();
-          valB = (b.fornecedores?.nome || b.fornecedor || "").toLowerCase();
-        } else if (sortConfig.campo === "data") {
-          valA = new Date(a.data_solicitacao).getTime();
-          valB = new Date(b.data_solicitacao).getTime();
-        } else if (sortConfig.campo === "status") {
-          valA = ORDEM_STATUS[a.status] || 0;
-          valB = ORDEM_STATUS[b.status] || 0;
+      const valorSortMateriais = (m, campo) => {
+        switch (campo) {
+          case "material":
+            return (m.material || "").toLowerCase();
+          case "quantidade":
+            return parseFloat(m.quantidade) || 0;
+          case "valor_unitario": {
+            const qtd = parseFloat(m.quantidade) || 0;
+            return qtd > 0 ? (parseFloat(m.valor) || 0) / qtd : 0;
+          }
+          case "valor":
+            return parseFloat(m.valor) || 0;
+          case "status":
+            return ORDEM_STATUS[m.status] || 0;
+          case "fornecedor":
+            return (m.fornecedores?.nome || m.fornecedor || "").toLowerCase();
+          case "etapa":
+            return (m.etapa_nome || "").toLowerCase();
+          case "data": {
+            const t = new Date(m.data_solicitacao).getTime();
+            return Number.isFinite(t) ? t : 0;
+          }
+          case "vencimento": {
+            const t = new Date(m.data_vencimento).getTime();
+            return Number.isFinite(t) ? t : 0;
+          }
+          default:
+            return "";
         }
+      };
+      listaMateriais.sort((a, b) => {
+        const valA = valorSortMateriais(a, sortConfig.campo);
+        const valB = valorSortMateriais(b, sortConfig.campo);
         if (valA < valB) return sortConfig.direcao === "asc" ? -1 : 1;
         if (valA > valB) return sortConfig.direcao === "asc" ? 1 : -1;
         return desempatePorId(a, b);
@@ -686,16 +707,35 @@ export function useObrasDetalheTableData({
     let listaMaoDeObra = [...listaMaoDeObraFiltrada];
 
     if (sortConfigMdo.campo) {
-      listaMaoDeObra.sort((a, b) => {
-        let valA = "";
-        let valB = "";
-        if (sortConfigMdo.campo === "profissional") {
-          valA = (a.profissional || "").toLowerCase();
-          valB = (b.profissional || "").toLowerCase();
-        } else if (sortConfigMdo.campo === "tipo") {
-          valA = (a.tipo || "").toLowerCase();
-          valB = (b.tipo || "").toLowerCase();
+      const valorSortMdo = (m, campo) => {
+        switch (campo) {
+          case "validacao":
+            return m.validacao || 0;
+          case "tipo":
+            return (m.tipo || "").toLowerCase();
+          case "profissional":
+            return (m.prestadores?.nome || m.profissional || "").toLowerCase();
+          case "cobrado":
+            return parseFloat(m.valor_cobrado) || 0;
+          case "orcado":
+            return parseFloat(m.valor_orcado) || 0;
+          case "pago":
+            return parseFloat(m.valor_pago) || 0;
+          case "saldo":
+            return (parseFloat(m.valor_orcado) || 0) - (parseFloat(m.valor_pago) || 0);
+          case "data": {
+            const t = new Date(m.data_solicitacao).getTime();
+            return Number.isFinite(t) ? t : 0;
+          }
+          case "etapa":
+            return (m.etapa_nome || "").toLowerCase();
+          default:
+            return "";
         }
+      };
+      listaMaoDeObra.sort((a, b) => {
+        const valA = valorSortMdo(a, sortConfigMdo.campo);
+        const valB = valorSortMdo(b, sortConfigMdo.campo);
         if (valA < valB) return sortConfigMdo.direcao === "asc" ? -1 : 1;
         if (valA > valB) return sortConfigMdo.direcao === "asc" ? 1 : -1;
         return desempatePorId(a, b);
@@ -757,7 +797,7 @@ export function useObrasDetalheTableData({
               }
             >
               <span className="text-[13px] uppercase">
-                {m.profissional || "-"}
+                {m.prestadores?.nome || m.profissional || "-"}
               </span>
               <img
                 width="15"
@@ -945,7 +985,7 @@ export function useObrasDetalheTableData({
     const mapaPrestadorPorMdoId = Object.fromEntries(
       (obra.maoDeObra || []).map((mdo) => [
         String(mdo.id),
-        mdo.profissional || "-",
+        mdo.prestadores?.nome || mdo.profissional || "-",
       ]),
     );
 

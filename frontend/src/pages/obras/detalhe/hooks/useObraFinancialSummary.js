@@ -68,13 +68,5 @@ export function useObraFinancialSummary(obra) {
     });
   }, [totais, obra]);
 
-  const prestadoresUnicos = useMemo(() => {
-    if (!obra || !obra.maoDeObra) return [];
-    const prestadores = obra.maoDeObra
-      .map((m) => m.profissional)
-      .filter(Boolean);
-    return Array.from(new Set(prestadores)).sort();
-  }, [obra]);
-
-  return { totais, dataGrafico, prestadoresUnicos };
+  return { totais, dataGrafico };
 }

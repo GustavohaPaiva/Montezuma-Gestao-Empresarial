@@ -360,6 +360,8 @@ export default function Obras() {
               value={metricas.total}
               colorTheme="blue"
               icon={<LayoutGrid className="h-5 w-5" />}
+              selected={filtroStatus === "Tudo"}
+              onClick={() => setFiltroStatus("Tudo")}
             />
             <BaseCard
               variant="metric"
@@ -367,6 +369,8 @@ export default function Obras() {
               value={metricas.aguardando}
               colorTheme="purple"
               icon={<Hourglass className="h-5 w-5" />}
+              selected={filtroStatus === "Aguardando iniciação"}
+              onClick={() => setFiltroStatus("Aguardando iniciação")}
             />
             <BaseCard
               variant="metric"
@@ -374,6 +378,8 @@ export default function Obras() {
               value={metricas.emAndamento}
               colorTheme="amber"
               icon={<Hammer className="h-5 w-5" />}
+              selected={filtroStatus === "Em andamento"}
+              onClick={() => setFiltroStatus("Em andamento")}
             />
             <BaseCard
               variant="metric"
@@ -381,6 +387,8 @@ export default function Obras() {
               value={metricas.concluidas}
               colorTheme="emerald"
               icon={<LayoutGrid className="h-5 w-5" />}
+              selected={filtroStatus === "Concluída"}
+              onClick={() => setFiltroStatus("Concluída")}
             />
           </div>
         )}

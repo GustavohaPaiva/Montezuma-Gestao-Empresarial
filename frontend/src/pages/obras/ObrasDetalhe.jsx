@@ -26,7 +26,6 @@ import {
 import ObraDetalheHeader from "./detalhe/components/ObraDetalheHeader";
 import ObraDetalheResumoFinanceiro from "./detalhe/components/ObraDetalheResumoFinanceiro";
 import ObraDetalheLotesPagamento from "./detalhe/components/ObraDetalheLotesPagamento";
-import ModalRelatorioPrestador from "./detalhe/components/ModalRelatorioPrestador";
 import { etapasParaSelectOptions } from "./detalhe/utils/etapasLancamento";
 import {
   calcularDataDevolucao,
@@ -42,7 +41,6 @@ import {
   gerarPdfRelatorioLocacoes,
   gerarPdfRelatorioMaoDeObraGeral,
   gerarPdfRelatorioMateriais,
-  gerarPdfRelatorioPorPrestador,
 } from "./detalhe/utils/obraDetalhePdf.jsx";
 import FeedbackModal from "../../components/gerais/FeedbackModal";
 import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
@@ -52,7 +50,6 @@ import BaseSelect from "../../components/gerais/BaseSelect";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   ArrowLeft,
-  AlertCircle,
   CheckCircle2,
   ClipboardList,
   FileText,
@@ -61,15 +58,21 @@ import {
   MessageSquareText,
   Package,
   Send,
-  Wallet,
 } from "lucide-react";
 import BaseCard from "../../components/cards/BaseCard";
 import MateriaisFornecedoresHub from "./detalhe/components/MateriaisFornecedoresHub";
+import MaoDeObraPrestadoresHub from "./detalhe/components/MaoDeObraPrestadoresHub";
+import DetalheEntidadeValoresCard from "./detalhe/components/DetalheEntidadeValoresCard";
 import {
   SEM_FORNECEDOR_ID,
   agregarMateriaisPorFornecedor,
   encontrarFornecedorIdDoMaterial,
 } from "./detalhe/utils/materiaisPorFornecedor";
+import {
+  SEM_PRESTADOR_ID,
+  agregarMaoDeObraPorPrestador,
+  encontrarPrestadorIdDoLancamento,
+} from "./detalhe/utils/maoDeObraPorPrestador";
 
 export default function ObrasDetalhe() {
   const { id } = useParams();
@@ -87,8 +90,6 @@ export default function ObrasDetalhe() {
   const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
   const [modalLocacoesOpen, setModalLocacoesOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
-  const [modalRelatorioPrestadorOpen, setModalRelatorioPrestadorOpen] =
-    useState(false);
   const [pdfPreview, setPdfPreview] = useState(null);
   const [processandoLoteId, setProcessandoLoteId] = useState(null);
   const [processandoLoteItemId, setProcessandoLoteItemId] = useState(null);
@@ -115,9 +116,9 @@ export default function ObrasDetalhe() {
   /** null = hub de fornecedores; UUID ou SEM_FORNECEDOR_ID = detalhe */
   const [fornecedorMateriaisSelecionadoId, setFornecedorMateriaisSelecionadoId] =
     useState(null);
-  const [filtroPrestadorId, setFiltroPrestadorId] = useState("");
-  const [listaPrestadores, setListaPrestadores] = useState([]);
-  const [carregandoPrestadores, setCarregandoPrestadores] = useState(false);
+  /** null = hub de prestadores; UUID ou SEM_PRESTADOR_ID = detalhe */
+  const [prestadorMaoDeObraSelecionadoId, setPrestadorMaoDeObraSelecionadoId] =
+    useState(null);
   const [buscaLocacoes, setBuscaLocacoes] = useState("");
   const [filtroEtapaMateriais, setFiltroEtapaMateriais] = useState("");
   const [filtroEtapaMaoDeObra, setFiltroEtapaMaoDeObra] = useState("");
@@ -150,8 +151,7 @@ export default function ObrasDetalhe() {
   const [materialParaExcluir, setMaterialParaExcluir] = useState(null);
   const [maoDeObraParaExcluir, setMaoDeObraParaExcluir] = useState(null);
 
-  const { totais, dataGrafico, prestadoresUnicos } =
-    useObraFinancialSummary(obra);
+  const { totais, dataGrafico } = useObraFinancialSummary(obra);
 
   const toggleCategoria = (nome) => {
     setCategoriaAtiva((prev) => (prev === nome ? null : nome));
@@ -229,7 +229,6 @@ export default function ObrasDetalhe() {
       setItemDestacadoId(item);
       if (sub === "mao") {
         setBuscaMaoDeObra("");
-        setFiltroPrestadorId("");
         setFiltroEtapaMaoDeObra("");
       } else {
         setBuscaMateriais("");
@@ -237,21 +236,6 @@ export default function ObrasDetalhe() {
       }
     }
   }, [searchParams]);
-
-  useEffect(() => {
-    const carregarListasFiltro = async () => {
-      setCarregandoPrestadores(true);
-      try {
-        const prestadores = await api.getPrestadoresSimples();
-        setListaPrestadores(prestadores || []);
-      } catch (error) {
-        console.error("Erro ao carregar listas de filtro:", error);
-      } finally {
-        setCarregandoPrestadores(false);
-      }
-    };
-    carregarListasFiltro();
-  }, []);
 
   const { fornecedores: fornecedoresMateriaisHub, totaisObra: totaisMateriaisObra, qtdFornecedores: qtdFornecedoresMateriais } =
     useMemo(
@@ -268,6 +252,28 @@ export default function ObrasDetalhe() {
     );
   }, [fornecedorMateriaisSelecionadoId, fornecedoresMateriaisHub]);
 
+  const {
+    prestadores: prestadoresMaoDeObraHub,
+    totaisObra: totaisMaoDeObraObra,
+    qtdPrestadores: qtdPrestadoresMaoDeObra,
+  } = useMemo(
+    () =>
+      agregarMaoDeObraPorPrestador(
+        obra?.maoDeObra || [],
+        obra?.relatorioExtrato || [],
+      ),
+    [obra?.maoDeObra, obra?.relatorioExtrato],
+  );
+
+  const prestadorMaoDeObraSelecionado = useMemo(() => {
+    if (prestadorMaoDeObraSelecionadoId == null) return null;
+    return (
+      prestadoresMaoDeObraHub.find(
+        (p) => String(p.id) === String(prestadorMaoDeObraSelecionadoId),
+      ) || null
+    );
+  }, [prestadorMaoDeObraSelecionadoId, prestadoresMaoDeObraHub]);
+
   // Deep link: ao destacar um material, abrir o detalhe do fornecedor correspondente
   useEffect(() => {
     const item = searchParams.get("item");
@@ -282,10 +288,30 @@ export default function ObrasDetalhe() {
     }
   }, [searchParams, obra?.materiais, subRelatorio]);
 
+  // Deep link: ao destacar um lançamento de MDO, abrir o detalhe do prestador
+  useEffect(() => {
+    const item = searchParams.get("item");
+    const sub = searchParams.get("sub");
+    if (!item || !obra?.maoDeObra?.length) return;
+    if (sub && sub !== "mao") return;
+    if (subRelatorio !== "mao") return;
+
+    const prestId = encontrarPrestadorIdDoLancamento(obra.maoDeObra, item);
+    if (prestId != null) {
+      setPrestadorMaoDeObraSelecionadoId(prestId);
+    }
+  }, [searchParams, obra?.maoDeObra, subRelatorio]);
+
   const voltarHubFornecedoresMateriais = useCallback(() => {
     setFornecedorMateriaisSelecionadoId(null);
     setBuscaMateriais("");
     setFiltroEtapaMateriais("");
+  }, []);
+
+  const voltarHubPrestadoresMaoDeObra = useCallback(() => {
+    setPrestadorMaoDeObraSelecionadoId(null);
+    setBuscaMaoDeObra("");
+    setFiltroEtapaMaoDeObra("");
   }, []);
 
   const handleSortMateriais = (campo) => {
@@ -293,6 +319,11 @@ export default function ObrasDetalhe() {
       campo,
       direcao: prev.campo === campo && prev.direcao === "asc" ? "desc" : "asc",
     }));
+  };
+
+  const getSortIconMateriais = (campo) => {
+    if (sortConfig.campo !== campo) return " ";
+    return sortConfig.direcao === "asc" ? "↑" : "↓";
   };
 
   const handleDeleteMaterial = useCallback(
@@ -638,6 +669,11 @@ export default function ObrasDetalhe() {
     }));
   };
 
+  const getSortIconMdo = (campo) => {
+    if (sortConfigMdo.campo !== campo) return " ";
+    return sortConfigMdo.direcao === "asc" ? "↑" : "↓";
+  };
+
   const handleSortExtrato = useCallback(
     (campo) => {
       if (sortField === campo) {
@@ -831,33 +867,33 @@ export default function ObrasDetalhe() {
     [],
   );
 
-  const handleGerarRelatorioPorPrestador = (prestador) => {
-    const lista = obra?.maoDeObra?.filter(
-      (m) => m.profissional?.toLowerCase() === prestador.toLowerCase(),
-    );
-    if (!lista || lista.length === 0) {
-      showFeedback("Nenhum registro encontrado para este prestador.", "info");
+  const handleGerarRelatorioMaoDeObra = () => {
+    const lista = obra?.maoDeObra || [];
+    if (lista.length === 0) {
+      showFeedback("Nenhuma mão de obra lançada nesta obra.", "info");
       return;
     }
-    setModalRelatorioPrestadorOpen(false);
+    if (prestadorMaoDeObraSelecionadoId == null) {
+      showFeedback("Selecione um prestador para gerar o relatório.", "info");
+      return;
+    }
+    const nomePrestador =
+      prestadorMaoDeObraSelecionado?.nome ||
+      (prestadorMaoDeObraSelecionadoId === SEM_PRESTADOR_ID
+        ? "Sem prestador"
+        : "Prestador");
     abrirPdfPreview({
-      titulo: `Mão de Obra · ${prestador}`,
-      gerador: () =>
-        gerarPdfRelatorioPorPrestador(obra, prestador, { retornarBlob: true }),
-      nomeFallback: `Relatorio_${prestador}.pdf`,
-    });
-  };
-
-  const handleGerarRelatorioMaoDeObraGeral = () => {
-    abrirPdfPreview({
-      titulo: "Relatório de Mão de Obra",
+      titulo: `Mão de Obra · ${nomePrestador}`,
       gerador: () =>
         gerarPdfRelatorioMaoDeObraGeral(
           obra,
-          { busca: buscaMaoDeObra, prestadorId: filtroPrestadorId },
+          {
+            busca: buscaMaoDeObra,
+            prestadorId: prestadorMaoDeObraSelecionadoId,
+          },
           { retornarBlob: true },
         ),
-      nomeFallback: "Relatorio_Mao_De_Obra_Geral.pdf",
+      nomeFallback: `Relatorio_Mao_De_Obra_${nomePrestador}.pdf`,
     });
   };
 
@@ -1272,7 +1308,7 @@ export default function ObrasDetalhe() {
     handleDeleteLocacao,
     handleValidarLocacao,
     buscaMaoDeObra,
-    filtroPrestadorId,
+    filtroPrestadorId: prestadorMaoDeObraSelecionadoId ?? "",
     filtroEtapaMaoDeObra,
     sortConfigMdo,
     editandoMaoDeObra,
@@ -1384,6 +1420,9 @@ export default function ObrasDetalhe() {
 
   const totalBarClass =
     "flex min-h-[44px] w-full flex-wrap items-center justify-center gap-1 rounded-xl border border-border-primary/40 bg-[#FAFAFA] px-4 py-3 text-center text-base font-semibold text-text-primary shadow-inner ring-1 ring-black/[0.04]";
+
+  const colSortClass =
+    "cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary";
 
   return (
     <div className="flex min-h-screen flex-col items-center overflow-x-hidden bg-[#FAFAFA] pb-10">
@@ -1669,6 +1708,11 @@ export default function ObrasDetalhe() {
                           setBuscaMateriais("");
                           setFiltroEtapaMateriais("");
                         }
+                        if (opt.id === "mao") {
+                          setPrestadorMaoDeObraSelecionadoId(null);
+                          setBuscaMaoDeObra("");
+                          setFiltroEtapaMaoDeObra("");
+                        }
                       }}
                       className={[
                         "flex w-full cursor-pointer flex-col items-start gap-1 rounded-2xl border p-4 text-left shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all sm:p-5",
@@ -1736,56 +1780,6 @@ export default function ObrasDetalhe() {
                                 ? "Sem fornecedor"
                                 : "Fornecedor")}
                           </h1>
-                          {fornecedorMateriaisSelecionado && (
-                            <dl className="mt-1 flex flex-wrap gap-x-3 gap-y-2 text-xs sm:text-sm">
-                              <div className="flex flex-row items-center gap-1.5">
-                                <Wallet
-                                  className="h-3.5 w-3.5 text-orange-600/55"
-                                  aria-hidden
-                                />
-                                <dt className="text-text-muted">Comprado</dt>
-                                <dd className="font-semibold flex flex-row tabular-nums text-text-primary">
-                                  R${" "}
-                                  {formatarMoeda(
-                                    fornecedorMateriaisSelecionado.comprado,
-                                  )}
-                                </dd>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <CheckCircle2
-                                  className="h-3.5 w-3.5 text-orange-600/55"
-                                  aria-hidden
-                                />
-                                <dt className="text-text-muted">Pago</dt>
-                                <dd className="font-semibold tabular-nums text-text-primary">
-                                  R${" "}
-                                  {formatarMoeda(
-                                    fornecedorMateriaisSelecionado.pago,
-                                  )}
-                                </dd>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                {fornecedorMateriaisSelecionado.pendente > 0 ? (
-                                  <AlertCircle
-                                    className="h-3.5 w-3.5 text-orange-600/55"
-                                    aria-hidden
-                                  />
-                                ) : (
-                                  <CheckCircle2
-                                    className="h-3.5 w-3.5 text-orange-600/55"
-                                    aria-hidden
-                                  />
-                                )}
-                                <dt className="text-text-muted">A pagar</dt>
-                                <dd className="font-semibold tabular-nums text-text-primary">
-                                  R${" "}
-                                  {formatarMoeda(
-                                    fornecedorMateriaisSelecionado.pendente,
-                                  )}
-                                </dd>
-                              </div>
-                            </dl>
-                          )}
                         </div>
                         <div
                           className={`flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-end`}
@@ -1809,39 +1803,85 @@ export default function ObrasDetalhe() {
                           />
                         </div>
                       </div>
+                      {fornecedorMateriaisSelecionado && (
+                        <DetalheEntidadeValoresCard
+                          primarioLabel="Comprado"
+                          primarioValor={fornecedorMateriaisSelecionado.comprado}
+                          pago={fornecedorMateriaisSelecionado.pago}
+                          pendente={fornecedorMateriaisSelecionado.pendente}
+                        />
+                      )}
                       <TabelaSimples
                         variant="obraDetalhe"
                         dense
                         rowIds={rowIdsMateriais}
                         highlightedRowId={itemDestacadoId}
                         colunas={[
-                          "Material",
-                          "Quantidade",
-                          "Valor Un.",
-                          "Valor",
+                          <span
+                            key="col-mat"
+                            className={colSortClass}
+                            onClick={() => handleSortMateriais("material")}
+                          >
+                            Material {getSortIconMateriais("material")}
+                          </span>,
+                          <span
+                            key="col-qtd"
+                            className={colSortClass}
+                            onClick={() => handleSortMateriais("quantidade")}
+                          >
+                            Quantidade {getSortIconMateriais("quantidade")}
+                          </span>,
+                          <span
+                            key="col-vu"
+                            className={colSortClass}
+                            onClick={() =>
+                              handleSortMateriais("valor_unitario")
+                            }
+                          >
+                            Valor Un. {getSortIconMateriais("valor_unitario")}
+                          </span>,
+                          <span
+                            key="col-val"
+                            className={colSortClass}
+                            onClick={() => handleSortMateriais("valor")}
+                          >
+                            Valor {getSortIconMateriais("valor")}
+                          </span>,
                           <span
                             key="col-status"
-                            className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+                            className={colSortClass}
                             onClick={() => handleSortMateriais("status")}
                           >
-                            Status ↕
+                            Status {getSortIconMateriais("status")}
                           </span>,
                           <span
                             key="col-forn"
-                            className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+                            className={colSortClass}
                             onClick={() => handleSortMateriais("fornecedor")}
                           >
-                            Fornecedor ↕
+                            Fornecedor {getSortIconMateriais("fornecedor")}
                           </span>,
-                          "Etapa",
+                          <span
+                            key="col-etapa"
+                            className={colSortClass}
+                            onClick={() => handleSortMateriais("etapa")}
+                          >
+                            Etapa {getSortIconMateriais("etapa")}
+                          </span>,
                           <span
                             key="col-data"
-                            className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
+                            className={colSortClass}
                             onClick={() => handleSortMateriais("data")}
                           >
-                            Data ↕
+                            Data {getSortIconMateriais("data")}
                           </span>,
-                          "Vencimento",
+                          <span
+                            key="col-venc"
+                            className={colSortClass}
+                            onClick={() => handleSortMateriais("vencimento")}
+                          >
+                            Vencimento {getSortIconMateriais("vencimento")}
+                          </span>,
                           "",
                         ]}
                         dados={dadosMateriais}
@@ -1877,135 +1917,208 @@ export default function ObrasDetalhe() {
                 <div
                   className={`${reportCardShell} mt-3 flex flex-col items-stretch gap-5 text-left sm:mt-4 sm:gap-6`}
                 >
-                  <div
-                    className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
-                  >
-                    <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
-                      Relatório de Mão de Obra
-                    </h1>
-                    <div
-                      className={`flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-end`}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Buscar serviço ou prestador..."
-                        value={buscaMaoDeObra}
-                        onChange={(e) => setBuscaMaoDeObra(e.target.value)}
-                        className={`${inputPremium} lg:max-w-[250px] lg:min-w-0 lg:flex-1`}
-                      />
-                      <BaseSelect
-                        searchable
-                        loading={carregandoPrestadores}
-                        value={filtroPrestadorId}
-                        onChange={(e) => setFiltroPrestadorId(e.target.value)}
-                        wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[220px]"
-                        className={`${selectPremium} w-full`}
-                        options={[
-                          {
-                            value: "",
-                            label: carregandoPrestadores
-                              ? "Carregando..."
-                              : "Todos os prestadores",
-                          },
-                          ...listaPrestadores.map((p) => ({
-                            value: String(p.id),
-                            label: p.nome,
-                          })),
-                        ]}
-                      />
-                      <BaseSelect
-                        searchable
-                        value={filtroEtapaMaoDeObra}
-                        onChange={(e) =>
-                          setFiltroEtapaMaoDeObra(e.target.value)
-                        }
-                        wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
-                        className={`${selectPremium} w-full`}
-                        options={opcoesEtapasObra}
-                      />
-                      <ButtonDefault
-                        type="button"
-                        onClick={() => setModalMaoDeObraOpen(true)}
-                        className={`${btnAccentPremium} shrink-0 lg:!w-auto`}
-                      >
-                        Nova mão de obra
-                      </ButtonDefault>
-                    </div>
-                  </div>
-                  <TabelaSimples
-                    variant="obraDetalhe"
-                    dense
-                    rowIds={rowIdsMaoDeObra}
-                    highlightedRowId={itemDestacadoId}
-                    colunas={[
-                      "Validação",
-                      <span
-                        key="col-serv"
-                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
-                        onClick={() => handleSortMdo("tipo")}
-                      >
-                        Serviço ↕
-                      </span>,
-                      <span
-                        key="col-prest"
-                        className="cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary"
-                        onClick={() => handleSortMdo("profissional")}
-                      >
-                        Prestador ↕
-                      </span>,
-                      "Valor Cobrado",
-                      "Valor Orçado",
-                      "Valor Pago",
-                      "Saldo",
-                      "Data",
-                      "Etapa",
-                      "",
-                    ]}
-                    dados={dadosMaoDeObra}
-                  />
-
-                  <div
-                    className={`flex w-full flex-col items-stretch gap-4 md:flex-row md:flex-wrap md:items-center md:justify-center`}
-                  >
-                    {!isEncarregado && (
+                  {prestadorMaoDeObraSelecionadoId == null ? (
+                    <>
                       <div
-                        className={`flex w-full flex-col gap-3 sm:flex-row sm:justify-center`}
+                        className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
                       >
+                        <div className="min-w-0">
+                          <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
+                            Relatório de Mão de Obra
+                          </h1>
+                          <p className="mt-1 text-sm text-text-muted">
+                            Escolha um prestador para ver os serviços lançados
+                            nesta obra.
+                          </p>
+                        </div>
                         <ButtonDefault
-                          onClick={handleGerarRelatorioMaoDeObraGeral}
-                          className={`${btnOutlinePremium} sm:!flex-1`}
+                          type="button"
+                          onClick={() => setModalMaoDeObraOpen(true)}
+                          className={`${btnAccentPremium} shrink-0 lg:!w-auto`}
                         >
-                          Relatório Geral
-                        </ButtonDefault>
-                        <ButtonDefault
-                          onClick={() => setModalRelatorioPrestadorOpen(true)}
-                          className={`${btnOutlinePremium} sm:!flex-1`}
-                        >
-                          Por Prestador
+                          Nova mão de obra
                         </ButtonDefault>
                       </div>
-                    )}
-                    <div
-                      className={`flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center`}
-                    >
-                      <div className={totalBarClass}>
-                        <span className="text-text-muted">
-                          {filtroEtapaMaoDeObra
-                            ? `Total orçado (${filtroEtapaMaoDeObra}):`
-                            : "Total orçado:"}
-                        </span>
-                        <span className="font-bold tabular-nums text-text-primary">
-                          R$ {formatarMoeda(totaisMaoDeObraFiltrados.orcado)}
-                        </span>
+                      <MaoDeObraPrestadoresHub
+                        prestadores={prestadoresMaoDeObraHub}
+                        totaisObra={totaisMaoDeObraObra}
+                        qtdPrestadores={qtdPrestadoresMaoDeObra}
+                        onSelectPrestador={setPrestadorMaoDeObraSelecionadoId}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className={`flex w-full gap-4 ${isMobile ? "flex-col" : "flex-col lg:flex-row lg:items-start lg:justify-between"}`}
+                      >
+                        <div className="min-w-0 flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={voltarHubPrestadoresMaoDeObra}
+                            className="inline-flex w-fit items-center gap-1.5 rounded-lg px-1 py-0.5 text-sm font-medium text-accent-primary transition hover:bg-accent-primary/10"
+                          >
+                            <ArrowLeft className="h-4 w-4" aria-hidden />
+                            Prestadores
+                          </button>
+                          <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl lg:text-3xl">
+                            {prestadorMaoDeObraSelecionado?.nome ||
+                              (prestadorMaoDeObraSelecionadoId ===
+                              SEM_PRESTADOR_ID
+                                ? "Sem prestador"
+                                : "Prestador")}
+                          </h1>
+                        </div>
+                        <div
+                          className={`flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-end`}
+                        >
+                          <input
+                            type="text"
+                            placeholder="Buscar serviço ou prestador..."
+                            value={buscaMaoDeObra}
+                            onChange={(e) => setBuscaMaoDeObra(e.target.value)}
+                            className={`${inputPremium} lg:max-w-[250px] lg:min-w-0 lg:flex-1`}
+                          />
+                          <BaseSelect
+                            searchable
+                            value={filtroEtapaMaoDeObra}
+                            onChange={(e) =>
+                              setFiltroEtapaMaoDeObra(e.target.value)
+                            }
+                            wrapperClassName="w-full shrink-0 lg:w-auto lg:min-w-[200px]"
+                            className={`${selectPremium} w-full`}
+                            options={opcoesEtapasObra}
+                          />
+                          <ButtonDefault
+                            type="button"
+                            onClick={() => setModalMaoDeObraOpen(true)}
+                            className={`${btnAccentPremium} shrink-0 lg:!w-auto`}
+                          >
+                            Nova mão de obra
+                          </ButtonDefault>
+                        </div>
                       </div>
-                      <div className={totalBarClass}>
-                        <span className="text-text-muted">Total cobrado:</span>
-                        <span className="font-bold tabular-nums text-emerald-700">
-                          R$ {formatarMoeda(totaisMaoDeObraFiltrados.cobrado)}
-                        </span>
+                      {prestadorMaoDeObraSelecionado && (
+                        <DetalheEntidadeValoresCard
+                          primarioLabel="Contratado"
+                          primarioValor={
+                            prestadorMaoDeObraSelecionado.contratado
+                          }
+                          pago={prestadorMaoDeObraSelecionado.pago}
+                          pendente={prestadorMaoDeObraSelecionado.pendente}
+                        />
+                      )}
+                      <TabelaSimples
+                        variant="obraDetalhe"
+                        dense
+                        rowIds={rowIdsMaoDeObra}
+                        highlightedRowId={itemDestacadoId}
+                        colunas={[
+                          <span
+                            key="col-val"
+                            className={colSortClass}
+                            onClick={() => handleSortMdo("validacao")}
+                          >
+                            Validação {getSortIconMdo("validacao")}
+                          </span>,
+                          <span
+                            key="col-serv"
+                            className={colSortClass}
+                            onClick={() => handleSortMdo("tipo")}
+                          >
+                            Serviço {getSortIconMdo("tipo")}
+                          </span>,
+                          <span
+                            key="col-prest"
+                            className={colSortClass}
+                            onClick={() => handleSortMdo("profissional")}
+                          >
+                            Prestador {getSortIconMdo("profissional")}
+                          </span>,
+                          <span
+                            key="col-cobrado"
+                            className={colSortClass}
+                            onClick={() => handleSortMdo("cobrado")}
+                          >
+                            Valor Cliente {getSortIconMdo("cobrado")}
+                          </span>,
+                          <span
+                            key="col-orcado"
+                            className={colSortClass}
+                            onClick={() => handleSortMdo("orcado")}
+                          >
+                            Valor Contratado {getSortIconMdo("orcado")}
+                          </span>,
+                          <span
+                            key="col-pago"
+                            className={colSortClass}
+                            onClick={() => handleSortMdo("pago")}
+                          >
+                            Valor Pago {getSortIconMdo("pago")}
+                          </span>,
+                          <span
+                            key="col-saldo"
+                            className={colSortClass}
+                            onClick={() => handleSortMdo("saldo")}
+                          >
+                            Saldo {getSortIconMdo("saldo")}
+                          </span>,
+                          <span
+                            key="col-data"
+                            className={colSortClass}
+                            onClick={() => handleSortMdo("data")}
+                          >
+                            Data {getSortIconMdo("data")}
+                          </span>,
+                          <span
+                            key="col-etapa"
+                            className={colSortClass}
+                            onClick={() => handleSortMdo("etapa")}
+                          >
+                            Etapa {getSortIconMdo("etapa")}
+                          </span>,
+                          "",
+                        ]}
+                        dados={dadosMaoDeObra}
+                      />
+
+                      <div
+                        className={`flex w-full flex-col items-stretch gap-4 md:flex-row md:flex-wrap md:items-center md:justify-center`}
+                      >
+                        {!isEncarregado && (
+                          <ButtonDefault
+                            onClick={handleGerarRelatorioMaoDeObra}
+                            className={`${btnAccentPremium} !w-full`}
+                          >
+                            Relatório Mão de Obra
+                          </ButtonDefault>
+                        )}
+                        <div
+                          className={`flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center`}
+                        >
+                          <div className={totalBarClass}>
+                            <span className="text-text-muted">
+                              {filtroEtapaMaoDeObra
+                                ? `Total orçado (${filtroEtapaMaoDeObra}):`
+                                : "Total orçado:"}
+                            </span>
+                            <span className="font-bold tabular-nums text-text-primary">
+                              R${" "}
+                              {formatarMoeda(totaisMaoDeObraFiltrados.orcado)}
+                            </span>
+                          </div>
+                          <div className={totalBarClass}>
+                            <span className="text-text-muted">
+                              Total cobrado:
+                            </span>
+                            <span className="font-bold tabular-nums text-emerald-700">
+                              R${" "}
+                              {formatarMoeda(totaisMaoDeObraFiltrados.cobrado)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -2278,12 +2391,6 @@ export default function ObrasDetalhe() {
         nomeObra={obra.local}
         obra={obra}
         onSave={handleSaveMaoDeObra}
-      />
-      <ModalRelatorioPrestador
-        isOpen={modalRelatorioPrestadorOpen}
-        onClose={() => setModalRelatorioPrestadorOpen(false)}
-        onGenerate={handleGerarRelatorioPorPrestador}
-        prestadoresDisponiveis={prestadoresUnicos}
       />
       <PdfPreviewModal
         isOpen={Boolean(pdfPreview)}

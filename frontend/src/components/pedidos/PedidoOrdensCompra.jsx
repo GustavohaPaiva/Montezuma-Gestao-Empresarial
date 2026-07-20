@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  CheckSquare,
   Eye,
   FileDown,
   Layers,
   Loader2,
   ShoppingCart,
+  Square,
   Trash2,
 } from "lucide-react";
 import { api } from "../../services/api";
@@ -112,6 +114,10 @@ export default function PedidoOrdensCompra({
     [itensSemGrupo],
   );
 
+  const todosSelecionados =
+    itensDisponiveis.length > 0 &&
+    itensDisponiveis.every((item) => selecionados.has(item.id));
+
   const toggleItem = (id) => {
     setSelecionados((prev) => {
       const next = new Set(prev);
@@ -119,6 +125,14 @@ export default function PedidoOrdensCompra({
       else next.add(id);
       return next;
     });
+  };
+
+  const toggleTodos = () => {
+    if (todosSelecionados) {
+      setSelecionados(new Set());
+      return;
+    }
+    setSelecionados(new Set(itensDisponiveis.map((item) => item.id)));
   };
 
   const handleGerarOrdens = async () => {
@@ -271,9 +285,34 @@ export default function PedidoOrdensCompra({
 
       {itensDisponiveis.length > 0 ? (
         <div className={`${pedidoSubpainelClass} mb-6`}>
-          <h4 className={`${pedidoSubpainelTituloClass} mb-3`}>
-            Nova ordem de compra
-          </h4>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h4 className={pedidoSubpainelTituloClass}>Nova ordem de compra</h4>
+            <div className="flex flex-wrap items-center gap-2">
+              {selecionados.size > 0 ? (
+                <span className="text-xs text-text-muted">
+                  {selecionados.size} de {itensDisponiveis.length} selecionado
+                  {selecionados.size !== 1 ? "s" : ""}
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={toggleTodos}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border-primary/40 bg-white px-2.5 py-1.5 text-xs font-semibold text-text-primary shadow-sm transition-colors hover:border-accent-primary/35 hover:bg-[#FAFAFA]"
+              >
+                {todosSelecionados ? (
+                  <>
+                    <CheckSquare className="h-3.5 w-3.5 text-accent-primary" />
+                    Desmarcar todos
+                  </>
+                ) : (
+                  <>
+                    <Square className="h-3.5 w-3.5 text-text-muted" />
+                    Selecionar todos
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
           <ul className="mb-5 max-h-48 space-y-2 overflow-y-auto custom-scrollbar pr-1">
             {itensDisponiveis.map((item) => (
               <li key={item.id}>

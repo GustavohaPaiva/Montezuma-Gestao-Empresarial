@@ -116,7 +116,7 @@ export async function gerarPdfRelatorioMaoDeObraGeral(
 
     return [
       m.tipo || "—",
-      m.profissional || "—",
+      m.prestadores?.nome || m.profissional || "—",
       `R$ ${formatarMoeda(orcado)}`,
       `R$ ${formatarMoeda(pago)}`,
       saldoTone
@@ -152,7 +152,7 @@ export async function gerarPdfRelatorioMaoDeObraGeral(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mão de Obra (Por Prestador) — SEM "V. Cobrado"
+// Mão de Obra (Por Prestador) — filtra por prestador_id
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function gerarPdfRelatorioPorPrestador(
@@ -162,9 +162,27 @@ export async function gerarPdfRelatorioPorPrestador(
   opts = {},
 ) {
   if (!obra || !obra.maoDeObra) return false;
-  const filtrados = obra.maoDeObra.filter(
-    (m) => m.profissional?.toLowerCase() === prestador.toLowerCase(),
-  );
+
+  const prestadorId =
+    typeof prestador === "object" && prestador != null
+      ? prestador.prestadorId || prestador.id || ""
+      : "";
+  const nomePrestador =
+    typeof prestador === "object" && prestador != null
+      ? prestador.nome || prestador.profissional || "Prestador"
+      : String(prestador || "");
+
+  let filtrados;
+  if (prestadorId) {
+    filtrados = filtrarMaoDeObraLista(obra.maoDeObra, { prestadorId });
+  } else {
+    filtrados = obra.maoDeObra.filter(
+      (m) =>
+        (m.prestadores?.nome || m.profissional || "").toLowerCase() ===
+        nomePrestador.toLowerCase(),
+    );
+  }
+
   if (filtrados.length === 0) {
     alert("Nenhum registro encontrado para este prestador.");
     return false;
@@ -203,11 +221,11 @@ export async function gerarPdfRelatorioPorPrestador(
     ];
   });
 
-  const titulo = `Mão de Obra · ${prestador}`;
+  const titulo = `Mão de Obra · ${nomePrestador}`;
   const nomePadrao = nomeFormalRelatorio(
     "Relatorio-de-Mao-de-Obra",
     obra,
-    `Prestador-${prestador}`,
+    `Prestador-${nomePrestador}`,
   );
 
   const doc = (
@@ -215,7 +233,7 @@ export async function gerarPdfRelatorioPorPrestador(
       titulo={titulo}
       referencia={`MDO · Prestador · ${hojeISO()}`}
       obra={obraParaPdf(obra)}
-      info={[{ label: "Prestador", value: prestador }]}
+      info={[{ label: "Prestador", value: nomePrestador }]}
       resumo={resumoItensETotal(
         filtrados.length,
         `R$ ${formatarMoeda(totalOrcado)}`,
