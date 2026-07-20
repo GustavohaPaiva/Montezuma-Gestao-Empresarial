@@ -8,7 +8,9 @@ import { resumoObraTemConteudo } from "../pages/relatorios-diretoria/relatoriosD
 export function HtmlResumoObraPdf({ html, styles }) {
   const safe = sanitizeResumoObraHtml(html);
   if (!resumoObraTemConteudo(safe)) {
-    return <Text style={styles.empty}>Nenhum conteúdo registrado nesta semana.</Text>;
+    return (
+      <Text style={styles.empty}>Nenhum conteúdo registrado nesta semana.</Text>
+    );
   }
 
   if (typeof DOMParser === "undefined") {
@@ -30,6 +32,17 @@ export function HtmlResumoObraPdf({ html, styles }) {
   );
 }
 
+function alignFromNode(node) {
+  const style = node.getAttribute?.("style") || "";
+  const match = /text-align\s*:\s*(left|center|right)/i.exec(style);
+  return match ? match[1].toLowerCase() : null;
+}
+
+function withAlign(baseStyle, align) {
+  if (!align || align === "left") return baseStyle;
+  return { ...baseStyle, textAlign: align };
+}
+
 function renderNode(node, styles, key) {
   if (!node) return null;
 
@@ -46,6 +59,7 @@ function renderNode(node, styles, key) {
   if (node.nodeType !== Node.ELEMENT_NODE) return null;
 
   const tag = node.tagName.toLowerCase();
+  const align = alignFromNode(node);
   const children = Array.from(node.childNodes).map((child, idx) =>
     renderInline(child, styles, `${key}-${idx}`),
   );
@@ -54,17 +68,25 @@ function renderNode(node, styles, key) {
     return <Text key={key}>{"\n"}</Text>;
   }
 
-  if (tag === "h2") {
+  if (tag === "h1") {
     return (
-      <Text key={key} style={styles.heading2}>
+      <Text key={key} style={withAlign(styles.heading1 || styles.heading2, align)}>
         {children}
       </Text>
     );
   }
 
-  if (tag === "h3" || tag === "h4" || tag === "h1") {
+  if (tag === "h2") {
     return (
-      <Text key={key} style={styles.heading3}>
+      <Text key={key} style={withAlign(styles.heading2, align)}>
+        {children}
+      </Text>
+    );
+  }
+
+  if (tag === "h3" || tag === "h4") {
+    return (
+      <Text key={key} style={withAlign(styles.heading3, align)}>
         {children}
       </Text>
     );
@@ -72,9 +94,17 @@ function renderNode(node, styles, key) {
 
   if (tag === "p") {
     return (
-      <Text key={key} style={styles.paragraph}>
+      <Text key={key} style={withAlign(styles.paragraph, align)}>
         {children}
       </Text>
+    );
+  }
+
+  if (tag === "blockquote") {
+    return (
+      <View key={key} style={styles.blockquote || { marginBottom: 6, paddingLeft: 8 }}>
+        <Text style={withAlign(styles.paragraph, align)}>{children}</Text>
+      </View>
     );
   }
 
@@ -156,7 +186,15 @@ function renderInline(node, styles, key) {
     );
   }
 
-  if (tag === "ul" || tag === "ol") {
+  if (tag === "s" || tag === "del" || tag === "strike") {
+    return (
+      <Text key={key} style={styles.strike || { textDecoration: "line-through" }}>
+        {children}
+      </Text>
+    );
+  }
+
+  if (tag === "ul" || tag === "ol" || tag === "blockquote") {
     return renderNode(node, styles, key);
   }
 

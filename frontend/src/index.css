@@ -360,17 +360,26 @@
 }
 
 /* Resumo geral do relatório semanal de obra (TipTap + leitura) */
+.prose-resumo-obra h1 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  margin: 0.85em 0 0.4em;
+  color: inherit;
+  line-height: 1.25;
+}
 .prose-resumo-obra h2 {
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0.75em 0 0.35em;
   color: inherit;
+  line-height: 1.3;
 }
 .prose-resumo-obra h3 {
   font-size: 1.05rem;
   font-weight: 650;
   margin: 0.65em 0 0.3em;
   color: inherit;
+  line-height: 1.35;
 }
 .prose-resumo-obra p {
   margin: 0.4em 0;
@@ -391,4 +400,46 @@
 .prose-resumo-obra strong,
 .prose-resumo-obra b {
   font-weight: 700;
+}
+.prose-resumo-obra em,
+.prose-resumo-obra i {
+  font-style: italic;
+}
+.prose-resumo-obra u {
+  text-decoration: underline;
+}
+.prose-resumo-obra s,
+.prose-resumo-obra del,
+.prose-resumo-obra strike {
+  text-decoration: line-through;
+}
+.prose-resumo-obra blockquote {
+  margin: 0.6em 0;
+  padding: 0.35em 0 0.35em 0.9em;
+  border-left: 3px solid rgba(220, 59, 11, 0.45);
+  color: inherit;
+  opacity: 0.92;
+}
+.prose-resumo-obra [style*="text-align: center"],
+.prose-resumo-obra [style*="text-align:center"] {
+  text-align: center;
+}
+.prose-resumo-obra [style*="text-align: right"],
+.prose-resumo-obra [style*="text-align:right"] {
+  text-align: right;
+}
+.prose-resumo-obra [style*="text-align: left"],
+.prose-resumo-obra [style*="text-align:left"] {
+  text-align: left;
+}
+.prose-resumo-obra .ProseMirror-focused {
+  outline: none;
+}
+.prose-resumo-obra p.is-editor-empty:first-child::before,
+.prose-resumo-obra .is-empty::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
 }

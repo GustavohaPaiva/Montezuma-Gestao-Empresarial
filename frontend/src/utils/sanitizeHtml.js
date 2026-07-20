@@ -8,6 +8,9 @@ const ALLOWED_TAGS = [
   "em",
   "i",
   "u",
+  "s",
+  "del",
+  "strike",
   "ul",
   "ol",
   "li",
@@ -15,10 +18,11 @@ const ALLOWED_TAGS = [
   "h2",
   "h3",
   "h4",
+  "blockquote",
   "span",
 ];
 
-const ALLOWED_ATTR = ["style"];
+const ALLOWED_ATTR = ["style", "class"];
 
 /**
  * Sanitiza HTML do resumo de obra (allowlist de tags de formatação).

@@ -128,6 +128,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
   },
+  heading1: {
+    fontSize: 14,
+    fontFamily: "Helvetica-Bold",
+    color: COR_TEXTO,
+    marginTop: 10,
+    marginBottom: 5,
+  },
   heading3: {
     fontSize: 10.5,
     fontFamily: "Helvetica-Bold",
@@ -148,6 +155,15 @@ const styles = StyleSheet.create({
   },
   underline: {
     textDecoration: "underline",
+  },
+  strike: {
+    textDecoration: "line-through",
+  },
+  blockquote: {
+    marginBottom: 6,
+    paddingLeft: 8,
+    borderLeftWidth: 2,
+    borderLeftColor: COR_PRIMARIA,
   },
   list: {
     marginBottom: 6,

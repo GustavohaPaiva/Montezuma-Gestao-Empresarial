@@ -20,6 +20,12 @@ const htmlPdfStyles = {
     lineHeight: 1.4,
     marginBottom: 5,
   },
+  heading1: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 8,
+    marginBottom: 4,
+  },
   heading2: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
@@ -35,6 +41,13 @@ const htmlPdfStyles = {
   bold: { fontFamily: "Helvetica-Bold" },
   italic: { fontFamily: "Helvetica-Oblique" },
   underline: { textDecoration: "underline" },
+  strike: { textDecoration: "line-through" },
+  blockquote: {
+    marginBottom: 6,
+    paddingLeft: 8,
+    borderLeftWidth: 2,
+    borderLeftColor: "#DC3B0B",
+  },
   list: { marginBottom: 5, paddingLeft: 2 },
   listItem: {
     flexDirection: "row",
