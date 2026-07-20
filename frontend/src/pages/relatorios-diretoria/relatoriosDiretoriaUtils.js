@@ -269,83 +269,92 @@ export function normalizarConteudo(conteudo) {
   };
 }
 
-export const TOPICOS_RELATORIO_OBRA = [
+/** Tópicos do schema v2 — usados só para migrar legado → resumo_geral HTML. */
+const TOPICOS_RELATORIO_OBRA_LEGADO = [
   { id: "feito", label: "O que já foi feito" },
   { id: "sera_feito", label: "O que será feito" },
   { id: "pendencias", label: "Pendências" },
   { id: "materiais", label: "Materiais" },
 ];
 
-export const TOPICO_IDS_OBRA = TOPICOS_RELATORIO_OBRA.map((t) => t.id);
-
-function gerarIdItemObra() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+function escaparHtmlTexto(texto) {
+  return String(texto ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
-export function criarItemObra(ordem = 0) {
-  return {
-    id: gerarIdItemObra(),
-    texto: "",
-    prazo: null,
-    ordem: Number(ordem) || 0,
-  };
+/** Extrai texto visível de HTML (para checagem de vazio). */
+export function textoVisivelDeHtml(html) {
+  return String(html ?? "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-export function estadoTopicosObraVazio() {
-  return TOPICO_IDS_OBRA.reduce((acc, id) => {
-    acc[id] = [];
-    return acc;
-  }, {});
+export function resumoObraTemConteudo(html) {
+  return textoVisivelDeHtml(html).length > 0;
 }
 
-function normalizarItemObra(raw, fallbackOrdem = 0) {
-  if (!raw || typeof raw !== "object") return null;
-  const texto = typeof raw.texto === "string" ? raw.texto : "";
-  const id = raw.id ? String(raw.id) : gerarIdItemObra();
-  let prazo = null;
-  if (raw.prazo) {
-    const iso = toISODate(raw.prazo);
-    prazo = iso || null;
-  }
-  return {
-    id,
-    texto,
-    prazo,
-    ordem: Number.isFinite(Number(raw.ordem))
-      ? Number(raw.ordem)
-      : fallbackOrdem,
-  };
+function formatarPrazoObraLegado(prazo) {
+  const iso = toISODate(prazo);
+  if (!iso) return null;
+  const d = parseISODate(iso);
+  if (!d) return null;
+  return d.toLocaleDateString("pt-BR");
 }
 
-export function ordenarItensObra(itens = []) {
+function ordenarItensObraLegado(itens = []) {
   return [...itens].sort((a, b) => (b.ordem ?? 0) - (a.ordem ?? 0));
 }
 
-export function proximaOrdemItemObra(itens = []) {
-  if (!itens.length) return 0;
-  return Math.max(...itens.map((i) => Number(i.ordem) || 0)) + 1;
-}
-
-export function reindexarOrdensItensObra(itensOrdenados) {
-  const total = itensOrdenados.length;
-  return itensOrdenados.map((item, index) => ({
-    ...item,
-    ordem: total - 1 - index,
-  }));
+function topicosV2ParaResumoHtml(topicos) {
+  const partes = [];
+  TOPICOS_RELATORIO_OBRA_LEGADO.forEach((topico) => {
+    const itens = ordenarItensObraLegado(topicos?.[topico.id] || []).filter(
+      (item) => String(item?.texto ?? "").trim(),
+    );
+    if (!itens.length) return;
+    partes.push(`<h3>${escaparHtmlTexto(topico.label)}</h3>`);
+    partes.push("<ul>");
+    itens.forEach((item) => {
+      const prazoLabel = formatarPrazoObraLegado(item.prazo);
+      const corpo = escaparHtmlTexto(item.texto).replace(/\n/g, "<br>");
+      const prazoHtml = prazoLabel
+        ? `<br><em>Prazo: ${escaparHtmlTexto(prazoLabel)}</em>`
+        : "";
+      partes.push(`<li>${corpo}${prazoHtml}</li>`);
+    });
+    partes.push("</ul>");
+  });
+  return partes.join("");
 }
 
 /**
- * Normaliza conteúdo da modalidade obra para schema v2.
- * Migra legado `{ observacoes }` para um item em `feito`.
+ * Normaliza conteúdo da modalidade obra para schema v3 (`resumo_geral` HTML).
+ * Migra v2 (tópicos) e legado `{ observacoes }` automaticamente.
  */
 export function normalizarConteudoObra(conteudo) {
-  const vazio = estadoTopicosObraVazio();
-
   if (!conteudo || typeof conteudo !== "object") {
-    return { versao: 2, topicos: vazio };
+    return { versao: 3, resumo_geral: "" };
+  }
+
+  if (
+    conteudo.versao === 3 ||
+    typeof conteudo.resumo_geral === "string"
+  ) {
+    return {
+      versao: 3,
+      resumo_geral: String(conteudo.resumo_geral ?? ""),
+    };
   }
 
   if (
@@ -353,55 +362,34 @@ export function normalizarConteudoObra(conteudo) {
     conteudo.topicos &&
     typeof conteudo.topicos === "object"
   ) {
-    const topicos = { ...vazio };
-    TOPICO_IDS_OBRA.forEach((topicoId) => {
-      const lista = Array.isArray(conteudo.topicos[topicoId])
-        ? conteudo.topicos[topicoId]
-        : [];
-      topicos[topicoId] = ordenarItensObra(
-        lista
-          .map((item, idx) => normalizarItemObra(item, lista.length - 1 - idx))
-          .filter(Boolean),
-      );
-    });
-    return { versao: 2, topicos };
+    return {
+      versao: 3,
+      resumo_geral: topicosV2ParaResumoHtml(conteudo.topicos),
+    };
   }
 
   const legado = normalizarConteudo(conteudo);
   if (legado.observacoes?.trim()) {
-    vazio.feito = [criarItemObra(0)];
-    vazio.feito[0].texto = legado.observacoes.trim();
+    const texto = escaparHtmlTexto(legado.observacoes.trim()).replace(
+      /\n/g,
+      "<br>",
+    );
+    return { versao: 3, resumo_geral: `<p>${texto}</p>` };
   }
 
-  return { versao: 2, topicos: vazio };
+  return { versao: 3, resumo_geral: "" };
 }
 
-export function serializarConteudoObra(topicosState) {
-  const topicos = estadoTopicosObraVazio();
-  TOPICO_IDS_OBRA.forEach((topicoId) => {
-    const lista = Array.isArray(topicosState?.[topicoId])
-      ? topicosState[topicoId]
-      : [];
-    topicos[topicoId] = ordenarItensObra(
-      lista
-        .filter((item) => String(item?.texto ?? "").trim())
-        .map((item) => ({
-          id: item.id || gerarIdItemObra(),
-          texto: String(item.texto).trim(),
-          prazo: item.prazo ? toISODate(item.prazo) || null : null,
-          ordem: Number(item.ordem) || 0,
-        })),
-    );
-  });
-  return { versao: 2, topicos };
-}
-
-export function formatarPrazoObra(prazo) {
-  const iso = toISODate(prazo);
-  if (!iso) return null;
-  const d = parseISODate(iso);
-  if (!d) return null;
-  return d.toLocaleDateString("pt-BR");
+/** Serializa o HTML do resumo geral no schema v3. */
+export function serializarConteudoObra(resumoGeral) {
+  const html =
+    typeof resumoGeral === "string"
+      ? resumoGeral
+      : String(resumoGeral?.resumo_geral ?? "");
+  return {
+    versao: 3,
+    resumo_geral: resumoObraTemConteudo(html) ? html.trim() : "",
+  };
 }
 
 export function rotaListaRelatorios({ ano, mes } = {}) {
@@ -445,8 +433,8 @@ export function rotaRelatorioFinanceiro(
 }
 
 export function conteudoObraTemItens(conteudo) {
-  const { topicos } = normalizarConteudoObra(conteudo);
-  return TOPICO_IDS_OBRA.some((id) => (topicos[id] || []).length > 0);
+  const { resumo_geral } = normalizarConteudoObra(conteudo);
+  return resumoObraTemConteudo(resumo_geral);
 }
 
 export function chaveSemanaLancamento(lancamento) {
@@ -531,7 +519,7 @@ export function modalidadeEstaPreenchida(
 
 /**
  * Monta blocos ordenados para o relatório corrido (apenas conteúdo preenchido).
- * @returns {Array<{ tipo: 'itens', id: string, titulo: string, itens: object[] } | { tipo: 'prosa', id: string, titulo: string, texto: string }>}
+ * @returns {Array<{ tipo: 'obra_html', id: string, titulo: string, html: string } | { tipo: 'prosa', id: string, titulo: string, texto: string } | { tipo: 'financeiro', ... }>}
  */
 export function montarBlocosRelatorioCorrico(consolidado) {
   const blocos = [];
@@ -539,20 +527,15 @@ export function montarBlocosRelatorioCorrico(consolidado) {
 
   const lancamentoObra = porModalidade.obra;
   if (lancamentoObra) {
-    const { topicos } = normalizarConteudoObra(lancamentoObra.conteudo);
-    TOPICOS_RELATORIO_OBRA.forEach((topico) => {
-      const itens = ordenarItensObra(topicos?.[topico.id] || []).filter((i) =>
-        i.texto?.trim(),
-      );
-      if (itens.length > 0) {
-        blocos.push({
-          tipo: "itens",
-          id: topico.id,
-          titulo: topico.label,
-          itens,
-        });
-      }
-    });
+    const { resumo_geral } = normalizarConteudoObra(lancamentoObra.conteudo);
+    if (resumoObraTemConteudo(resumo_geral)) {
+      blocos.push({
+        tipo: "obra_html",
+        id: "obra",
+        titulo: "Obra",
+        html: resumo_geral,
+      });
+    }
   }
 
   ["compras"].forEach((modId) => {

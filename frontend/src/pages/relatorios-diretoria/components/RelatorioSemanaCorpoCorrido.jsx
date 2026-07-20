@@ -81,10 +81,10 @@ export default function RelatorioSemanaCorpoCorrido({ consolidado }) {
         if (!preenchido) return null;
 
         if (mod.id === "obra") {
-          const { topicos } = normalizarConteudoObra(lancamento.conteudo);
+          const { resumo_geral } = normalizarConteudoObra(lancamento.conteudo);
           return (
             <SecaoModulo key={mod.id} mod={mod}>
-              <RelatorioObraConsolidadoView topicos={topicos} layout="grid" />
+              <RelatorioObraConsolidadoView resumoHtml={resumo_geral} />
             </SecaoModulo>
           );
         }

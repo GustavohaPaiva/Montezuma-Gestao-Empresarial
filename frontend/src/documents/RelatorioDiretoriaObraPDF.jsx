@@ -7,13 +7,12 @@ import {
   View,
 } from "@react-pdf/renderer";
 import logo from "../assets/logos/logo sem fundo.png";
+import { HtmlResumoObraPdf } from "./HtmlResumoObraPdf";
 
 const COR_PRIMARIA = "#DC3B0B";
 const COR_TEXTO = "#111827";
 const COR_MUTED = "#6B7280";
 const COR_DIVISOR = "#E5E7EB";
-const COR_FUNDO = "#FAFAFA";
-const COR_AMBER = "#D97706";
 
 const styles = StyleSheet.create({
   page: {
@@ -107,50 +106,68 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     color: COR_TEXTO,
   },
-  topicoSection: {
-    marginBottom: 12,
-    borderWidth: 0.7,
-    borderColor: COR_DIVISOR,
-    borderRadius: 6,
-    overflow: "hidden",
-  },
-  topicoHeader: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderBottomWidth: 0.6,
-    borderBottomColor: COR_DIVISOR,
-    backgroundColor: COR_FUNDO,
-  },
-  topicoTitle: {
-    fontSize: 10,
+  secaoTitulo: {
+    fontSize: 11,
     fontFamily: "Helvetica-Bold",
     color: COR_TEXTO,
-  },
-  topicoCount: {
-    fontSize: 8,
-    color: COR_MUTED,
-    marginTop: 2,
-  },
-  topicoBody: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  item: {
     marginBottom: 8,
-    paddingLeft: 8,
-    borderLeftWidth: 2,
-    borderLeftColor: COR_AMBER,
+  },
+  resumoBody: {
+    marginBottom: 8,
+  },
+  paragraph: {
+    fontSize: 9.5,
+    lineHeight: 1.45,
+    color: COR_TEXTO,
+    marginBottom: 6,
+  },
+  heading2: {
+    fontSize: 12,
+    fontFamily: "Helvetica-Bold",
+    color: COR_TEXTO,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  heading3: {
+    fontSize: 10.5,
+    fontFamily: "Helvetica-Bold",
+    color: COR_TEXTO,
+    marginTop: 6,
+    marginBottom: 3,
   },
   itemText: {
     fontSize: 9.5,
     lineHeight: 1.45,
     color: COR_TEXTO,
   },
-  itemPrazo: {
-    fontSize: 8,
-    color: COR_MUTED,
-    marginTop: 3,
+  bold: {
     fontFamily: "Helvetica-Bold",
+  },
+  italic: {
+    fontFamily: "Helvetica-Oblique",
+  },
+  underline: {
+    textDecoration: "underline",
+  },
+  list: {
+    marginBottom: 6,
+    paddingLeft: 2,
+  },
+  listItem: {
+    flexDirection: "row",
+    marginBottom: 3,
+    paddingRight: 8,
+  },
+  listBullet: {
+    width: 14,
+    fontSize: 9.5,
+    color: COR_TEXTO,
+  },
+  listItemText: {
+    flex: 1,
+    fontSize: 9.5,
+    lineHeight: 1.45,
+    color: COR_TEXTO,
   },
   empty: {
     fontSize: 9,
@@ -182,14 +199,14 @@ function InfoChip({ label, value }) {
 }
 
 /**
- * PDF do relatório semanal de obra (modalidade obra) — espelha a visão detalhada do site.
+ * PDF do relatório semanal de obra (modalidade obra) — resumo geral em rich text.
  */
 export default function RelatorioDiretoriaObraPDF({
   titulo = "Relatório de Obra",
   subtitulo = "Montezuma Gestão Empresarial",
   referencia,
   semanaLabel,
-  topicos = [],
+  resumoHtml = "",
 }) {
   const dataEmissao = new Date().toLocaleString("pt-BR", {
     day: "2-digit",
@@ -198,10 +215,6 @@ export default function RelatorioDiretoriaObraPDF({
     hour: "2-digit",
     minute: "2-digit",
   });
-
-  const topicosPreenchidos = topicos.filter(
-    (topico) => (topico.itens?.length || 0) > 0,
-  );
 
   return (
     <Document title={titulo} author="Montezuma Gestão Empresarial">
@@ -236,33 +249,8 @@ export default function RelatorioDiretoriaObraPDF({
           ) : null}
         </View>
 
-        {topicosPreenchidos.length === 0 ? (
-          <Text style={styles.empty}>Nenhum item registrado nesta semana.</Text>
-        ) : (
-          topicosPreenchidos.map((topico) => (
-            <View key={topico.id} style={styles.topicoSection}>
-              <View style={styles.topicoHeader}>
-                <Text style={styles.topicoTitle}>{topico.label}</Text>
-                <Text style={styles.topicoCount}>
-                  {topico.itens.length} item
-                  {topico.itens.length !== 1 ? "s" : ""}
-                </Text>
-              </View>
-              <View style={styles.topicoBody}>
-                {topico.itens.map((item) => (
-                  <View key={item.id} style={styles.item}>
-                    <Text style={styles.itemText}>{item.texto}</Text>
-                    {item.prazoLabel ? (
-                      <Text style={styles.itemPrazo}>
-                        Prazo: {item.prazoLabel}
-                      </Text>
-                    ) : null}
-                  </View>
-                ))}
-              </View>
-            </View>
-          ))
-        )}
+        <Text style={styles.secaoTitulo}>Resumo geral</Text>
+        <HtmlResumoObraPdf html={resumoHtml} styles={styles} />
 
         <Text
           style={styles.footer}

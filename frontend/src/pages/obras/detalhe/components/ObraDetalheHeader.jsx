@@ -1,4 +1,5 @@
-import { ArrowLeft, HardHat } from "lucide-react";
+import { ArrowLeft, HardHat, Wallet } from "lucide-react";
+import { formatarMoeda } from "../utils/formatters";
 
 export default function ObraDetalheHeader({
   navigate,
@@ -7,13 +8,16 @@ export default function ObraDetalheHeader({
   isMobile,
   isSecretaria,
   onNovaMaoDeObra,
+  saldoConta,
 }) {
   const nomeCliente = obra.clientes?.nome || obra.cliente;
   const temEnderecoObra = obra.clientes?.rua_obra || obra.clientes?.rua;
+  const saldoNum =
+    saldoConta == null ? null : parseFloat(saldoConta) || 0;
 
   const acoesClasse = isMobile
     ? "flex w-full flex-col gap-2"
-    : "flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end";
+    : "flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:items-center";
 
   const botaoPrimario =
     "inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-accent-primary/25 bg-accent-primary px-3 text-xs font-semibold text-white shadow-sm shadow-accent-primary/20 transition-all hover:bg-accent-primary-dark hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent-primary/35 focus:ring-offset-1 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[140px]";
@@ -31,7 +35,7 @@ export default function ObraDetalheHeader({
             <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
           </button>
 
-          <div className="min-w-0 flex-1 rounded-lg  px-2.5 py-1.5 sm:px-3 sm:py-2">
+          <div className="min-w-0 flex-1 rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2">
             <h1 className="mt-0.5 text-xs font-bold leading-tight tracking-tight text-text-primary sm:text-sm md:text-base">
               <span className="text-accent-primary">{nomeCliente}</span>
               <span className="text-text-muted"> · </span>
@@ -54,6 +58,24 @@ export default function ObraDetalheHeader({
         </div>
 
         <div className={`${acoesClasse} shrink-0 md:w-auto`}>
+          {saldoNum != null ? (
+            <div
+              className="inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-emerald-500/25 bg-emerald-50/90 px-3 shadow-sm sm:w-auto sm:min-w-[160px]"
+              title="Saldo disponível na conta da obra"
+            >
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800/80">
+                <Wallet className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} />
+                Saldo na conta
+              </span>
+              <span
+                className={`text-sm font-bold tabular-nums ${
+                  saldoNum >= 0 ? "text-emerald-800" : "text-rose-700"
+                }`}
+              >
+                R$ {formatarMoeda(saldoNum)}
+              </span>
+            </div>
+          ) : null}
           {!isSecretaria && onNovaMaoDeObra ? (
             <button
               type="button"

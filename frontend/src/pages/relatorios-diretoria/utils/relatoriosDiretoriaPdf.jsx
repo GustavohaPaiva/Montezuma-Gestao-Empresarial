@@ -3,11 +3,8 @@ import RelatorioDiretoriaFinanceiroPDF from "../../../documents/RelatorioDiretor
 import RelatorioDiretoriaObraPDF from "../../../documents/RelatorioDiretoriaObraPDF";
 import RelatorioDiretoriaSemanalPDF from "../../../documents/RelatorioDiretoriaSemanalPDF";
 import {
-  formatarPrazoObra,
   labelSemanaFromInicio,
   montarBlocosRelatorioCorrico,
-  TOPICOS_RELATORIO_OBRA,
-  ordenarItensObra,
   serializarConteudoObra,
 } from "../relatoriosDiretoriaUtils";
 
@@ -24,32 +21,16 @@ function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function montarTopicosPdf(topicosState) {
-  const serializado = serializarConteudoObra(topicosState);
-  return TOPICOS_RELATORIO_OBRA.map((topico) => {
-    const itens = ordenarItensObra(serializado.topicos[topico.id] || []);
-    return {
-      id: topico.id,
-      label: topico.label,
-      itens: itens.map((item) => ({
-        id: item.id,
-        texto: item.texto,
-        prazoLabel: formatarPrazoObra(item.prazo),
-      })),
-    };
-  });
-}
-
 /**
  * Gera PDF do relatório semanal de obra no formato detalhado da tela.
  * @returns {Promise<{ blob: Blob, nomePadrao: string }>}
  */
 export async function gerarPdfRelatorioDiretoriaObra({
   semanaInicio,
-  topicos,
+  resumoHtml,
 } = {}) {
   const semanaLabel = labelSemanaFromInicio(semanaInicio);
-  const topicosPdf = montarTopicosPdf(topicos);
+  const html = serializarConteudoObra(resumoHtml).resumo_geral;
   const semanaSlug = slugify(semanaInicio || semanaLabel);
   const nomePadrao = `Montezuma_Relatorio-Obra_Semana-${semanaSlug}_${hojeISO()}.pdf`;
 
@@ -59,7 +40,7 @@ export async function gerarPdfRelatorioDiretoriaObra({
       subtitulo="Relatórios da Diretoria · Montezuma Gestão Empresarial"
       referencia="Acompanhamento semanal geral"
       semanaLabel={semanaLabel}
-      topicos={topicosPdf}
+      resumoHtml={html}
     />
   );
 
@@ -69,28 +50,17 @@ export async function gerarPdfRelatorioDiretoriaObra({
 
 function montarBlocosPdfSemanal(consolidado) {
   const blocos = montarBlocosRelatorioCorrico(consolidado);
-  const obraBlocos = blocos.filter((b) => b.tipo === "itens");
-  const demais = blocos.filter((b) => b.tipo !== "itens");
-  const resultado = [];
-
-  if (obraBlocos.length > 0) {
-    resultado.push({
-      tipo: "obra",
-      id: "obra",
-      titulo: "Obra",
-      topicos: obraBlocos.map((bloco) => ({
+  return blocos.map((bloco) => {
+    if (bloco.tipo === "obra_html") {
+      return {
+        tipo: "obra_html",
         id: bloco.id,
-        label: bloco.titulo,
-        itens: bloco.itens.map((item) => ({
-          id: item.id,
-          texto: item.texto,
-          prazoLabel: formatarPrazoObra(item.prazo),
-        })),
-      })),
-    });
-  }
-
-  return [...resultado, ...demais];
+        titulo: bloco.titulo,
+        html: bloco.html,
+      };
+    }
+    return bloco;
+  });
 }
 
 /**

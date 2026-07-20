@@ -12,6 +12,8 @@ const GEMINI_MODEL =
 
 function limparTextoGemini(raw) {
   return String(raw ?? "")
+    .replace(/^```(?:html|HTML)?\s*/i, "")
+    .replace(/\s*```$/i, "")
     .replace(/^["'`]+|["'`]+$/g, "")
     .replace(/\r\n/g, "\n")
     .trim();
@@ -19,22 +21,18 @@ function limparTextoGemini(raw) {
 
 function montarPromptGemini(texto, maxLinhas, contexto = "proposta") {
   if (contexto === "relatorio_obra") {
-    return `Você é redator de relatórios semanais de obras de construção civil no Brasil.
+    return `Você é corretor ortográfico de relatórios semanais de obras de construção civil no Brasil.
 
-Reescreva o texto abaixo em português brasileiro claro, objetivo e profissional.
-Corrija gramática, ortografia e pontuação. Melhore a fluidez sem mudar o sentido nem inventar informações.
-Use tom adequado a relatório de acompanhamento de obra (direto e informativo).
+O texto abaixo está em HTML. Corrija APENAS ortografia, gramática e pontuação do conteúdo textual.
+NÃO resuma, NÃO reescreva o sentido, NÃO reorganize parágrafos e NÃO remova informações.
 
-Regras obrigatórias:
-- Máximo ${maxLinhas} linhas (quebras de linha só entre frases completas).
-- Cada linha deve ser uma frase completa terminada em . ! ou ?
-- A última linha DEVE fechar o texto com pontuação final — nunca pare no meio de palavra ou frase.
-- Se o conteúdo for longo, resuma reescrevendo de forma mais concisa; não truncar nem cortar.
+Formatação HTML:
+- Preserve todas as tags existentes (p, strong, b, em, ul, ol, li, h2, h3, br, etc.).
+- Você PODE usar negrito, listas ou títulos se isso melhorar a clareza, sem apagar formatação já presente.
+- Não envolva a resposta em markdown, code fences ou aspas.
+- Retorne APENAS o HTML corrigido.
 
-Não use markdown, títulos, bullets, aspas envolvendo o texto inteiro nem explicações.
-Retorne APENAS o texto final reescrito.
-
-Texto original:
+Texto original (HTML):
 """
 ${texto}
 """`;
@@ -107,13 +105,11 @@ ${texto}
 
 function montarPromptAjuste(texto, maxLinhas, contexto = "proposta") {
   const papel =
-    contexto === "relatorio_obra"
-      ? "relatórios de obras de construção civil"
-      : contexto === "relatorio_financeiro"
-        ? "observações de relatórios financeiros para a diretoria"
-        : contexto === "ordem_servico"
-          ? "ordens de serviço de arquitetura"
-          : "propostas comerciais de arquitetura";
+    contexto === "relatorio_financeiro"
+      ? "observações de relatórios financeiros para a diretoria"
+      : contexto === "ordem_servico"
+        ? "ordens de serviço de arquitetura"
+        : "propostas comerciais de arquitetura";
 
   return `Você é redator de ${papel} no Brasil.
 
@@ -130,7 +126,7 @@ ${texto}
 """`;
 }
 
-async function chamarGeminiDiretoPrompt(prompt) {
+async function chamarGeminiDiretoPrompt(prompt, { maxOutputTokens = 2048 } = {}) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
   if (!apiKey) return null;
 
@@ -142,8 +138,8 @@ async function chamarGeminiDiretoPrompt(prompt) {
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
-        temperature: 0.35,
-        maxOutputTokens: 2048,
+        temperature: 0.2,
+        maxOutputTokens,
       },
     }),
   });
@@ -161,6 +157,10 @@ async function chamarGeminiDiretoPrompt(prompt) {
 
 async function finalizarSugestaoIA(textoBruto, maxLinhas, gerarPrompt, contexto) {
   let texto = limparTextoGemini(textoBruto);
+
+  if (contexto === "relatorio_obra") {
+    return texto;
+  }
 
   if (precisaAjusteSugestaoIA(texto, maxLinhas)) {
     const ajustado = await gerarPrompt(
@@ -182,7 +182,9 @@ async function finalizarSugestaoIA(textoBruto, maxLinhas, gerarPrompt, contexto)
 }
 
 async function chamarGeminiDireto(texto, maxLinhas, contexto) {
-  const gerar = (prompt) => chamarGeminiDiretoPrompt(prompt);
+  const tokens = contexto === "relatorio_obra" ? 8192 : 2048;
+  const gerar = (prompt) =>
+    chamarGeminiDiretoPrompt(prompt, { maxOutputTokens: tokens });
   const bruto = await gerar(montarPromptGemini(texto, maxLinhas, contexto));
   if (!bruto) return null;
   return finalizarSugestaoIA(bruto, maxLinhas, gerar, contexto);
@@ -197,8 +199,13 @@ async function chamarGeminiEdgeFunction(texto, maxLinhas, contexto) {
   if (error) throw error;
   if (data?.erro) throw new Error(data.erro);
 
+  const sugerido =
+    contexto === "relatorio_obra"
+      ? limparTextoGemini(data?.sugerido ?? "")
+      : removerFinalIncompleto(data?.sugerido ?? "");
+
   return {
-    sugerido: removerFinalIncompleto(data?.sugerido ?? ""),
+    sugerido,
     origem: data?.origem || "gemini",
     modelo: data?.modelo || GEMINI_MODEL,
     aviso:
@@ -254,9 +261,11 @@ export async function melhorarTextoPortugues(
     }
   }
 
-  const local = limpezaBasicaLocal(original);
+  const local =
+    contexto === "relatorio_obra" ? original : limpezaBasicaLocal(original);
   return {
-    sugerido: limitarLinhasDescricao(local),
+    sugerido:
+      contexto === "relatorio_obra" ? local : limitarLinhasDescricao(local),
     origem: "local",
     aviso:
       "IA indisponível. Configure Gemini (veja instruções) ou edite manualmente. Aplicamos apenas ajustes básicos.",

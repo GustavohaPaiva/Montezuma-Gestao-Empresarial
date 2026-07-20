@@ -1,5 +1,6 @@
 import { Document, Text, View } from "@react-pdf/renderer";
 import { TIPOS_EXTRATO } from "../pages/relatorios-diretoria/relatorioFinanceiroUtils";
+import { HtmlResumoObraPdf } from "./HtmlResumoObraPdf";
 import {
   InfoChip,
   ReportHeader,
@@ -11,37 +12,38 @@ import {
 
 const SUBTITULO = "Relatórios da Diretoria · Montezuma Gestão Empresarial";
 
-function TopicosObraSection({ topicos }) {
-  if (!topicos?.length) return null;
-
-  return (
-    <>
-      {topicos.map((topico) => (
-        <View key={topico.id} style={styles.topicoSection}>
-          <View style={styles.topicoHeader}>
-            <Text style={styles.topicoTitle}>{topico.label}</Text>
-          </View>
-          <View style={styles.topicoBody}>
-            {topico.itens.length === 0 ? (
-              <Text style={styles.empty}>Nenhum item registrado.</Text>
-            ) : (
-              topico.itens.map((item) => (
-                <View key={item.id} style={styles.item} wrap={false}>
-                  <Text style={styles.itemText}>{item.texto}</Text>
-                  {item.prazoLabel ? (
-                    <Text style={styles.itemPrazo}>
-                      Prazo: {item.prazoLabel}
-                    </Text>
-                  ) : null}
-                </View>
-              ))
-            )}
-          </View>
-        </View>
-      ))}
-    </>
-  );
-}
+const htmlPdfStyles = {
+  ...styles,
+  resumoBody: { marginBottom: 6 },
+  paragraph: {
+    fontSize: 9,
+    lineHeight: 1.4,
+    marginBottom: 5,
+  },
+  heading2: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 6,
+    marginBottom: 3,
+  },
+  heading3: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 5,
+    marginBottom: 2,
+  },
+  bold: { fontFamily: "Helvetica-Bold" },
+  italic: { fontFamily: "Helvetica-Oblique" },
+  underline: { textDecoration: "underline" },
+  list: { marginBottom: 5, paddingLeft: 2 },
+  listItem: {
+    flexDirection: "row",
+    marginBottom: 3,
+    paddingRight: 8,
+  },
+  listBullet: { width: 14, fontSize: 9 },
+  listItemText: { flex: 1, fontSize: 9, lineHeight: 1.4 },
+};
 
 function LinhaLista({ children }) {
   return (
@@ -198,10 +200,10 @@ export default function RelatorioDiretoriaSemanalPDF({
           </Text>
         ) : (
           blocos.map((bloco) => {
-            if (bloco.tipo === "obra") {
+            if (bloco.tipo === "obra_html") {
               return (
                 <ModalitySection key={bloco.id} titulo="Obra">
-                  <TopicosObraSection topicos={bloco.topicos} />
+                  <HtmlResumoObraPdf html={bloco.html} styles={htmlPdfStyles} />
                 </ModalitySection>
               );
             }

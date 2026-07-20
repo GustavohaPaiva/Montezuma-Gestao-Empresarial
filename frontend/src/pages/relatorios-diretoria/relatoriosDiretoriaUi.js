@@ -48,12 +48,6 @@ export const relatorioTopicoStackClass = "space-y-6";
 export const relatorioProsaClass =
   "rounded-xl bg-[#FAFAFA]/60 px-4 py-3.5 text-sm leading-relaxed text-text-primary sm:text-base";
 
-export const relatorioTopicoSecaoClass =
-  "overflow-hidden rounded-2xl border border-border-primary/20 bg-white shadow-sm ring-1 ring-black/[0.02]";
-
-export const relatorioObraItemEditorClass =
-  "overflow-hidden rounded-xl border border-border-primary/20 bg-white shadow-sm transition-colors hover:border-border-primary/30 ring-1 ring-black/[0.02]";
-
 export const relatorioNavbarAcaoClass =
   "inline-flex h-10 items-center gap-2 rounded-2xl bg-accent-primary px-4 text-sm font-medium text-white shadow-sm transition hover:opacity-90";
 
@@ -227,21 +221,6 @@ export const STATUS_BADGE_CLASS = {
   "Aguardando iniciação": "bg-purple-50 text-purple-700 ring-1 ring-purple-200",
   Concluída: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
 };
-
-export const relatorioObraItemToolbarClass =
-  "flex items-center justify-between gap-1.5 border-b border-border-primary/10 bg-white px-3 py-2";
-
-export const relatorioObraItemPrazoChipClass =
-  "inline-flex shrink-0 items-center rounded-md border border-border-primary/20 bg-white px-2 py-0.5 text-[11px] font-medium text-text-muted";
-
-export const relatorioObraItemAcaoClass =
-  "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border-primary/45 bg-white px-2.5 text-xs font-semibold text-text-primary shadow-sm transition hover:border-accent-primary/35 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3";
-
-export const relatorioObraItemRemoverClass =
-  "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-danger-primary/20 bg-danger-soft/20 text-xs font-semibold text-danger-primary transition hover:bg-danger-soft/40 sm:w-auto sm:px-2.5";
-
-export const relatorioObraItemPrazoClass =
-  "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border-primary/45 bg-white px-2.5 text-xs font-semibold text-text-primary shadow-sm transition hover:border-accent-primary/35 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3";
 
 export function badgeStatusObra(status) {
   return (

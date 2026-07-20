@@ -5,10 +5,9 @@ import LoadingPainel from "../../components/gerais/LoadingPainel";
 import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import { api } from "../../services/api";
 import RelatorioDetalheHeader from "./components/RelatorioDetalheHeader";
-import RelatorioObraTopicoSection from "./components/RelatorioObraTopicoSection";
+import RelatorioObraResumoCampo from "./components/RelatorioObraResumoCampo";
 import RelatorioSemanaReferenciaCard from "./components/RelatorioSemanaReferenciaCard";
 import {
-  TOPICOS_RELATORIO_OBRA,
   derivarPeriodoDaSemana,
   isSemanaAtual,
   labelSemanaFromInicio,
@@ -24,8 +23,8 @@ import { gerarPdfRelatorioDiretoriaObra } from "./utils/relatoriosDiretoriaPdf";
 
 const AUTO_SAVE_MS = 900;
 
-function snapshotTopicos(topicos) {
-  return JSON.stringify(serializarConteudoObra(topicos));
+function snapshotResumo(resumoGeral) {
+  return JSON.stringify(serializarConteudoObra(resumoGeral));
 }
 
 export default function RelatorioObraLancamento() {
@@ -45,8 +44,8 @@ export default function RelatorioObraLancamento() {
     atual.mes;
   const origem = searchParams.get("origem") === "semana" ? "semana" : "lista";
 
-  const [topicos, setTopicos] = useState(
-    () => normalizarConteudoObra(null).topicos,
+  const [resumoGeral, setResumoGeral] = useState(
+    () => normalizarConteudoObra(null).resumo_geral,
   );
   const [loading, setLoading] = useState(true);
   const [statusSalvamento, setStatusSalvamento] = useState("idle");
@@ -55,11 +54,11 @@ export default function RelatorioObraLancamento() {
   const snapshotInicial = useRef("");
   const saveTimerRef = useRef(null);
   const salvandoRef = useRef(false);
-  const topicosRef = useRef(topicos);
+  const resumoRef = useRef(resumoGeral);
 
   useEffect(() => {
-    topicosRef.current = topicos;
-  }, [topicos]);
+    resumoRef.current = resumoGeral;
+  }, [resumoGeral]);
 
   const carregar = useCallback(async () => {
     if (!semanaInicio) return;
@@ -70,8 +69,8 @@ export default function RelatorioObraLancamento() {
         (l) => l.modalidade === "obra",
       );
       const normalizado = normalizarConteudoObra(lancamentoObra?.conteudo);
-      setTopicos(normalizado.topicos);
-      snapshotInicial.current = snapshotTopicos(normalizado.topicos);
+      setResumoGeral(normalizado.resumo_geral);
+      snapshotInicial.current = snapshotResumo(normalizado.resumo_geral);
       setStatusSalvamento("idle");
       setErro(null);
     } catch (e) {
@@ -86,9 +85,9 @@ export default function RelatorioObraLancamento() {
     carregar();
   }, [carregar]);
 
-  const salvarTopicos = useCallback(
-    async (topicosParaSalvar) => {
-      const snapshotAtual = snapshotTopicos(topicosParaSalvar);
+  const salvarResumo = useCallback(
+    async (resumoParaSalvar) => {
+      const snapshotAtual = snapshotResumo(resumoParaSalvar);
       if (snapshotAtual === snapshotInicial.current || salvandoRef.current) {
         return true;
       }
@@ -101,7 +100,7 @@ export default function RelatorioObraLancamento() {
           ano,
           mes,
           semana_inicio: semanaInicio,
-          conteudo: serializarConteudoObra(topicosParaSalvar),
+          conteudo: serializarConteudoObra(resumoParaSalvar),
         });
         snapshotInicial.current = snapshotAtual;
         setStatusSalvamento("saved");
@@ -122,12 +121,12 @@ export default function RelatorioObraLancamento() {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
-    return salvarTopicos(topicosRef.current);
-  }, [salvarTopicos]);
+    return salvarResumo(resumoRef.current);
+  }, [salvarResumo]);
 
   const dirty = useMemo(
-    () => snapshotTopicos(topicos) !== snapshotInicial.current,
-    [topicos],
+    () => snapshotResumo(resumoGeral) !== snapshotInicial.current,
+    [resumoGeral],
   );
 
   useEffect(() => {
@@ -136,7 +135,7 @@ export default function RelatorioObraLancamento() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null;
-      salvarTopicos(topicosRef.current);
+      salvarResumo(resumoRef.current);
     }, AUTO_SAVE_MS);
 
     return () => {
@@ -145,7 +144,7 @@ export default function RelatorioObraLancamento() {
         saveTimerRef.current = null;
       }
     };
-  }, [topicos, loading, dirty, salvarTopicos]);
+  }, [resumoGeral, loading, dirty, salvarResumo]);
 
   useEffect(
     () => () => {
@@ -182,7 +181,7 @@ export default function RelatorioObraLancamento() {
       gerador: () =>
         gerarPdfRelatorioDiretoriaObra({
           semanaInicio,
-          topicos: topicosRef.current,
+          resumoHtml: resumoRef.current,
         }),
     });
   };
@@ -210,7 +209,7 @@ export default function RelatorioObraLancamento() {
       <div className="flex min-h-screen items-center justify-center bg-[#FAFAFA] px-[5%] py-12">
         <LoadingPainel
           titulo="Carregando relatório de obra"
-          descricao="Preparando os tópicos da semana…"
+          descricao="Preparando o resumo da semana…"
           icon={<Hammer className="h-7 w-7" strokeWidth={2} />}
         />
       </div>
@@ -249,18 +248,11 @@ export default function RelatorioObraLancamento() {
           onTrocarSemana={trocarSemana}
         />
 
-        <div className="space-y-8">
-          {TOPICOS_RELATORIO_OBRA.map((topico) => (
-            <RelatorioObraTopicoSection
-              key={topico.id}
-              topico={topico}
-              itens={topicos[topico.id] || []}
-              onChange={(itens) =>
-                setTopicos((prev) => ({ ...prev, [topico.id]: itens }))
-              }
-            />
-          ))}
-        </div>
+        <RelatorioObraResumoCampo
+          value={resumoGeral}
+          onChange={setResumoGeral}
+          salvando={statusSalvamento === "saving"}
+        />
       </main>
 
       <PdfPreviewModal

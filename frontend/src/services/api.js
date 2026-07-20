@@ -1536,6 +1536,13 @@ export const api = {
       console.error("Erro ao buscar lotes de pagamento:", errorLotes);
     }
 
+    let movimentacoes = [];
+    try {
+      movimentacoes = await api.getMovimentacoesObra(id);
+    } catch (errorMov) {
+      console.error("Erro ao buscar movimentações da obra:", errorMov);
+    }
+
     let etapas = data.etapas_selecionadas || [];
 
     if (data.clientes?.tipo?.toLowerCase() === "reforma" && etapas.length > 0) {
@@ -1566,8 +1573,85 @@ export const api = {
       ),
       relatorioExtrato: relatorioOrdenado,
       lotesPagamento: lotesPagamento || [],
+      movimentacoes: movimentacoes || [],
       processos: data.clientes || [],
     };
+  },
+
+  getMovimentacoesObra: async (obraId) => {
+    const { data, error } = await supabase
+      .from("obra_movimentacoes")
+      .select(
+        "*, obra_contra:obras!obra_movimentacoes_obra_contra_id_fkey(id, cliente, local)",
+      )
+      .eq("obra_id", obraId)
+      .order("data", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  createEntradaObra: async ({ obra_id, valor, descricao, data }) => {
+    const valorNum = parseFloat(valor);
+    if (!obra_id) throw new Error("obra_id obrigatório");
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      throw new Error("Valor da entrada deve ser maior que zero");
+    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const { data: row, error } = await supabase
+      .from("obra_movimentacoes")
+      .insert([
+        {
+          obra_id,
+          tipo: "entrada",
+          valor: valorNum,
+          descricao: descricao?.trim() || null,
+          data: data || new Date().toISOString().split("T")[0],
+          created_by: user?.id || null,
+        },
+      ])
+      .select(
+        "*, obra_contra:obras!obra_movimentacoes_obra_contra_id_fkey(id, cliente, local)",
+      )
+      .single();
+    if (error) throw error;
+    return row;
+  },
+
+  transferirSaldoObra: async ({
+    obra_origem_id,
+    obra_destino_id,
+    valor,
+    descricao,
+    data,
+  }) => {
+    const valorNum = parseFloat(valor);
+    if (!obra_origem_id || !obra_destino_id) {
+      throw new Error("Obras de origem e destino são obrigatórias");
+    }
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      throw new Error("Valor da transferência deve ser maior que zero");
+    }
+    const { data: grupoId, error } = await supabase.rpc(
+      "transferir_saldo_obra",
+      {
+        p_obra_origem_id: obra_origem_id,
+        p_obra_destino_id: obra_destino_id,
+        p_valor: valorNum,
+        p_descricao: descricao?.trim() || null,
+        p_data: data || new Date().toISOString().split("T")[0],
+      },
+    );
+    if (error) {
+      const msg = error.message || "";
+      if (/saldo insuficiente/i.test(msg)) {
+        throw new Error(msg.replace(/^.*Saldo insuficiente/i, "Saldo insuficiente"));
+      }
+      throw error;
+    }
+    return grupoId;
   },
 
   updateMaterialStatus: async (id, novoStatus) => {

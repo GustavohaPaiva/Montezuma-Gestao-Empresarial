@@ -26,11 +26,15 @@ import {
 import ObraDetalheHeader from "./detalhe/components/ObraDetalheHeader";
 import ObraDetalheResumoFinanceiro from "./detalhe/components/ObraDetalheResumoFinanceiro";
 import ObraDetalheLotesPagamento from "./detalhe/components/ObraDetalheLotesPagamento";
+import ObraDetalheControleFinanceiro from "./detalhe/components/ObraDetalheControleFinanceiro";
+import ModalEntradaObra from "../../components/modals/ModalEntradaObra";
+import ModalTransferenciaObra from "../../components/modals/ModalTransferenciaObra";
 import { etapasParaSelectOptions } from "./detalhe/utils/etapasLancamento";
 import {
   calcularDataDevolucao,
   formatarMoeda,
 } from "./detalhe/utils/formatters";
+import { calcularSaldoObra } from "./detalhe/utils/obraCaixa";
 import {
   getExtratoIdsEmLotesAbertos,
   isExtratoPago,
@@ -90,6 +94,11 @@ export default function ObrasDetalhe() {
   const [modalEtapasisOpen, setModalEtapasisOpen] = useState(false);
   const [modalLocacoesOpen, setModalLocacoesOpen] = useState(false);
   const [modalMaoDeObraOpen, setModalMaoDeObraOpen] = useState(false);
+  const [modalEntradaObraOpen, setModalEntradaObraOpen] = useState(false);
+  const [modalTransferenciaObraOpen, setModalTransferenciaObraOpen] =
+    useState(false);
+  const [salvandoCaixaObra, setSalvandoCaixaObra] = useState(false);
+  const [obrasParaTransferencia, setObrasParaTransferencia] = useState([]);
   const [pdfPreview, setPdfPreview] = useState(null);
   const [processandoLoteId, setProcessandoLoteId] = useState(null);
   const [processandoLoteItemId, setProcessandoLoteItemId] = useState(null);
@@ -159,6 +168,10 @@ export default function ObrasDetalhe() {
 
   const isEncarregado = user?.tipo === "encarregado";
   const isSecretaria = user?.tipo === "secretaria";
+  const saldoContaObra = useMemo(
+    () => calcularSaldoObra(obra?.movimentacoes),
+    [obra?.movimentacoes],
+  );
   const secoesPermitidas = useMemo(
     () =>
       isSecretaria
@@ -174,6 +187,7 @@ export default function ObrasDetalhe() {
               { id: "diario_historico", label: "Diário e histórico" },
               { id: "pedidos", label: "Pedidos" },
               { id: "relatorios", label: "Relatórios" },
+              { id: "controle_financeiro", label: "Controle financeiro" },
               { id: "resumo", label: "Resumo" },
               { id: "cronograma", label: "Cronograma" },
               { id: "etapas", label: "Etapas" },
@@ -732,6 +746,64 @@ export default function ObrasDetalhe() {
       } catch (err) {
         console.error("Erro ao salvar mão de obra:", err);
         showFeedback("Erro ao salvar mão de obra.");
+      }
+    },
+    [id, fetchDados, showFeedback],
+  );
+
+  const abrirModalTransferenciaObra = useCallback(async () => {
+    setModalTransferenciaObraOpen(true);
+    try {
+      const lista = await api.getObras();
+      setObrasParaTransferencia(lista || []);
+    } catch (err) {
+      console.error("Erro ao carregar obras para transferência:", err);
+      showFeedback("Não foi possível carregar a lista de obras.");
+    }
+  }, [showFeedback]);
+
+  const handleSaveEntradaObra = useCallback(
+    async (dados) => {
+      setSalvandoCaixaObra(true);
+      try {
+        await api.createEntradaObra({
+          obra_id: Number(id),
+          valor: dados.valor,
+          descricao: dados.descricao,
+          data: dados.data,
+        });
+        await fetchDados();
+        setModalEntradaObraOpen(false);
+        showFeedback("Entrada lançada com sucesso.", "success");
+      } catch (err) {
+        console.error("Erro ao lançar entrada da obra:", err);
+        throw new Error(err?.message || "Erro ao lançar entrada.");
+      } finally {
+        setSalvandoCaixaObra(false);
+      }
+    },
+    [id, fetchDados, showFeedback],
+  );
+
+  const handleTransferirSaldoObra = useCallback(
+    async (dados) => {
+      setSalvandoCaixaObra(true);
+      try {
+        await api.transferirSaldoObra({
+          obra_origem_id: Number(id),
+          obra_destino_id: dados.obra_destino_id,
+          valor: dados.valor,
+          descricao: dados.descricao,
+          data: dados.data,
+        });
+        await fetchDados();
+        setModalTransferenciaObraOpen(false);
+        showFeedback("Transferência realizada com sucesso.", "success");
+      } catch (err) {
+        console.error("Erro ao transferir saldo da obra:", err);
+        throw new Error(err?.message || "Erro ao transferir saldo.");
+      } finally {
+        setSalvandoCaixaObra(false);
       }
     },
     [id, fetchDados, showFeedback],
@@ -1433,6 +1505,7 @@ export default function ObrasDetalhe() {
         isMobile={isMobile}
         isSecretaria={isSecretaria}
         onNovaMaoDeObra={() => setModalMaoDeObraOpen(true)}
+        saldoConta={saldoContaObra}
       />
       <main className="mt-3 w-full px-[5%] sm:mt-4">
         <nav
@@ -1497,6 +1570,16 @@ export default function ObrasDetalhe() {
             </div>
           </div>
         )}
+
+        {secaoObra === "controle_financeiro" &&
+          !isEncarregado &&
+          !isSecretaria && (
+            <ObraDetalheControleFinanceiro
+              movimentacoes={obra?.movimentacoes || []}
+              onNovaEntrada={() => setModalEntradaObraOpen(true)}
+              onTransferir={abrirModalTransferenciaObra}
+            />
+          )}
 
         {secaoObra === "diario_historico" && (
           <div className="mb-6 w-full">
@@ -2391,6 +2474,21 @@ export default function ObrasDetalhe() {
         nomeObra={obra.local}
         obra={obra}
         onSave={handleSaveMaoDeObra}
+      />
+      <ModalEntradaObra
+        isOpen={modalEntradaObraOpen}
+        onClose={() => setModalEntradaObraOpen(false)}
+        onSave={handleSaveEntradaObra}
+        salvando={salvandoCaixaObra}
+      />
+      <ModalTransferenciaObra
+        isOpen={modalTransferenciaObraOpen}
+        onClose={() => setModalTransferenciaObraOpen(false)}
+        onSave={handleTransferirSaldoObra}
+        salvando={salvandoCaixaObra}
+        saldoDisponivel={saldoContaObra}
+        obraOrigemId={obra?.id}
+        obrasDestino={obrasParaTransferencia}
       />
       <PdfPreviewModal
         isOpen={Boolean(pdfPreview)}

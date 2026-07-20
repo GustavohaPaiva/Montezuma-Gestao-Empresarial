@@ -15,22 +15,18 @@ function montarPrompt(
   contexto: string = "proposta",
 ) {
   if (contexto === "relatorio_obra") {
-    return `Você é redator de relatórios semanais de obras de construção civil no Brasil.
+    return `Você é corretor ortográfico de relatórios semanais de obras de construção civil no Brasil.
 
-Reescreva o texto abaixo em português brasileiro claro, objetivo e profissional.
-Corrija gramática, ortografia e pontuação. Melhore a fluidez sem mudar o sentido nem inventar informações.
-Use tom adequado a relatório de acompanhamento de obra (direto e informativo).
+O texto abaixo está em HTML. Corrija APENAS ortografia, gramática e pontuação do conteúdo textual.
+NÃO resuma, NÃO reescreva o sentido, NÃO reorganize parágrafos e NÃO remova informações.
 
-Regras obrigatórias:
-- Máximo ${maxLinhas} linhas (quebras de linha só entre frases completas).
-- Cada linha deve ser uma frase completa terminada em . ! ou ?
-- A última linha DEVE fechar o texto com pontuação final — nunca pare no meio de palavra ou frase.
-- Se o conteúdo for longo, resuma reescrevendo de forma mais concisa; não truncar nem cortar.
+Formatação HTML:
+- Preserve todas as tags existentes (p, strong, b, em, ul, ol, li, h2, h3, br, etc.).
+- Você PODE usar negrito, listas ou títulos se isso melhorar a clareza, sem apagar formatação já presente.
+- Não envolva a resposta em markdown, code fences ou aspas.
+- Retorne APENAS o HTML corrigido.
 
-Não use markdown, títulos, bullets, aspas envolvendo o texto inteiro nem explicações.
-Retorne APENAS o texto final reescrito.
-
-Texto original:
+Texto original (HTML):
 """
 ${texto}
 """`;
@@ -107,13 +103,11 @@ function montarPromptAjuste(
   contexto: string = "proposta",
 ) {
   const papel =
-    contexto === "relatorio_obra"
-      ? "relatórios de obras de construção civil"
-      : contexto === "relatorio_financeiro"
-        ? "observações de relatórios financeiros para a diretoria"
-        : contexto === "ordem_servico"
-          ? "ordens de serviço de arquitetura"
-          : "propostas comerciais de arquitetura";
+    contexto === "relatorio_financeiro"
+      ? "observações de relatórios financeiros para a diretoria"
+      : contexto === "ordem_servico"
+        ? "ordens de serviço de arquitetura"
+        : "propostas comerciais de arquitetura";
 
   return `Você é redator de ${papel} no Brasil.
 
@@ -168,19 +162,25 @@ function precisaAjuste(texto: string, maxLinhas: number) {
 
 function limparTextoGemini(raw: string) {
   return String(raw ?? "")
+    .replace(/^```(?:html|HTML)?\s*/i, "")
+    .replace(/\s*```$/i, "")
     .replace(/^["'`]+|["'`]+$/g, "")
     .replace(/\r\n/g, "\n")
     .trim();
 }
 
-async function gerarComGemini(apiKey: string, prompt: string) {
+async function gerarComGemini(
+  apiKey: string,
+  prompt: string,
+  maxOutputTokens = 2048,
+) {
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
     model: GEMINI_MODEL,
     contents: prompt,
     config: {
-      temperature: 0.35,
-      maxOutputTokens: 2048,
+      temperature: 0.2,
+      maxOutputTokens,
     },
   });
   const raw = response?.text;
@@ -195,6 +195,10 @@ async function finalizarSugestao(
   contexto: string = "proposta",
 ) {
   let texto = limparTextoGemini(textoBruto);
+
+  if (contexto === "relatorio_obra") {
+    return texto;
+  }
 
   if (precisaAjuste(texto, maxLinhas)) {
     texto = await gerarComGemini(
@@ -246,9 +250,11 @@ serve(async (req) => {
     }
 
     const max = Math.min(Math.max(Number(maxLinhas) || 10, 1), 20);
+    const tokens = String(contexto) === "relatorio_obra" ? 8192 : 2048;
     const bruto = await gerarComGemini(
       apiKey,
       montarPrompt(original, max, String(contexto)),
+      tokens,
     );
     const sugerido = await finalizarSugestao(
       apiKey,
@@ -263,7 +269,9 @@ serve(async (req) => {
         origem: "gemini",
         modelo: GEMINI_MODEL,
         aviso:
-          "Sugestão gerada por IA (Google Gemini). Revise antes de aplicar.",
+          String(contexto) === "relatorio_obra"
+            ? "Correção ortográfica gerada por IA (Google Gemini). Revise antes de aplicar."
+            : "Sugestão gerada por IA (Google Gemini). Revise antes de aplicar.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
