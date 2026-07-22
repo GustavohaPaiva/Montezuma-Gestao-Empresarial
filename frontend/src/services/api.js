@@ -2125,6 +2125,13 @@ export const api = {
       throw new Error("Lote sem itens.");
     }
 
+    // Debita o caixa antes de marcar como pago (idempotente por lote)
+    const { error: errSaida } = await supabase.rpc(
+      "registrar_saida_pagamento_lote",
+      { p_lote_id: loteId },
+    );
+    if (errSaida) throw errSaida;
+
     await api.updateExtratoStatusFinanceiroInIds(extratoIds, "Pago");
 
     const { data: updated, error } = await supabase
@@ -2144,6 +2151,12 @@ export const api = {
       .eq("id", loteId)
       .single();
     if (errLote) throw errLote;
+
+    const { error: errEstorno } = await supabase.rpc(
+      "estornar_saida_pagamento_lote",
+      { p_lote_id: loteId },
+    );
+    if (errEstorno) throw errEstorno;
 
     const extratoIds = (lote.itens || []).map((i) => i.extrato_id);
     if (extratoIds.length) {

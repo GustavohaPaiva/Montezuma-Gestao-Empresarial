@@ -182,9 +182,44 @@ export default function Obras() {
 
   const handleMarcarLotePagoLista = async (lote) => {
     if (!lote?.id || !obraLotesModal?.id) return;
-    const confirmar = window.confirm(
-      `Marcar o Lote #${lote.numero} como pago (R$ ${formatarMoeda(lote.total)})?`,
-    );
+
+    let saldoAtual = null;
+    try {
+      const movs = await api.getMovimentacoesObra(obraLotesModal.id);
+      saldoAtual = (movs || []).reduce((acc, mov) => {
+        const v = parseFloat(mov?.valor) || 0;
+        if (
+          mov.tipo === "transferencia_saida" ||
+          mov.tipo === "saida_pagamento"
+        ) {
+          return acc - v;
+        }
+        if (
+          mov.tipo === "entrada" ||
+          mov.tipo === "transferencia_entrada"
+        ) {
+          return acc + v;
+        }
+        return acc;
+      }, 0);
+    } catch (err) {
+      console.error("Erro ao consultar saldo da obra:", err);
+    }
+
+    const totalLote = parseFloat(lote.total) || 0;
+    const ficaraNegativo =
+      saldoAtual != null && totalLote > saldoAtual + 1e-9;
+    const saldoApos =
+      saldoAtual != null ? saldoAtual - totalLote : null;
+
+    let mensagem = `Marcar o Extrato #${lote.numero} como pago (R$ ${formatarMoeda(lote.total)})? O valor será debitado do caixa da obra.`;
+    if (ficaraNegativo) {
+      mensagem = `Saldo insuficiente. Saldo atual: R$ ${formatarMoeda(saldoAtual)}. Após o pagamento o saldo ficará R$ ${formatarMoeda(saldoApos)}. Confirmar mesmo assim?`;
+    } else if (saldoAtual != null) {
+      mensagem += ` Saldo atual: R$ ${formatarMoeda(saldoAtual)}.`;
+    }
+
+    const confirmar = window.confirm(mensagem);
     if (!confirmar) return;
 
     const obraId = obraLotesModal.id;

@@ -1249,14 +1249,25 @@ export default function ObrasDetalhe() {
   };
 
   const handleMarcarLotePago = (lote) => {
+    const totalLote = parseFloat(lote.total) || 0;
+    const saldoApos = saldoContaObra - totalLote;
+    const ficaraNegativo = totalLote > saldoContaObra + 1e-9;
+    const mensagemBase = labelsExtratoFinanceiro.confirmarPagamentoExtrato(
+      lote.numero,
+      formatarMoeda(lote.total),
+    );
+    const avisoSaldo = ficaraNegativo
+      ? ` Atenção: o saldo atual da conta é R$ ${formatarMoeda(saldoContaObra)}. Após este pagamento o saldo ficará negativo (R$ ${formatarMoeda(saldoApos)}). Você pode confirmar mesmo assim.`
+      : ` O valor será debitado do caixa da obra (saldo atual: R$ ${formatarMoeda(saldoContaObra)}).`;
+
     setConfirmacaoLote({
-      titulo: labelsExtratoFinanceiro.confirmarMarcarExtratoPago,
-      mensagem: labelsExtratoFinanceiro.confirmarPagamentoExtrato(
-        lote.numero,
-        formatarMoeda(lote.total),
-      ),
+      titulo: ficaraNegativo
+        ? "Saldo insuficiente — confirmar mesmo assim?"
+        : labelsExtratoFinanceiro.confirmarMarcarExtratoPago,
+      mensagem: `${mensagemBase}${avisoSaldo}`,
       acao: "pagar",
       lote,
+      saldoInsuficiente: ficaraNegativo,
     });
   };
 
@@ -2509,6 +2520,17 @@ export default function ObrasDetalhe() {
         title={confirmacaoLote?.titulo || "Confirmar"}
         size="sm"
       >
+        {confirmacaoLote?.saldoInsuficiente ? (
+          <div className="mb-3 rounded-xl border border-amber-200/80 bg-amber-50/90 px-3.5 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800/90">
+              Saldo ficará negativo
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-amber-950/80">
+              O pagamento será registrado e o caixa da obra poderá ficar abaixo
+              de zero.
+            </p>
+          </div>
+        ) : null}
         <p className="text-sm leading-relaxed text-text-muted">
           {confirmacaoLote?.mensagem}
         </p>
@@ -2524,7 +2546,9 @@ export default function ObrasDetalhe() {
             onClick={executarAcaoLote}
             disabled={Boolean(processandoLoteId || processandoLoteItemId)}
           >
-            Confirmar
+            {confirmacaoLote?.saldoInsuficiente
+              ? "Confirmar mesmo assim"
+              : "Confirmar"}
           </BaseButton>
         </div>
       </BaseModal>
