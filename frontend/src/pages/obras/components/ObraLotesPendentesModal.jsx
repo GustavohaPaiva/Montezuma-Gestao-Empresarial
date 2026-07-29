@@ -70,7 +70,7 @@ export default function ObraLotesPendentesModal({
           Fechar
         </BaseButton>
         <BaseButton onClick={() => onAbrirExtrato?.(obra)}>
-          Abrir extrato
+          Abrir lotes
         </BaseButton>
       </div>
     </BaseModal>

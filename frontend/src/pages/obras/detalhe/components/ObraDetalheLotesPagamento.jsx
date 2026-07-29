@@ -108,16 +108,18 @@ export default function ObraDetalheLotesPagamento({
                     </>
                   )}
                 </button>
-                <ButtonDefault
-                  type="button"
-                  onClick={() => onGerarPdf?.(lote)}
-                  className="!h-9 !rounded-xl !border !border-border-primary/45 !bg-white !px-3 !text-xs !font-semibold !text-text-primary hover:!bg-[#FAFAFA]"
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    <FileText className="h-4 w-4" />
-                    PDF
-                  </span>
-                </ButtonDefault>
+                {typeof onGerarPdf === "function" ? (
+                  <ButtonDefault
+                    type="button"
+                    onClick={() => onGerarPdf(lote)}
+                    className="!h-9 !rounded-xl !border !border-border-primary/45 !bg-white !px-3 !text-xs !font-semibold !text-text-primary hover:!bg-[#FAFAFA]"
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      <FileText className="h-4 w-4" />
+                      PDF
+                    </span>
+                  </ButtonDefault>
+                ) : null}
                 {!somenteLeitura && aberto ? (
                   <ButtonDefault
                     type="button"

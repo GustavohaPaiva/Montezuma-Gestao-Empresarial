@@ -1,41 +1,41 @@
 /**
- * Rótulos visíveis na seção Extrato financeiro.
- * Conceito interno continua "lote"; na UI o usuário vê "extrato".
+ * Rótulos visíveis na seção de lotes de pagamento.
+ * Conceito interno e UI: "lote" (agrupamento de itens do extrato para cobrança).
  */
 export const labelsExtratoFinanceiro = {
-  numero: (n) => `Extrato #${n}`,
-  nomePdf: (n) => `Extrato_${n}.pdf`,
-  incluirNoExtrato: "Incluir no extrato",
-  itemEmExtratoAberto: "Item já está em um extrato aberto",
-  incluirNoExtratoPagamento: "Incluir no extrato de pagamento",
-  selecionadosParaExtrato: "Selecionados para o extrato",
-  gerarExtratoPagamento: "Gerar extrato de pagamento",
-  extratosDePagamento: "Extratos de pagamento",
-  nenhumExtratoPagamento: "Nenhum extrato de pagamento",
+  numero: (n) => `Lote #${n}`,
+  nomePdf: (n) => `Lote${n}.pdf`,
+  incluirNoExtrato: "Incluir no lote",
+  itemEmExtratoAberto: "Item já está em um lote aberto",
+  incluirNoExtratoPagamento: "Incluir no lote de pagamento",
+  selecionadosParaExtrato: "Selecionados para o lote",
+  gerarExtratoPagamento: "Gerar lote de pagamento",
+  extratosDePagamento: "Lotes de pagamento",
+  nenhumExtratoPagamento: "Nenhum lote de pagamento",
   hintGerarExtrato:
-    'Selecione itens no extrato e clique em "Gerar extrato de pagamento" para criar um grupo.',
-  marcarExtratoComoPago: "Marcar extrato como Pago",
-  reabrirExtrato: "Reabrir extrato",
-  removerDoExtrato: "Remover do extrato",
+    'Selecione itens no extrato e clique em "Gerar lote de pagamento" para criar um grupo.',
+  marcarExtratoComoPago: "Marcar lote como Pago",
+  reabrirExtrato: "Reabrir lote",
+  removerDoExtrato: "Remover do lote",
   removerDoExtratoSemAlterarStatus:
-    "Remover do extrato sem alterar o status",
-  confirmarMarcarExtratoPago: "Marcar extrato como pago",
-  confirmarReabrirExtrato: "Reabrir extrato",
+    "Remover do lote sem alterar o status",
+  confirmarMarcarExtratoPago: "Marcar lote como pago",
+  confirmarReabrirExtrato: "Reabrir lote",
   confirmarPagamentoExtrato: (numero, total) =>
-    `Confirmar pagamento do Extrato #${numero} (R$ ${total})? Todos os itens serão marcados como pagos.`,
+    `Confirmar pagamento do Lote #${numero} (R$ ${total})? Todos os itens serão marcados como pagos.`,
   confirmarReabrirExtratoMsg: (numero) =>
-    `Reabrir o Extrato #${numero}? Os itens voltarão para "Aguardando pagamento".`,
+    `Reabrir o Lote #${numero}? Os itens voltarão para "Aguardando pagamento".`,
   confirmarRemoverItemExtrato: (descricao, numero) =>
-    `Remover "${descricao}" do Extrato #${numero}? O status de pagamento não será alterado.`,
-  extratoCriadoComSucesso: (numero) => `Extrato #${numero} criado com sucesso.`,
-  extratoMarcadoComoPago: (numero) => `Extrato #${numero} marcado como pago.`,
-  extratoReaberto: (numero) => `Extrato #${numero} reaberto.`,
-  itemRemovidoDoExtrato: "Item removido do extrato.",
-  erroProcessarExtrato: "Erro ao processar o extrato.",
-  nenhumItemSelecionadoExtrato: "Nenhum item selecionado para o extrato.",
-  itensEmOutroExtratoAberto: "Um ou mais itens já estão em outro extrato aberto.",
-  extratoSemItensPdf: "Extrato sem itens para gerar PDF.",
-  erroCriarExtratoPagamento: "Erro ao criar extrato de pagamento.",
+    `Remover "${descricao}" do Lote #${numero}? O status de pagamento não será alterado.`,
+  extratoCriadoComSucesso: (numero) => `Lote #${numero} criado com sucesso.`,
+  extratoMarcadoComoPago: (numero) => `Lote #${numero} marcado como pago.`,
+  extratoReaberto: (numero) => `Lote #${numero} reaberto.`,
+  itemRemovidoDoExtrato: "Item removido do lote.",
+  erroProcessarExtrato: "Erro ao processar o lote.",
+  nenhumItemSelecionadoExtrato: "Nenhum item selecionado para o lote.",
+  itensEmOutroExtratoAberto: "Um ou mais itens já estão em outro lote aberto.",
+  extratoSemItensPdf: "Lote sem itens para gerar PDF.",
+  erroCriarExtratoPagamento: "Erro ao criar lote de pagamento.",
 };
 
 export function isExtratoPago(statusFinanceiro) {
@@ -90,4 +90,11 @@ export function getMapaLotesPorExtrato(lotesPagamento = []) {
 
 export function loteEstaAberto(status) {
   return status === "pendente" || status === "parcial";
+}
+
+/** Total a pagar (lotes pendentes/parciais). */
+export function totalLotesAPagar(lotesPagamento = []) {
+  return (lotesPagamento || [])
+    .filter((lote) => loteEstaAberto(lote.status))
+    .reduce((acc, lote) => acc + (parseFloat(lote.total) || 0), 0);
 }

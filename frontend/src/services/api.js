@@ -1654,6 +1654,45 @@ export const api = {
     return grupoId;
   },
 
+  registrarEmprestimoPessoa: async ({
+    obra_id,
+    pessoa,
+    sentido,
+    valor,
+    descricao,
+    data,
+  }) => {
+    const valorNum = parseFloat(valor);
+    const pessoaNome = String(pessoa || "").trim();
+    if (!obra_id) throw new Error("obra_id obrigatório");
+    if (!pessoaNome) throw new Error("Nome da pessoa é obrigatório");
+    if (sentido !== "emprestar" && sentido !== "receber") {
+      throw new Error("Sentido deve ser emprestar ou receber");
+    }
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      throw new Error("Valor do empréstimo deve ser maior que zero");
+    }
+    const { data: grupoId, error } = await supabase.rpc(
+      "registrar_emprestimo_pessoa",
+      {
+        p_obra_id: obra_id,
+        p_pessoa: pessoaNome,
+        p_sentido: sentido,
+        p_valor: valorNum,
+        p_descricao: descricao?.trim() || null,
+        p_data: data || new Date().toISOString().split("T")[0],
+      },
+    );
+    if (error) {
+      const msg = error.message || "";
+      if (/saldo insuficiente/i.test(msg)) {
+        throw new Error(msg.replace(/^.*Saldo insuficiente/i, "Saldo insuficiente"));
+      }
+      throw error;
+    }
+    return grupoId;
+  },
+
   updateMaterialStatus: async (id, novoStatus) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")

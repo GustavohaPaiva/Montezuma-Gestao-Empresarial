@@ -789,6 +789,26 @@ export default function ObrasDetalhe() {
     async (dados) => {
       setSalvandoCaixaObra(true);
       try {
+        if (dados.destinoTipo === "pessoa") {
+          await api.registrarEmprestimoPessoa({
+            obra_id: Number(id),
+            pessoa: dados.pessoa,
+            sentido: dados.sentido,
+            valor: dados.valor,
+            descricao: dados.descricao,
+            data: dados.data,
+          });
+          await fetchDados();
+          setModalTransferenciaObraOpen(false);
+          showFeedback(
+            dados.sentido === "receber"
+              ? "Empréstimo recebido com sucesso."
+              : "Empréstimo registrado com sucesso.",
+            "success",
+          );
+          return;
+        }
+
         await api.transferirSaldoObra({
           obra_origem_id: Number(id),
           obra_destino_id: dados.obra_destino_id,
@@ -1164,9 +1184,9 @@ export default function ObrasDetalhe() {
     }
 
     abrirPdfPreview({
-      titulo: "Extrato Financeiro",
+      titulo: "Lote de pagamento",
       gerador: () => gerarPdfExtrato(obra, { extratoIds, retornarBlob: true }),
-      nomeFallback: "Extrato.pdf",
+      nomeFallback: "Lote.pdf",
     });
 
     try {
@@ -2394,7 +2414,7 @@ export default function ObrasDetalhe() {
                       >
                         {labelsExtratoFinanceiro.gerarExtratoPagamento}
                       </ButtonDefault>
-                      <div>
+                      <div> 
                         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
                           {labelsExtratoFinanceiro.extratosDePagamento}
                         </p>

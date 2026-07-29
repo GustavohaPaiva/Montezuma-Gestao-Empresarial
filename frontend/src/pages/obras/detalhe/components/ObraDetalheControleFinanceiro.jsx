@@ -6,13 +6,14 @@ import {
   Building2,
   Plus,
   Receipt,
+  User,
   Wallet,
 } from "lucide-react";
 import BaseButton from "../../../../components/gerais/BaseButton";
 import { formatarDataBR, formatarMoeda } from "../utils/formatters";
 import {
   TIPOS_MOVIMENTACAO_OBRA,
-  agregarEmprestimosPorObra,
+  agregarEmprestimosPorContra,
   formatarValorMovimentacao,
   resumirCaixaObra,
   tituloMovimentacao,
@@ -47,7 +48,7 @@ export default function ObraDetalheControleFinanceiro({
   );
 
   const emprestimos = useMemo(
-    () => agregarEmprestimosPorObra(movimentacoes),
+    () => agregarEmprestimosPorContra(movimentacoes),
     [movimentacoes],
   );
 
@@ -174,7 +175,7 @@ export default function ObraDetalheControleFinanceiro({
 
       <section className="flex flex-col gap-3">
         <h3 className="text-sm font-bold uppercase tracking-wide text-text-muted">
-          Empréstimos entre obras
+          Empréstimos
         </h3>
         {emprestimos.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border-primary/40 bg-slate-50/80 px-5 py-10 text-center">
@@ -186,28 +187,30 @@ export default function ObraDetalheControleFinanceiro({
               Nenhum empréstimo ainda
             </p>
             <p className="mt-1 text-xs text-text-muted">
-              Ao transferir saldo, aparece aqui o que esta obra emprestou e o que
-              pegou emprestado de cada outra obra.
+              Ao transferir saldo para outra obra ou pessoa, aparece aqui o que
+              esta obra emprestou e o que pegou emprestado.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
             {emprestimos.map((item) => {
               const liquidoPositivo = item.liquido >= 0;
+              const IconContra = item.kind === "pessoa" ? User : Building2;
               return (
                 <div
-                  key={item.obraId}
+                  key={item.key}
                   className="flex w-full flex-col gap-3 rounded-2xl border border-border-primary/35 bg-white p-4 text-left shadow-[0_4px_16px_rgba(0,0,0,0.06)] sm:p-5"
                 >
                   <div className="flex items-start gap-2.5">
                     <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary">
-                      <Building2 className="h-4 w-4" strokeWidth={2} />
+                      <IconContra className="h-4 w-4" strokeWidth={2} />
                     </span>
                     <div className="min-w-0">
                       <span className="block truncate text-sm font-bold tracking-tight text-text-primary">
                         {item.label}
                       </span>
                       <span className="mt-0.5 block text-xs text-text-muted">
+                        {item.kind === "pessoa" ? "Pessoa · " : "Obra · "}
                         {liquidoPositivo
                           ? "Esta obra tem a receber"
                           : "Esta obra tem a devolver"}

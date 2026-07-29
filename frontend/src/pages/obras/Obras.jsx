@@ -212,7 +212,7 @@ export default function Obras() {
     const saldoApos =
       saldoAtual != null ? saldoAtual - totalLote : null;
 
-    let mensagem = `Marcar o Extrato #${lote.numero} como pago (R$ ${formatarMoeda(lote.total)})? O valor será debitado do caixa da obra.`;
+    let mensagem = `Marcar o Lote #${lote.numero} como pago (R$ ${formatarMoeda(lote.total)})? O valor será debitado do caixa da obra.`;
     if (ficaraNegativo) {
       mensagem = `Saldo insuficiente. Saldo atual: R$ ${formatarMoeda(saldoAtual)}. Após o pagamento o saldo ficará R$ ${formatarMoeda(saldoApos)}. Confirmar mesmo assim?`;
     } else if (saldoAtual != null) {

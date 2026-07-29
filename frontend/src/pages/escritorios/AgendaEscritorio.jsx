@@ -473,6 +473,8 @@ export default function AgendaEscritorio() {
     }
   };
 
+  const isRealizado = (item) => item?.status === "Realizado";
+
   return (
     <div className="relative w-full max-w-full overflow-x-hidden">
       <div
@@ -773,6 +775,7 @@ export default function AgendaEscritorio() {
                           {visiveis.map((item) => {
                             const arrastando = arrastandoId === item.id;
                             const movendo = movendoId === item.id;
+                            const realizado = isRealizado(item);
                             return (
                               <div
                                 key={item.id}
@@ -784,12 +787,16 @@ export default function AgendaEscritorio() {
                                   selecionarDia();
                                 }}
                                 title={`${horaBR(item.data_hora)} — ${item.titulo}`}
-                                className={`flex min-w-0 cursor-grab items-center gap-1 rounded border border-esc-border border-l-[3px] bg-esc-bg px-1 py-0.5 text-left active:cursor-grabbing ${bordaEsquerdaTipo(
-                                  item.tipo,
-                                )} ${
+                                className={`flex min-w-0 cursor-grab items-center gap-1 rounded border border-l-[3px] px-1 py-0.5 text-left active:cursor-grabbing ${
+                                  realizado
+                                    ? "border-emerald-300 border-l-emerald-500 bg-emerald-50"
+                                    : `border-esc-border bg-esc-bg ${bordaEsquerdaTipo(item.tipo)}`
+                                } ${
                                   arrastando || movendo
                                     ? "opacity-40"
-                                    : "hover:bg-esc-card"
+                                    : realizado
+                                      ? "hover:bg-emerald-100"
+                                      : "hover:bg-esc-card"
                                 }`}
                               >
                                 <span className="shrink-0 text-[8px] font-bold tabular-nums text-esc-muted sm:text-[9px]">

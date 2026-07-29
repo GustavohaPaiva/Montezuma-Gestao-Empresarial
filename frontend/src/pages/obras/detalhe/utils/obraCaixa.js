@@ -81,11 +81,11 @@ export function labelObraResumo(obra) {
 }
 
 /**
- * Agrupa transferências por obra relacionada (empréstimos).
- * líquido > 0 => a outra obra te deve (você emprestou mais)
+ * Agrupa transferências por contraparte (obra ou pessoa).
+ * líquido > 0 => a contraparte te deve (você emprestou mais)
  * líquido < 0 => você deve a ela (pegou emprestado mais)
  */
-export function agregarEmprestimosPorObra(movimentacoes = []) {
+export function agregarEmprestimosPorContra(movimentacoes = []) {
   const map = new Map();
 
   for (const mov of movimentacoes || []) {
@@ -95,14 +95,36 @@ export function agregarEmprestimosPorObra(movimentacoes = []) {
     ) {
       continue;
     }
-    const contraId = mov.obra_contra_id ?? mov.obra_contra?.id;
-    if (contraId == null) continue;
 
-    const key = String(contraId);
+    const pessoa = String(mov.pessoa_contra || "").trim();
+    const obraContraId = mov.obra_contra_id ?? mov.obra_contra?.id;
+
+    let key;
+    let rowBase;
+    if (pessoa) {
+      key = `pessoa:${pessoa.toLowerCase()}`;
+      rowBase = {
+        kind: "pessoa",
+        id: pessoa,
+        label: pessoa,
+        obra: null,
+      };
+    } else if (obraContraId != null) {
+      key = `obra:${obraContraId}`;
+      rowBase = {
+        kind: "obra",
+        id: obraContraId,
+        label: labelObraResumo(mov.obra_contra || { id: obraContraId }),
+        obra: mov.obra_contra || { id: obraContraId },
+      };
+    } else {
+      continue;
+    }
+
     if (!map.has(key)) {
       map.set(key, {
-        obraId: contraId,
-        obra: mov.obra_contra || { id: contraId },
+        ...rowBase,
+        key,
         emprestou: 0,
         pegouEmprestado: 0,
       });
@@ -120,24 +142,40 @@ export function agregarEmprestimosPorObra(movimentacoes = []) {
     .map((row) => ({
       ...row,
       liquido: row.emprestou - row.pegouEmprestado,
-      label: labelObraResumo(row.obra),
     }))
     .sort((a, b) => Math.abs(b.liquido) - Math.abs(a.liquido));
 }
 
+/** @deprecated Use agregarEmprestimosPorContra */
+export function agregarEmprestimosPorObra(movimentacoes = []) {
+  return agregarEmprestimosPorContra(movimentacoes)
+    .filter((row) => row.kind === "obra")
+    .map((row) => ({
+      obraId: row.id,
+      obra: row.obra,
+      emprestou: row.emprestou,
+      pegouEmprestado: row.pegouEmprestado,
+      liquido: row.liquido,
+      label: row.label,
+    }));
+}
+
 export function tituloMovimentacao(mov) {
+  const pessoa = String(mov?.pessoa_contra || "").trim();
   const obraLabel = mov.obra_contra ? labelObraResumo(mov.obra_contra) : null;
+  const contraLabel = pessoa || obraLabel;
+
   switch (mov?.tipo) {
     case TIPOS_MOVIMENTACAO_OBRA.entrada:
       return mov.descricao?.trim() || "Entrada na conta";
     case TIPOS_MOVIMENTACAO_OBRA.saida_pagamento:
       return mov.descricao?.trim() || "Pagamento de extrato";
     case TIPOS_MOVIMENTACAO_OBRA.transferencia_saida:
-      return obraLabel ? `Emprestou para ${obraLabel}` : "Emprestou para outra obra";
+      if (contraLabel) return `Emprestou para ${contraLabel}`;
+      return "Emprestou para outra obra";
     case TIPOS_MOVIMENTACAO_OBRA.transferencia_entrada:
-      return obraLabel
-        ? `Pegou emprestado de ${obraLabel}`
-        : "Recebeu emprestado de outra obra";
+      if (contraLabel) return `Pegou emprestado de ${contraLabel}`;
+      return "Recebeu emprestado de outra obra";
     default:
       return LABEL_TIPO_MOVIMENTACAO[mov?.tipo] || "Movimentação";
   }

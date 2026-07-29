@@ -1180,6 +1180,19 @@ export default function ProcessosDetalhes() {
                     placeholder="Ex: Engenheiro Civil"
                   />
                 </div>
+                <div className="flex flex-col text-left gap-1 w-full">
+                  <label className="text-xs font-medium text-gray-600">
+                    Telefone
+                  </label>
+                  <input
+                    type="text"
+                    name="telefone"
+                    value={processo.telefone || ""}
+                    onChange={handleInputChange}
+                    className="rounded-xl border border-gray-200 bg-[#FAFAFA]/80 px-3 py-2.5 text-[15px] text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-orange-300 focus:bg-white focus:ring-2 focus:ring-orange-500/15"
+                    placeholder="Ex: (99) 99999-9999"
+                  />
+                </div>
               </div>
             </div>
 

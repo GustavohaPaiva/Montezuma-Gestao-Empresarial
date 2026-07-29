@@ -7,7 +7,10 @@ import { formatarMoeda } from "../../pages/obras/detalhe/utils/formatters";
 import { labelObraResumo } from "../../pages/obras/detalhe/utils/obraCaixa";
 
 const emptyForm = () => ({
+  destinoTipo: "obra",
   obra_destino_id: "",
+  pessoa: "",
+  sentido: "emprestar",
   descricao: "",
   valor: "",
   data: new Date().toISOString().split("T")[0],
@@ -15,6 +18,14 @@ const emptyForm = () => ({
 
 const fieldClass =
   "h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
+
+const segmentBtnClass = (ativo) =>
+  [
+    "flex-1 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide transition-all",
+    ativo
+      ? "bg-white text-text-primary shadow-sm"
+      : "text-text-muted hover:text-text-primary",
+  ].join(" ");
 
 export default function ModalTransferenciaObra({
   isOpen,
@@ -39,6 +50,9 @@ export default function ModalTransferenciaObra({
     [obrasDestino, obraOrigemId],
   );
 
+  const exigeSaldo =
+    formData.destinoTipo === "obra" || formData.sentido === "emprestar";
+
   useEffect(() => {
     if (!isOpen) return;
     queueMicrotask(() => {
@@ -52,15 +66,11 @@ export default function ModalTransferenciaObra({
   const salvar = async () => {
     setErro("");
     const v = parseFloat(formData.valor);
-    if (!formData.obra_destino_id) {
-      setErro("Selecione a obra de destino.");
-      return;
-    }
     if (!Number.isFinite(v) || v <= 0) {
       setErro("Informe um valor maior que zero.");
       return;
     }
-    if (v > (parseFloat(saldoDisponivel) || 0) + 1e-9) {
+    if (exigeSaldo && v > (parseFloat(saldoDisponivel) || 0) + 1e-9) {
       setErro(
         `Saldo insuficiente. Disponível: R$ ${formatarMoeda(saldoDisponivel)}`,
       );
@@ -70,15 +80,42 @@ export default function ModalTransferenciaObra({
       setErro("Informe a data da transferência.");
       return;
     }
+
+    if (formData.destinoTipo === "obra") {
+      if (!formData.obra_destino_id) {
+        setErro("Selecione a obra de destino.");
+        return;
+      }
+      try {
+        await onSave({
+          destinoTipo: "obra",
+          obra_destino_id: Number(formData.obra_destino_id),
+          descricao: formData.descricao?.trim() || "",
+          valor: v,
+          data: formData.data,
+        });
+      } catch (e) {
+        setErro(e?.message || "Não foi possível transferir o saldo.");
+      }
+      return;
+    }
+
+    const pessoa = formData.pessoa?.trim() || "";
+    if (!pessoa) {
+      setErro("Informe o nome da pessoa.");
+      return;
+    }
     try {
       await onSave({
-        obra_destino_id: Number(formData.obra_destino_id),
+        destinoTipo: "pessoa",
+        pessoa,
+        sentido: formData.sentido,
         descricao: formData.descricao?.trim() || "",
         valor: v,
         data: formData.data,
       });
     } catch (e) {
-      setErro(e?.message || "Não foi possível transferir o saldo.");
+      setErro(e?.message || "Não foi possível registrar o empréstimo.");
     }
   };
 
@@ -120,21 +157,98 @@ export default function ModalTransferenciaObra({
           <div className="flex flex-col gap-3.5 overflow-y-auto px-5 py-5">
             <div className="flex flex-col gap-[5px]">
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                Obra de destino
+                Destino
               </label>
-              <BaseSelect
-                searchable
-                value={formData.obra_destino_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, obra_destino_id: e.target.value })
-                }
-                options={[
-                  { value: "", label: "Selecione a obra…" },
-                  ...opcoesDestino,
-                ]}
-                placeholder="Selecione a obra…"
-              />
+              <div className="flex gap-1 rounded-xl border border-border-primary/40 bg-slate-100/80 p-1">
+                <button
+                  type="button"
+                  className={segmentBtnClass(formData.destinoTipo === "obra")}
+                  onClick={() =>
+                    setFormData({ ...formData, destinoTipo: "obra" })
+                  }
+                >
+                  Obra
+                </button>
+                <button
+                  type="button"
+                  className={segmentBtnClass(formData.destinoTipo === "pessoa")}
+                  onClick={() =>
+                    setFormData({ ...formData, destinoTipo: "pessoa" })
+                  }
+                >
+                  Pessoa
+                </button>
+              </div>
             </div>
+
+            {formData.destinoTipo === "obra" ? (
+              <div className="flex flex-col gap-[5px]">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                  Obra de destino
+                </label>
+                <BaseSelect
+                  searchable
+                  value={formData.obra_destino_id}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      obra_destino_id: e.target.value,
+                    })
+                  }
+                  options={[
+                    { value: "", label: "Selecione a obra…" },
+                    ...opcoesDestino,
+                  ]}
+                  placeholder="Selecione a obra…"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-[5px]">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                    Pessoa
+                  </label>
+                  <input
+                    type="text"
+                    className={fieldClass}
+                    value={formData.pessoa}
+                    onChange={(e) =>
+                      setFormData({ ...formData, pessoa: e.target.value })
+                    }
+                    placeholder="Nome (ex.: João)"
+                  />
+                </div>
+                <div className="flex flex-col gap-[5px]">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                    Sentido
+                  </label>
+                  <div className="flex gap-1 rounded-xl border border-border-primary/40 bg-slate-100/80 p-1">
+                    <button
+                      type="button"
+                      className={segmentBtnClass(
+                        formData.sentido === "emprestar",
+                      )}
+                      onClick={() =>
+                        setFormData({ ...formData, sentido: "emprestar" })
+                      }
+                    >
+                      Emprestar
+                    </button>
+                    <button
+                      type="button"
+                      className={segmentBtnClass(
+                        formData.sentido === "receber",
+                      )}
+                      onClick={() =>
+                        setFormData({ ...formData, sentido: "receber" })
+                      }
+                    >
+                      Pegar emprestado
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="flex flex-col gap-[5px]">
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
@@ -197,7 +311,7 @@ export default function ModalTransferenciaObra({
               Cancelar
             </BaseButton>
             <BaseButton type="button" onClick={salvar} disabled={salvando}>
-              {salvando ? "Transferindo…" : "Transferir"}
+              {salvando ? "Salvando…" : "Confirmar"}
             </BaseButton>
           </div>
         </div>

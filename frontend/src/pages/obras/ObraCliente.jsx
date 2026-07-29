@@ -1,54 +1,60 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
 import { useAuth } from "../../contexts/AuthContext";
+import { useScrollFadeIn } from "../../hooks/useScrollFadeIn";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
-import ModalPortal from "../../components/gerais/ModalPortal";
 import BaseSelect from "../../components/gerais/BaseSelect";
+import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import {
   filtrarMaoDeObraLista,
   filtrarMateriaisLista,
 } from "./detalhe/utils/relatorioFiltrosUtils";
+import {
+  labelsExtratoFinanceiro,
+  loteEstaAberto,
+  totalLotesAPagar,
+} from "./detalhe/utils/lotesPagamentoUtils";
+import { gerarPdfExtrato } from "./detalhe/utils/obraDetalhePdf";
+import ObraDetalheLotesPagamento from "./detalhe/components/ObraDetalheLotesPagamento";
+import ObraClienteSidebar from "./components/ObraClienteSidebar";
+import ObraClienteProfileModal from "./components/ObraClienteProfileModal";
 import logo from "../../assets/logos/logo sem fundo.png";
 import Etapas from "../../components/gerais/ObraEtapas";
 import CronogramaObra from "../../components/obras/CronogramaObra";
+import HomeBackground from "../home/components/HomeBackground";
 import {
   Building,
   MapPin,
   ClipboardList,
   CalendarDays,
-  Hourglass,
   UserRound,
-  Camera,
-  X,
   Handshake,
+  Wallet,
+  Loader2,
+  HardHat,
 } from "lucide-react";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
-function useScrollFadeIn() {
-  const [element, setElement] = useState(null);
-  const [isVisible, setIsVisible] = useState(false);
+const cardShellClass =
+  "w-full overflow-hidden rounded-2xl border border-border-primary/35 bg-white shadow-[0_5px_20px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04]";
 
-  useEffect(() => {
-    if (!element) return;
+const infoTileClass =
+  "rounded-xl border border-border-primary/30 bg-gradient-to-br from-white to-accent-primary/[0.03] p-3 shadow-sm ring-1 ring-slate-900/5";
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0, rootMargin: "0px" },
-    );
+const inputPremiumClass =
+  "box-border min-h-11 h-11 w-full min-w-0 shrink-0 rounded-xl border border-border-primary/55 bg-white px-3 text-sm text-text-primary shadow-sm transition-all placeholder:text-text-muted focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25";
 
-    observer.observe(element);
+const totalBarClass =
+  "flex min-h-[44px] w-full flex-wrap items-center justify-center gap-1 rounded-xl border border-border-primary/40 bg-[#FAFAFA] px-4 py-3 text-center text-sm font-semibold text-text-primary shadow-inner ring-1 ring-black/[0.04]";
 
-    return () => {
-      if (element) observer.unobserve(element);
-    };
-  }, [element]);
+const sectionLabelClass =
+  "text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted";
 
-  return { ref: setElement, isVisible };
-}
+const fadeClass = (visible) =>
+  `transition-all duration-500 ease-out transform ${
+    visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+  }`;
 
 const formatarDataBR = (dataString) => {
   if (!dataString) return "-";
@@ -123,7 +129,8 @@ const getCorStatus = (status) => {
 
 export default function ObraCliente() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const [cliente, setCliente] = useState(null);
   const [obra, setObra] = useState(null);
@@ -131,22 +138,19 @@ export default function ObraCliente() {
   const [carregando, setCarregando] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
-  const fileInputRef = useRef(null);
 
-  const animProcessos = useScrollFadeIn();
-  const animProcPref = useScrollFadeIn();
-  const animProcCaixa = useScrollFadeIn();
-  const animProcFin = useScrollFadeIn();
+  const [refProcessos, animProcessosVisible] = useScrollFadeIn();
+  const [refProcPref, animProcPrefVisible] = useScrollFadeIn();
+  const [refProcCaixa, animProcCaixaVisible] = useScrollFadeIn();
+  const [refProcFin, animProcFinVisible] = useScrollFadeIn();
 
-  const animInfo = useScrollFadeIn();
-  const animEtapas = useScrollFadeIn();
+  const [refInfo, animInfoVisible] = useScrollFadeIn();
+  const [refEtapas, animEtapasVisible] = useScrollFadeIn();
 
-  const animMat = useScrollFadeIn();
-  const animMao = useScrollFadeIn();
-  const animExt = useScrollFadeIn();
+  const [refMat, animMatVisible] = useScrollFadeIn();
+  const [refMao, animMaoVisible] = useScrollFadeIn();
+  const [refExt, animExtVisible] = useScrollFadeIn();
 
   const isSomenteProcessos = user?.isSomenteProcesso === true;
   const modalidadeSlug = normalizarModalidade(obra?.modalidade);
@@ -167,6 +171,7 @@ export default function ObraCliente() {
   const [historico, setHistorico] = useState([]);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
   const [salvandoModalidade, setSalvandoModalidade] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -270,38 +275,26 @@ export default function ObraCliente() {
   };
 
   const handleAbrirModal = () => {
-    setSelectedFile(null);
-    setPreviewUrl(cliente?.foto || null);
     setIsModalOpen(true);
   };
 
   const handleFecharModal = () => {
     if (uploadingFoto) return;
     setIsModalOpen(false);
-    setSelectedFile(null);
-    setPreviewUrl(null);
   };
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
-
-  const handleConfirmarUpload = async () => {
-    if (!selectedFile) return alert("Por favor, escolha uma imagem primeiro!");
-
+  const handleUploadFoto = async (file) => {
     const idParaSalvar =
       cliente?.id || (user?.tipo === "cliente" ? user.id : null);
-    if (!idParaSalvar) return alert("Erro: ID do cliente não encontrado.");
+    if (!idParaSalvar) {
+      throw new Error("ID do cliente não encontrado.");
+    }
 
+    setUploadingFoto(true);
     try {
-      setUploadingFoto(true);
       const response = await api.uploadFotoCliente(
         idParaSalvar,
-        selectedFile,
+        file,
         cliente?.escritorio_id,
       );
       setCliente((prev) => ({
@@ -309,21 +302,21 @@ export default function ObraCliente() {
         foto: response.fotoUrl,
         id: idParaSalvar,
       }));
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error(error);
-      alert("Falha ao salvar a foto.");
     } finally {
       setUploadingFoto(false);
-      if (fileInputRef.current) fileInputRef.current.value = null;
     }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   const dadosPrefeitura = useMemo(() => {
     if (!processo) return [];
     return [
       [
-        <span key="tipo-pmu" className="uppercase font-bold text-[#464C54]">
+        <span key="tipo-pmu" className="uppercase font-bold text-text-primary">
           {processo.tipo || "-"}
         </span>,
         <div
@@ -332,10 +325,10 @@ export default function ObraCliente() {
         >
           {processo.status_pmu || "Prefeitura"}
         </div>,
-        <span key="prot-pmu" className="font-semibold text-[#464C54]">
+        <span key="prot-pmu" className="font-semibold text-text-primary">
           {processo.protocolo_pmu || "-"}
         </span>,
-        <span key="obs-pmu" className="font-semibold text-[#464C54]">
+        <span key="obs-pmu" className="font-semibold text-text-primary">
           {processo.observacao_pmu || "-"}
         </span>,
       ],
@@ -352,13 +345,13 @@ export default function ObraCliente() {
         >
           {processo.status_caixa || "Engenharia"}
         </div>,
-        <span key="eng" className="font-semibold text-[#464C54]">
+        <span key="eng" className="font-semibold text-text-primary">
           {processo.engenheiro || "-"}
         </span>,
-        <span key="prot-caixa" className="font-semibold text-[#464C54]">
+        <span key="prot-caixa" className="font-semibold text-text-primary">
           {processo.protocolo_caixa || "-"}
         </span>,
-        <span key="data-caixa" className="font-semibold text-[#464C54]">
+        <span key="data-caixa" className="font-semibold text-text-primary">
           {processo.data_ass_caixa
             ? formatarDataBR(processo.data_ass_caixa)
             : "-"}
@@ -371,7 +364,7 @@ export default function ObraCliente() {
     if (!processo) return [];
     return [
       [
-        <span key="tipo-fin" className="uppercase font-bold text-[#464C54]">
+        <span key="tipo-fin" className="uppercase font-bold text-text-primary">
           {processo.tipo || "-"}
         </span>,
         <div
@@ -380,13 +373,13 @@ export default function ObraCliente() {
         >
           {processo.status_fin || "Acompanhamento"}
         </div>,
-        <span key="alvara" className="font-semibold text-[#464C54]">
+        <span key="alvara" className="font-semibold text-text-primary">
           {processo.n_alvara || "-"}
         </span>,
-        <span key="contrato" className="font-semibold text-[#464C54]">
+        <span key="contrato" className="font-semibold text-text-primary">
           {processo.n_contrato || "-"}
         </span>,
-        <span key="data-fin" className="font-semibold text-[#464C54]">
+        <span key="data-fin" className="font-semibold text-text-primary">
           {processo.data_ass_fin ? formatarDataBR(processo.data_ass_fin) : "-"}
         </span>,
       ],
@@ -517,7 +510,7 @@ export default function ObraCliente() {
   }, [obra, buscaExtrato, filtroExtrato]);
 
   const totais = useMemo(() => {
-    if (!obra) return { materiais: 0, maoDeObra: 0, extrato: 0 };
+    if (!obra) return { materiais: 0, maoDeObra: 0, extrato: 0, aPagar: 0 };
     return {
       materiais: listaMateriaisFiltrada.reduce(
         (acc, m) => acc + (parseFloat(m.valor) || 0),
@@ -531,8 +524,36 @@ export default function ObraCliente() {
         (acc, item) => acc + (parseFloat(item.valor) || 0),
         0,
       ),
+      aPagar: totalLotesAPagar(obra.lotesPagamento),
     };
   }, [obra, listaMateriaisFiltrada, listaMaoDeObraFiltrada]);
+
+  const lotesOrdenados = useMemo(() => {
+    const lotes = [...(obra?.lotesPagamento || [])];
+    lotes.sort((a, b) => {
+      const abertoA = loteEstaAberto(a.status) ? 0 : 1;
+      const abertoB = loteEstaAberto(b.status) ? 0 : 1;
+      if (abertoA !== abertoB) return abertoA - abertoB;
+      return (b.numero || 0) - (a.numero || 0);
+    });
+    return lotes;
+  }, [obra?.lotesPagamento]);
+
+  const handleGerarPdfLote = useCallback(
+    (lote) => {
+      const extratoIds = (lote?.itens || [])
+        .map((item) => item.extrato_id)
+        .filter(Boolean);
+      if (!extratoIds.length) return;
+      setPdfPreview({
+        titulo: labelsExtratoFinanceiro.numero(lote.numero),
+        gerador: () =>
+          gerarPdfExtrato(obra, { extratoIds, retornarBlob: true }),
+        nomeFallback: labelsExtratoFinanceiro.nomePdf(lote.numero),
+      });
+    },
+    [obra],
+  );
 
   const carregarHistorico = useCallback(async () => {
     if (!id) return;
@@ -557,29 +578,53 @@ export default function ObraCliente() {
 
   if (carregando) {
     return (
-      <div className="flex justify-center items-center h-screen bg-bg-primary">
-        <span className="font-bold text-[#71717A] flex items-center gap-2">
-          <Hourglass className="w-5 h-5 animate-spin text-[#DC3B0B]" />
-          Carregando dados...
-        </span>
+      <div className="relative flex min-h-screen items-center justify-center overflow-x-hidden bg-[#FAFAFA] px-[5%] py-12 font-montserrat">
+        <HomeBackground />
+        <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-border-primary/35 bg-white px-8 py-10 text-center shadow-[0_8px_32px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04]">
+          <div
+            className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent-primary/[0.07]"
+            aria-hidden
+          />
+          <div className="relative">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/15">
+              <HardHat className="h-6 w-6" strokeWidth={2} />
+            </div>
+            <Loader2
+              className="mx-auto mb-4 h-9 w-9 animate-spin text-accent-primary"
+              strokeWidth={2.25}
+              aria-hidden
+            />
+            <p className={sectionLabelClass}>Acompanhamento</p>
+            <h2 className="mt-1 text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+              Carregando sua obra
+            </h2>
+            <p className="mx-auto mt-2 max-w-xs text-sm text-text-muted">
+              Sincronizando etapas, histórico e informações do projeto.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (isSomenteProcessos && !processo) {
     return (
-      <div className="flex justify-center items-center h-screen bg-bg-primary">
-        <span className="font-bold text-[#71717A]">
+      <div className="relative flex min-h-screen items-center justify-center overflow-x-hidden bg-[#FAFAFA] px-[5%] font-montserrat">
+        <HomeBackground />
+        <p className="relative z-10 text-sm font-semibold text-text-muted">
           Processo não encontrado.
-        </span>
+        </p>
       </div>
     );
   }
 
   if (!isSomenteProcessos && !obra) {
     return (
-      <div className="flex justify-center items-center h-screen bg-bg-primary">
-        <span className="font-bold text-[#71717A]">Obra não encontrada.</span>
+      <div className="relative flex min-h-screen items-center justify-center overflow-x-hidden bg-[#FAFAFA] px-[5%] font-montserrat">
+        <HomeBackground />
+        <p className="relative z-10 text-sm font-semibold text-text-muted">
+          Obra não encontrada.
+        </p>
       </div>
     );
   }
@@ -599,100 +644,56 @@ export default function ObraCliente() {
     ["diretoria", "secretaria", "suporte_ti"].includes(user.tipo);
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-bg-primary">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileSelect}
-        accept="image/*"
-        className="hidden"
-      />
+    <div className="relative flex h-svh w-full flex-col overflow-hidden bg-[#FAFAFA] font-montserrat text-text-primary">
+      <HomeBackground />
 
-      {isModalOpen && (
-        <ModalPortal>
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col items-center shadow-xl relative transition-all duration-300 transform scale-100 opacity-100">
-              <button
-                onClick={handleFecharModal}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors"
-                disabled={uploadingFoto}
-              >
-                <X size={24} />
-              </button>
-              <h2 className="text-xl font-bold text-[#464C54] mb-6">
-                Foto de Perfil
-              </h2>
-              <div className="relative w-[150px] h-[150px] rounded-full border-[3px] border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1] overflow-hidden mb-6 shadow-sm">
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <UserRound className="w-[80px] h-[80px] text-[#DC3B0B]" />
-                )}
-              </div>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingFoto}
-                className="w-full py-3 px-4 bg-white text-[#464C54] font-bold rounded-lg border border-[#DBDADE] hover:bg-gray-100 transition-colors mb-6 flex items-center justify-center gap-2"
-              >
-                <Camera className="w-5 h-5" />
-                {selectedFile ? "Trocar Imagem" : "Escolher Imagem"}
-              </button>
-              <div className="w-full flex gap-3">
-                <button
-                  onClick={handleFecharModal}
-                  disabled={uploadingFoto}
-                  className="flex-1 py-3 rounded-lg font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmarUpload}
-                  disabled={!selectedFile || uploadingFoto}
-                  className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors flex items-center justify-center gap-2 ${!selectedFile || uploadingFoto ? "bg-gray-300 cursor-not-allowed" : "bg-[#DC3B0B] hover:bg-[#b02f08]"}`}
-                >
-                  {uploadingFoto ? (
-                    <Hourglass className="w-5 h-5 animate-spin" />
-                  ) : (
-                    "Salvar Foto"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </ModalPortal>
-      )}
+      <ObraClienteProfileModal
+        open={isModalOpen}
+        onClose={handleFecharModal}
+        displayName={obra?.cliente || cliente?.nome || "Cliente"}
+        email={cliente?.email || user?.email}
+        roleLabel="Cliente"
+        avatarUrl={cliente?.foto}
+        uploading={uploadingFoto}
+        onUploadPhoto={handleUploadFoto}
+        onSignOut={handleLogout}
+      />
 
       {isSomenteProcessos && (
         <div
-          ref={animProcessos.ref}
-          className={`w-[90%] flex flex-col items-center mb-[100px] md:mb-6 transition-all duration-500 ease-out transform ${animProcessos.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+          ref={refProcessos}
+          className={`relative z-10 mb-6 mt-6 w-full px-[5%] md:mb-8 ${fadeClass(animProcessosVisible)}`}
         >
-          <div className="w-full bg-white p-9 rounded-[12px] mt-[30px] flex flex-col items-start justify-center">
-            <h2 className="text-5xl font-bold text-[#464C54]">Processos</h2>
-            <div className="bg-[#ffffff] w-full border border-[#DBDADE] rounded-[12px] text-center px-[30px] shadow-sm flex flex-col items-center gap-[24px] mt-[24px] py-[24px] overflow-x-auto">
+          <div className={`${cardShellClass} p-5 sm:p-7`}>
+            <p className={sectionLabelClass}>Acompanhamento</p>
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+              Processos
+            </h2>
+            <div className="mt-1.5 h-0.5 w-12 rounded-full bg-gradient-to-r from-accent-primary/90 to-accent-primary/25" />
+
+            <div className="mt-6 flex flex-col gap-6 overflow-x-auto">
               <div
-                ref={animProcPref.ref}
-                className={`bg-[#ffffff] w-full rounded-[12px] text-center flex flex-col items-center gap-[24px] overflow-x-auto transition-all duration-500 ease-out transform ${animProcPref.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                ref={refProcPref}
+                className={`flex flex-col items-center gap-4 ${fadeClass(animProcPrefVisible)}`}
               >
-                <h1 className="text-[30px] font-bold text-[#464C54]">
+                <h3 className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
                   Prefeitura
-                </h1>
+                </h3>
                 <TabelaSimples
                   colunas={["Tipo", "Status", "Protocolo", "OBS."]}
                   dados={dadosPrefeitura}
                 />
               </div>
-              <div className="w-full h-0.5 bg-[#DBDADE]"></div>
+
+              <div className="h-px w-full bg-border-primary/40" />
 
               <div
-                ref={animProcCaixa.ref}
-                className={`bg-[#ffffff] w-full rounded-[12px] text-center flex flex-col items-center gap-[24px] overflow-x-auto transition-all duration-500 ease-out transform ${animProcCaixa.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                ref={refProcCaixa}
+                className={`flex flex-col items-center gap-4 ${fadeClass(animProcCaixaVisible)}`}
               >
-                <h1 className="text-[30px] font-bold text-[#464C54]">Caixa</h1>
+                <h3 className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+                  Caixa
+                </h3>
                 <TabelaSimples
                   colunas={[
                     "Status",
@@ -703,15 +704,16 @@ export default function ObraCliente() {
                   dados={dadosCaixa}
                 />
               </div>
-              <div className="w-full h-0.5 bg-[#DBDADE]"></div>
+
+              <div className="h-px w-full bg-border-primary/40" />
 
               <div
-                ref={animProcFin.ref}
-                className={`bg-[#ffffff] w-full rounded-[12px] text-center flex flex-col items-center gap-[24px] overflow-x-auto transition-all duration-500 ease-out transform ${animProcFin.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                ref={refProcFin}
+                className={`flex flex-col items-center gap-4 ${fadeClass(animProcFinVisible)}`}
               >
-                <h1 className="text-[30px] font-bold text-[#464C54]">
+                <h3 className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
                   Finalizados
-                </h1>
+                </h3>
                 <TabelaSimples
                   colunas={[
                     "Tipo",
@@ -729,101 +731,47 @@ export default function ObraCliente() {
       )}
 
       {!isSomenteProcessos && (
-        <div
-          id="#home"
-          className=" flex w-full flex-col items-center justify-center gap-6 pb-24 md:mb-6 md:mt-0 md:pb-0"
+        <ObraClienteSidebar
+          secaoAtiva={secaoCliente}
+          onChangeSecao={setSecaoCliente}
+          exibirRelatorios={exibirRelatorios}
+          nomeCliente={obra?.cliente}
+          fotoCliente={cliente?.foto}
+          onOpenProfile={handleAbrirModal}
         >
-          <nav className="sticky top-0 z-40 mb-5 flex flex-row px-[5%] w-full rounded-b-2xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_14px_34px_-26px_rgba(15,23,42,0.55)] backdrop-blur">
-            <div className="flex flex-col gap-3 w-full flex-row items-center justify-between">
-              <div className="hidden items-center gap-2 lg:flex">
-                <img
-                  src={logo}
-                  alt="Logo Montezuma"
-                  className="h-10 w-auto rounded-lg border border-slate-200 bg-white p-1"
-                />
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">
-                    {obra?.cliente || "Cliente"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-200/80 bg-slate-50/80 p-1.5">
-                {[
-                  { id: "resumo", label: "Resumo" },
-                  { id: "etapas", label: "Etapas" },
-                  { id: "cronograma", label: "Cronograma" },
-                  ...(exibirRelatorios
-                    ? [{ id: "relatorios", label: "Relatórios" }]
-                    : []),
-                ].map((aba) => {
-                  const ativa = secaoCliente === aba.id;
-                  return (
-                    <button
-                      key={aba.id}
-                      type="button"
-                      onClick={() => setSecaoCliente(aba.id)}
-                      className={[
-                        "min-h-[2.25rem] rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:min-h-0 sm:px-4 sm:py-2 sm:text-sm",
-                        ativa
-                          ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
-                          : "text-slate-500 hover:bg-white hover:text-slate-800",
-                      ].join(" ")}
-                    >
-                      {aba.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                onClick={handleAbrirModal}
-                title="Alterar foto de perfil"
-                className="group self-end rounded-full p-0.5 ring-2 ring-slate-200/80 transition hover:ring-[#DC3B0B]/50 lg:self-auto"
-              >
-                {cliente?.foto ? (
-                  <img
-                    src={cliente.foto}
-                    alt="Foto"
-                    className="h-10 w-10 rounded-full object-cover transition group-hover:opacity-90 sm:h-11 sm:w-11"
-                  />
-                ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-slate-200 sm:h-11 sm:w-11">
-                    <UserRound className="h-5 w-5 text-[#DC3B0B]" />
-                  </div>
-                )}
-              </button>
-            </div>
-          </nav>
-
-          <div className="w-[90%]">
+          <main className="w-full px-[5%] py-4 lg:py-6">
             {secaoCliente === "resumo" ? (
               <>
                 <div
-                  ref={animInfo.ref}
-                  className={`w-full rounded-2xl mb-6 justify-center items-center md:p-7 p-4 flex flex-col md:flex-row h-auto bg-gradient-to-b from-white to-slate-50/40 border border-slate-200/70 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.45)] transition-all duration-500 ease-out transform ${isConstrucao ? "gap-6" : "gap-10"} ${animInfo.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                  ref={refInfo}
+                  className={`relative mb-6 ${cardShellClass} p-4 sm:p-6 md:p-7 ${fadeClass(animInfoVisible)} ${
+                    isConstrucao ? "gap-6" : "gap-8"
+                  } flex flex-col md:flex-row md:items-stretch`}
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-1 rounded-t-4xl bg-gradient-to-r from-[#DC3B0B]/75 via-[#EE5B11]/60 to-[#FBA51B]/55" />
+                  <div
+                    className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent-primary/80 via-accent-primary/50 to-accent-primary/20"
+                    aria-hidden
+                  />
                   <div className="w-full xl:w-[62%] md:w-[58%]">
                     <div className="mb-4 flex items-center gap-3">
                       <img
                         src={logo}
                         alt="Logo Montezuma"
-                        className="hidden h-14 w-auto rounded-xl bg-white p-1 shadow-sm xl:block"
+                        className="hidden h-14 w-auto rounded-xl border border-border-primary/25 bg-white p-1 shadow-sm xl:block"
                       />
                       <div>
-                        <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">
+                        <p className={sectionLabelClass}>Obra</p>
+                        <h2 className="text-2xl font-bold tracking-tight text-text-primary md:text-3xl">
                           {obra?.cliente || "Cliente não informado"}
                         </h2>
                       </div>
                     </div>
 
                     <div className="mb-5 flex flex-wrap gap-2">
-                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                      <span className="rounded-full border border-border-primary/40 bg-white px-3 py-1 text-xs font-semibold text-text-primary shadow-sm">
                         {cliente?.tipo || obra?.clientes?.tipo || "Sem tipo"}
                       </span>
-                      <span className="rounded-full border border-[#DC3B0B]/20 bg-[#DC3B0B]/10 px-3 py-1 text-xs font-semibold text-[#B93809] shadow-sm">
+                      <span className="rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1 text-xs font-semibold text-accent-primary shadow-sm">
                         {cliente?.status ||
                           obra?.status ||
                           "Status não disponível"}
@@ -831,45 +779,45 @@ export default function ObraCliente() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
-                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                          <Building className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                      <div className={infoTileClass}>
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                          <Building className="h-3.5 w-3.5 text-accent-primary" />
                           Nome do cliente
                         </p>
-                        <p className="mt-1 text-sm font-semibold uppercase text-slate-800">
+                        <p className="mt-1 text-sm font-semibold uppercase text-text-primary">
                           {obra?.cliente || "Não informado"}
                         </p>
                       </div>
-                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
-                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                          <MapPin className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                      <div className={infoTileClass}>
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                          <MapPin className="h-3.5 w-3.5 text-accent-primary" />
                           Endereço da obra
                         </p>
-                        <p className="mt-1 text-sm font-semibold uppercase text-slate-800">
+                        <p className="mt-1 text-sm font-semibold uppercase text-text-primary">
                           {obra?.local || "Não informado"}
                         </p>
                       </div>
-                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
-                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                          <CalendarDays className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                      <div className={infoTileClass}>
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                          <CalendarDays className="h-3.5 w-3.5 text-accent-primary" />
                           Data de início
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-slate-800">
+                        <p className="mt-1 text-sm font-semibold text-text-primary">
                           {formatarDataBR(obra?.data)}
                         </p>
                       </div>
-                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm">
-                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                          <ClipboardList className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                      <div className={infoTileClass}>
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                          <ClipboardList className="h-3.5 w-3.5 text-accent-primary" />
                           Total de etapas
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-slate-800">
+                        <p className="mt-1 text-sm font-semibold text-text-primary">
                           {(obra?.etapas_selecionadas || []).length} etapa(s)
                         </p>
                       </div>
-                      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm md:col-span-2">
-                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                          <Handshake className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                      <div className={`${infoTileClass} md:col-span-2`}>
+                        <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                          <Handshake className="h-3.5 w-3.5 text-accent-primary" />
                           Modalidade do projeto
                         </p>
                         {podeEditarModalidade ? (
@@ -888,78 +836,86 @@ export default function ObraCliente() {
                                 { value: "gestao", label: "Gestão" },
                               ]}
                             />
-                            <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
+                            <p className="mt-1.5 text-[11px] leading-snug text-text-muted">
                               Em Gestão, relatórios ficam disponíveis nesta
                               tela.
                             </p>
                           </div>
                         ) : (
-                          <p className="mt-1 text-sm font-semibold text-slate-800">
+                          <p className="mt-1 text-sm font-semibold text-text-primary">
                             {rotuloModalidade(obra?.modalidade)}
                           </p>
                         )}
                       </div>
                     </div>
                   </div>
-                  <div className="h-[2px] w-[85%] md:h-[85%] md:w-[2px] bg-gradient-to-b from-[#DC3B0B]/20 via-[#DC3B0B]/60 to-[#DC3B0B]/20"></div>
-                  <div className="w-full md:w-[30%] flex flex-col items-center justify-center mb-[30px] md:mb-0">
-                    <div className="relative rounded-[50%]">
+
+                  <div
+                    className="h-px w-full shrink-0 bg-gradient-to-r from-transparent via-accent-primary/35 to-transparent md:h-auto md:w-px md:bg-gradient-to-b"
+                    aria-hidden
+                  />
+
+                  <div className="mb-2 flex w-full flex-col items-center justify-center md:mb-0 md:w-[30%]">
+                    <div className="relative">
                       {cliente?.foto ? (
                         <img
                           src={cliente.foto}
                           alt="Cliente"
-                          className="w-[150px] h-[150px] rounded-[50%] border-[3px] border-[#DC3B0B] object-cover"
+                          className="h-[150px] w-[150px] rounded-full border-[3px] border-accent-primary object-cover shadow-sm"
                         />
                       ) : (
-                        <div className="w-[150px] h-[150px] rounded-[50%] border-[3px] border-[#DC3B0B] flex items-center justify-center bg-[#f1f1f1]">
-                          <UserRound className="w-[80px] h-[80px] text-[#DC3B0B]" />
+                        <div className="flex h-[150px] w-[150px] items-center justify-center rounded-full border-[3px] border-accent-primary bg-avatar-bg">
+                          <UserRound className="h-[80px] w-[80px] text-accent-primary" />
                         </div>
                       )}
                     </div>
-                    <h2 className="text-2xl font-bold text-black mt-4 text-center">
-                      {obra?.cliente || "Cliente não informado"}{" "}
-                      {isReforma && "- Reforma"}
+                    <h2 className="mt-4 text-center text-xl font-bold tracking-tight text-text-primary">
+                      {obra?.cliente || "Cliente não informado"}
+                      {isReforma ? " · Reforma" : ""}
                     </h2>
-                    <p className="text-sm text-[#919191] text-center">
-                      {obra?.local || "Local não informada"}
+                    <p className="text-center text-sm text-text-muted">
+                      {obra?.local || "Local não informado"}
                     </p>
-                    <div className="mt-3 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
-                      <ClipboardList className="h-3.5 w-3.5 text-[#DC3B0B]" />
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border-primary/40 bg-white px-3 py-1 text-xs font-semibold text-text-primary shadow-sm">
+                      <ClipboardList className="h-3.5 w-3.5 text-accent-primary" />
                       Status:{" "}
                       {cliente?.status || obra?.status || "Não definido"}
                     </div>
                   </div>
                 </div>
 
-                <div className="mb-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_16px_38px_-30px_rgba(15,23,42,0.45)]">
-                  <h3 className="mb-5 text-[24px] font-bold text-[#464C54]">
+                <div className={`mb-6 ${cardShellClass} p-4 sm:p-6`}>
+                  <p className={sectionLabelClass}>Atualizações</p>
+                  <h3 className="mt-1 text-lg font-bold tracking-tight text-text-primary sm:text-xl">
                     Histórico da obra
                   </h3>
+                  <div className="mt-1.5 h-0.5 w-12 rounded-full bg-gradient-to-r from-accent-primary/90 to-accent-primary/25" />
+
                   {loadingHistorico ? (
-                    <p className="text-sm text-slate-500">
+                    <p className="mt-5 text-sm text-text-muted">
                       Carregando histórico...
                     </p>
                   ) : historico.length === 0 ? (
-                    <p className="text-sm text-slate-500">
+                    <p className="mt-5 rounded-xl border border-dashed border-border-primary/40 bg-[#FAFAFA] px-4 py-8 text-center text-sm text-text-muted">
                       Nenhuma atualização registrada.
                     </p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="mt-5 space-y-3">
                       {historico.map((item) => (
                         <article
                           key={item.id}
-                          className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-gradient-to-r from-slate-50/90 to-white p-4 shadow-[0_10px_22px_-20px_rgba(15,23,42,0.55)]"
+                          className="relative overflow-hidden rounded-xl border border-border-primary/30 bg-gradient-to-r from-white to-accent-primary/[0.03] p-4 shadow-sm ring-1 ring-slate-900/5"
                         >
-                          <span className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#DC3B0B]/70 to-[#EE5B11]/40" />
+                          <span className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-accent-primary/70 to-accent-primary/25" />
                           <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                               {item.author_nome || "Equipe Montezuma"}
                             </p>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-text-muted">
                               {formatarDataHoraBR(item.created_at)}
                             </p>
                           </div>
-                          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">
+                          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-text-primary">
                             {item.mensagem}
                           </p>
                         </article>
@@ -973,8 +929,8 @@ export default function ObraCliente() {
             {secaoCliente === "etapas" ? (
               <div
                 id="#etapas"
-                ref={animEtapas.ref}
-                className={`rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.45)] transition-all duration-500 ease-out transform ${animEtapas.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                ref={refEtapas}
+                className={`mb-6 ${cardShellClass} p-3 sm:p-4 ${fadeClass(animEtapasVisible)}`}
               >
                 <Etapas
                   etapas={obra?.etapas_selecionadas || []}
@@ -985,7 +941,7 @@ export default function ObraCliente() {
             ) : null}
 
             {secaoCliente === "cronograma" ? (
-              <div id="#cronograma" className="mb-[24px]">
+              <div id="#cronograma" className="mb-6">
                 <CronogramaObra
                   etapas={obra?.etapas_selecionadas || []}
                   obraId={id}
@@ -1000,9 +956,9 @@ export default function ObraCliente() {
             {exibirRelatorios && secaoCliente === "relatorios" ? (
               <div
                 id="#relatorios"
-                className="w-full flex flex-col mb-[24px] gap-4"
+                className="mb-6 flex w-full flex-col gap-4"
               >
-                <div className="mb-1 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+                <div className="mb-1 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                   {[
                     {
                       id: "materiais",
@@ -1016,8 +972,8 @@ export default function ObraCliente() {
                     },
                     {
                       id: "extrato",
-                      label: "Extrato financeiro",
-                      sub: "Movimentação consolidada",
+                      label: "Lotes de pagamento",
+                      sub: "O que você deve pagar",
                     },
                   ].map((opt) => {
                     const on = subRelatorioCliente === opt.id;
@@ -1027,21 +983,21 @@ export default function ObraCliente() {
                         type="button"
                         onClick={() => setSubRelatorioCliente(opt.id)}
                         className={[
-                          "flex flex-col items-start gap-0.5 rounded-2xl border p-3 text-left shadow-sm transition sm:p-4",
+                          "flex w-full cursor-pointer flex-col items-start gap-1 rounded-2xl border p-4 text-left shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all sm:p-5",
                           on
-                            ? "border-[#DC3B0B]/35 bg-gradient-to-b from-white to-slate-50 ring-1 ring-[#DC3B0B]/15"
-                            : "border-slate-200 bg-white hover:bg-slate-50",
+                            ? "border-accent-primary/45 bg-white ring-2 ring-accent-primary/20"
+                            : "border-border-primary/35 bg-white hover:-translate-y-0.5 hover:border-accent-primary/25 hover:shadow-md",
                         ].join(" ")}
                       >
                         <span
                           className={[
-                            "text-sm font-semibold tracking-tight",
-                            on ? "text-[#DC3B0B]" : "text-[#464C54]",
+                            "text-sm font-bold tracking-tight",
+                            on ? "text-accent-primary" : "text-text-primary",
                           ].join(" ")}
                         >
                           {opt.label}
                         </span>
-                        <span className="text-xs tracking-tight text-[#71717A]">
+                        <span className="text-xs leading-snug tracking-tight text-text-muted">
                           {opt.sub}
                         </span>
                       </button>
@@ -1051,22 +1007,25 @@ export default function ObraCliente() {
 
                 {subRelatorioCliente === "materiais" ? (
                   <div
-                    ref={animMat.ref}
-                    className={`bg-white border border-slate-200/80 rounded-2xl p-6 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.45)] flex flex-col gap-5 transition-all duration-500 ease-out transform ${animMat.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                    ref={refMat}
+                    className={`${cardShellClass} flex flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6 ${fadeClass(animMatVisible)}`}
                   >
                     <div
-                      className={`flex ${isMobile ? "flex-col gap-3" : "justify-between items-center"}`}
+                      className={`flex ${isMobile ? "flex-col gap-3" : "items-center justify-between gap-4"}`}
                     >
-                      <h2 className="text-[24px] font-bold text-[#464C54]">
-                        Materiais
-                      </h2>
-                      <div className="flex flex-col md:flex-row items-center gap-4">
+                      <div>
+                        <p className={sectionLabelClass}>Relatório</p>
+                        <h2 className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+                          Materiais
+                        </h2>
+                      </div>
+                      <div className="flex w-full flex-col items-stretch gap-3 md:w-auto md:flex-row md:items-center">
                         <input
                           type="text"
                           placeholder="Buscar material..."
                           value={buscaMateriais}
                           onChange={(e) => setBuscaMateriais(e.target.value)}
-                          className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
+                          className={`${inputPremiumClass} md:w-[250px]`}
                         />
                         <BaseSelect
                           searchable
@@ -1074,7 +1033,7 @@ export default function ObraCliente() {
                           value={filtroFornecedorId}
                           onChange={(e) => setFiltroFornecedorId(e.target.value)}
                           wrapperClassName="w-full md:w-[220px]"
-                          className="h-[40px] w-full"
+                          className="h-11 w-full"
                           options={[
                             {
                               value: "",
@@ -1088,9 +1047,9 @@ export default function ObraCliente() {
                             })),
                           ]}
                         />
-                        <div className="h-[40px] justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center w-full whitespace-nowrap bg-gray-50">
+                        <div className={totalBarClass}>
                           Total Lançado:{" "}
-                          <span className="font-bold ml-1 text-green-700">
+                          <span className="font-bold text-emerald-700">
                             R$ {formatarMoeda(totais.materiais)}
                           </span>
                         </div>
@@ -1113,22 +1072,25 @@ export default function ObraCliente() {
 
                 {subRelatorioCliente === "mao" ? (
                   <div
-                    ref={animMao.ref}
-                    className={`bg-white border border-slate-200/80 rounded-2xl p-6 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.45)] flex flex-col gap-5 transition-all duration-500 ease-out transform ${animMao.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                    ref={refMao}
+                    className={`${cardShellClass} flex flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6 ${fadeClass(animMaoVisible)}`}
                   >
                     <div
-                      className={`flex ${isMobile ? "flex-col gap-3" : "justify-between items-center"}`}
+                      className={`flex ${isMobile ? "flex-col gap-3" : "items-center justify-between gap-4"}`}
                     >
-                      <h2 className="text-[24px] font-bold text-[#464C54]">
-                        Mão de Obra
-                      </h2>
-                      <div className="flex flex-col md:flex-row items-center gap-4">
+                      <div>
+                        <p className={sectionLabelClass}>Relatório</p>
+                        <h2 className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+                          Mão de Obra
+                        </h2>
+                      </div>
+                      <div className="flex w-full flex-col items-stretch gap-3 md:w-auto md:flex-row md:items-center">
                         <input
                           type="text"
                           placeholder="Buscar serviço..."
                           value={buscaMaoDeObra}
                           onChange={(e) => setBuscaMaoDeObra(e.target.value)}
-                          className="h-[40px] border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none w-full md:w-[250px]"
+                          className={`${inputPremiumClass} md:w-[250px]`}
                         />
                         <BaseSelect
                           searchable
@@ -1136,7 +1098,7 @@ export default function ObraCliente() {
                           value={filtroPrestadorId}
                           onChange={(e) => setFiltroPrestadorId(e.target.value)}
                           wrapperClassName="w-full md:w-[220px]"
-                          className="h-[40px] w-full"
+                          className="h-11 w-full"
                           options={[
                             {
                               value: "",
@@ -1150,9 +1112,9 @@ export default function ObraCliente() {
                             })),
                           ]}
                         />
-                        <div className="h-[40px] w-full justify-between px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
+                        <div className={totalBarClass}>
                           Total Lançado:{" "}
-                          <span className="font-bold ml-1 text-green-700">
+                          <span className="font-bold text-emerald-700">
                             R$ {formatarMoeda(totais.maoDeObra)}
                           </span>
                         </div>
@@ -1173,58 +1135,111 @@ export default function ObraCliente() {
 
                 {subRelatorioCliente === "extrato" ? (
                   <div
-                    ref={animExt.ref}
-                    className={`bg-white border border-slate-200/80 rounded-2xl p-6 shadow-[0_16px_36px_-30px_rgba(15,23,42,0.45)] flex flex-col gap-5 transition-all duration-500 ease-out transform ${animExt.isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+                    ref={refExt}
+                    className={`flex flex-col gap-5 ${fadeClass(animExtVisible)}`}
                   >
-                    <div className="flex flex-col lg:flex-row gap-3 lg:justify-between lg:items-center">
-                      <h2 className="text-[24px] font-bold text-[#464C54]">
-                        Extrato Geral
-                      </h2>
-                      <div className="flex flex-col lg:flex-row gap-3 items-center">
-                        <BaseSelect
-                          searchable={false}
-                          value={filtroExtrato}
-                          onChange={(e) => setFiltroExtrato(e.target.value)}
-                          className="h-[40px] w-full lg:w-auto"
-                          options={[
-                            { value: "Tudo", label: "Todos" },
-                            { value: "Materiais", label: "Materiais" },
-                            { value: "Mão de Obra", label: "Mão de Obra" },
-                          ]}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Buscar no extrato..."
-                          value={buscaExtrato}
-                          onChange={(e) => setBuscaExtrato(e.target.value)}
-                          className="h-[40px] w-full border border-[#DBDADE] rounded-[8px] px-3 focus:outline-none lg:w-[250px]"
-                        />
-                        <div className="h-[40px] w-full px-4 border border-[#C4C4C9] rounded-[6px] flex items-center whitespace-nowrap bg-gray-50">
-                          Total Extrato:{" "}
-                          <span className="font-bold ml-1 text-green-700">
-                            R$ {formatarMoeda(totais.extrato)}
+                    <div className="rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50/90 via-white to-white p-5 shadow-[0_5px_20px_rgba(0,0,0,0.06)] ring-1 ring-amber-500/10 sm:p-6">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-800 ring-1 ring-amber-500/15">
+                            <Wallet className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h2 className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+                              O que você deve pagar
+                            </h2>
+                            <p className="mt-0.5 text-sm text-text-muted">
+                              Lotes gerados pela obra para cobrança. Pendentes e
+                              parciais aparecem primeiro.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-amber-300/50 bg-white px-4 py-3 text-sm shadow-sm sm:min-w-[200px]">
+                          <span className="block text-xs font-semibold uppercase tracking-wide text-text-muted">
+                            Total a pagar
+                          </span>
+                          <span className="mt-0.5 block text-lg font-bold text-amber-900">
+                            R$ {formatarMoeda(totais.aPagar)}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <TabelaSimples
-                      colunas={[
-                        "Descrição",
-                        "Tipo",
-                        "Qtd",
-                        "Valor",
-                        "Status Fin.",
-                        "Data",
-                      ]}
-                      dados={dadosExtrato}
-                    />
+
+                    <div className={`${cardShellClass} p-5 sm:p-6`}>
+                      <p className={`mb-3 ${sectionLabelClass}`}>
+                        {labelsExtratoFinanceiro.extratosDePagamento}
+                      </p>
+                      <ObraDetalheLotesPagamento
+                        lotes={lotesOrdenados}
+                        relatorioExtrato={obra?.relatorioExtrato || []}
+                        somenteLeitura
+                        onGerarPdf={handleGerarPdfLote}
+                      />
+                    </div>
+
+                    <div className={`${cardShellClass} p-5 sm:p-6`}>
+                      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <p className={sectionLabelClass}>Extrato</p>
+                          <h3 className="text-lg font-bold tracking-tight text-text-primary">
+                            Detalhamento do extrato
+                          </h3>
+                        </div>
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                          <BaseSelect
+                            searchable={false}
+                            value={filtroExtrato}
+                            onChange={(e) => setFiltroExtrato(e.target.value)}
+                            className="h-11 w-full lg:w-auto"
+                            options={[
+                              { value: "Tudo", label: "Todos" },
+                              { value: "Materiais", label: "Materiais" },
+                              { value: "Mão de Obra", label: "Mão de Obra" },
+                            ]}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Buscar no extrato..."
+                            value={buscaExtrato}
+                            onChange={(e) => setBuscaExtrato(e.target.value)}
+                            className={`${inputPremiumClass} lg:w-[250px]`}
+                          />
+                          <div className={totalBarClass}>
+                            Total:{" "}
+                            <span className="font-bold text-emerald-700">
+                              R$ {formatarMoeda(totais.extrato)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <TabelaSimples
+                        colunas={[
+                          "Descrição",
+                          "Tipo",
+                          "Qtd",
+                          "Valor",
+                          "Status Fin.",
+                          "Data",
+                        ]}
+                        dados={dadosExtrato}
+                      />
+                    </div>
                   </div>
                 ) : null}
               </div>
             ) : null}
-          </div>
-        </div>
+          </main>
+        </ObraClienteSidebar>
       )}
+
+      <PdfPreviewModal
+        isOpen={Boolean(pdfPreview)}
+        onClose={() => setPdfPreview(null)}
+        titulo={pdfPreview?.titulo}
+        gerador={pdfPreview?.gerador}
+        nomeFallback={pdfPreview?.nomeFallback}
+      />
     </div>
   );
 }
+
