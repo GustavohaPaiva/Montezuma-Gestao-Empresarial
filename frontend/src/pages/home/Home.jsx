@@ -21,6 +21,7 @@ import HomeWeeklyAgenda from "./components/HomeWeeklyAgenda";
 import HomeDashboardStrip from "./components/HomeDashboardStrip";
 import HomeModuleGrid from "./components/HomeModuleGrid";
 import HomeProfilePhotoModal from "./components/HomeProfilePhotoModal";
+import { AdminPwaInstallButton } from "../../components/pwa/AdminPwaInstall";
 
 export default function Home() {
   const { user, updateUserFoto } = useAuth();
@@ -123,6 +124,12 @@ export default function Home() {
           }}
           title={homeDictionary.hero.title}
           subtitle={homeDictionary.hero.subtitle}
+          actions={[
+            {
+              key: "pwa-install",
+              node: <AdminPwaInstallButton />,
+            },
+          ]}
           userProfile={{
             nomeUsuario,
             fotoUrl: fotoLocal,

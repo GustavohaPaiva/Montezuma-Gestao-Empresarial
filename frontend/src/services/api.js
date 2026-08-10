@@ -1703,6 +1703,60 @@ export const api = {
     return data[0];
   },
 
+  /** Status financeiro Montezuma ↔ fornecedor (módulo Financeiro). */
+  updateMaterialStatusFinanceiro: async (id, novoStatus) => {
+    const { data, error } = await supabase
+      .from("relatorio_materiais")
+      .update({ status_financeiro: novoStatus })
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Materiais em aberto (não pagos) com fornecedor e vencimento —
+   * visão cross-obra do Financeiro.
+   */
+  getMateriaisFinanceiroPendentes: async () => {
+    const { data, error } = await supabase
+      .from("relatorio_materiais")
+      .select(
+        `
+        id, material, valor, status_financeiro, data_vencimento, obra_id, fornecedor_id,
+        fornecedores ( id, nome ),
+        obras ( id, cliente, local )
+      `,
+      )
+      .not("fornecedor_id", "is", null)
+      .not("data_vencimento", "is", null)
+      .order("data_vencimento", { ascending: true });
+    if (error) throw error;
+    return (data || []).filter(
+      (m) =>
+        String(m?.status_financeiro || "")
+          .trim()
+          .toLowerCase() !== "pago",
+    );
+  },
+
+  getEmprestimosObrasGlobais: async () => {
+    const { data, error } = await supabase
+      .from("obra_movimentacoes")
+      .select(
+        `
+        id, tipo, valor, data, pessoa_contra, obra_id, obra_contra_id, transferencia_grupo_id,
+        obra:obras!obra_id(id, cliente, local),
+        obra_contra:obras!obra_contra_id(id, cliente, local)
+      `,
+      )
+      .in("tipo", ["transferencia_saida", "transferencia_entrada"])
+      .order("data", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
   updateMaterialFornecedor: async (id, novoFornecedorId) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")

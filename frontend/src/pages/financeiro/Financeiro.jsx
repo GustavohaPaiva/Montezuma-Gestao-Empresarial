@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ModalFinanceiroEntrada from "../../components/modals/ModalFinanceiroEntrada";
@@ -10,6 +11,7 @@ import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { ID_MONTEZUMA } from "../../constants/escritorios";
 import {
+  ArrowLeft,
   CalendarRange,
   CalendarClock,
   Check,
@@ -32,6 +34,7 @@ import {
 } from "./financeiroUtils";
 
 export default function Financeiro() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = TIPOS_FINANCEIRO_ADMIN.includes(user?.tipo);
 
@@ -772,7 +775,21 @@ export default function Financeiro() {
         visaoEscritorioAtual="Montezuma"
       />
 
-      <Navbar className="static" title={"Financeiro"} />
+      <Navbar
+        className="static"
+        title="Escritório"
+        subtitle="Caixa Montezuma"
+        actions={[
+          {
+            key: "voltar-hub",
+            label: "Voltar ao hub",
+            icon: <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />,
+            onClick: () => navigate("/financeiro"),
+            className:
+              "bg-white text-text-primary ring-1 ring-border-primary/50 hover:border-accent-primary/35 hover:shadow-sm",
+          },
+        ]}
+      />
 
       {carregandoFinanceiro ? (
         <div className="flex min-h-[58vh] w-full items-center justify-center px-4 py-16">

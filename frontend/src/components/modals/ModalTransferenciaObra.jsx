@@ -173,7 +173,7 @@ export default function ModalTransferenciaObra({
                   type="button"
                   className={segmentBtnClass(formData.destinoTipo === "pessoa")}
                   onClick={() =>
-                    setFormData({ ...formData, destinoTipo: "pessoa" })
+                    setFormData({ ...formData, destinoTipo: "pessoa", sentido: "receber"})
                   }
                 >
                   Pessoa
@@ -217,35 +217,6 @@ export default function ModalTransferenciaObra({
                     }
                     placeholder="Nome (ex.: João)"
                   />
-                </div>
-                <div className="flex flex-col gap-[5px]">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                    Sentido
-                  </label>
-                  <div className="flex gap-1 rounded-xl border border-border-primary/40 bg-slate-100/80 p-1">
-                    <button
-                      type="button"
-                      className={segmentBtnClass(
-                        formData.sentido === "emprestar",
-                      )}
-                      onClick={() =>
-                        setFormData({ ...formData, sentido: "emprestar" })
-                      }
-                    >
-                      Emprestar
-                    </button>
-                    <button
-                      type="button"
-                      className={segmentBtnClass(
-                        formData.sentido === "receber",
-                      )}
-                      onClick={() =>
-                        setFormData({ ...formData, sentido: "receber" })
-                      }
-                    >
-                      Pegar emprestado
-                    </button>
-                  </div>
                 </div>
               </>
             )}
@@ -305,12 +276,13 @@ export default function ModalTransferenciaObra({
             <BaseButton
               type="button"
               variant="secondary"
+              className="w-full"
               onClick={onClose}
               disabled={salvando}
             >
               Cancelar
             </BaseButton>
-            <BaseButton type="button" onClick={salvar} disabled={salvando}>
+            <BaseButton type="button" onClick={salvar} disabled={salvando} className="w-full">
               {salvando ? "Salvando…" : "Confirmar"}
             </BaseButton>
           </div>

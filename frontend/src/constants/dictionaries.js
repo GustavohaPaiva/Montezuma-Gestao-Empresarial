@@ -39,7 +39,7 @@ export const homeDictionary = {
       relatoriosSemanais:
         "Lance e consulte o relatório geral da semana — obra, financeiro e compras.",
       financeiro:
-        "Registre entradas e saídas, acompanhe pendências e mantenha a saúde financeira da operação.",
+        "Hub financeiro com escritório, controle de materiais e empréstimos entre obras.",
       fornecedores:
         "Cadastre fornecedores, consulte histórico de compras e centralize dados de parceiros.",
       prestadores:
@@ -59,7 +59,7 @@ export const homeDictionary = {
       processos: ["Clientes", "Documentos", "Licitações"],
       obras: ["Cronogramas", "Etapas", "Detalhes"],
       relatoriosSemanais: ["Semanal", "Geral", "Consolidado"],
-      financeiro: ["Entradas", "Saídas", "Pendências"],
+      financeiro: ["Escritório", "Materiais", "Empréstimos"],
       fornecedores: ["Cadastro", "Histórico", "Parceiros"],
       prestadores: ["Equipes", "Serviços", "Vínculos"],
       suprimentosServicos: ["Fornecedores", "Prestadores", "Cadastro"],
@@ -184,6 +184,45 @@ export const homeDictionary = {
       "Equipes terceirizadas e serviços vinculados às obras.",
     metricFornecedores: "Fornecedores",
     metricPrestadores: "Prestadores",
+  },
+  financeiroHub: {
+    eyebrow: "Financeiro",
+    escritorioTitulo: "Escritório",
+    escritorioDescricao:
+      "Caixa Montezuma: entradas, saídas e pendências da operação.",
+    escritorioDestaques: ["Entradas", "Saídas", "Pendências"],
+    materiaisTitulo: "Materiais",
+    materiaisDescricao:
+      "Controle de pagamentos a fornecedores por prioridade de vencimento.",
+    materiaisDestaques: ["Vencidos", "Semana", "Kanban"],
+    maoObraTitulo: "Mão de obra",
+    maoObraDescricao: "Controle financeiro de prestadores (em breve).",
+    maoObraDestaques: ["Em breve"],
+    maoObraEmConstrucaoTitulo: "Em construção",
+    maoObraEmConstrucaoDescricao:
+      "O módulo de mão de obra no financeiro ainda está sendo preparado. Em breve você poderá acompanhar pagamentos a prestadores por aqui.",
+    emprestimosLabel: "Obras",
+    emprestimosTitulo: "Empréstimos entre obras",
+    emprestimosDescricao:
+      "Resumo das transferências de saldo entre obras e pessoas.",
+    emprestimosVazioTitulo: "Nenhum empréstimo registrado",
+    emprestimosVazioDescricao:
+      "Quando houver transferências entre obras ou pessoas, elas aparecem aqui.",
+    metricEmprestimosRelacoes: "Relações de empréstimo",
+    metricEmprestimosVolume: "Volume emprestado",
+    materiaisMetricFornecedores: "Fornecedores em débito",
+    materiaisMetricAPagar: "A pagar",
+    materiaisMetricVencidos: "Vencidos",
+    materiaisMetricProximaSemana: "Próxima semana",
+    materiaisBuscaPlaceholder: "Buscar fornecedor...",
+    materiaisColunaVazia: "Nenhum fornecedor nesta prioridade",
+    materiaisLoadingTitulo: "Carregando materiais",
+    materiaisLoadingDescricao: "Buscando pagamentos pendentes…",
+    detalheMetricItens: "Itens em aberto",
+    detalheMetricPago: "Pago",
+    detalheVazioTitulo: "Nada a pagar neste fornecedor",
+    detalheVazioDescricao:
+      "Todos os itens com vencimento foram quitados ou não há pendências.",
   },
 };
 

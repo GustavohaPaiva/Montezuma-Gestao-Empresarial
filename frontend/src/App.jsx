@@ -2,6 +2,7 @@ import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import RotaProtegida from "./services/RotaProtegida";
 import PageTransition from "./components/gerais/PageTransition";
+import { AdminPwaProvider } from "./pwa/AdminPwaContext";
 
 import Obras from "./pages/obras/Obras";
 import ObrasDetalhe from "./pages/obras/ObrasDetalhe";
@@ -13,7 +14,11 @@ import Processos from "./pages/processos/Processos";
 import LoginCliente from "./pages/login/LoginCliente";
 import LoginAdm from "./pages/login/LoginAdm";
 import Obra from "./pages/obras/ObraCliente";
+import FinanceiroHub from "./pages/financeiro/FinanceiroHub";
 import Financeiro from "./pages/financeiro/Financeiro";
+import FinanceiroMaoDeObra from "./pages/financeiro/FinanceiroMaoDeObra";
+import FinanceiroMateriais from "./pages/financeiro/materiais/FinanceiroMateriais";
+import FinanceiroMateriaisDetalhe from "./pages/financeiro/materiais/FinanceiroMateriaisDetalhe";
 import ProcessosDetalhes from "./pages/processos/ProcessosDetalhes";
 import DocumentosProcesso from "./pages/processos/DocumentosProcesso";
 import Fornecedores from "./pages/fornecedores/Fornecedores";
@@ -47,8 +52,9 @@ import "./index.css";
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
+      <AdminPwaProvider>
+        <Router>
+          <Routes>
           <Route
             path="/login"
             element={
@@ -210,7 +216,39 @@ export default function App() {
               path="/financeiro"
               element={
                 <PageTransition>
+                  <FinanceiroHub />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/financeiro/escritorio"
+              element={
+                <PageTransition>
                   <Financeiro />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/financeiro/materiais"
+              element={
+                <PageTransition>
+                  <FinanceiroMateriais />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/financeiro/materiais/:fornecedorId"
+              element={
+                <PageTransition>
+                  <FinanceiroMateriaisDetalhe />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/financeiro/mao-de-obra"
+              element={
+                <PageTransition>
+                  <FinanceiroMaoDeObra />
                 </PageTransition>
               }
             />
@@ -521,6 +559,7 @@ export default function App() {
         </Routes>
         <TarefasGlobalDock />
       </Router>
+      </AdminPwaProvider>
     </AuthProvider>
   );
 }

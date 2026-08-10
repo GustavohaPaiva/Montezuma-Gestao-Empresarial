@@ -133,10 +133,11 @@ export default function ModalEntradaObra({ isOpen, onClose, onSave, salvando }) 
               variant="secondary"
               onClick={onClose}
               disabled={salvando}
+              className="w-full"
             >
               Cancelar
             </BaseButton>
-            <BaseButton type="button" onClick={salvar} disabled={salvando}>
+            <BaseButton type="button" onClick={salvar} disabled={salvando} className="w-full">
               {salvando ? "Salvando…" : "Lançar entrada"}
             </BaseButton>
           </div>

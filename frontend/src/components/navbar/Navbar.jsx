@@ -184,6 +184,13 @@ export default function Navbar({
               <div className="flex shrink-0 items-center gap-2">
                 {safeActions.map((action, index) => {
                   if (action?.hidden) return null;
+                  if (action?.node) {
+                    return (
+                      <div key={action?.key || action?.label || index}>
+                        {action.node}
+                      </div>
+                    );
+                  }
                   return (
                     <button
                       key={action?.key || action?.label || index}
