@@ -1,8 +1,8 @@
 {
-  "name": "Montezuma",
+  "name": "Montezuma Admin",
   "short_name": "Montezuma",
-  "description": "Montezuma — Gestão Empresarial",
-  "start_url": "/",
+  "description": "Montezuma — Gestão Empresarial (Admin)",
+  "start_url": "/#/loginadm",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -21,7 +21,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

@@ -1,5 +1,5 @@
 /* Montezuma PWA — network-first for navigations; cache static shell lightly */
-const CACHE = 'montezuma-shell-v1'
+const CACHE = 'montezuma-shell-v2'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
