@@ -289,7 +289,9 @@ export async function gerarPdfRelatorioMateriais(
   const linhas = lista.map((m) => {
     const valorTotal = parseFloat(m.valor) || 0;
     const fornecedor = m.fornecedores?.nome || m.fornecedor || "—";
-    const pago = (m.status_financeiro || "").toLowerCase() === "pago";
+    const statusForn =
+      m.status_pagamento_fornecedor || m.status_pagamento || "";
+    const pago = statusForn.toLowerCase() === "pago";
     return [
       m.material || "—",
       String(m.quantidade ?? "—"),
@@ -300,8 +302,8 @@ export async function gerarPdfRelatorioMateriais(
       formatarDataBR(m.data_solicitacao),
       {
         kind: "pill",
-        tone: tonePagamento(m.status_financeiro),
-        text: rotuloPagamento(m.status_financeiro),
+        tone: tonePagamento(statusForn),
+        text: rotuloPagamento(statusForn || "Aguardando pagamento"),
       },
     ];
   });

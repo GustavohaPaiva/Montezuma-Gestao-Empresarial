@@ -9,6 +9,7 @@ export const BUCKET_IDS = {
   proximaSemana: "proxima_semana",
   ateUmMes: "ate_um_mes",
   maisDeUmMes: "mais_de_um_mes",
+  semVencimento: "sem_vencimento",
 };
 
 export const BUCKET_ORDER = [
@@ -16,6 +17,7 @@ export const BUCKET_ORDER = [
   BUCKET_IDS.proximaSemana,
   BUCKET_IDS.ateUmMes,
   BUCKET_IDS.maisDeUmMes,
+  BUCKET_IDS.semVencimento,
 ];
 
 export const BUCKET_META = {
@@ -39,6 +41,11 @@ export const BUCKET_META = {
     titulo: "+1 mês",
     descricao: "Vencem em mais de 30 dias",
   },
+  [BUCKET_IDS.semVencimento]: {
+    id: BUCKET_IDS.semVencimento,
+    titulo: "Sem vencimento",
+    descricao: "A pagar, sem data definida",
+  },
 };
 
 function inicioDoDia(date = new Date()) {
@@ -54,11 +61,12 @@ function diasAteVencimento(item, hoje = new Date()) {
   return Math.round(ms / 86_400_000);
 }
 
-/** Bucket de prioridade de um item em aberto. Null se pago ou sem vencimento. */
+/** Bucket de prioridade de um item em aberto. Null só se pago. */
 export function getBucketPrioridade(item, hoje = new Date()) {
-  if (!item || isPago(item.status_financeiro)) return null;
+  if (!item || isPago(item.status_pagamento ?? item.status_financeiro))
+    return null;
   const dias = diasAteVencimento(item, hoje);
-  if (dias == null) return null;
+  if (dias == null) return BUCKET_IDS.semVencimento;
   if (dias < 0) return BUCKET_IDS.vencidos;
   if (dias <= 7) return BUCKET_IDS.proximaSemana;
   if (dias <= 30) return BUCKET_IDS.ateUmMes;
@@ -85,7 +93,7 @@ export function agregarFornecedoresKanban(materiais = [], hoje = new Date()) {
   const porFornecedor = new Map();
 
   for (const item of materiais || []) {
-    if (isPago(item?.status_financeiro)) continue;
+    if (isPago(item?.status_pagamento ?? item?.status_financeiro)) continue;
     const bucket = getBucketPrioridade(item, hoje);
     if (!bucket) continue;
 
@@ -158,7 +166,7 @@ export function resumirKpisMateriais(materiais = [], hoje = new Date()) {
   let proximaSemanaQtd = 0;
 
   for (const item of materiais || []) {
-    if (isPago(item?.status_financeiro)) continue;
+    if (isPago(item?.status_pagamento ?? item?.status_financeiro)) continue;
     const bucket = getBucketPrioridade(item, hoje);
     if (!bucket) continue;
 
@@ -190,7 +198,7 @@ export function resumirKpisMateriais(materiais = [], hoje = new Date()) {
 export function ordenarItensPorPrioridade(materiais = [], hoje = new Date()) {
   return [...(materiais || [])]
     .filter((item) => {
-      if (isPago(item?.status_financeiro)) return false;
+      if (isPago(item?.status_pagamento ?? item?.status_financeiro)) return false;
       return getBucketPrioridade(item, hoje) != null;
     })
     .sort((a, b) => {

@@ -191,6 +191,36 @@ export const homeDictionary = {
     escritorioDescricao:
       "Caixa Montezuma: entradas, saídas e pendências da operação.",
     escritorioDestaques: ["Entradas", "Saídas", "Pendências"],
+    escritorioPaginaTitulo: "Escritório",
+    escritorioLoadingTitulo: "Carregando escritório",
+    escritorioLoadingDescricao:
+      "Buscando lançamentos, totais e consolidação…",
+    escritorioCaixaTitulo: "Caixa Montezuma",
+    escritorioCaixaSubtitulo:
+      "Saldo geral com tudo que já foi validado no site (todos os meses e anos).",
+    escritorioCaixaEmCaixa: "Em caixa",
+    escritorioCaixaEntradas: "Entradas validadas",
+    escritorioCaixaSaidas: "Saídas validadas",
+    escritorioMetricSaldoValidado: "Saldo validado (mês)",
+    escritorioMetricSaldoPrevisto: "Saldo previsto (mês)",
+    escritorioMetricEntradas: "Entradas validadas (mês)",
+    escritorioMetricSaidas: "Saídas validadas (mês)",
+    escritorioMetricPendentes: "Pendentes",
+    escritorioNovoLancamento: "Novo lançamento",
+    escritorioFiltroMes: "Mês",
+    escritorioBuscaPlaceholder: "Buscar descrição...",
+    escritorioColunaEntradas: "Entradas",
+    escritorioColunaSaidas: "Saídas",
+    escritorioColunaEntradasSub: "Receitas do período",
+    escritorioColunaSaidasSub: "Despesas do período",
+    escritorioTotalLancado: "Total lançado",
+    escritorioTotalValidado: "Total validado",
+    escritorioVazioEntradas: "Nenhuma entrada encontrada",
+    escritorioVazioSaidas: "Nenhuma saída encontrada",
+    escritorioVazioHint: "Ajuste os filtros ou adicione um novo lançamento.",
+    escritorioControleAnual: "Controle anual",
+    escritorioBalancoValidadoAno: "Balanço validado do ano",
+    escritorioBalancoPrevistoAno: "Balanço previsto (total lançado)",
     materiaisTitulo: "Materiais",
     materiaisDescricao:
       "Controle de pagamentos a fornecedores por prioridade de vencimento.",
@@ -222,7 +252,19 @@ export const homeDictionary = {
     detalheMetricPago: "Pago",
     detalheVazioTitulo: "Nada a pagar neste fornecedor",
     detalheVazioDescricao:
-      "Todos os itens com vencimento foram quitados ou não há pendências.",
+      "Todos os itens foram quitados ou não há pendências com este fornecedor.",
+    detalheBuscaPlaceholder: "Buscar por material ou obra...",
+    detalheFiltroTodasObras: "Todas as obras",
+    detalheFiltroTodasPrioridades: "Todas as prioridades",
+    detalheFiltroVazioTitulo: "Nenhum item com esses filtros",
+    detalheFiltroVazioDescricao: "Ajuste a busca ou os filtros para ver itens.",
+    detalheSelecionados: (n) =>
+      `${n} item${n === 1 ? "" : "s"} selecionado${n === 1 ? "" : "s"}`,
+    detalheMarcarSelecionadosPago: "Marcar como pago",
+    detalheTotalFiltrado: "Total filtrado",
+    detalhePainelTitulo: "Pendências",
+    detalhePainelSubtitulo: (n) =>
+      `${n} item${n === 1 ? "" : "s"} em aberto`,
   },
 };
 

@@ -7,13 +7,21 @@ function isStatusPago(statusFinanceiro) {
     .toLowerCase() === "pago";
 }
 
+function statusPagamentoFornecedor(m) {
+  return (
+    m?.status_pagamento_fornecedor ??
+    m?.status_pagamento ??
+    m?.status_financeiro
+  );
+}
+
 function somarTotais(materiais) {
   let comprado = 0;
   let pago = 0;
   for (const m of materiais || []) {
     const val = parseFloat(m.valor) || 0;
     comprado += val;
-    if (isStatusPago(m.status_financeiro)) {
+    if (isStatusPago(statusPagamentoFornecedor(m))) {
       pago += val;
     }
   }

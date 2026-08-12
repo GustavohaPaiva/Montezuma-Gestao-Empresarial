@@ -195,7 +195,12 @@ export function useObrasDetalheTableData({
       const nomeFornecedorExibicao =
         m.fornecedores?.nome || m.fornecedor || "-";
 
-      const isPagoMat = (m.status_financeiro || "").toLowerCase() === "pago";
+      const isPagoMat =
+        (
+          m.status_pagamento_fornecedor ||
+          m.status_pagamento ||
+          ""
+        ).toLowerCase() === "pago";
       const valorTotalClassMat = isPagoMat
         ? "text-emerald-700"
         : "text-text-primary";
@@ -207,7 +212,13 @@ export function useObrasDetalheTableData({
         <div
           className="flex items-center justify-center gap-2"
           key={`val-${m.id}`}
-          title={isPagoMat ? "Material pago" : "Material aguardando pagamento"}
+          title={
+            isPagoMat
+              ? "Pago ao fornecedor"
+              : m.fornecedor_id
+                ? "Aguardando pagamento ao fornecedor"
+                : "Sem fornecedor / conta a pagar"
+          }
         >
           {isEditingValor ? (
             <CellInputNumber

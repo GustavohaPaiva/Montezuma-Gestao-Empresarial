@@ -41,6 +41,121 @@ function omitUndefined(obj) {
   return out;
 }
 
+const STATUS_AP_AGUARDANDO = "Aguardando pagamento";
+const STATUS_AP_PAGO = "Pago";
+const MATERIAIS_SELECT_COM_AP =
+  "*, fornecedores(nome), contas_pagar_fornecedor(id, status_pagamento, data_pagamento)";
+
+function isStatusApPago(status) {
+  return String(status || "").trim().toLowerCase() === "pago";
+}
+
+function contaPagarDeMaterial(material) {
+  const raw = material?.contas_pagar_fornecedor;
+  if (!raw) return null;
+  return Array.isArray(raw) ? raw[0] || null : raw;
+}
+
+function anexarStatusPagamentoFornecedor(materiais) {
+  return (materiais || []).map((m) => {
+    if (!m || typeof m !== "object") return m;
+    const conta = contaPagarDeMaterial(m);
+    return {
+      ...m,
+      status_pagamento_fornecedor: conta?.status_pagamento || null,
+      conta_pagar_id: conta?.id ?? null,
+    };
+  });
+}
+
+function mapContaPagarParaItemFinanceiro(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    conta_pagar_id: row.id,
+    material_id: row.material_id,
+    material: row.descricao,
+    valor: row.valor,
+    status_pagamento: row.status_pagamento,
+    status_financeiro: row.status_pagamento,
+    data_vencimento: row.data_vencimento,
+    data_pagamento: row.data_pagamento,
+    obra_id: row.obra_id,
+    fornecedor_id: row.fornecedor_id,
+    fornecedores: row.fornecedores || null,
+    obras: row.obras || null,
+  };
+}
+
+async function upsertContaPagarFromMaterial(material) {
+  if (!material?.id || !material.fornecedor_id || material.obra_id == null) {
+    return null;
+  }
+  const espelho = {
+    obra_id: material.obra_id,
+    fornecedor_id: material.fornecedor_id,
+    descricao: String(material.material || "").trim() || "Material",
+    valor: parseFloat(material.valor) || 0,
+    data_vencimento: material.data_vencimento ?? null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existing, error: errFind } = await supabase
+    .from("contas_pagar_fornecedor")
+    .select("id")
+    .eq("material_id", material.id)
+    .maybeSingle();
+  if (errFind) throw errFind;
+
+  if (existing?.id) {
+    const { data, error } = await supabase
+      .from("contas_pagar_fornecedor")
+      .update(espelho)
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from("contas_pagar_fornecedor")
+    .insert({
+      material_id: material.id,
+      ...espelho,
+      status_pagamento: STATUS_AP_AGUARDANDO,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function removeContaPagarIfAguardando(materialId) {
+  if (materialId == null) return;
+  const { data: existing, error: errFind } = await supabase
+    .from("contas_pagar_fornecedor")
+    .select("id, status_pagamento")
+    .eq("material_id", materialId)
+    .maybeSingle();
+  if (errFind) throw errFind;
+  if (!existing) return;
+
+  if (isStatusApPago(existing.status_pagamento)) {
+    const e = new Error(
+      "Não é possível remover o fornecedor: a conta a pagar já está marcada como paga.",
+    );
+    e.code = "AP_PAGA";
+    throw e;
+  }
+
+  const { error } = await supabase
+    .from("contas_pagar_fornecedor")
+    .delete()
+    .eq("id", existing.id);
+  if (error) throw error;
+}
+
 function formatHoraPtBr(iso) {
   try {
     return new Date(iso).toLocaleTimeString("pt-BR", {
@@ -401,6 +516,55 @@ export const api = {
 
     if (error) throw error;
     return data;
+  },
+
+  /**
+   * Soma de lançamentos validados (todos os períodos) para o caixa da empresa.
+   * @returns {{ entradas: number, saidas: number, saldo: number }}
+   */
+  getFinanceiroCaixaSaldo: async (escritorioId) => {
+    if (!escritorioId) {
+      return { entradas: 0, saidas: 0, saldo: 0 };
+    }
+
+    const somarValidados = async (tabela) => {
+      const pageSize = 1000;
+      let from = 0;
+      let total = 0;
+
+      for (;;) {
+        const { data, error } = await supabase
+          .from(tabela)
+          .select("valor")
+          .eq("escritorio_id", escritorioId)
+          .eq("validacao", 1)
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+        if (!data?.length) break;
+
+        total += data.reduce(
+          (acc, row) => acc + (parseFloat(row.valor) || 0),
+          0,
+        );
+
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      return total;
+    };
+
+    const [entradas, saidas] = await Promise.all([
+      somarValidados("entradas"),
+      somarValidados("saida"),
+    ]);
+
+    return {
+      entradas,
+      saidas,
+      saldo: entradas - saidas,
+    };
   },
 
   createFinanceiro: async (tabela, dadosBase) => {
@@ -1186,7 +1350,7 @@ export const api = {
     let query = supabase
       .from("obras")
       .select(
-        "*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*, prestadores(nome)), locacoes:relatorio_locacoes(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome, tipo)",
+        `*, materiais:relatorio_materiais(${MATERIAIS_SELECT_COM_AP}), maoDeObra:relatorio_mao_de_obra(*, prestadores(nome)), locacoes:relatorio_locacoes(*), extrato:relatorio_extrato(*), clientes!cliente_id(nome, tipo)`,
       )
       .eq("active", true)
       .order("created_at", { ascending: false });
@@ -1194,7 +1358,9 @@ export const api = {
     if (error) throw error;
     return (data || []).map((obra) => ({
       ...obra,
-      materiais: normalizarMateriaisLista(obra.materiais),
+      materiais: anexarStatusPagamentoFornecedor(
+        normalizarMateriaisLista(obra.materiais),
+      ),
     }));
   },
 
@@ -1505,7 +1671,7 @@ export const api = {
     const { data, error } = await supabase
       .from("obras")
       .select(
-        `*, materiais:relatorio_materiais(*, fornecedores(nome)), maoDeObra:relatorio_mao_de_obra(*, prestadores(nome)), locacoes:relatorio_locacoes(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
+        `*, materiais:relatorio_materiais(${MATERIAIS_SELECT_COM_AP}), maoDeObra:relatorio_mao_de_obra(*, prestadores(nome)), locacoes:relatorio_locacoes(*), relatorioExtrato:relatorio_extrato(*), clientes!cliente_id(*)`,
       )
       .eq("id", id)
       .maybeSingle();
@@ -1564,7 +1730,9 @@ export const api = {
       ...data,
       ...(responsavelRow ? { responsavel: responsavelRow } : {}),
       etapas_selecionadas: etapas,
-      materiais: normalizarMateriaisLista(data.materiais || []),
+      materiais: anexarStatusPagamentoFornecedor(
+        normalizarMateriaisLista(data.materiais || []),
+      ),
       maoDeObra: data.maoDeObra || [],
       locacoes: (data.locacoes || []).map((l) =>
         l?.equipamento != null
@@ -1703,42 +1871,70 @@ export const api = {
     return data[0];
   },
 
-  /** Status financeiro Montezuma ↔ fornecedor (módulo Financeiro). */
+  /** Status financeiro Montezuma → fornecedor (contas a pagar). */
   updateMaterialStatusFinanceiro: async (id, novoStatus) => {
+    return api.updateContaPagarStatus(id, novoStatus);
+  },
+
+  updateMateriaisStatusFinanceiroInIds: async (ids, novoStatus) => {
+    return api.updateContasPagarStatusInIds(ids, novoStatus);
+  },
+
+  updateContaPagarStatus: async (id, novoStatus) => {
+    const statusPago = isStatusApPago(novoStatus);
+    const status = statusPago ? STATUS_AP_PAGO : STATUS_AP_AGUARDANDO;
     const { data, error } = await supabase
-      .from("relatorio_materiais")
-      .update({ status_financeiro: novoStatus })
+      .from("contas_pagar_fornecedor")
+      .update({
+        status_pagamento: status,
+        data_pagamento: statusPago ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .select("*")
       .single();
     if (error) throw error;
-    return data;
+    return mapContaPagarParaItemFinanceiro(data);
+  },
+
+  updateContasPagarStatusInIds: async (ids, novoStatus) => {
+    const lista = (Array.isArray(ids) ? ids : []).filter((id) => id != null);
+    if (!lista.length) return [];
+    const statusPago = isStatusApPago(novoStatus);
+    const status = statusPago ? STATUS_AP_PAGO : STATUS_AP_AGUARDANDO;
+    const { data, error } = await supabase
+      .from("contas_pagar_fornecedor")
+      .update({
+        status_pagamento: status,
+        data_pagamento: statusPago ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .in("id", lista)
+      .select("*");
+    if (error) throw error;
+    return (data || []).map(mapContaPagarParaItemFinanceiro);
   },
 
   /**
-   * Materiais em aberto (não pagos) com fornecedor e vencimento —
+   * Contas a pagar em aberto (Montezuma → fornecedor) —
    * visão cross-obra do Financeiro.
    */
   getMateriaisFinanceiroPendentes: async () => {
     const { data, error } = await supabase
-      .from("relatorio_materiais")
+      .from("contas_pagar_fornecedor")
       .select(
         `
-        id, material, valor, status_financeiro, data_vencimento, obra_id, fornecedor_id,
+        id, material_id, descricao, valor, status_pagamento, data_vencimento, data_pagamento,
+        obra_id, fornecedor_id,
         fornecedores ( id, nome ),
         obras ( id, cliente, local )
       `,
       )
-      .not("fornecedor_id", "is", null)
-      .not("data_vencimento", "is", null)
-      .order("data_vencimento", { ascending: true });
+      .order("data_vencimento", { ascending: true, nullsFirst: false });
     if (error) throw error;
-    return (data || []).filter(
-      (m) =>
-        String(m?.status_financeiro || "")
-          .trim()
-          .toLowerCase() !== "pago",
-    );
+    return (data || [])
+      .map(mapContaPagarParaItemFinanceiro)
+      .filter((m) => !isStatusApPago(m?.status_pagamento));
   },
 
   getEmprestimosObrasGlobais: async () => {
@@ -1758,13 +1954,37 @@ export const api = {
   },
 
   updateMaterialFornecedor: async (id, novoFornecedorId) => {
+    const fid = novoFornecedorId || null;
+    if (!fid) {
+      const { data: existing, error: errFind } = await supabase
+        .from("contas_pagar_fornecedor")
+        .select("id, status_pagamento")
+        .eq("material_id", id)
+        .maybeSingle();
+      if (errFind) throw errFind;
+      if (existing && isStatusApPago(existing.status_pagamento)) {
+        const e = new Error(
+          "Não é possível remover o fornecedor: a conta a pagar já está marcada como paga.",
+        );
+        e.code = "AP_PAGA";
+        throw e;
+      }
+    }
+
     const { data, error } = await supabase
       .from("relatorio_materiais")
-      .update({ fornecedor_id: novoFornecedorId })
+      .update({ fornecedor_id: fid })
       .eq("id", id)
-      .select();
+      .select("*");
     if (error) throw error;
-    return data[0];
+    const materialAtualizado = data[0];
+
+    if (!fid) {
+      await removeContaPagarIfAguardando(id);
+    } else if (materialAtualizado?.fornecedor_id) {
+      await upsertContaPagarFromMaterial(materialAtualizado);
+    }
+    return materialAtualizado;
   },
 
   updateMaterialValor: async (id, novoValor) => {
@@ -1777,6 +1997,9 @@ export const api = {
     const materialAtualizado = data[0];
 
     if (materialAtualizado) {
+      if (materialAtualizado.fornecedor_id) {
+        await upsertContaPagarFromMaterial(materialAtualizado);
+      }
       const { data: extratoData } = await supabase
         .from("relatorio_extrato")
         .select("*")
@@ -1799,8 +2022,7 @@ export const api = {
               materialAtualizado.data_solicitacao || new Date().toISOString(),
             valor: novoValor,
             validacao: 0,
-            status_financeiro:
-              materialAtualizado.status_financeiro || "Aguardando pagamento",
+            status_financeiro: STATUS_AP_AGUARDANDO,
             etapa_nome: materialAtualizado.etapa_nome || null,
           },
         ]);
@@ -1929,20 +2151,6 @@ export const api = {
     if (error) throw error;
 
     const extratoAtualizado = data[0];
-
-    if (extratoAtualizado && extratoAtualizado.material_id) {
-      const { error: errorMat } = await supabase
-        .from("relatorio_materiais")
-        .update({ status_financeiro: novoStatus })
-        .eq("id", extratoAtualizado.material_id);
-      if (errorMat) {
-        console.error(
-          "Erro ao sincronizar status com relatorio_materiais:",
-          errorMat,
-        );
-      }
-    }
-
     return extratoAtualizado;
   },
 
@@ -1984,23 +2192,6 @@ export const api = {
       .in("id", ids)
       .select();
     if (error) throw error;
-
-    const materialIds = (data || [])
-      .map((e) => e.material_id)
-      .filter(Boolean);
-    if (materialIds.length) {
-      const { error: errorMat } = await supabase
-        .from("relatorio_materiais")
-        .update({ status_financeiro: novoStatus })
-        .in("id", materialIds);
-      if (errorMat) {
-        console.error(
-          "Erro ao sincronizar status em lote com relatorio_materiais:",
-          errorMat,
-        );
-      }
-    }
-
     return data || [];
   },
 
@@ -2294,9 +2485,13 @@ export const api = {
       .from("relatorio_materiais")
       .update({ data_vencimento: dataVencimento ?? null })
       .eq("id", id)
-      .select();
+      .select("*");
     if (error) throw error;
-    return data[0];
+    const materialAtualizado = data[0];
+    if (materialAtualizado?.fornecedor_id) {
+      await upsertContaPagarFromMaterial(materialAtualizado);
+    }
+    return materialAtualizado;
   },
 
   updateMaterialDataSolicitacao: async (id, dataSolicitacao) => {
@@ -2426,16 +2621,24 @@ export const api = {
       .select(
         `
         *,
-        relatorio_materiais (
+        contas_pagar_fornecedor (
           valor,
-          status_financeiro,
+          status_pagamento,
           data_vencimento
         )
       `,
       )
       .order("nome", { ascending: true });
     if (error) throw error;
-    return data;
+    return (data || []).map((f) => ({
+      ...f,
+      relatorio_materiais: (f.contas_pagar_fornecedor || []).map((c) => ({
+        valor: c.valor,
+        status_financeiro: c.status_pagamento,
+        status_pagamento: c.status_pagamento,
+        data_vencimento: c.data_vencimento,
+      })),
+    }));
   },
 
   getFornecedorById: async (id) => {
@@ -2444,8 +2647,8 @@ export const api = {
       .select(
         `
         *,
-        relatorio_materiais (
-          id, material, valor, status_financeiro, status, data_solicitacao, data_vencimento, obra_id,
+        contas_pagar_fornecedor (
+          id, material_id, descricao, valor, status_pagamento, data_vencimento, data_pagamento, obra_id,
           obras ( cliente, local )
         )
       `,
@@ -2453,7 +2656,24 @@ export const api = {
       .eq("id", id)
       .single();
     if (error) throw error;
-    return data;
+    return {
+      ...data,
+      relatorio_materiais: (data.contas_pagar_fornecedor || []).map((c) => ({
+        id: c.id,
+        conta_pagar_id: c.id,
+        material_id: c.material_id,
+        material: c.descricao,
+        valor: c.valor,
+        status_financeiro: c.status_pagamento,
+        status_pagamento: c.status_pagamento,
+        status: null,
+        data_solicitacao: null,
+        data_vencimento: c.data_vencimento,
+        data_pagamento: c.data_pagamento,
+        obra_id: c.obra_id,
+        obras: c.obras,
+      })),
+    };
   },
 
   createFornecedor: async (novoFornecedor) => {
@@ -3876,14 +4096,14 @@ export const api = {
         let { data: mat, error: errM } = await supabase
           .from("relatorio_materiais")
           .insert(payload)
-          .select("id")
+          .select("*")
           .single();
 
         if (errM && /fornecedor/i.test(errM.message || "")) {
           ({ data: mat, error: errM } = await supabase
             .from("relatorio_materiais")
             .insert({ ...payload, fornecedor_id: null })
-            .select("id")
+            .select("*")
             .single());
         }
         if (errM) {
@@ -3892,6 +4112,13 @@ export const api = {
         }
 
         if (mat?.id) {
+          if (mat.fornecedor_id) {
+            try {
+              await upsertContaPagarFromMaterial(mat);
+            } catch (errAp) {
+              console.error("[grupo compra] sync conta a pagar:", errAp);
+            }
+          }
           await supabase
             .from("obra_pedido_itens")
             .update({ material_relatorio_id: mat.id })
@@ -4117,7 +4344,7 @@ export const api = {
       .from("obras")
       .select(
         `id, cliente, local, status, active, clientes!cliente_id(nome, tipo),
-        materiais:relatorio_materiais(id, material, quantidade, valor, data_solicitacao, data_vencimento, status_financeiro, etapa_nome, fornecedores(nome)),
+        materiais:relatorio_materiais(id, material, quantidade, valor, data_solicitacao, data_vencimento, etapa_nome, fornecedores(nome), contas_pagar_fornecedor(id, status_pagamento)),
         maoDeObra:relatorio_mao_de_obra(id, tipo, profissional, valor_cobrado, valor_orcado, valor_pago, saldo, data_solicitacao, validacao, etapa_nome),
         locacoes:relatorio_locacoes(id, equipamento, valor, data_coleta, data_vencimento, validacao, status_financeiro, etapa_nome),
         relatorioExtrato:relatorio_extrato(id, descricao, tipo, valor, data, status_financeiro, material_id, mao_de_obra_id, locacao_id, etapa_nome)`,
@@ -4127,7 +4354,9 @@ export const api = {
     if (error) throw error;
     return (data || []).map((obra) => ({
       ...obra,
-      materiais: normalizarMateriaisLista(obra.materiais),
+      materiais: anexarStatusPagamentoFornecedor(
+        normalizarMateriaisLista(obra.materiais),
+      ),
     }));
   },
 

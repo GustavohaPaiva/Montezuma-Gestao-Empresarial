@@ -200,6 +200,10 @@ export default function ModuleHub({
   onVoltar,
   resumo = [],
   resumoLoading = false,
+  /** "metric" (padrão) | "metricCompact" — KPIs mais baixos em telas de detalhe. */
+  resumoVariant = "metric",
+  /** Reduz folga vertical entre header, KPIs e conteúdo. */
+  dense = false,
   acessos = [],
   loading = false,
   loadingTitulo = "Carregando",
@@ -208,6 +212,8 @@ export default function ModuleHub({
   children,
 }) {
   const acessosVisiveis = acessos.filter((item) => !item.hidden);
+  const cardVariant =
+    resumoVariant === "metricCompact" ? "metricCompact" : "metric";
 
   if (loading) {
     return (
@@ -222,7 +228,11 @@ export default function ModuleHub({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-bg-primary pb-12">
+    <div
+      className={`flex min-h-screen w-full flex-col items-center bg-bg-primary ${
+        dense ? "pb-8" : "pb-12"
+      }`}
+    >
       <header className="sticky top-0 z-[60] mb-1 w-full border-b border-border-primary/40 bg-bg-primary/95 shadow-sm backdrop-blur-sm">
         <div className="flex w-full flex-col gap-3 px-[5%] py-3 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 flex-1 items-start gap-2.5">
@@ -249,17 +259,26 @@ export default function ModuleHub({
         </div>
       </header>
 
-      <main className="w-full px-[5%] pt-4">
+      <main className={`w-full px-[5%] ${dense ? "pt-3" : "pt-4"}`}>
         {resumo.length > 0 ? (
-          <section className={`mb-8 w-full ${getKpiGridClass(resumo.length)}`}>
+          <section
+            className={`w-full ${
+              dense
+                ? getKpiGridClass(resumo.length).replace(
+                    "gap-4 md:gap-6",
+                    "gap-3",
+                  )
+                : getKpiGridClass(resumo.length)
+            } ${dense ? "mb-4" : "mb-8"}`}
+          >
             {resumo.map((item) => (
               <BaseCard
                 key={item.id}
-                variant="metric"
+                variant={cardVariant}
                 title={item.label}
                 value={
                   resumoLoading ? (
-                    <span className="inline-block h-8 w-12 animate-pulse rounded bg-surface-muted" />
+                    <span className="inline-block h-7 w-12 animate-pulse rounded bg-surface-muted" />
                   ) : (
                     String(item.value ?? "—")
                   )

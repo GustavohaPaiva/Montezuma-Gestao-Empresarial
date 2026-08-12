@@ -4,6 +4,10 @@ export function isPago(statusFinanceiro) {
     .toLowerCase() === "pago";
 }
 
+function statusPagamentoItem(item) {
+  return item?.status_pagamento ?? item?.status_financeiro;
+}
+
 function inicioDoDia(date = new Date()) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -24,7 +28,7 @@ export function parseDataLocal(dataIso) {
 }
 
 export function isVencido(item, hoje = new Date()) {
-  if (!item || isPago(item.status_financeiro)) return false;
+  if (!item || isPago(statusPagamentoItem(item))) return false;
   const vencimento = parseDataLocal(item.data_vencimento);
   if (!vencimento) return false;
   return vencimento.getTime() < inicioDoDia(hoje).getTime();
@@ -40,7 +44,7 @@ export function agregarFinanceiroFornecedor(materiais = []) {
     const val = parseFloat(m.valor) || 0;
     comprado += val;
 
-    if (isPago(m.status_financeiro)) {
+    if (isPago(statusPagamentoItem(m))) {
       pago += val;
       continue;
     }

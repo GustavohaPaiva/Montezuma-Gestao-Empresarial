@@ -28,6 +28,7 @@ const BUCKET_COLUMN_STYLES = {
   proxima_semana: "border-amber-200/80 bg-amber-50/40",
   ate_um_mes: "border-sky-200/80 bg-sky-50/40",
   mais_de_um_mes: "border-slate-200/80 bg-slate-50/50",
+  sem_vencimento: "border-violet-200/80 bg-violet-50/40",
 };
 
 export default function FinanceiroMateriais() {

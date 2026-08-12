@@ -4,6 +4,8 @@ export default function TabelaSimples({
   variant = "light",
   /** Linhas e cabeçalho mais compactos (obra detalhe / financeiro). */
   dense = false,
+  /** Remove margem inferior (útil dentro de painéis). */
+  flush = false,
   /** IDs paralelos a `dados` — usados em deep-link / destaque de linha. */
   rowIds,
   highlightedRowId,
@@ -13,19 +15,20 @@ export default function TabelaSimples({
   const financeiro = variant === "financeiro";
   const processoDetalhe = variant === "processoDetalhe";
   const compact = dense && (obraDetalhe || financeiro);
+  const marginClass = flush ? "mb-0" : esc || obraDetalhe || financeiro ? "mb-6" : processoDetalhe ? "mb-0" : "mb-[24px]";
 
   return (
     <div
       className={
         esc
-          ? "mb-6 w-full overflow-hidden rounded-xl border border-esc-border bg-esc-card/90 shadow-sm backdrop-blur-md"
+          ? `${marginClass} w-full overflow-hidden rounded-xl border border-esc-border bg-esc-card/90 shadow-sm backdrop-blur-md`
           : obraDetalhe
-            ? "mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-border-primary/35 bg-white shadow-[0_5px_20px_rgba(0,0,0,0.08)]"
+            ? `${marginClass} w-full max-w-full overflow-hidden rounded-xl border border-border-primary/35 bg-white shadow-sm`
             : financeiro
-              ? "mb-6 w-full overflow-hidden rounded-2xl border border-border-primary/35 bg-white shadow-[0_5px_20px_rgba(0,0,0,0.08)]"
+              ? `${marginClass} w-full overflow-hidden rounded-xl border border-border-primary/35 bg-white shadow-sm`
               : processoDetalhe
-                ? "mb-0 w-full max-w-full overflow-hidden rounded-xl border border-gray-100 bg-[#FAFAFA]/80 shadow-inner"
-                : "mb-[24px] w-full overflow-hidden rounded-[8px] border border-[#DBDADE] bg-[#FFFFFF] shadow-sm"
+                ? `${marginClass} w-full max-w-full overflow-hidden rounded-xl border border-gray-100 bg-[#FAFAFA]/80 shadow-inner`
+                : `${marginClass} w-full overflow-hidden rounded-[8px] border border-[#DBDADE] bg-[#FFFFFF] shadow-sm`
       }
     >
       <div

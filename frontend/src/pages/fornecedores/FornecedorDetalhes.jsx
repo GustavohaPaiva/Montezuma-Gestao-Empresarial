@@ -37,7 +37,7 @@ const FILTRO_SELECT_CLASS =
 const ORDEM_STATUS_FORNECEDOR = { vencido: 0, pendente: 1, pago: 2 };
 
 function statusFinanceiroItem(m) {
-  if (isPago(m.status_financeiro)) return "pago";
+  if (isPago(m.status_pagamento ?? m.status_financeiro)) return "pago";
   if (isVencido(m)) return "vencido";
   return "pendente";
 }
@@ -313,7 +313,7 @@ export default function FornecedorDetalhes() {
             title="Abrir no relatório da obra"
             onClick={() =>
               navigate(
-                `/obrasD/${m.obra_id}?secao=relatorios&sub=materiais&item=${m.id}`,
+                `/obrasD/${m.obra_id}?secao=relatorios&sub=materiais&item=${m.material_id ?? m.id}`,
               )
             }
             className="mx-auto max-w-[250px] cursor-pointer truncate text-center text-sm font-semibold uppercase text-accent-primary underline-offset-2 transition-colors hover:text-accent-primary-dark hover:underline"
