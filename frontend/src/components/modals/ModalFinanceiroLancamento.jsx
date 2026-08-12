@@ -7,6 +7,7 @@ import { ID_MONTEZUMA } from "../../constants/escritorios";
 import {
   FORMA_PAGAMENTO_OPCOES,
   PARCELAS_OPCOES,
+  RECORRENCIAS_OPCOES,
 } from "../../constants/financeiroSelectOptions";
 
 const initialForm = () => ({
@@ -15,6 +16,8 @@ const initialForm = () => ({
   data: new Date().toISOString().split("T")[0],
   formaPagamento: "Á vista",
   parcelas: "1X",
+  recorrente: false,
+  recorrencias: "12",
 });
 
 /**
@@ -34,7 +37,6 @@ export default function ModalFinanceiroLancamento({
   onSave,
   userTipo,
   escritorioProprioId,
-  escritorioProprioNome,
   visaoEscritorioAtual,
   permitirEntrada = true,
 }) {
@@ -43,8 +45,9 @@ export default function ModalFinanceiroLancamento({
   const [escritorioLan, setEscritorioLan] = useState("Montezuma");
 
   const isSecretaria = userTipo === "secretaria";
-  const escritorioSelectDisabled = isSecretaria;
   const isEntrada = tipo === "entrada";
+  const isParcelado = formData.formaPagamento === "Parcelado";
+  const isRecorrente = formData.recorrente && !isParcelado;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -65,13 +68,19 @@ export default function ModalFinanceiroLancamento({
 
   if (!isOpen) return null;
 
+  const setCampo = (patch) => setFormData((prev) => ({ ...prev, ...patch }));
+
   const salvar = () => {
     const escritorio_id = isSecretaria
       ? ID_MONTEZUMA
       : escritorioLan === "Montezuma"
         ? ID_MONTEZUMA
         : escritorioProprioId;
-    onSave(tipo, { ...formData, escritorio_id });
+    onSave(tipo, {
+      ...formData,
+      recorrente: isRecorrente,
+      escritorio_id,
+    });
     onClose();
   };
 
@@ -137,29 +146,6 @@ export default function ModalFinanceiroLancamento({
 
             <div className="flex flex-col gap-[5px]">
               <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                Escritório
-              </label>
-              <BaseSelect
-                searchable={false}
-                disabled={escritorioSelectDisabled}
-                value={escritorioLan}
-                onChange={(e) => setEscritorioLan(e.target.value)}
-                options={[
-                  { value: "Montezuma", label: "Montezuma" },
-                  ...(!isSecretaria
-                    ? [
-                        {
-                          value: "proprio",
-                          label: escritorioProprioNome || "Meu escritório",
-                        },
-                      ]
-                    : []),
-                ]}
-              />
-            </div>
-
-            <div className="flex flex-col gap-[5px]">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 Descrição
               </label>
               <input
@@ -169,9 +155,7 @@ export default function ModalFinanceiroLancamento({
                 }
                 className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                 value={formData.descricao}
-                onChange={(e) =>
-                  setFormData({ ...formData, descricao: e.target.value })
-                }
+                onChange={(e) => setCampo({ descricao: e.target.value })}
               />
             </div>
 
@@ -185,9 +169,7 @@ export default function ModalFinanceiroLancamento({
                   placeholder={isEntrada ? "Valor da Entrada" : "Valor da Saída"}
                   className="h-11 w-full rounded-xl border border-border-primary/55 bg-[#FAFAFA] px-3 text-sm text-text-primary shadow-sm transition-all focus:border-accent-primary/45 focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
                   value={formData.valor}
-                  onChange={(e) =>
-                    setFormData({ ...formData, valor: e.target.value })
-                  }
+                  onChange={(e) => setCampo({ valor: e.target.value })}
                 />
               </div>
 
@@ -198,9 +180,7 @@ export default function ModalFinanceiroLancamento({
                 <BaseDatePicker
                   placeholder={isEntrada ? "Data da Entrada" : "Data da Saída"}
                   value={formData.data}
-                  onChange={(e) =>
-                    setFormData({ ...formData, data: e.target.value })
-                  }
+                  onChange={(e) => setCampo({ data: e.target.value })}
                 />
               </div>
             </div>
@@ -212,14 +192,20 @@ export default function ModalFinanceiroLancamento({
               <BaseSelect
                 searchable={false}
                 value={formData.formaPagamento}
-                onChange={(e) =>
-                  setFormData({ ...formData, formaPagamento: e.target.value })
-                }
+                onChange={(e) => {
+                  const formaPagamento = e.target.value;
+                  setCampo({
+                    formaPagamento,
+                    ...(formaPagamento === "Parcelado"
+                      ? { recorrente: false }
+                      : {}),
+                  });
+                }}
                 options={FORMA_PAGAMENTO_OPCOES}
               />
             </div>
 
-            {formData.formaPagamento === "Parcelado" && (
+            {isParcelado && (
               <div className="flex flex-col gap-[5px]">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   Quantidade de Parcelas
@@ -227,12 +213,44 @@ export default function ModalFinanceiroLancamento({
                 <BaseSelect
                   searchable={false}
                   value={formData.parcelas}
-                  onChange={(e) =>
-                    setFormData({ ...formData, parcelas: e.target.value })
-                  }
+                  onChange={(e) => setCampo({ parcelas: e.target.value })}
                   options={PARCELAS_OPCOES}
                 />
               </div>
+            )}
+
+            {!isParcelado && (
+              <>
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border-primary/45 bg-[#FAFAFA] px-3 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text-primary">
+                      Lançamento recorrente
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.recorrente}
+                    onChange={(e) => setCampo({ recorrente: e.target.checked })}
+                    className="h-5 w-5 cursor-pointer accent-check-accent"
+                  />
+                </label>
+
+                {isRecorrente && (
+                  <div className="flex flex-col gap-[5px]">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                      Quantidade de meses
+                    </label>
+                    <BaseSelect
+                      searchable={false}
+                      value={formData.recorrencias}
+                      onChange={(e) =>
+                        setCampo({ recorrencias: e.target.value })
+                      }
+                      options={RECORRENCIAS_OPCOES}
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             <ButtonDefault

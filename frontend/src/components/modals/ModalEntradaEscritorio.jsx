@@ -7,6 +7,7 @@ import { ID_VOGELKOP } from "../../constants/escritorios";
 import {
   FORMA_PAGAMENTO_OPCOES,
   PARCELAS_OPCOES,
+  RECORRENCIAS_OPCOES,
 } from "../../constants/financeiroSelectOptions";
 
 const emptyForm = () => ({
@@ -15,6 +16,8 @@ const emptyForm = () => ({
   data: new Date().toISOString().split("T")[0],
   formaPagamento: "Á vista",
   parcelas: "1X",
+  recorrente: false,
+  recorrencias: "12",
 });
 
 export default function ModalEntradaEscritorio({
@@ -36,12 +39,17 @@ export default function ModalEntradaEscritorio({
   const modalPanelClass =
     "animate-premium-reveal relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-esc-border bg-esc-card shadow-[0_0_80px_-15px_var(--color-esc-destaque)] backdrop-blur-2xl";
 
+  const isParcelado = formData.formaPagamento === "Parcelado";
+  const isRecorrente = formData.recorrente && !isParcelado;
+
   useEffect(() => {
     if (!isOpen) return;
     queueMicrotask(() => setFormData(emptyForm()));
   }, [isOpen]);
 
   if (!isOpen || !escritorioId) return null;
+
+  const setCampo = (patch) => setFormData((prev) => ({ ...prev, ...patch }));
 
   const salvar = () => {
     if (!formData.descricao?.trim() || formData.valor === "") {
@@ -56,6 +64,7 @@ export default function ModalEntradaEscritorio({
     onSave({
       ...formData,
       valor: v,
+      recorrente: isRecorrente,
       escritorio_id: escritorioId,
     });
   };
@@ -97,9 +106,7 @@ export default function ModalEntradaEscritorio({
                 type="text"
                 className={fieldClass}
                 value={formData.descricao}
-                onChange={(e) =>
-                  setFormData({ ...formData, descricao: e.target.value })
-                }
+                onChange={(e) => setCampo({ descricao: e.target.value })}
                 placeholder="Descrição da entrada"
               />
             </div>
@@ -114,9 +121,7 @@ export default function ModalEntradaEscritorio({
                   step="0.01"
                   className={fieldClass}
                   value={formData.valor}
-                  onChange={(e) =>
-                    setFormData({ ...formData, valor: e.target.value })
-                  }
+                  onChange={(e) => setCampo({ valor: e.target.value })}
                   placeholder="0.00"
                 />
               </div>
@@ -127,9 +132,7 @@ export default function ModalEntradaEscritorio({
                 <BaseDatePicker
                   variant="escritorio"
                   value={formData.data}
-                  onChange={(e) =>
-                    setFormData({ ...formData, data: e.target.value })
-                  }
+                  onChange={(e) => setCampo({ data: e.target.value })}
                 />
               </div>
 
@@ -141,14 +144,20 @@ export default function ModalEntradaEscritorio({
                   searchable={false}
                   variant="escritorio"
                   value={formData.formaPagamento}
-                  onChange={(e) =>
-                    setFormData({ ...formData, formaPagamento: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const formaPagamento = e.target.value;
+                    setCampo({
+                      formaPagamento,
+                      ...(formaPagamento === "Parcelado"
+                        ? { recorrente: false }
+                        : {}),
+                    });
+                  }}
                   options={FORMA_PAGAMENTO_OPCOES}
                 />
               </div>
 
-              {formData.formaPagamento === "Parcelado" && (
+              {isParcelado && (
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
                     Parcelas
@@ -157,14 +166,49 @@ export default function ModalEntradaEscritorio({
                     searchable={false}
                     variant="escritorio"
                     value={formData.parcelas}
-                    onChange={(e) =>
-                      setFormData({ ...formData, parcelas: e.target.value })
-                    }
+                    onChange={(e) => setCampo({ parcelas: e.target.value })}
                     options={PARCELAS_OPCOES}
                   />
                 </div>
               )}
             </div>
+
+            {!isParcelado && (
+              <>
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-esc-border bg-esc-bg/60 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-esc-text">
+                      Lançamento recorrente
+                    </p>
+                    <p className="text-xs text-esc-muted">
+                      Repete o mesmo valor todo mês
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.recorrente}
+                    onChange={(e) => setCampo({ recorrente: e.target.checked })}
+                    className="h-5 w-5 cursor-pointer accent-esc-destaque"
+                  />
+                </label>
+                {isRecorrente && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
+                      Quantidade de meses
+                    </label>
+                    <BaseSelect
+                      searchable={false}
+                      variant="escritorio"
+                      value={formData.recorrencias}
+                      onChange={(e) =>
+                        setCampo({ recorrencias: e.target.value })
+                      }
+                      options={RECORRENCIAS_OPCOES}
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div className="flex flex-col gap-3 border-t border-esc-border bg-esc-bg px-6 py-5 sm:flex-row sm:justify-end">

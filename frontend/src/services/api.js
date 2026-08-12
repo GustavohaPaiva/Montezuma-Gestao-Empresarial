@@ -573,11 +573,19 @@ export const api = {
     }
     let registros = [];
     const isParcelado = dadosBase.formaPagamento === "Parcelado";
-    const grupoId = isParcelado ? `grp_${Date.now()}` : null;
+    const isRecorrente =
+      Boolean(dadosBase.recorrente) &&
+      !isParcelado &&
+      Number(dadosBase.recorrencias) > 1;
+    const grupoId = isParcelado
+      ? `grp_${Date.now()}`
+      : isRecorrente
+        ? `rec_${Date.now()}`
+        : null;
 
-    const prepararDado = (valor, dataParcela, index, total) => {
+    const prepararDado = (valor, dataParcela, index, total, descricao) => {
       const payload = {
-        descricao: dadosBase.descricao,
+        descricao: descricao ?? dadosBase.descricao,
         forma: isParcelado
           ? `Parcelado (${index}/${total})`
           : dadosBase.formaPagamento,
@@ -596,7 +604,7 @@ export const api = {
     };
 
     if (isParcelado) {
-      const parcelas = parseInt(dadosBase.parcelas.replace("X", ""));
+      const parcelas = parseInt(dadosBase.parcelas.replace("X", ""), 10);
       const valorParcela = parseFloat(dadosBase.valor) / parcelas;
       for (let i = 1; i <= parcelas; i++) {
         let d = new Date(dadosBase.data + "T12:00:00");
@@ -607,6 +615,23 @@ export const api = {
             d.toISOString().split("T")[0],
             i,
             parcelas,
+          ),
+        );
+      }
+    } else if (isRecorrente) {
+      const total = parseInt(dadosBase.recorrencias, 10);
+      const valor = parseFloat(dadosBase.valor);
+      const descBase = String(dadosBase.descricao || "").trim();
+      for (let i = 1; i <= total; i++) {
+        let d = new Date(dadosBase.data + "T12:00:00");
+        d.setMonth(d.getMonth() + (i - 1));
+        registros.push(
+          prepararDado(
+            valor,
+            d.toISOString().split("T")[0],
+            i,
+            total,
+            `${descBase} (${i}/${total})`,
           ),
         );
       }
@@ -622,6 +647,80 @@ export const api = {
     return data;
   },
 
+  /**
+   * Adiciona N ocorrências mensais ao final de um grupo recorrente e renumerar índices.
+   */
+  estenderRecorrenciaFinanceiro: async (
+    tabela,
+    itemId,
+    quantidade,
+    escritorioId,
+  ) => {
+    if (!escritorioId) {
+      throw new Error("escritorio_id obrigatório em estenderRecorrenciaFinanceiro");
+    }
+    const qtd = parseInt(quantidade, 10);
+    if (!qtd || qtd < 1) {
+      throw new Error("quantidade inválida");
+    }
+
+    const { data: item, error: errItem } = await supabase
+      .from(tabela)
+      .select("*")
+      .eq("id", itemId)
+      .eq("escritorio_id", escritorioId)
+      .single();
+    if (errItem) throw errItem;
+    if (!item?.grupo_id || !String(item.grupo_id).startsWith("rec_")) {
+      throw new Error("Lançamento não pertence a um grupo recorrente");
+    }
+
+    const { data: grupo, error: errGrupo } = await supabase
+      .from(tabela)
+      .select("id, data, descricao, valor, forma")
+      .eq("grupo_id", item.grupo_id)
+      .eq("escritorio_id", escritorioId)
+      .order("data", { ascending: true });
+    if (errGrupo) throw errGrupo;
+    if (!grupo?.length) throw new Error("Grupo recorrente vazio");
+
+    const strip = (d) =>
+      String(d || "")
+        .replace(/\s*\(\d+\s*\/\s*\d+\)\s*$/i, "")
+        .trim();
+    const descBase = strip(item.descricao) || strip(grupo[0].descricao);
+    const ultimo = grupo[grupo.length - 1];
+    const totalNovo = grupo.length + qtd;
+    const novos = [];
+
+    for (let i = 1; i <= qtd; i++) {
+      const d = new Date(ultimo.data + "T12:00:00");
+      d.setMonth(d.getMonth() + i);
+      novos.push({
+        descricao: `${descBase} (${grupo.length + i}/${totalNovo})`,
+        forma: item.forma,
+        valor: parseFloat(item.valor),
+        data: d.toISOString().split("T")[0],
+        escritorio_id: escritorioId,
+        grupo_id: item.grupo_id,
+        validacao: 0,
+      });
+    }
+
+    for (let i = 0; i < grupo.length; i++) {
+      const { error: errUp } = await supabase
+        .from(tabela)
+        .update({ descricao: `${descBase} (${i + 1}/${totalNovo})` })
+        .eq("id", grupo[i].id)
+        .eq("escritorio_id", escritorioId);
+      if (errUp) throw errUp;
+    }
+
+    const { data, error } = await supabase.from(tabela).insert(novos).select();
+    if (error) throw error;
+    return data;
+  },
+
   updateFinanceiro: async (tabela, id, dados, escritorioId) => {
     if (!escritorioId) {
       throw new Error("escritorio_id obrigatório em updateFinanceiro");
@@ -629,6 +728,8 @@ export const api = {
 
     const {
       alterar_todas_parcelas,
+      alterar_futuros,
+      alterar_grupo_todo,
       diferenca_proxima_parcela,
       ratear_diferenca_todas,
       ...dadosLimpos
@@ -641,33 +742,31 @@ export const api = {
     delete dadosLimpos.classe_id;
     delete dadosLimpos.prestador_id;
     delete dadosLimpos.parcelas;
+    delete dadosLimpos.recorrente;
+    delete dadosLimpos.recorrencias;
     delete dadosLimpos.escritorio_id;
 
     Object.keys(dadosLimpos).forEach((k) => {
       if (dadosLimpos[k] === undefined) delete dadosLimpos[k];
     });
 
-    if (
+    const precisaGrupo =
       alterar_todas_parcelas ||
+      alterar_futuros ||
+      alterar_grupo_todo ||
       diferenca_proxima_parcela !== undefined ||
-      ratear_diferenca_todas !== undefined
-    ) {
+      ratear_diferenca_todas !== undefined;
+
+    if (precisaGrupo) {
       const { data: itemAtual } = await supabase
         .from(tabela)
-        .select("grupo_id, data")
+        .select("grupo_id, data, descricao")
         .eq("id", id)
         .eq("escritorio_id", escritorioId)
         .single();
 
       if (itemAtual?.grupo_id) {
-        if (alterar_todas_parcelas && dadosLimpos.valor !== undefined) {
-          await supabase
-            .from(tabela)
-            .update({ valor: dadosLimpos.valor })
-            .eq("grupo_id", itemAtual.grupo_id)
-            .eq("escritorio_id", escritorioId)
-            .gt("data", itemAtual.data);
-        } else if (diferenca_proxima_parcela !== undefined) {
+        if (diferenca_proxima_parcela !== undefined) {
           const { data: proximaParcela } = await supabase
             .from(tabela)
             .select("id, valor")
@@ -708,6 +807,53 @@ export const api = {
                 .eq("id", parcela.id)
                 .eq("escritorio_id", escritorioId);
             }
+          }
+        } else if (
+          alterar_grupo_todo ||
+          alterar_futuros ||
+          alterar_todas_parcelas
+        ) {
+          const isRec = String(itemAtual.grupo_id).startsWith("rec_");
+          const soFuturos = Boolean(alterar_futuros || alterar_todas_parcelas);
+          const patch = {};
+          if (dadosLimpos.valor !== undefined) patch.valor = dadosLimpos.valor;
+          if (dadosLimpos.forma !== undefined) patch.forma = dadosLimpos.forma;
+
+          if (Object.keys(patch).length > 0) {
+            let q = supabase
+              .from(tabela)
+              .update(patch)
+              .eq("grupo_id", itemAtual.grupo_id)
+              .eq("escritorio_id", escritorioId)
+              .neq("id", id);
+            if (soFuturos) q = q.gt("data", itemAtual.data);
+            await q;
+          }
+
+          if (dadosLimpos.descricao !== undefined && isRec) {
+            const strip = (d) =>
+              String(d || "")
+                .replace(/\s*\(\d+\s*\/\s*\d+\)\s*$/i, "")
+                .trim();
+            const descBase = strip(dadosLimpos.descricao);
+            const { data: todos } = await supabase
+              .from(tabela)
+              .select("id, data")
+              .eq("grupo_id", itemAtual.grupo_id)
+              .eq("escritorio_id", escritorioId)
+              .order("data", { ascending: true });
+            const total = todos?.length || 1;
+            for (let i = 0; i < (todos || []).length; i++) {
+              const membro = todos[i];
+              if (soFuturos && membro.data < itemAtual.data) continue;
+              await supabase
+                .from(tabela)
+                .update({ descricao: `${descBase} (${i + 1}/${total})` })
+                .eq("id", membro.id)
+                .eq("escritorio_id", escritorioId);
+            }
+            const idxAtual = (todos || []).findIndex((t) => t.id === id);
+            dadosLimpos.descricao = `${descBase} (${Math.max(idxAtual, 0) + 1}/${total})`;
           }
         }
       }

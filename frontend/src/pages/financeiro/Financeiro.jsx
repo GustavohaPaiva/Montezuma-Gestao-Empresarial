@@ -32,6 +32,8 @@ import {
   formatarDataBR,
   formatarMoeda,
   checkIsParcelado,
+  checkIsRecorrente,
+  stripIndiceGrupo,
 } from "./financeiroUtils";
 
 const hub = homeDictionary.financeiroHub;
@@ -366,8 +368,40 @@ export default function Financeiro() {
 
   const handleDelete = (tabela, item) => {
     const isParcelado = checkIsParcelado(item);
+    const isRecorrente = checkIsRecorrente(item);
 
-    if (isParcelado) {
+    if (isRecorrente) {
+      setDialogo({
+        aberto: true,
+        titulo: "Excluir recorrência",
+        mensagem:
+          "Este lançamento faz parte de um grupo recorrente. Como você prefere excluir?",
+        botoes: [
+          {
+            texto: "Apenas este lançamento",
+            className:
+              "bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100",
+            onClick: () => {
+              executarExclusao(tabela, item.id, false);
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Excluir todo o grupo",
+            className: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
+            onClick: () => {
+              executarExclusao(tabela, item.id, true);
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Cancelar",
+            className: "bg-gray-100 text-text-primary hover:bg-gray-200",
+            onClick: fecharDialogo,
+          },
+        ],
+      });
+    } else if (isParcelado) {
       setDialogo({
         aberto: true,
         titulo: "Excluir Parcela",
@@ -478,7 +512,79 @@ export default function Financeiro() {
 
   const iniciarEdicao = (tabela, item, campo) => {
     setEditandoItem({ tabela, id: item.id, campo });
-    setValorEditado(item[campo]);
+    const valor =
+      campo === "descricao" && checkIsRecorrente(item)
+        ? stripIndiceGrupo(item.descricao)
+        : item[campo];
+    setValorEditado(valor);
+  };
+
+  const handleEstenderRecorrencia = (tabela, item) => {
+    if (!checkIsRecorrente(item)) return;
+    const executar = async (qtd) => {
+      try {
+        await api.estenderRecorrenciaFinanceiro(
+          tabela,
+          item.id,
+          qtd,
+          escritorioId,
+        );
+        setRecarregar((prev) => prev + 1);
+      } catch (err) {
+        console.error(err);
+        mostrarAlerta("Erro", "Erro ao adicionar ocorrências.");
+      }
+    };
+
+    setDialogo({
+      aberto: true,
+      titulo: "Incluir ocorrências",
+      mensagem:
+        "Quantos meses adicionar ao final deste lançamento recorrente?",
+      botoes: [
+        {
+          texto: "+1 mês",
+          className:
+            "bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100",
+          onClick: () => {
+            executar(1);
+            fecharDialogo();
+          },
+        },
+        {
+          texto: "+3 meses",
+          className:
+            "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100",
+          onClick: () => {
+            executar(3);
+            fecharDialogo();
+          },
+        },
+        {
+          texto: "+6 meses",
+          className:
+            "bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100",
+          onClick: () => {
+            executar(6);
+            fecharDialogo();
+          },
+        },
+        {
+          texto: "+12 meses",
+          className:
+            "bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-100",
+          onClick: () => {
+            executar(12);
+            fecharDialogo();
+          },
+        },
+        {
+          texto: "Cancelar",
+          className: "bg-gray-100 text-text-primary hover:bg-gray-200 mt-2",
+          onClick: fecharDialogo,
+        },
+      ],
+    });
   };
 
   const cancelarEdicao = () => {
@@ -502,82 +608,164 @@ export default function Financeiro() {
 
     if (campo === "valor") {
       valorFinal = parseFloat(valorEditado) || 0;
-      const valorAntigo = parseFloat(itemOriginal.valor) || 0;
-
-      if (valorFinal !== valorAntigo) {
-        const isParcelado = checkIsParcelado(itemOriginal);
-
-        if (isParcelado) {
-          const diferenca = valorAntigo - valorFinal;
-          const textoAcao = diferenca > 0 ? "Abater" : "Acrescer";
-
-          setDialogo({
-            aberto: true,
-            titulo: "Reajuste de Parcela",
-            mensagem: `Você alterou o valor desta parcela. A diferença gerada foi de R$ ${Math.abs(diferenca).toFixed(2)}. Como o sistema deve lidar com o restante do parcelamento?`,
-            botoes: [
-              {
-                texto: "Aplicar valor fixo nas restantes",
-                className:
-                  "bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100",
-                onClick: () => {
-                  executarSalvarEdicao(tabela, itemOriginal.id, {
-                    [campo]: valorFinal,
-                    alterar_todas_parcelas: true,
-                  });
-                  fecharDialogo();
-                },
-              },
-              {
-                texto: `${textoAcao} valor na próxima parcela`,
-                className:
-                  "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100",
-                onClick: () => {
-                  executarSalvarEdicao(tabela, itemOriginal.id, {
-                    [campo]: valorFinal,
-                    diferenca_proxima_parcela: diferenca,
-                  });
-                  fecharDialogo();
-                },
-              },
-              {
-                texto: `Ratear diferença nas restantes`,
-                className:
-                  "bg-green-50 border border-green-200 text-green-700 hover:bg-green-100",
-                onClick: () => {
-                  executarSalvarEdicao(tabela, itemOriginal.id, {
-                    [campo]: valorFinal,
-                    ratear_diferenca_todas: diferenca,
-                  });
-                  fecharDialogo();
-                },
-              },
-              {
-                texto: "Alterar apenas esta parcela",
-                className:
-                  "bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100",
-                onClick: () => {
-                  executarSalvarEdicao(tabela, itemOriginal.id, {
-                    [campo]: valorFinal,
-                  });
-                  fecharDialogo();
-                },
-              },
-              {
-                texto: "Cancelar Alteração",
-                className:
-                  "bg-gray-100 text-text-primary hover:bg-gray-200 mt-2",
-                onClick: () => {
-                  cancelarEdicao();
-                  fecharDialogo();
-                },
-              },
-            ],
-          });
-          return;
-        }
-      }
     }
+
+    const valorAntigo =
+      campo === "valor"
+        ? parseFloat(itemOriginal.valor) || 0
+        : campo === "descricao" && checkIsRecorrente(itemOriginal)
+          ? stripIndiceGrupo(itemOriginal.descricao)
+          : itemOriginal[campo];
+
+    const mudou =
+      campo === "valor"
+        ? valorFinal !== valorAntigo
+        : String(valorFinal || "").trim() !== String(valorAntigo || "").trim();
+
+    if (!mudou) {
+      cancelarEdicao();
+      return;
+    }
+
+    const isRecorrente = checkIsRecorrente(itemOriginal);
+    const isParcelado = checkIsParcelado(itemOriginal);
+
+    if (isRecorrente) {
+      setDialogo({
+        aberto: true,
+        titulo: "Editar recorrência",
+        mensagem:
+          campo === "valor"
+            ? `Novo valor: R$ ${formatarMoeda(valorFinal)}. Aplicar em qual escopo?`
+            : "Aplicar a nova descrição em qual escopo?",
+        botoes: [
+          {
+            texto: "Apenas este lançamento",
+            className:
+              "bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100",
+            onClick: () => {
+              const payload =
+                campo === "descricao"
+                  ? {
+                      descricao: `${String(valorFinal).trim()} (${
+                        (itemOriginal.descricao.match(/\((\d+)\//) || [])[1] ||
+                        "1"
+                      }/${
+                        (itemOriginal.descricao.match(/\/(\d+)\)/) || [])[1] ||
+                        "1"
+                      })`,
+                    }
+                  : { [campo]: valorFinal };
+              executarSalvarEdicao(tabela, itemOriginal.id, payload);
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Este e os futuros",
+            className:
+              "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                alterar_futuros: true,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Todo o grupo",
+            className:
+              "bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                alterar_grupo_todo: true,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Cancelar",
+            className: "bg-gray-100 text-text-primary hover:bg-gray-200 mt-2",
+            onClick: () => {
+              cancelarEdicao();
+              fecharDialogo();
+            },
+          },
+        ],
+      });
+      return;
+    }
+
+    if (campo === "valor" && isParcelado) {
+      const diferenca = valorAntigo - valorFinal;
+      const textoAcao = diferenca > 0 ? "Abater" : "Acrescer";
+
+      setDialogo({
+        aberto: true,
+        titulo: "Reajuste de Parcela",
+        mensagem: `Você alterou o valor desta parcela. A diferença gerada foi de R$ ${Math.abs(diferenca).toFixed(2)}. Como o sistema deve lidar com o restante do parcelamento?`,
+        botoes: [
+          {
+            texto: "Aplicar valor fixo nas restantes",
+            className:
+              "bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                alterar_todas_parcelas: true,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: `${textoAcao} valor na próxima parcela`,
+            className:
+              "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                diferenca_proxima_parcela: diferenca,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: `Ratear diferença nas restantes`,
+            className:
+              "bg-green-50 border border-green-200 text-green-700 hover:bg-green-100",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                ratear_diferenca_todas: diferenca,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Alterar apenas esta parcela",
+            className:
+              "bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Cancelar Alteração",
+            className: "bg-gray-100 text-text-primary hover:bg-gray-200 mt-2",
+            onClick: () => {
+              cancelarEdicao();
+              fecharDialogo();
+            },
+          },
+        ],
+      });
+      return;
+    }
+
     executarSalvarEdicao(tabela, itemOriginal.id, { [campo]: valorFinal });
   };
 
@@ -662,7 +850,12 @@ export default function Financeiro() {
         editandoItem.tabela === nomeTabela &&
         editandoItem.id === item.id &&
         editandoItem.campo === "valor";
+      const isEditingDesc =
+        editandoItem.tabela === nomeTabela &&
+        editandoItem.id === item.id &&
+        editandoItem.campo === "descricao";
       const isValidado = item.validacao === 1;
+      const isRecorrente = checkIsRecorrente(item);
 
       return [
         <div className="flex items-center justify-center" key={`cb-${item.id}`}>
@@ -674,10 +867,41 @@ export default function Financeiro() {
           />
         </div>,
         <div key={`desc-${item.id}`} className="uppercase">
-          {item.descricao}
+          {isEditingDesc ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={valorEditado}
+                onChange={(e) => setValorEditado(e.target.value)}
+                className="w-full min-w-[120px] p-[4px] border border-border-primary rounded-[8px] focus:outline-none"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => salvarEdicao(nomeTabela, item, "descricao")}
+                className="cursor-pointer border-none bg-transparent"
+              >
+                <Check className="h-4 w-4 text-emerald-700" />
+              </button>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => iniciarEdicao(nomeTabela, item, "descricao")}
+              title="Editar descrição"
+            >
+              <span>{item.descricao}</span>
+              <Pencil className="h-3.5 w-3.5 shrink-0 text-text-muted opacity-70" />
+            </div>
+          )}
         </div>,
         <div key={`forma-${item.id}`} className="uppercase">
           {item.forma}
+          {isRecorrente ? (
+            <span className="ml-1 text-[10px] font-semibold normal-case text-indigo-600">
+              · recorrente
+            </span>
+          ) : null}
         </div>,
         <div
           className="flex items-center justify-center gap-2"
@@ -720,6 +944,16 @@ export default function Financeiro() {
           className="flex justify-center gap-2 group"
           key={`actions-${item.id}`}
         >
+          {isRecorrente && (
+            <button
+              type="button"
+              title="Incluir novas ocorrências"
+              onClick={() => handleEstenderRecorrencia(nomeTabela, item)}
+              className="p-2 hover:bg-indigo-50 rounded-full border-none bg-transparent cursor-pointer text-indigo-600"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )}
           <button
             type="button"
             title="Jogar para o próximo mês"
@@ -752,6 +986,11 @@ export default function Financeiro() {
       ? "bg-emerald-500/15 text-emerald-800 ring-emerald-500/30"
       : "bg-rose-500/15 text-rose-800 ring-rose-500/30";
     const valorCls = isEmerald ? "text-emerald-800" : "text-rose-800";
+    const isRecorrente = checkIsRecorrente(item);
+    const editingCampo =
+      editandoItem.tabela === nomeTabela && editandoItem.id === item.id
+        ? editandoItem.campo
+        : null;
 
     return (
       <article
@@ -759,12 +998,38 @@ export default function Financeiro() {
         className={`rounded-2xl border p-4 shadow-sm ${borderCls}`}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold uppercase text-text-primary">
-              {item.descricao}
-            </p>
+          <div className="min-w-0 flex-1">
+            {editingCampo === "descricao" ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={valorEditado}
+                  onChange={(e) => setValorEditado(e.target.value)}
+                  className="h-8 w-full rounded-lg border border-border-primary/50 bg-white px-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
+                />
+                <button
+                  type="button"
+                  onClick={() => salvarEdicao(nomeTabela, item, "descricao")}
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="flex w-full min-w-0 items-center gap-2 text-left"
+                onClick={() => iniciarEdicao(nomeTabela, item, "descricao")}
+              >
+                <p className="truncate text-sm font-semibold uppercase text-text-primary">
+                  {item.descricao}
+                </p>
+                <Pencil className="h-3.5 w-3.5 shrink-0 text-text-muted" />
+              </button>
+            )}
             <p className="mt-1 text-xs uppercase tracking-wide text-text-muted">
               {item.forma}
+              {isRecorrente ? " · recorrente" : ""}
             </p>
           </div>
           <span
@@ -790,9 +1055,7 @@ export default function Financeiro() {
             Pago
           </label>
           <div className="inline-flex items-center gap-1">
-            {editandoItem.tabela === nomeTabela &&
-            editandoItem.id === item.id &&
-            editandoItem.campo === "valor" ? (
+            {editingCampo === "valor" ? (
               <>
                 <input
                   type="number"
@@ -825,6 +1088,16 @@ export default function Financeiro() {
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
+                {isRecorrente && (
+                  <button
+                    type="button"
+                    title="Incluir ocorrências"
+                    onClick={() => handleEstenderRecorrencia(nomeTabela, item)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   type="button"
                   title="Passar para o próximo mês"

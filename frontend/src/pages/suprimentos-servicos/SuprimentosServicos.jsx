@@ -8,7 +8,6 @@ import { api } from "../../services/api";
 const d = homeDictionary;
 const hub = d.suprimentosServicosHub;
 const m = d.modulos;
-const dest = d.modulos.destaques;
 
 export default function SuprimentosServicos() {
   const navigate = useNavigate();
@@ -58,30 +57,6 @@ export default function SuprimentosServicos() {
     [totais.fornecedores, totais.prestadores],
   );
 
-  const acessos = useMemo(
-    () => [
-      {
-        id: "fornecedores",
-        titulo: m.fornecedores,
-        descricao: hub.fornecedoresDescricao,
-        destaques: dest.fornecedores,
-        colorTheme: "emerald",
-        Icon: Truck,
-        onClick: () => navigate("/fornecedores"),
-      },
-      {
-        id: "prestadores",
-        titulo: m.prestadores,
-        descricao: hub.prestadoresDescricao,
-        destaques: dest.prestadores,
-        colorTheme: "pink",
-        Icon: Users,
-        onClick: () => navigate("/prestadores"),
-      },
-    ],
-    [navigate],
-  );
-
   return (
     <ModuleHub
       eyebrow={hub.eyebrow}
@@ -90,7 +65,6 @@ export default function SuprimentosServicos() {
       onVoltar={() => navigate("/")}
       resumo={resumo}
       resumoLoading={loading}
-      acessos={acessos}
       loading={false}
       loadingIcon={<Handshake className="h-7 w-7" strokeWidth={2} />}
     />

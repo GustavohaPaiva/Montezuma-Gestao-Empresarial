@@ -92,9 +92,9 @@ export const homeDictionary = {
     brandName: "Montezuma",
     brandTagline: "Gestão Empresarial",
     portalLabel: "Portal interno",
-    title: "O que deseja acessar hoje?",
+    title: "Painel inicial",
     subtitle:
-      "Gestão integrada de obras, processos e finanças — tudo em um só lugar.",
+      "Resumo do dia e atalhos — navegue pelos módulos na barra lateral.",
   },
   escritorioAcesso: {
     label: "Meu escritório",
@@ -103,7 +103,7 @@ export const homeDictionary = {
   session: {
     title: "Sua sessão",
     modulesAvailable: "módulos disponíveis",
-    profileHint: "Use os módulos abaixo para navegar",
+    profileHint: "Use a barra lateral para navegar entre os módulos",
   },
   weeklyAgenda: {
     sectionLabel: "Rotina semanal",

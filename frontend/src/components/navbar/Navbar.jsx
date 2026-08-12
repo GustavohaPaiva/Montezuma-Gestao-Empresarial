@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
 import logo from "../../assets/logos/logo sem fundo.png";
 import { useNavigate } from "react-router-dom";
+import { useMatrizShell } from "../../layouts/MatrizShellContext";
 
 const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -137,11 +138,14 @@ export default function Navbar({
   brand,
   variant = "default",
   className = "",
+  hideLogo: hideLogoProp,
 }) {
   const isHome = variant === "home";
   const safeActions = Array.isArray(actions) ? actions : [];
   const safeFilters = Array.isArray(filters) ? filters : [];
   const navigate = useNavigate();
+  const matrizShell = useMatrizShell();
+  const hideLogo = hideLogoProp ?? Boolean(matrizShell?.hideLogo);
 
   const onLogoClick = () => {
     navigate("/");
@@ -165,18 +169,31 @@ export default function Navbar({
 
         <div className="flex w-full flex-row items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-[4%] sm:py-2.5 md:px-[5%] md:py-3">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3 md:gap-4">
-            <BrandLogo onClick={onLogoClick} />
+            {hideLogo ? null : <BrandLogo onClick={onLogoClick} />}
 
-            <div className="min-w-0">
-              <p className="truncate text-sm font-extrabold tracking-tight text-text-primary sm:text-base md:text-xl">
-                {brand?.name ?? "Montezuma"}
-              </p>
-              {brand?.tagline ? (
-                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-accent-primary sm:text-[11px] sm:tracking-[0.16em] md:text-xs">
-                  {brand.tagline}
+            {hideLogo ? (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-extrabold tracking-tight text-text-primary sm:text-base md:text-xl">
+                  {title || brand?.name || "Montezuma"}
                 </p>
-              ) : null}
-            </div>
+                {subtitle || brand?.tagline ? (
+                  <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-accent-primary sm:text-[11px] sm:tracking-[0.16em] md:text-xs">
+                    {subtitle || brand?.tagline}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-extrabold tracking-tight text-text-primary sm:text-base md:text-xl">
+                  {brand?.name ?? "Montezuma"}
+                </p>
+                {brand?.tagline ? (
+                  <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-accent-primary sm:text-[11px] sm:tracking-[0.16em] md:text-xs">
+                    {brand.tagline}
+                  </p>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -233,13 +250,15 @@ export default function Navbar({
       )}
     >
       <div className="flex min-w-0 w-full shrink-0 items-center gap-2.5 sm:gap-3 md:min-w-0 md:max-w-[min(40%,28rem)] md:flex-1 md:shrink">
-        <img
-          src={logo}
-          onClick={onLogoClick}
-          aria-label="Ir para o início"
-          alt="Logo Montezuma"
-          className="h-10 w-10 shrink-0 cursor-pointer object-contain sm:h-11 sm:w-11 md:h-12 md:w-12"
-        />
+        {hideLogo ? null : (
+          <img
+            src={logo}
+            onClick={onLogoClick}
+            aria-label="Ir para o início"
+            alt="Logo Montezuma"
+            className="h-10 w-10 shrink-0 cursor-pointer object-contain sm:h-11 sm:w-11 md:h-12 md:w-12"
+          />
+        )}
 
         <div className="min-w-0 flex-1">
           <h1 className="break-words text-xl font-semibold tracking-tight text-text-primary sm:text-2xl md:text-3xl">

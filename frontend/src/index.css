@@ -477,3 +477,37 @@
     transition: none !important;
   }
 }
+
+/* Sidebar da matriz (gestão) — reveal ao expandir/recolher */
+.matriz-sidebar-shell {
+  transition:
+    width 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.matriz-sidebar-reveal {
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    max-width 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 260ms ease,
+    margin 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.matriz-sidebar-reveal.is-collapsed {
+  max-width: 0;
+  opacity: 0;
+  margin-inline-start: 0;
+}
+
+.matriz-sidebar-reveal.is-expanded {
+  max-width: 11.5rem;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matriz-sidebar-shell,
+  .matriz-sidebar-reveal {
+    transition: none !important;
+  }
+}

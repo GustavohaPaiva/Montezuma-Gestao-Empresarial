@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, CalendarClock, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { Check, CalendarClock, Pencil, Trash2, ArrowLeft, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ModalEntradaEscritorio from "../../components/modals/ModalEntradaEscritorio";
@@ -17,6 +17,8 @@ import {
   formatarDataBR,
   formatarMoeda,
   checkIsParcelado,
+  checkIsRecorrente,
+  stripIndiceGrupo,
 } from "../financeiro/financeiroUtils";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 
@@ -282,8 +284,42 @@ export default function FinanceiroEscritorio() {
 
   const handleDelete = (tabela, item) => {
     const isParcelado = checkIsParcelado(item);
+    const isRecorrente = checkIsRecorrente(item);
 
-    if (isParcelado) {
+    if (isRecorrente) {
+      setDialogo({
+        aberto: true,
+        titulo: "Excluir recorrência",
+        mensagem:
+          "Este lançamento faz parte de um grupo recorrente. Como você prefere excluir?",
+        botoes: [
+          {
+            texto: "Apenas este lançamento",
+            className:
+              "rounded-xl border border-esc-border bg-esc-card text-esc-text hover:bg-esc-bg",
+            onClick: () => {
+              executarExclusao(tabela, item.id, false);
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Excluir todo o grupo",
+            className:
+              "rounded-xl border border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque hover:bg-esc-destaque/30 shadow-[0_0_15px_-3px_var(--color-esc-destaque)]",
+            onClick: () => {
+              executarExclusao(tabela, item.id, true);
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Cancelar",
+            className:
+              "rounded-xl border border-esc-border bg-transparent text-esc-muted hover:bg-esc-bg",
+            onClick: fecharDialogo,
+          },
+        ],
+      });
+    } else if (isParcelado) {
       setDialogo({
         aberto: true,
         titulo: "Excluir Parcela",
@@ -400,7 +436,80 @@ export default function FinanceiroEscritorio() {
 
   const iniciarEdicao = (tabela, item, campo) => {
     setEditandoItem({ tabela, id: item.id, campo });
-    setValorEditado(item[campo]);
+    const valor =
+      campo === "descricao" && checkIsRecorrente(item)
+        ? stripIndiceGrupo(item.descricao)
+        : item[campo];
+    setValorEditado(valor);
+  };
+
+  const handleEstenderRecorrencia = (tabela, item) => {
+    if (!checkIsRecorrente(item)) return;
+    const executar = async (qtd) => {
+      try {
+        await api.estenderRecorrenciaFinanceiro(
+          tabela,
+          item.id,
+          qtd,
+          escritorioId,
+        );
+        setRecarregar((prev) => prev + 1);
+      } catch (err) {
+        console.error(err);
+        mostrarAlerta("Erro", "Erro ao adicionar ocorrências.");
+      }
+    };
+
+    setDialogo({
+      aberto: true,
+      titulo: "Incluir ocorrências",
+      mensagem:
+        "Quantos meses adicionar ao final deste lançamento recorrente?",
+      botoes: [
+        {
+          texto: "+1 mês",
+          className:
+            "rounded-xl border border-esc-border bg-esc-card text-esc-text hover:bg-esc-bg",
+          onClick: () => {
+            executar(1);
+            fecharDialogo();
+          },
+        },
+        {
+          texto: "+3 meses",
+          className:
+            "rounded-xl border border-esc-destaque/30 bg-esc-destaque/10 text-esc-destaque hover:bg-esc-destaque/20",
+          onClick: () => {
+            executar(3);
+            fecharDialogo();
+          },
+        },
+        {
+          texto: "+6 meses",
+          className:
+            "rounded-xl border border-esc-border bg-transparent text-esc-text hover:bg-esc-bg",
+          onClick: () => {
+            executar(6);
+            fecharDialogo();
+          },
+        },
+        {
+          texto: "+12 meses",
+          className:
+            "rounded-xl border border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque hover:bg-esc-destaque/30",
+          onClick: () => {
+            executar(12);
+            fecharDialogo();
+          },
+        },
+        {
+          texto: "Cancelar",
+          className:
+            "rounded-xl border border-esc-border bg-esc-bg text-esc-muted hover:bg-esc-card",
+          onClick: fecharDialogo,
+        },
+      ],
+    });
   };
 
   const cancelarEdicao = () => {
@@ -424,82 +533,166 @@ export default function FinanceiroEscritorio() {
 
     if (campo === "valor") {
       valorFinal = parseFloat(valorEditado) || 0;
-      const valorAntigo = parseFloat(itemOriginal.valor) || 0;
-
-      if (valorFinal !== valorAntigo) {
-        const isParcelado = checkIsParcelado(itemOriginal);
-
-        if (isParcelado) {
-          const diferenca = valorAntigo - valorFinal;
-          const textoAcao = diferenca > 0 ? "Abater" : "Acrescer";
-
-          setDialogo({
-            aberto: true,
-            titulo: "Reajuste de Parcela",
-            mensagem: `Você alterou o valor desta parcela. A diferença gerada foi de R$ ${Math.abs(diferenca).toFixed(2)}. Como o sistema deve lidar com o restante do parcelamento?`,
-            botoes: [
-              {
-                texto: "Aplicar valor fixo nas restantes",
-                className:
-                  "rounded-xl border border-esc-border bg-esc-card text-esc-text hover:bg-esc-bg",
-                onClick: () => {
-                  executarSalvarEdicao(tabela, itemOriginal.id, {
-                    [campo]: valorFinal,
-                    alterar_todas_parcelas: true,
-                  });
-                  fecharDialogo();
-                },
-              },
-              {
-                texto: `${textoAcao} valor na próxima parcela`,
-                className:
-                  "rounded-xl border border-esc-destaque/30 bg-esc-destaque/10 text-esc-destaque hover:bg-esc-destaque/20 shadow-[0_0_15px_-3px_var(--color-esc-destaque)]",
-                onClick: () => {
-                  executarSalvarEdicao(tabela, itemOriginal.id, {
-                    [campo]: valorFinal,
-                    diferenca_proxima_parcela: diferenca,
-                  });
-                  fecharDialogo();
-                },
-              },
-              {
-                texto: `Ratear diferença nas restantes`,
-                className:
-                  "rounded-xl border border-esc-border bg-transparent text-esc-text hover:bg-esc-bg",
-                onClick: () => {
-                  executarSalvarEdicao(tabela, itemOriginal.id, {
-                    [campo]: valorFinal,
-                    ratear_diferenca_todas: diferenca,
-                  });
-                  fecharDialogo();
-                },
-              },
-              {
-                texto: "Alterar apenas esta parcela",
-                className:
-                  "rounded-xl border border-esc-border bg-transparent text-esc-muted hover:bg-esc-bg",
-                onClick: () => {
-                  executarSalvarEdicao(tabela, itemOriginal.id, {
-                    [campo]: valorFinal,
-                  });
-                  fecharDialogo();
-                },
-              },
-              {
-                texto: "Cancelar Alteração",
-                className:
-                  "rounded-xl border border-esc-border bg-esc-bg text-esc-muted hover:bg-esc-card",
-                onClick: () => {
-                  cancelarEdicao();
-                  fecharDialogo();
-                },
-              },
-            ],
-          });
-          return;
-        }
-      }
     }
+
+    const valorAntigo =
+      campo === "valor"
+        ? parseFloat(itemOriginal.valor) || 0
+        : campo === "descricao" && checkIsRecorrente(itemOriginal)
+          ? stripIndiceGrupo(itemOriginal.descricao)
+          : itemOriginal[campo];
+
+    const mudou =
+      campo === "valor"
+        ? valorFinal !== valorAntigo
+        : String(valorFinal || "").trim() !== String(valorAntigo || "").trim();
+
+    if (!mudou) {
+      cancelarEdicao();
+      return;
+    }
+
+    const isRecorrente = checkIsRecorrente(itemOriginal);
+    const isParcelado = checkIsParcelado(itemOriginal);
+
+    if (isRecorrente) {
+      setDialogo({
+        aberto: true,
+        titulo: "Editar recorrência",
+        mensagem:
+          campo === "valor"
+            ? `Novo valor: R$ ${formatarMoeda(valorFinal)}. Aplicar em qual escopo?`
+            : "Aplicar a nova descrição em qual escopo?",
+        botoes: [
+          {
+            texto: "Apenas este lançamento",
+            className:
+              "rounded-xl border border-esc-border bg-esc-card text-esc-text hover:bg-esc-bg",
+            onClick: () => {
+              const payload =
+                campo === "descricao"
+                  ? {
+                      descricao: `${String(valorFinal).trim()} (${
+                        (itemOriginal.descricao.match(/\((\d+)\//) || [])[1] ||
+                        "1"
+                      }/${
+                        (itemOriginal.descricao.match(/\/(\d+)\)/) || [])[1] ||
+                        "1"
+                      })`,
+                    }
+                  : { [campo]: valorFinal };
+              executarSalvarEdicao(tabela, itemOriginal.id, payload);
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Este e os futuros",
+            className:
+              "rounded-xl border border-esc-destaque/30 bg-esc-destaque/10 text-esc-destaque hover:bg-esc-destaque/20",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                alterar_futuros: true,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Todo o grupo",
+            className:
+              "rounded-xl border border-esc-destaque/50 bg-esc-destaque/20 text-esc-destaque hover:bg-esc-destaque/30",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                alterar_grupo_todo: true,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Cancelar",
+            className:
+              "rounded-xl border border-esc-border bg-esc-bg text-esc-muted hover:bg-esc-card",
+            onClick: () => {
+              cancelarEdicao();
+              fecharDialogo();
+            },
+          },
+        ],
+      });
+      return;
+    }
+
+    if (campo === "valor" && isParcelado) {
+      const diferenca = valorAntigo - valorFinal;
+      const textoAcao = diferenca > 0 ? "Abater" : "Acrescer";
+
+      setDialogo({
+        aberto: true,
+        titulo: "Reajuste de Parcela",
+        mensagem: `Você alterou o valor desta parcela. A diferença gerada foi de R$ ${Math.abs(diferenca).toFixed(2)}. Como o sistema deve lidar com o restante do parcelamento?`,
+        botoes: [
+          {
+            texto: "Aplicar valor fixo nas restantes",
+            className:
+              "rounded-xl border border-esc-border bg-esc-card text-esc-text hover:bg-esc-bg",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                alterar_todas_parcelas: true,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: `${textoAcao} valor na próxima parcela`,
+            className:
+              "rounded-xl border border-esc-destaque/30 bg-esc-destaque/10 text-esc-destaque hover:bg-esc-destaque/20 shadow-[0_0_15px_-3px_var(--color-esc-destaque)]",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                diferenca_proxima_parcela: diferenca,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: `Ratear diferença nas restantes`,
+            className:
+              "rounded-xl border border-esc-border bg-transparent text-esc-text hover:bg-esc-bg",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+                ratear_diferenca_todas: diferenca,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Alterar apenas esta parcela",
+            className:
+              "rounded-xl border border-esc-border bg-transparent text-esc-muted hover:bg-esc-bg",
+            onClick: () => {
+              executarSalvarEdicao(tabela, itemOriginal.id, {
+                [campo]: valorFinal,
+              });
+              fecharDialogo();
+            },
+          },
+          {
+            texto: "Cancelar Alteração",
+            className:
+              "rounded-xl border border-esc-border bg-esc-bg text-esc-muted hover:bg-esc-card",
+            onClick: () => {
+              cancelarEdicao();
+              fecharDialogo();
+            },
+          },
+        ],
+      });
+      return;
+    }
+
     executarSalvarEdicao(tabela, itemOriginal.id, { [campo]: valorFinal });
   };
 
@@ -563,7 +756,12 @@ export default function FinanceiroEscritorio() {
         editandoItem.tabela === nomeTabela &&
         editandoItem.id === item.id &&
         editandoItem.campo === "valor";
+      const isEditingDesc =
+        editandoItem.tabela === nomeTabela &&
+        editandoItem.id === item.id &&
+        editandoItem.campo === "descricao";
       const isValidado = item.validacao === 1;
+      const isRecorrente = checkIsRecorrente(item);
 
       return [
         <div className="flex items-center justify-center" key={`cb-${item.id}`}>
@@ -575,10 +773,49 @@ export default function FinanceiroEscritorio() {
           />
         </div>,
         <div key={`desc-${item.id}`} className="uppercase text-esc-text">
-          {item.descricao}
+          {isEditingDesc ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={valorEditado}
+                onChange={(e) => setValorEditado(e.target.value)}
+                className="w-full min-w-[120px] rounded-lg border border-esc-border bg-esc-card px-2 py-1 text-sm text-esc-text focus:outline-none focus:ring-1 focus:ring-esc-destaque"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => salvarEdicao(nomeTabela, item, "descricao")}
+                className="cursor-pointer rounded-lg border border-esc-destaque/30 bg-esc-destaque/10 p-1.5 text-esc-destaque"
+              >
+                <Check className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          ) : (
+            <div
+              className="group flex cursor-pointer items-center gap-2"
+              onClick={() => iniciarEdicao(nomeTabela, item, "descricao")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter")
+                  iniciarEdicao(nomeTabela, item, "descricao");
+              }}
+            >
+              <span>{item.descricao}</span>
+              <Pencil
+                className="h-3.5 w-3.5 shrink-0 text-esc-muted opacity-0 transition-opacity group-hover:opacity-100"
+                aria-hidden
+              />
+            </div>
+          )}
         </div>,
         <div key={`forma-${item.id}`} className="uppercase text-esc-muted">
           {item.forma}
+          {isRecorrente ? (
+            <span className="ml-1 text-[10px] font-semibold normal-case text-esc-destaque">
+              · recorrente
+            </span>
+          ) : null}
         </div>,
         <div
           className="flex items-center justify-center gap-2"
@@ -632,6 +869,16 @@ export default function FinanceiroEscritorio() {
           className="group flex justify-center gap-2"
           key={`actions-${item.id}`}
         >
+          {isRecorrente && (
+            <button
+              type="button"
+              title="Incluir novas ocorrências"
+              onClick={() => handleEstenderRecorrencia(nomeTabela, item)}
+              className="cursor-pointer rounded-full border border-transparent p-2 text-esc-destaque opacity-0 transition-all hover:border-esc-border hover:bg-esc-bg group-hover:opacity-100"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+            </button>
+          )}
           <button
             type="button"
             title="Jogar para o próximo mês"

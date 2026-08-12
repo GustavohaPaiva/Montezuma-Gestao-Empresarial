@@ -18,11 +18,25 @@ export const formatarMoeda = (valor) => {
   }).format(valorNumerico);
 };
 
+export const stripIndiceGrupo = (descricao) =>
+  String(descricao || "")
+    .replace(/\s*\(\d+\s*\/\s*\d+\)\s*$/i, "")
+    .trim();
+
+export const checkIsRecorrente = (item) => {
+  if (!item?.grupo_id) return false;
+  return String(item.grupo_id).startsWith("rec_");
+};
+
 export const checkIsParcelado = (item) => {
   if (!item) return false;
+  if (checkIsRecorrente(item)) return false;
   return Boolean(
     item.grupo_id ||
-    (item.forma && String(item.forma).toLowerCase().includes("parcelado")) ||
-    (item.descricao && /\(\d+\/\d+\)/.test(item.descricao)),
+      (item.forma && String(item.forma).toLowerCase().includes("parcelado")) ||
+      (item.descricao && /\(\d+\/\d+\)/.test(item.descricao)),
   );
 };
+
+export const checkIsGrupoFinanceiro = (item) =>
+  Boolean(item?.grupo_id) || checkIsParcelado(item) || checkIsRecorrente(item);

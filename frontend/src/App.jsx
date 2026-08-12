@@ -3,6 +3,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import RotaProtegida from "./services/RotaProtegida";
 import PageTransition from "./components/gerais/PageTransition";
 import { AdminPwaProvider } from "./pwa/AdminPwaContext";
+import AppShellMatriz from "./layouts/AppShellMatriz";
 
 import Obras from "./pages/obras/Obras";
 import ObrasDetalhe from "./pages/obras/ObrasDetalhe";
@@ -49,6 +50,17 @@ import UsuarioDetalhe from "./pages/usuarios/UsuarioDetalhe";
 
 import "./index.css";
 
+const MATRIZ_STAFF_TYPES = [
+  "gestor_master",
+  "diretoria",
+  "secretaria",
+  "suporte_ti",
+  "encarregado",
+  "funcionario",
+  "dono",
+  "admin",
+];
+
 export default function App() {
   return (
     <AuthProvider>
@@ -74,322 +86,328 @@ export default function App() {
           />
 
           <Route
-            element={
-              <RotaProtegida
-                allowedTypes={[
-                  "diretoria",
-                  "suporte_ti",
-                  "encarregado",
-                  "secretaria",
-                ]}
-              />
-            }
+            element={<RotaProtegida allowedTypes={MATRIZ_STAFF_TYPES} />}
           >
-            <Route
-              path="/obras"
-              element={
-                <PageTransition>
-                  <Obras />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/obrasD/:id"
-              element={
-                <PageTransition>
-                  <ObrasDetalhe />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/obrasD/:id/pedidos/:pedidoId"
-              element={
-                <PageTransition>
-                  <PedidoObraDetalhe />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/projecoes"
-              element={
-                <PageTransition>
-                  <Projecoes />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/projecoes/:id"
-              element={
-                <PageTransition>
-                  <ProjecaoDetalhe />
-                </PageTransition>
-              }
-            />
-          </Route>
+            <Route element={<AppShellMatriz />}>
+              <Route
+                element={
+                  <RotaProtegida
+                    allowedTypes={[
+                      "diretoria",
+                      "suporte_ti",
+                      "encarregado",
+                      "secretaria",
+                    ]}
+                  />
+                }
+              >
+                <Route
+                  path="/obras"
+                  element={
+                    <PageTransition>
+                      <Obras />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/obrasD/:id"
+                  element={
+                    <PageTransition>
+                      <ObrasDetalhe />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/obrasD/:id/pedidos/:pedidoId"
+                  element={
+                    <PageTransition>
+                      <PedidoObraDetalhe />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/projecoes"
+                  element={
+                    <PageTransition>
+                      <Projecoes />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/projecoes/:id"
+                  element={
+                    <PageTransition>
+                      <ProjecaoDetalhe />
+                    </PageTransition>
+                  }
+                />
+              </Route>
 
-          <Route
-            element={
-              <RotaProtegida allowedTypes={["diretoria", "suporte_ti"]} />
-            }
-          >
-            <Route
-              path="/suprimentos-servicos"
-              element={
-                <PageTransition>
-                  <SuprimentosServicos />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/fornecedores/:id"
-              element={
-                <PageTransition>
-                  <FornecedorDetalhes />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/fornecedores"
-              element={
-                <PageTransition>
-                  <Fornecedores />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/prestadores/:id"
-              element={
-                <PageTransition>
-                  <PrestadorDetalhes />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/prestadores"
-              element={
-                <PageTransition>
-                  <Prestadores />
-                </PageTransition>
-              }
-            />
-          </Route>
+              <Route
+                element={
+                  <RotaProtegida allowedTypes={["diretoria", "suporte_ti"]} />
+                }
+              >
+                <Route
+                  path="/suprimentos-servicos"
+                  element={
+                    <PageTransition>
+                      <SuprimentosServicos />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/fornecedores/:id"
+                  element={
+                    <PageTransition>
+                      <FornecedorDetalhes />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/fornecedores"
+                  element={
+                    <PageTransition>
+                      <Fornecedores />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/prestadores/:id"
+                  element={
+                    <PageTransition>
+                      <PrestadorDetalhes />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/prestadores"
+                  element={
+                    <PageTransition>
+                      <Prestadores />
+                    </PageTransition>
+                  }
+                />
+              </Route>
 
-          <Route
-            element={
-              <RotaProtegida
-                allowedTypes={[
-                  "gestor_master",
-                  "diretoria",
-                  "secretaria",
-                  "suporte_ti",
-                  "encarregado",
-                ]}
-              />
-            }
-          >
-            <Route
-              path="/"
-              element={
-                <PageTransition>
-                  <Home />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/processos"
-              element={
-                <PageTransition>
-                  <Processos />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/processo/:id"
-              element={
-                <PageTransition>
-                  <ProcessosDetalhes />
-                </PageTransition>
-              }
-            />
-            <Route path="/documentos/:id" element={<DocumentosProcesso />} />
-            <Route
-              path="/financeiro"
-              element={
-                <PageTransition>
-                  <FinanceiroHub />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/financeiro/escritorio"
-              element={
-                <PageTransition>
-                  <Financeiro />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/financeiro/materiais"
-              element={
-                <PageTransition>
-                  <FinanceiroMateriais />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/financeiro/materiais/:fornecedorId"
-              element={
-                <PageTransition>
-                  <FinanceiroMateriaisDetalhe />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/financeiro/mao-de-obra"
-              element={
-                <PageTransition>
-                  <FinanceiroMaoDeObra />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/pedidos"
-              element={
-                <PageTransition>
-                  <PedidosGestao />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/pedidos/:pedidoId"
-              element={
-                <PageTransition>
-                  <PedidoGestaoDetalhe />
-                </PageTransition>
-              }
-            />
-          </Route>
+              <Route
+                element={
+                  <RotaProtegida
+                    allowedTypes={[
+                      "gestor_master",
+                      "diretoria",
+                      "secretaria",
+                      "suporte_ti",
+                      "encarregado",
+                    ]}
+                  />
+                }
+              >
+                <Route
+                  path="/"
+                  element={
+                    <PageTransition>
+                      <Home />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/processos"
+                  element={
+                    <PageTransition>
+                      <Processos />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/processo/:id"
+                  element={
+                    <PageTransition>
+                      <ProcessosDetalhes />
+                    </PageTransition>
+                  }
+                />
+                <Route path="/documentos/:id" element={<DocumentosProcesso />} />
+                <Route
+                  path="/financeiro"
+                  element={
+                    <PageTransition>
+                      <FinanceiroHub />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/financeiro/escritorio"
+                  element={
+                    <PageTransition>
+                      <Financeiro />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/financeiro/materiais"
+                  element={
+                    <PageTransition>
+                      <FinanceiroMateriais />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/financeiro/materiais/:fornecedorId"
+                  element={
+                    <PageTransition>
+                      <FinanceiroMateriaisDetalhe />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/financeiro/mao-de-obra"
+                  element={
+                    <PageTransition>
+                      <FinanceiroMaoDeObra />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/pedidos"
+                  element={
+                    <PageTransition>
+                      <PedidosGestao />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/pedidos/:pedidoId"
+                  element={
+                    <PageTransition>
+                      <PedidoGestaoDetalhe />
+                    </PageTransition>
+                  }
+                />
+              </Route>
 
-          <Route
-            element={
-              <RotaProtegida
-                allowedTypes={[
-                  "gestor_master",
-                  "diretoria",
-                  "secretaria",
-                  "suporte_ti",
-                  "encarregado",
-                  "funcionario",
-                  "dono",
-                  "admin",
-                ]}
-              />
-            }
-          >
-            <Route
-              path="/ordens-servico"
-              element={
-                <PageTransition>
-                  <OrdensServicoLista variant="montezuma" />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/ordens-servico/:id"
-              element={
-                <PageTransition>
-                  <OrdemServicoDetalhe variant="montezuma" />
-                </PageTransition>
-              }
-            />
-          </Route>
+              <Route
+                element={
+                  <RotaProtegida
+                    allowedTypes={[
+                      "gestor_master",
+                      "diretoria",
+                      "secretaria",
+                      "suporte_ti",
+                      "encarregado",
+                      "funcionario",
+                      "dono",
+                      "admin",
+                    ]}
+                  />
+                }
+              >
+                <Route
+                  path="/ordens-servico"
+                  element={
+                    <PageTransition>
+                      <OrdensServicoLista variant="montezuma" />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/ordens-servico/:id"
+                  element={
+                    <PageTransition>
+                      <OrdemServicoDetalhe variant="montezuma" />
+                    </PageTransition>
+                  }
+                />
+              </Route>
 
-          <Route
-            element={
-              <RotaProtegida allowedTypes={["gestor_master", "diretoria"]} />
-            }
-          >
-            <Route
-              path="/relatorios-diretoria/semana/:semanaRef/obra"
-              element={
-                <PageTransition>
-                  <RelatorioObraLancamento />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/relatorios-diretoria/semana/:semanaRef/financeiro"
-              element={
-                <PageTransition>
-                  <RelatorioFinanceiroSemana />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/relatorios-diretoria/semana/:semanaRef"
-              element={
-                <PageTransition>
-                  <RelatorioSemanaDetalhe />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/relatorios-diretoria"
-              element={
-                <PageTransition>
-                  <RelatorioObraDetalhe />
-                </PageTransition>
-              }
-            />
-          </Route>
+              <Route
+                element={
+                  <RotaProtegida allowedTypes={["gestor_master", "diretoria"]} />
+                }
+              >
+                <Route
+                  path="/relatorios-diretoria/semana/:semanaRef/obra"
+                  element={
+                    <PageTransition>
+                      <RelatorioObraLancamento />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/relatorios-diretoria/semana/:semanaRef/financeiro"
+                  element={
+                    <PageTransition>
+                      <RelatorioFinanceiroSemana />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/relatorios-diretoria/semana/:semanaRef"
+                  element={
+                    <PageTransition>
+                      <RelatorioSemanaDetalhe />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/relatorios-diretoria"
+                  element={
+                    <PageTransition>
+                      <RelatorioObraDetalhe />
+                    </PageTransition>
+                  }
+                />
+              </Route>
 
-          <Route
-            element={
-              <RotaProtegida allowedTypes={["diretoria", "gestor_master"]} />
-            }
-          >
-            <Route
-              path="/usuarios"
-              element={
-                <PageTransition>
-                  <UsuariosLista />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/usuarios/novo"
-              element={
-                <PageTransition>
-                  <UsuarioDetalhe modoCriacao />
-                </PageTransition>
-              }
-            />
-          </Route>
+              <Route
+                element={
+                  <RotaProtegida allowedTypes={["diretoria", "gestor_master"]} />
+                }
+              >
+                <Route
+                  path="/usuarios"
+                  element={
+                    <PageTransition>
+                      <UsuariosLista />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/usuarios/novo"
+                  element={
+                    <PageTransition>
+                      <UsuarioDetalhe modoCriacao />
+                    </PageTransition>
+                  }
+                />
+              </Route>
 
-          <Route
-            element={
-              <RotaProtegida
-                allowedTypes={[
-                  "gestor_master",
-                  "diretoria",
-                  "secretaria",
-                  "suporte_ti",
-                  "encarregado",
-                  "funcionario",
-                  "dono",
-                  "admin",
-                ]}
-              />
-            }
-          >
-            <Route
-              path="/usuarios/:id"
-              element={
-                <PageTransition>
-                  <UsuarioDetalhe />
-                </PageTransition>
-              }
-            />
+              <Route
+                element={
+                  <RotaProtegida
+                    allowedTypes={[
+                      "gestor_master",
+                      "diretoria",
+                      "secretaria",
+                      "suporte_ti",
+                      "encarregado",
+                      "funcionario",
+                      "dono",
+                      "admin",
+                    ]}
+                  />
+                }
+              >
+                <Route
+                  path="/usuarios/:id"
+                  element={
+                    <PageTransition>
+                      <UsuarioDetalhe />
+                    </PageTransition>
+                  }
+                />
+              </Route>
+            </Route>
           </Route>
 
           <Route

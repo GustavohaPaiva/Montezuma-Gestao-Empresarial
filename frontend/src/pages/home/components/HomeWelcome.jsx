@@ -1,4 +1,4 @@
-import { ArrowRight, Building2, LayoutGrid } from "lucide-react";
+import { ArrowRight, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { homeDictionary } from "../../../constants/dictionaries";
 import {
@@ -15,7 +15,6 @@ export default function HomeWelcome({
   nomeUsuario,
   saudacao,
   escritorioAcesso = null,
-  modulosCount = 0,
   perfilLabel = "",
 }) {
   const navigate = useNavigate();
@@ -94,18 +93,6 @@ export default function HomeWelcome({
                   {perfilLabel}
                 </span>
               ) : null}
-              <div className="mt-1 flex items-center gap-2 text-sm text-text-muted">
-                <LayoutGrid
-                  className="h-4 w-4 shrink-0 text-accent-primary/70"
-                  aria-hidden
-                />
-                <span>
-                  <span className="font-semibold text-accent-primary">
-                    {modulosCount}
-                  </span>{" "}
-                  {sessionCopy.modulesAvailable}
-                </span>
-              </div>
               <span className="mt-1 text-xs leading-relaxed text-text-muted">
                 {sessionCopy.profileHint}
               </span>

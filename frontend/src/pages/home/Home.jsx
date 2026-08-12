@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../services/api";
 import { homeDictionary } from "../../constants/dictionaries";
-import { getAcessoEscritorio, getModulosPermitidos } from "./homeModules";
+import { getAcessoEscritorio } from "./homeModules";
 import { useHomeDashboard } from "./hooks/useHomeDashboard";
 import { useHomeReservasSala } from "./hooks/useHomeReservasSala";
 import { useScrollFadeIn } from "../../hooks/useScrollFadeIn";
@@ -19,7 +19,6 @@ import HomeWelcome from "./components/HomeWelcome";
 import HomeSalaReunioes from "./components/HomeSalaReunioes";
 import HomeWeeklyAgenda from "./components/HomeWeeklyAgenda";
 import HomeDashboardStrip from "./components/HomeDashboardStrip";
-import HomeModuleGrid from "./components/HomeModuleGrid";
 import HomeProfilePhotoModal from "./components/HomeProfilePhotoModal";
 import { AdminPwaInstallButton } from "../../components/pwa/AdminPwaInstall";
 
@@ -35,7 +34,6 @@ export default function Home() {
   const [refNav, isNavVisible] = useScrollFadeIn();
   const [refMain, isMainVisible] = useScrollFadeIn();
 
-  const modulosPermitidos = getModulosPermitidos(user);
   const escritorioAcesso = getAcessoEscritorio(user);
   const { counts, loading, visible: dashboardVisible } = useHomeDashboard(user);
   const {
@@ -152,7 +150,6 @@ export default function Home() {
           nomeUsuario={nomeUsuario}
           saudacao={getSaudacao()}
           escritorioAcesso={escritorioAcesso}
-          modulosCount={modulosPermitidos.length}
           perfilLabel={getPerfilLabel(user?.tipo)}
         />
         {reservasVisible ? (
@@ -166,12 +163,6 @@ export default function Home() {
         {dashboardVisible ? (
           <HomeDashboardStrip counts={counts} loading={loading} />
         ) : null}
-        <HomeModuleGrid
-          modulos={modulosPermitidos}
-          counts={counts}
-          loadingCounts={loading}
-          showStats={dashboardVisible}
-        />
       </main>
 
       <HomeProfilePhotoModal
