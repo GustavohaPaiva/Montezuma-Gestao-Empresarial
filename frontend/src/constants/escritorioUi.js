@@ -1,7 +1,7 @@
-/** Tokens visuais compartilhados — selects e dropdowns no tema claro dos escritórios. */
+/** Tokens visuais compartilhados — selects e dropdowns no tema dos escritórios. */
 
 export const escInputClass =
-  "h-10 w-full rounded-xl border border-esc-border bg-esc-card px-3 text-sm text-esc-text shadow-sm transition-all duration-300 placeholder:text-esc-muted/70 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20 disabled:cursor-not-allowed disabled:opacity-60 [color-scheme:light]";
+  "h-10 w-full rounded-xl border border-esc-border bg-esc-card px-3 text-sm text-esc-text shadow-sm transition-all duration-300 placeholder:text-esc-muted/70 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20 disabled:cursor-not-allowed disabled:opacity-60";
 
 export const escTextareaClass =
   "min-h-[88px] w-full rounded-xl border border-esc-border bg-esc-card px-3 py-2.5 text-sm text-esc-text shadow-sm transition-all duration-300 placeholder:text-esc-muted/70 focus:border-esc-destaque/55 focus:outline-none focus:ring-2 focus:ring-esc-destaque/20 disabled:cursor-not-allowed disabled:opacity-60";

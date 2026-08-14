@@ -4,6 +4,8 @@ import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ModuleHub from "../../components/gerais/ModuleHub";
 import BaseCard from "../../components/cards/BaseCard";
 import ModalFinanceiroLancamento from "../../components/modals/ModalFinanceiroLancamento";
+import ModalEmprestimo from "../../components/modals/ModalEmprestimo";
+import ModalAmortizarEmprestimo from "../../components/modals/ModalAmortizarEmprestimo";
 import ButtonDefault from "../../components/gerais/ButtonDefault";
 import BaseSelect from "../../components/gerais/BaseSelect";
 import ModalPortal from "../../components/gerais/ModalPortal";
@@ -35,6 +37,8 @@ import {
   checkIsRecorrente,
   stripIndiceGrupo,
 } from "./financeiroUtils";
+import PainelEmprestimos from "./PainelEmprestimos";
+import { visaoParaEscritorio } from "./emprestimoLabels";
 
 const hub = homeDictionary.financeiroHub;
 
@@ -81,8 +85,15 @@ export default function Financeiro() {
   const [caixaGeral, setCaixaGeral] = useState({
     entradas: 0,
     saidas: 0,
+    emprestado: 0,
+    tomado: 0,
     saldo: 0,
   });
+  const [emprestimosCaixa, setEmprestimosCaixa] = useState([]);
+  const [obrasResumo, setObrasResumo] = useState([]);
+  const [modalEmprestimoAberto, setModalEmprestimoAberto] = useState(false);
+  const [emprestimoAmortizar, setEmprestimoAmortizar] = useState(null);
+  const [salvandoEmprestimo, setSalvandoEmprestimo] = useState(false);
 
   const [editandoItem, setEditandoItem] = useState({
     tabela: null,
@@ -141,15 +152,31 @@ export default function Financeiro() {
     const carregarCaixa = async () => {
       setLoadingCaixa(true);
       try {
-        const saldo = await api.getFinanceiroCaixaSaldo(escritorioId);
+        const [saldo, emprestimos, obras] = await Promise.all([
+          api.getFinanceiroCaixaSaldo(escritorioId),
+          api.getEmprestimos({ escritorioId, apenasAbertos: true }),
+          api.listObrasResumo(),
+        ]);
         setCaixaGeral({
           entradas: saldo?.entradas || 0,
           saidas: saldo?.saidas || 0,
+          emprestado: saldo?.emprestado || 0,
+          tomado: saldo?.tomado || 0,
           saldo: saldo?.saldo || 0,
         });
+        setEmprestimosCaixa(
+          (emprestimos || []).map((e) => visaoParaEscritorio(e, escritorioId)),
+        );
+        setObrasResumo(obras || []);
       } catch (erro) {
         console.error("Erro ao buscar caixa Montezuma:", erro);
-        setCaixaGeral({ entradas: 0, saidas: 0, saldo: 0 });
+        setCaixaGeral({
+          entradas: 0,
+          saidas: 0,
+          emprestado: 0,
+          tomado: 0,
+          saldo: 0,
+        });
       } finally {
         setLoadingCaixa(false);
       }
@@ -353,6 +380,28 @@ export default function Financeiro() {
         "Erro",
         tipo === "entrada" ? "Erro ao salvar entrada." : "Erro ao salvar saída.",
       );
+    }
+  };
+
+  const handleSalvarEmprestimo = async (payload) => {
+    setSalvandoEmprestimo(true);
+    try {
+      await api.registrarEmprestimo(payload);
+      setModalEmprestimoAberto(false);
+      setRecarregar((prev) => prev + 1);
+    } finally {
+      setSalvandoEmprestimo(false);
+    }
+  };
+
+  const handleAmortizarEmprestimo = async (payload) => {
+    setSalvandoEmprestimo(true);
+    try {
+      await api.amortizarEmprestimo(payload);
+      setEmprestimoAmortizar(null);
+      setRecarregar((prev) => prev + 1);
+    } finally {
+      setSalvandoEmprestimo(false);
     }
   };
 
@@ -1234,6 +1283,23 @@ export default function Financeiro() {
         visaoEscritorioAtual="Montezuma"
         permitirEntrada={isAdmin}
       />
+      <ModalEmprestimo
+        isOpen={modalEmprestimoAberto}
+        onClose={() => setModalEmprestimoAberto(false)}
+        onSave={handleSalvarEmprestimo}
+        salvando={salvandoEmprestimo}
+        caixaDisponivel={caixaGeral.saldo}
+        escritorioAtualId={escritorioId}
+        escritorioAtualNome="Montezuma"
+        obras={obrasResumo}
+      />
+      <ModalAmortizarEmprestimo
+        isOpen={Boolean(emprestimoAmortizar)}
+        onClose={() => setEmprestimoAmortizar(null)}
+        onSave={handleAmortizarEmprestimo}
+        salvando={salvandoEmprestimo}
+        emprestimo={emprestimoAmortizar}
+      />
 
       <ModuleHub
         eyebrow={hub.eyebrow}
@@ -1279,7 +1345,7 @@ export default function Financeiro() {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:px-5 sm:pb-5">
+            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 sm:px-5 sm:pb-5">
               <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/40 px-4 py-3">
                 <div className="mb-1 inline-flex items-center gap-2 text-emerald-700">
                   <TrendingUp className="h-4 w-4" />
@@ -1302,8 +1368,33 @@ export default function Financeiro() {
                   R$ {formatarMoeda(caixaGeral.saidas)}
                 </p>
               </div>
+              <div className="rounded-xl border border-amber-200/60 bg-amber-50/40 px-4 py-3">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                  Emprestado
+                </p>
+                <p className="text-lg font-semibold text-amber-900">
+                  R$ {formatarMoeda(caixaGeral.emprestado)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 px-4 py-3">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                  Tomado
+                </p>
+                <p className="text-lg font-semibold text-slate-800">
+                  R$ {formatarMoeda(caixaGeral.tomado)}
+                </p>
+              </div>
             </div>
           </section>
+        )}
+
+        {isAdmin && (
+          <PainelEmprestimos
+            itens={emprestimosCaixa}
+            podeEditar={isAdmin}
+            onNovo={() => setModalEmprestimoAberto(true)}
+            onAmortizar={(item) => setEmprestimoAmortizar(item)}
+          />
         )}
 
         <div className="mb-4 flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

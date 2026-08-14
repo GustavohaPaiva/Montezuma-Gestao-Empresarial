@@ -4,13 +4,15 @@ import { useNavigate } from "react-router-dom";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import ModalEntradaEscritorio from "../../components/modals/ModalEntradaEscritorio";
 import ModalSaidaEscritorio from "../../components/modals/ModalSaidaEscritorio";
+import ModalEmprestimo from "../../components/modals/ModalEmprestimo";
+import ModalAmortizarEmprestimo from "../../components/modals/ModalAmortizarEmprestimo";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import BaseSelect from "../../components/gerais/BaseSelect";
 import { api } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   ESCRITORIO_NOME_POR_ID,
-  ID_VOGELKOP,
+  temaEscritorio,
 } from "../../constants/escritorios";
 import {
   TIPOS_FINANCEIRO_ADMIN,
@@ -21,6 +23,8 @@ import {
   stripIndiceGrupo,
 } from "../financeiro/financeiroUtils";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
+import PainelEmprestimos from "../financeiro/PainelEmprestimos";
+import { visaoParaEscritorio } from "../financeiro/emprestimoLabels";
 
 export default function FinanceiroEscritorio() {
   const navigate = useNavigate();
@@ -28,11 +32,22 @@ export default function FinanceiroEscritorio() {
   const isAdmin = TIPOS_FINANCEIRO_ADMIN.includes(user?.tipo);
   const escritorioId = useEscritorioIdFromPath();
 
-  const temaClasse =
-    escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
+  const temaClasse = temaEscritorio(escritorioId);
 
   const [modalEntradaAberto, setModalEntradaAberto] = useState(false);
   const [modalSaidaAberto, setModalSaidaAberto] = useState(false);
+  const [modalEmprestimoAberto, setModalEmprestimoAberto] = useState(false);
+  const [emprestimoAmortizar, setEmprestimoAmortizar] = useState(null);
+  const [salvandoEmprestimo, setSalvandoEmprestimo] = useState(false);
+  const [caixaGeral, setCaixaGeral] = useState({
+    entradas: 0,
+    saidas: 0,
+    emprestado: 0,
+    tomado: 0,
+    saldo: 0,
+  });
+  const [emprestimosCaixa, setEmprestimosCaixa] = useState([]);
+  const [obrasResumo, setObrasResumo] = useState([]);
 
   const [entradas, setEntradas] = useState([]);
   const [saidas, setSaidas] = useState([]);
@@ -116,6 +131,41 @@ export default function FinanceiroEscritorio() {
     };
     carregarDados();
   }, [escritorioId, mesSelecionado, anoAtual, recarregar, isAdmin]);
+
+  useEffect(() => {
+    if (!escritorioId || !isAdmin) return;
+    const carregarCaixa = async () => {
+      try {
+        const [saldo, emprestimos, obras] = await Promise.all([
+          api.getFinanceiroCaixaSaldo(escritorioId),
+          api.getEmprestimos({ escritorioId, apenasAbertos: true }),
+          api.listObrasResumo(),
+        ]);
+        setCaixaGeral({
+          entradas: saldo?.entradas || 0,
+          saidas: saldo?.saidas || 0,
+          emprestado: saldo?.emprestado || 0,
+          tomado: saldo?.tomado || 0,
+          saldo: saldo?.saldo || 0,
+        });
+        setEmprestimosCaixa(
+          (emprestimos || []).map((e) => visaoParaEscritorio(e, escritorioId)),
+        );
+        setObrasResumo(obras || []);
+      } catch (erro) {
+        console.error("Erro ao buscar caixa do escritório:", erro);
+        setCaixaGeral({
+          entradas: 0,
+          saidas: 0,
+          emprestado: 0,
+          tomado: 0,
+          saldo: 0,
+        });
+        setEmprestimosCaixa([]);
+      }
+    };
+    carregarCaixa();
+  }, [escritorioId, recarregar, isAdmin]);
 
   useEffect(() => {
     if (!escritorioId || !isAdmin) return;
@@ -269,6 +319,28 @@ export default function FinanceiroEscritorio() {
     } catch (err) {
       console.error(err);
       mostrarAlerta("Erro", "Erro ao salvar saída.");
+    }
+  };
+
+  const handleSalvarEmprestimo = async (payload) => {
+    setSalvandoEmprestimo(true);
+    try {
+      await api.registrarEmprestimo(payload);
+      setModalEmprestimoAberto(false);
+      setRecarregar((prev) => prev + 1);
+    } finally {
+      setSalvandoEmprestimo(false);
+    }
+  };
+
+  const handleAmortizarEmprestimo = async (payload) => {
+    setSalvandoEmprestimo(true);
+    try {
+      await api.amortizarEmprestimo(payload);
+      setEmprestimoAmortizar(null);
+      setRecarregar((prev) => prev + 1);
+    } finally {
+      setSalvandoEmprestimo(false);
     }
   };
 
@@ -906,10 +978,12 @@ export default function FinanceiroEscritorio() {
 
   return (
     <div className="relative w-full pb-12 text-esc-text">
+
+      {/* Botão de Voltar */}
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="mb-6 mt-4 flex cursor-pointer items-center gap-2 text-esc-muted transition-colors hover:text-esc-destaque"
+        className="mb3 mt-3 flex cursor-pointer items-center gap-2 text-esc-muted transition-colors hover:text-esc-destaque"
       >
         <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
         Voltar
@@ -980,23 +1054,112 @@ export default function FinanceiroEscritorio() {
         onSave={handleSalvarSaida}
         escritorioId={escritorioId}
       />
+      <ModalEmprestimo
+        isOpen={modalEmprestimoAberto}
+        onClose={() => setModalEmprestimoAberto(false)}
+        onSave={handleSalvarEmprestimo}
+        salvando={salvandoEmprestimo}
+        caixaDisponivel={caixaGeral.saldo}
+        escritorioAtualId={escritorioId}
+        escritorioAtualNome={ESCRITORIO_NOME_POR_ID[escritorioId] || "Escritório"}
+        obras={obrasResumo}
+      />
+      <ModalAmortizarEmprestimo
+        isOpen={Boolean(emprestimoAmortizar)}
+        onClose={() => setEmprestimoAmortizar(null)}
+        onSave={handleAmortizarEmprestimo}
+        salvando={salvandoEmprestimo}
+        emprestimo={emprestimoAmortizar}
+      />
 
-      <header className="mb-6 mt-4 flex w-full flex-col gap-4">
+      {/* Header*/}
+      <header className="mb-4 flex w-full flex-col gap-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-esc-text md:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-esc-destaque md:text-3xl">
               Financeiro
             </h1>
-            <p className="mt-1 text-sm text-esc-muted">
-              Lançamentos — {tituloFonte}
+          </div>
+        </div>
+      </header>
+
+      {/* Caixa Geral */}
+      {isAdmin && (
+        <section className="mb-6 w-full rounded-2xl border border-esc-border bg-esc-card p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-esc-text md:text-xl">
+                Caixa geral
+              </h2>
+              <p className="mt-1 text-sm text-esc-muted">
+                Dinheiro disponível: operação validada menos o que está
+                emprestado. Não mistura com o mês.
+              </p>
+            </div>
+            <p
+              className={`text-2xl font-bold tabular-nums md:text-4xl ${caixaGeral.saldo >= 0 ? "text-status-concluida-text" : "text-status-aguardando-text"}`}
+            >
+              R$ {formatarMoeda(caixaGeral.saldo)}
             </p>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-xl border border-esc-border p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
+                Entradas
+              </p>
+              <p className="mt-1 font-semibold tabular-nums text-status-concluida-text">
+                R$ {formatarMoeda(caixaGeral.entradas)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-esc-border p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
+                Saídas
+              </p>
+              <p className="mt-1 font-semibold tabular-nums text-status-aguardando-text">
+                R$ {formatarMoeda(caixaGeral.saidas)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-esc-border p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
+                Emprestado
+              </p>
+              <p className="mt-1 font-semibold tabular-nums text-esc-text">
+                R$ {formatarMoeda(caixaGeral.emprestado)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-esc-border p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-esc-muted">
+                Tomado
+              </p>
+              <p className="mt-1 font-semibold tabular-nums text-esc-text">
+                R$ {formatarMoeda(caixaGeral.tomado)}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Painel de Emprestimos */}
+      {isAdmin && (
+        <PainelEmprestimos
+          variant="escritorio"
+          itens={emprestimosCaixa}
+          podeEditar={isAdmin}
+          onNovo={() => setModalEmprestimoAberto(true)}
+          onAmortizar={(item) => setEmprestimoAmortizar(item)}
+        />
+      )}
+
+      {/* Extrato de Saídas/Entradas Mensal */}
+      {isAdmin && (
+        <div className="mb-6 w-full">
+          {/* Seção de Seleção de Mês */}
+          <div className="mb-6 flex w-full gap-3">
             <BaseSelect
               searchable={false}
               variant="escritorioBar"
-              wrapperClassName="w-full sm:w-auto sm:min-w-[220px]"
-              className="h-10 w-full"
+              wrapperClassName="w-full"
+              className="rounded-xl border w-full  h-10 border-esc-destaque/50 bg-esc-destaque/20 px-3 text-sm font-bold text-esc-destaque shadow-[0_0_15px_-3px_var(--color-esc-destaque)] transition-all duration-300 hover:bg-esc-destaque/30 hover:shadow-[0_0_25px_-3px_var(--color-esc-destaque)]"
               value={mesSelecionado}
               onChange={(e) => setMesSelecionado(e.target.value)}
               options={[
@@ -1021,11 +1184,6 @@ export default function FinanceiroEscritorio() {
               }))}
             />
           </div>
-        </div>
-      </header>
-
-      {isAdmin && (
-        <div className="mb-6 w-full">
           <div className="flex flex-col gap-4 rounded-2xl border border-esc-border bg-esc-card/90 p-6 shadow-lg backdrop-blur-md md:flex-row md:items-center md:justify-between relative overflow-hidden">
             <div className="pointer-events-none absolute top-1/2 left-0 -z-10 h-32 w-32 -translate-y-1/2 rounded-full bg-esc-destaque/10 blur-[50px]"></div>
 
@@ -1045,107 +1203,115 @@ export default function FinanceiroEscritorio() {
           </div>
         </div>
       )}
+      
+      
+      <section className="w-full">
+        {/* Seção de Entradas e Saídas Mensal */}
+        <div className="mb-6 grid gap-5 lg:grid-cols-2"> 
+          
+          {/* Entradas Mensal */}
+          {isAdmin && (
+            <div className="mb-6 rounded-2xl border border-esc-border bg-esc-card p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
+              <div className="pointer-events-none absolute top-0 right-0 -z-10 h-40 w-40 rounded-full bg-esc-destaque/5 blur-[60px]"></div>
+              <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <h2 className="text-2xl font-bold text-esc-destaque md:text-3xl">
+                  Entradas
+                </h2>
+                <div className="flex w-full flex-col gap-3 md:flex-row md:justify-end">
+                  <input
+                    type="text"
+                    placeholder="Pesquisar..."
+                    value={buscaEntrada}
+                    onChange={(e) => setBuscaEntrada(e.target.value)}
+                    className="h-10 w-full md:max-w-120 rounded-lg border border-esc-border bg-esc-card px-3 text-sm text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setModalEntradaAberto(true)}
+                    className="rounded-xl border w-full md:max-w-50 h-10 border-esc-destaque/50 bg-esc-destaque/20 px-3 text-sm font-bold text-esc-destaque shadow-[0_0_15px_-3px_var(--color-esc-destaque)] transition-all duration-300 hover:bg-esc-destaque/30 hover:shadow-[0_0_25px_-3px_var(--color-esc-destaque)]"
+                  >
+                    + Nova Entrada
+                  </button>
+                </div>
+              </div>
+              <TabelaSimples
+                variant="escritorio"
+                colunas={["Pago", "Descrição", "Forma Pag.", "Valor", "Data", ""]}
+                dados={gerarLinhasTabela(entradas, buscaEntrada, "entradas")}
+              />
+              <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-esc-border bg-esc-card p-3 shadow-inner">
+                  <span className="text-xs font-semibold uppercase text-esc-muted">
+                    Total Lançado:
+                  </span>
+                  <span className="text-sm font-bold tabular-nums text-status-concluida-text md:text-lg">
+                    R$ {formatarMoeda(somaTotalEntradas)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-status-concluida-text/20 bg-esc-card p-3 shadow-inner">
+                  <span className="text-xs font-semibold uppercase text-esc-muted">
+                    Total Validado:
+                  </span>
+                  <span className="text-sm font-bold tabular-nums text-status-concluida-text md:text-lg">
+                    R$ {formatarMoeda(totalEntradasValidadas)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
-      <div className="w-full">
-        {isAdmin && (
+          {/* Saídas Mensal */}
           <div className="mb-6 rounded-2xl border border-esc-border bg-esc-card p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
             <div className="pointer-events-none absolute top-0 right-0 -z-10 h-40 w-40 rounded-full bg-esc-destaque/5 blur-[60px]"></div>
             <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <h2 className="text-2xl font-bold text-esc-destaque md:text-3xl">
-                Entradas
+                Saídas
               </h2>
               <div className="flex w-full flex-col gap-3 md:flex-row md:justify-end">
                 <input
                   type="text"
                   placeholder="Pesquisar..."
-                  value={buscaEntrada}
-                  onChange={(e) => setBuscaEntrada(e.target.value)}
+                  value={buscaSaida}
+                  onChange={(e) => setBuscaSaida(e.target.value)}
                   className="h-10 w-full md:max-w-120 rounded-lg border border-esc-border bg-esc-card px-3 text-sm text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
                 />
+
                 <button
                   type="button"
-                  onClick={() => setModalEntradaAberto(true)}
                   className="rounded-xl border w-full md:max-w-50 h-10 border-esc-destaque/50 bg-esc-destaque/20 px-3 text-sm font-bold text-esc-destaque shadow-[0_0_15px_-3px_var(--color-esc-destaque)] transition-all duration-300 hover:bg-esc-destaque/30 hover:shadow-[0_0_25px_-3px_var(--color-esc-destaque)]"
+                  onClick={() => setModalSaidaAberto(true)}
                 >
-                  + Nova Entrada
+                  + Nova Saída
                 </button>
               </div>
             </div>
             <TabelaSimples
               variant="escritorio"
               colunas={["Pago", "Descrição", "Forma Pag.", "Valor", "Data", ""]}
-              dados={gerarLinhasTabela(entradas, buscaEntrada, "entradas")}
+              dados={gerarLinhasTabela(saidas, buscaSaida, "saida")}
             />
             <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
               <div className="flex items-center justify-center gap-2 rounded-xl border border-esc-border bg-esc-card p-3 shadow-inner">
                 <span className="text-xs font-semibold uppercase text-esc-muted">
                   Total Lançado:
                 </span>
-                <span className="text-sm font-bold tabular-nums text-status-concluida-text md:text-lg">
-                  R$ {formatarMoeda(somaTotalEntradas)}
+                <span className="text-sm font-bold tabular-nums text-status-aguardando-text md:text-lg">
+                  R$ {formatarMoeda(somaTotalSaidas)}
                 </span>
               </div>
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-status-concluida-text/20 bg-esc-card p-3 shadow-inner">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-status-aguardando-text/20 bg-esc-card p-3 shadow-inner">
                 <span className="text-xs font-semibold uppercase text-esc-muted">
                   Total Validado:
                 </span>
-                <span className="text-sm font-bold tabular-nums text-status-concluida-text md:text-lg">
-                  R$ {formatarMoeda(totalEntradasValidadas)}
+                <span className="text-sm font-bold tabular-nums text-status-aguardando-text md:text-lg">
+                  R$ {formatarMoeda(totalSaidasValidadas)}
                 </span>
               </div>
             </div>
           </div>
-        )}
+        </div> 
 
-        <div className="mb-6 mt-6 rounded-2xl border border-esc-border bg-esc-card p-6 shadow-lg backdrop-blur-md relative overflow-hidden">
-          <div className="pointer-events-none absolute top-0 right-0 -z-10 h-40 w-40 rounded-full bg-esc-destaque/5 blur-[60px]"></div>
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-2xl font-bold text-esc-destaque md:text-3xl">
-              Saídas
-            </h2>
-            <div className="flex w-full flex-col gap-3 md:flex-row md:justify-end">
-              <input
-                type="text"
-                placeholder="Pesquisar..."
-                value={buscaSaida}
-                onChange={(e) => setBuscaSaida(e.target.value)}
-                className="h-10 w-full md:max-w-120 rounded-lg border border-esc-border bg-esc-card px-3 text-sm text-esc-text focus:border-esc-destaque focus:outline-none focus:ring-1 focus:ring-esc-destaque"
-              />
-
-              <button
-                type="button"
-                className="rounded-xl border w-full md:max-w-50 h-10 border-esc-destaque/50 bg-esc-destaque/20 px-3 text-sm font-bold text-esc-destaque shadow-[0_0_15px_-3px_var(--color-esc-destaque)] transition-all duration-300 hover:bg-esc-destaque/30 hover:shadow-[0_0_25px_-3px_var(--color-esc-destaque)]"
-                onClick={() => setModalSaidaAberto(true)}
-              >
-                + Nova Saída
-              </button>
-            </div>
-          </div>
-          <TabelaSimples
-            variant="escritorio"
-            colunas={["Pago", "Descrição", "Forma Pag.", "Valor", "Data", ""]}
-            dados={gerarLinhasTabela(saidas, buscaSaida, "saida")}
-          />
-          <div className="mt-4 grid w-full gap-3 xl:grid-cols-2">
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-esc-border bg-esc-card p-3 shadow-inner">
-              <span className="text-xs font-semibold uppercase text-esc-muted">
-                Total Lançado:
-              </span>
-              <span className="text-sm font-bold tabular-nums text-status-aguardando-text md:text-lg">
-                R$ {formatarMoeda(somaTotalSaidas)}
-              </span>
-            </div>
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-status-aguardando-text/20 bg-esc-card p-3 shadow-inner">
-              <span className="text-xs font-semibold uppercase text-esc-muted">
-                Total Validado:
-              </span>
-              <span className="text-sm font-bold tabular-nums text-status-aguardando-text md:text-lg">
-                R$ {formatarMoeda(totalSaidasValidadas)}
-              </span>
-            </div>
-          </div>
-        </div>
-
+        {/* Controle Anual */}
         {isAdmin && (
           <div className="mb-10 rounded-2xl border border-esc-border bg-esc-card p-6 shadow-lg backdrop-blur-md">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1188,7 +1354,7 @@ export default function FinanceiroEscritorio() {
             </div>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

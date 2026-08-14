@@ -15,7 +15,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { api } from "../../services/api";
-import { ID_VOGELKOP } from "../../constants/escritorios";
+import { ID_VOGELKOP, pathEscritorio } from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import OrcamentoSecaoPainel from "../../components/escritorios/OrcamentoSecaoPainel";
 import DescricaoAssistenteModal from "../../components/escritorios/DescricaoAssistenteModal";
@@ -72,7 +72,8 @@ export default function OrcamentoDetalhe() {
 
   useEffect(() => {
     if (escritorioId && escritorioId !== ID_VOGELKOP) {
-      navigate("/escritorio/ybyoca/orcamentos", { replace: true });
+      const base = pathEscritorio(escritorioId) || "/escritorio/ybyoca";
+      navigate(`${base}/orcamentos`, { replace: true });
     }
   }, [escritorioId, navigate]);
 

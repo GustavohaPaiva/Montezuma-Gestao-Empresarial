@@ -197,7 +197,7 @@ export const homeDictionary = {
       "Buscando lançamentos, totais e consolidação…",
     escritorioCaixaTitulo: "Caixa Montezuma",
     escritorioCaixaSubtitulo:
-      "Saldo geral com tudo que já foi validado no site (todos os meses e anos).",
+      "Dinheiro disponível: operação validada menos o que está emprestado, mais o que foi tomado. Empréstimo não entra no mês.",
     escritorioCaixaEmCaixa: "Em caixa",
     escritorioCaixaEntradas: "Entradas validadas",
     escritorioCaixaSaidas: "Saídas validadas",
@@ -231,15 +231,15 @@ export const homeDictionary = {
     maoObraEmConstrucaoTitulo: "Em construção",
     maoObraEmConstrucaoDescricao:
       "O módulo de mão de obra no financeiro ainda está sendo preparado. Em breve você poderá acompanhar pagamentos a prestadores por aqui.",
-    emprestimosLabel: "Obras",
-    emprestimosTitulo: "Empréstimos entre obras",
+    emprestimosLabel: "Caixa",
+    emprestimosTitulo: "Emprestado e para quem",
     emprestimosDescricao:
-      "Resumo das transferências de saldo entre obras e pessoas.",
-    emprestimosVazioTitulo: "Nenhum empréstimo registrado",
+      "Saldo em aberto entre obras e escritórios. Sai do caixa, não do mês.",
+    emprestimosVazioTitulo: "Nenhum empréstimo em aberto",
     emprestimosVazioDescricao:
-      "Quando houver transferências entre obras ou pessoas, elas aparecem aqui.",
-    metricEmprestimosRelacoes: "Relações de empréstimo",
-    metricEmprestimosVolume: "Volume emprestado",
+      "Quando houver empréstimo entre obra e escritório, ou entre Montezuma e escritório, aparece aqui.",
+    metricEmprestimosRelacoes: "Empréstimos em aberto",
+    metricEmprestimosVolume: "Saldo emprestado",
     materiaisMetricFornecedores: "Fornecedores em débito",
     materiaisMetricAPagar: "A pagar",
     materiaisMetricVencidos: "Vencidos",

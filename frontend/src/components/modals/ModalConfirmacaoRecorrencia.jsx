@@ -1,6 +1,6 @@
 import { Loader2, X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
-import { ID_VOGELKOP } from "../../constants/escritorios";
+import { temaEscritorio } from "../../constants/escritorios";
 
 export default function ModalConfirmacaoRecorrencia({
   isOpen,
@@ -16,8 +16,7 @@ export default function ModalConfirmacaoRecorrencia({
 }) {
   if (!isOpen) return null;
 
-  const temaClasse =
-    escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
+  const temaClasse = temaEscritorio(escritorioId);
 
   return (
     <ModalPortal>

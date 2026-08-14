@@ -6,7 +6,7 @@ import { api } from "../../services/api";
 import ModalPortal from "../../components/gerais/ModalPortal";
 import {
   ESCRITORIO_NOME_POR_ID,
-  ID_VOGELKOP,
+  temaEscritorio,
 } from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalClienteEscritorio from "../../components/modals/ModalClienteEscritorio";
@@ -76,7 +76,7 @@ export default function ClientesEscritorio() {
   const [clienteEdicao, setClienteEdicao] = useState(null);
 
   const temaClasse =
-    currentEscritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
+    temaEscritorio(currentEscritorioId);
 
   const [dialogo, setDialogo] = useState({
     aberto: false,

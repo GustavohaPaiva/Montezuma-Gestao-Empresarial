@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
 import BaseSelect from "../gerais/BaseSelect";
-import { ID_VOGELKOP } from "../../constants/escritorios";
+import { temaEscritorio } from "../../constants/escritorios";
 import { PAGAMENTO_CLIENTE_OPCOES } from "../../constants/financeiroSelectOptions";
 import StatusSelectBadge from "../gerais/StatusSelectBadge";
 import { STATUS_CLIENTE_OPCOES } from "../gerais/statusSelectOptions";
@@ -33,8 +33,7 @@ export default function ModalClienteEscritorio({
 }) {
   const modoEdicao = Boolean(clienteEdicao?.id);
   const [form, setForm] = useState(emptyForm);
-  const temaClasse =
-    escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
+  const temaClasse = temaEscritorio(escritorioId);
 
   const fieldClass =
     "w-full rounded-xl border border-esc-border bg-esc-card px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:border-esc-destaque focus:bg-esc-bg focus:outline-none focus:ring-1 focus:ring-esc-destaque";

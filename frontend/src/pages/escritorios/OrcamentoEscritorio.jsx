@@ -13,6 +13,8 @@ import ModalPortal from "../../components/gerais/ModalPortal";
 import {
   ESCRITORIO_NOME_POR_ID,
   ID_VOGELKOP,
+  pathEscritorio,
+  temaEscritorio,
 } from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalOrcamentoEscritorio from "../../components/modals/ModalOrcamentoEscritorio";
@@ -86,7 +88,7 @@ export default function OrcamentoEscritorio() {
   const [orcamentoEdicao, setOrcamentoEdicao] = useState(null);
 
   const temaClasse =
-    currentEscritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
+    temaEscritorio(currentEscritorioId);
 
   const [dialogo, setDialogo] = useState({
     aberto: false,
@@ -356,7 +358,9 @@ export default function OrcamentoEscritorio() {
 
       <button
         type="button"
-        onClick={() => navigate("/escritorio/vogelkop/")}
+        onClick={() =>
+          navigate(pathEscritorio(currentEscritorioId) || "..")
+        }
         className="mb-2 mt-4 flex cursor-pointer items-center gap-2 text-esc-muted transition-colors hover:text-esc-destaque"
       >
         <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />

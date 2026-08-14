@@ -17,7 +17,7 @@ import ButtonDefault from "../../components/gerais/ButtonDefault";
 import BaseSelect from "../../components/gerais/BaseSelect";
 import BaseDatePicker from "../../components/gerais/BaseDatePicker";
 import { api } from "../../services/api";
-import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
+import { ESCRITORIOS_ARQUITETURA } from "../../constants/escritorios";
 import FichaClientePDF from "../../documents/FichaClientePDF";
 import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import { gerarDocumentosPrefeituraPdf } from "../../utils/documentosPrefeituraPdf";
@@ -115,7 +115,7 @@ export default function ProcessosDetalhes() {
     async function carregarDados() {
       try {
         const data = await api.getClienteById(id, {
-          allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
+          allowedEscritorioIds: ESCRITORIOS_ARQUITETURA,
         });
         setProcesso(formatClienteRecord(data));
       } catch (error) {
@@ -192,7 +192,7 @@ export default function ProcessosDetalhes() {
     } catch (err) {
       console.error(`Erro ao atualizar ${campo}:`, err);
       const data = await api.getClienteById(id, {
-        allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
+        allowedEscritorioIds: ESCRITORIOS_ARQUITETURA,
       });
       setProcesso(formatClienteRecord(data));
     }
@@ -210,7 +210,7 @@ export default function ProcessosDetalhes() {
     } catch (err) {
       console.error(`Erro ao atualizar ${campo}:`, err);
       const data = await api.getClienteById(id, {
-        allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
+        allowedEscritorioIds: ESCRITORIOS_ARQUITETURA,
       });
       setProcesso(formatClienteRecord(data));
     }

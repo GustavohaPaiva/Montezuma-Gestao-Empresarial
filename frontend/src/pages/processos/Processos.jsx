@@ -5,7 +5,7 @@ import BaseInput from "../../components/gerais/BaseInput";
 import BaseSelect from "../../components/gerais/BaseSelect";
 import CardProcessos from "../../components/cards/CardProcessos";
 import { api } from "../../services/api";
-import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
+import { ESCRITORIOS_ARQUITETURA } from "../../constants/escritorios";
 import {
   CheckCircle2,
   ClipboardList,
@@ -54,10 +54,7 @@ export default function Processos() {
     setCarregando(true);
     setShowElements(false);
     try {
-      const data = await api.getClientesPorEscritorios([
-        ID_VOGELKOP,
-        ID_YBYOCA,
-      ]);
+      const data = await api.getClientesPorEscritorios(ESCRITORIOS_ARQUITETURA);
 
       setProcessos(data);
     } catch (error) {

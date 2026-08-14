@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import logo from "../../../assets/logos/logo sem fundo.png";
 import { useAuth } from "../../../contexts/AuthContext";
-import { ESCRITORIO_NOME_POR_ID } from "../../../constants/escritorios";
+import {
+  ESCRITORIO_NOME_POR_ID,
+  temaEscritorio,
+} from "../../../constants/escritorios";
+import { useEscritorioIdFromPath } from "../../../hooks/useEscritorioIdFromPath";
 
 export default function LayoutEscritorio() {
-  const { pathname } = useLocation();
   const navigate = useNavigate();
+  const escritorioId = useEscritorioIdFromPath();
 
   const [isEntering, setIsEntering] = useState(true);
   const [saudacaoSaindo, setSaudacaoSaindo] = useState(false);
@@ -27,11 +31,12 @@ export default function LayoutEscritorio() {
     return n.slice(0, 1).toUpperCase();
   }
 
-  const isVogel = pathname.includes("/vogelkop");
-  const temaClasse = isVogel ? "theme-vogelkop" : "theme-ybyoca";
+  const temaClasse = temaEscritorio(escritorioId);
   const { user } = useAuth();
   const nomeEscritorio =
-    ESCRITORIO_NOME_POR_ID[user?.escritorio_id] ?? "Escritório";
+    ESCRITORIO_NOME_POR_ID[escritorioId] ??
+    ESCRITORIO_NOME_POR_ID[user?.escritorio_id] ??
+    "Escritório";
   const nomeUsuario = user?.nome?.trim() || "Usuário";
 
   return (

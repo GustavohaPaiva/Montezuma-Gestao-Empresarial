@@ -12,7 +12,7 @@ import { addMonths, addYears, addDays } from "date-fns";
 import ModalPortal from "../gerais/ModalPortal";
 import BaseSelect from "../gerais/BaseSelect";
 import BaseDatePicker from "../gerais/BaseDatePicker";
-import { ID_VOGELKOP } from "../../constants/escritorios";
+import { temaEscritorio } from "../../constants/escritorios";
 import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../services/api";
 
@@ -198,7 +198,7 @@ export default function ModalCompromissoEscritorio({
   const horaFimInputRef = useRef(null);
 
   const temaClasse =
-    escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
+    temaEscritorio(escritorioId);
 
   const modalOverlayClass = `${temaClasse} fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md`;
   const modalPanelClass =

@@ -1,5 +1,5 @@
 import React from "react";
-import { ID_YBYOCA, ID_VOGELKOP } from "../constants/escritorios";
+import { contatoEscritorio } from "../constants/escritorios";
 import { formatClienteParaDocumentos } from "../utils/clienteFormatters";
 import logo from "../assets/imgDocumentos/secretariaMunicipalAdministracao.jpg";
 import { Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
@@ -244,16 +244,12 @@ const InlineInput = ({ label, value, flex = 1, marginRight = 5 }) => (
 
 const RequerimentoGeralLayout = ({ cliente: clienteProp }) => {
   const cliente = formatClienteParaDocumentos(clienteProp);
-  let contatoTelefone = cliente?.telefone || "";
-  let contatoEmail = cliente?.email || "";
-
-  if (cliente?.escritorio_id === ID_YBYOCA) {
-    contatoTelefone = "34 9 9855-3710";
-    contatoEmail = "ybyoca.studio@gmail.com";
-  } else if (cliente?.escritorio_id === ID_VOGELKOP) {
-    contatoTelefone = "34 9 8417-4206";
-    contatoEmail = "arquiteturavogelkop@gmail.com";
-  }
+  const contato = contatoEscritorio(cliente?.escritorio_id, {
+    telefone: cliente?.telefone || "",
+    email: cliente?.email || "",
+  });
+  const contatoTelefone = contato.telefone;
+  const contatoEmail = contato.email;
 
   const hoje = new Date();
   const dia = String(hoje.getDate()).padStart(2, "0");

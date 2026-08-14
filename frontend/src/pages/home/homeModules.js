@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import {
   ESCRITORIO_NOME_POR_ID,
-  ID_VOGELKOP,
-  ID_YBYOCA,
+  isEscritorioArquitetura,
+  pathEscritorio,
 } from "../../constants/escritorios";
 import { homeDictionary } from "../../constants/dictionaries";
 import { isGestorPedidos } from "../../constants/pedidos";
@@ -29,14 +29,12 @@ const dest = homeDictionary.modulos.destaques;
 export function getAcessoEscritorio(user) {
   const podeAcessar =
     (user?.tipo === "diretoria" || user?.tipo === "gestor_master") &&
-    (user?.escritorio_id === ID_VOGELKOP || user?.escritorio_id === ID_YBYOCA);
+    isEscritorioArquitetura(user?.escritorio_id);
 
   if (!podeAcessar) return null;
 
-  const path =
-    user.escritorio_id === ID_VOGELKOP
-      ? "/escritorio/vogelkop"
-      : "/escritorio/ybyoca";
+  const path = pathEscritorio(user.escritorio_id);
+  if (!path) return null;
 
   return {
     path,

@@ -17,7 +17,7 @@ import {
 } from "../home/homeUi";
 import { api } from "../../services/api";
 import { formatarMoeda } from "../obras/detalhe/utils/formatters";
-import { agregarEmprestimosHub } from "./emprestimosHub";
+import { agregarEmprestimosLedger } from "./emprestimosHub";
 
 const d = homeDictionary;
 const hub = d.financeiroHub;
@@ -36,8 +36,8 @@ export default function FinanceiroHub() {
   const carregarEmprestimos = useCallback(async () => {
     setLoadingEmprestimos(true);
     try {
-      const movs = await api.getEmprestimosObrasGlobais();
-      setEmprestimos(agregarEmprestimosHub(movs));
+      const movs = await api.getEmprestimos({ apenasAbertos: true });
+      setEmprestimos(agregarEmprestimosLedger(movs));
     } catch (error) {
       console.error("[FinanceiroHub] emprestimos:", error);
       setEmprestimos({
@@ -178,14 +178,18 @@ export default function FinanceiroHub() {
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-text-muted">
                       → {item.destinoLabel}
-                      {item.destinoKind === "pessoa" ? " (pessoa)" : ""}
+                      {item.destinoKind === "obra"
+                        ? " (obra)"
+                        : item.destinoKind === "escritorio"
+                          ? " (escritório)"
+                          : ""}
                     </span>
                   </div>
                 </div>
                 <dl className="grid w-full grid-cols-2 gap-2 border-t border-slate-100 pt-3">
                   <div className="min-w-0">
                     <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                      Emprestado
+                      Em aberto
                     </dt>
                     <dd className="mt-0.5 truncate text-xs font-semibold tabular-nums text-text-primary sm:text-sm">
                       R$ {formatarMoeda(item.valor)}
@@ -193,10 +197,10 @@ export default function FinanceiroHub() {
                   </div>
                   <div className="min-w-0">
                     <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                      Movimentos
+                      Original
                     </dt>
                     <dd className="mt-0.5 truncate text-xs font-semibold tabular-nums text-text-primary sm:text-sm">
-                      {item.qtd}
+                      R$ {formatarMoeda(item.original ?? item.valor)}
                     </dd>
                   </div>
                 </dl>

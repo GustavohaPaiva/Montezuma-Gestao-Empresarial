@@ -1,5 +1,5 @@
 import React from "react";
-import { ID_YBYOCA, ID_VOGELKOP } from "../constants/escritorios";
+import { contatoEscritorio } from "../constants/escritorios";
 import { formatClienteParaDocumentos } from "../utils/clienteFormatters";
 import logo from "../assets/imgDocumentos/secretariaFazenda.png";
 import {
@@ -240,15 +240,9 @@ const DeclaracaoCUBLayout = ({ cliente: clienteProp }) => {
     ? cliente.cub_nomenclatura.trim()
     : "";
 
-  let contatoTelefone = "";
-  let contatoEmail = "";
-  if (cliente?.escritorio_id === ID_YBYOCA) {
-    contatoTelefone = "34 9 9855-3710";
-    contatoEmail = "ybyoca.studio@gmail.com";
-  } else if (cliente?.escritorio_id === ID_VOGELKOP) {
-    contatoTelefone = "34 9 8417-4206";
-    contatoEmail = "arquiteturavogelkop@gmail.com";
-  }
+  const contato = contatoEscritorio(cliente?.escritorio_id);
+  const contatoTelefone = contato.telefone;
+  const contatoEmail = contato.email;
 
   const enderecoCompleto = `${cliente?.rua_obra || ""} ${cliente?.numero_obra ? `, ${cliente.numero_obra}` : ""} ${cliente?.bairro_obra ? `- ${cliente.bairro_obra}` : ""}`;
 

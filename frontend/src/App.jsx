@@ -1,4 +1,10 @@
-import { HashRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  HashRouter as Router,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import RotaProtegida from "./services/RotaProtegida";
 import PageTransition from "./components/gerais/PageTransition";
@@ -28,7 +34,7 @@ import SuprimentosServicos from "./pages/suprimentos-servicos/SuprimentosServico
 import Prestadores from "./pages/prestadores/prestadores";
 import PrestadorDetalhes from "./pages/prestadores/PrestadorDetalhes";
 import TarefasGlobalDock from "./pages/tarefas/TarefasGlobalDock";
-import { ID_VOGELKOP, ID_YBYOCA } from "./constants/escritorios";
+import { ID_ARRUDA, ID_VOGELKOP, ID_YBYOCA } from "./constants/escritorios";
 import LayoutEscritorio from "./pages/escritorios/layouts/LayoutEscritorio";
 import HomeEscritorio from "./pages/escritorios/HomeEscritorio";
 import TarefasEscritorio from "./pages/escritorios/TarefasEscritorio";
@@ -49,6 +55,12 @@ import UsuariosLista from "./pages/usuarios/UsuariosLista";
 import UsuarioDetalhe from "./pages/usuarios/UsuarioDetalhe";
 
 import "./index.css";
+
+function RedirectPvToArruda() {
+  const { pathname } = useLocation();
+  const to = pathname.replace(/^\/escritorio\/pv(?=\/|$)/i, "/escritorio/arruda");
+  return <Navigate to={to} replace />;
+}
 
 const MATRIZ_STAFF_TYPES = [
   "gestor_master",
@@ -84,6 +96,9 @@ export default function App() {
               </PageTransition>
             }
           />
+
+          <Route path="/escritorio/pv" element={<RedirectPvToArruda />} />
+          <Route path="/escritorio/pv/*" element={<RedirectPvToArruda />} />
 
           <Route
             element={<RotaProtegida allowedTypes={MATRIZ_STAFF_TYPES} />}
@@ -502,6 +517,65 @@ export default function App() {
             }
           >
             <Route path="/escritorio/ybyoca" element={<LayoutEscritorio />}>
+              <Route
+                index
+                element={
+                  <PageTransition>
+                    <HomeEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="tarefas"
+                element={
+                  <PageTransition>
+                    <TarefasEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="clientes"
+                element={
+                  <PageTransition>
+                    <ClientesEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="orcamentos"
+                element={
+                  <PageTransition>
+                    <OrcamentoEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="financeiro"
+                element={
+                  <PageTransition>
+                    <FinanceiroEscritorio />
+                  </PageTransition>
+                }
+              />
+              <Route
+                path="agenda"
+                element={
+                  <PageTransition>
+                    <AgendaEscritorio />
+                  </PageTransition>
+                }
+              />
+            </Route>
+          </Route>
+          <Route
+            element={
+              <RotaProtegida
+                allowedTypes={["diretoria", "gestor_master"]}
+                allowedEscritorios={[ID_ARRUDA]}
+              />
+            }
+          >
+            <Route path="/escritorio/arruda" element={<LayoutEscritorio />}>
               <Route
                 index
                 element={

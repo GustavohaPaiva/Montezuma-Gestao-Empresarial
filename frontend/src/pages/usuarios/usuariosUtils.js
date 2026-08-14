@@ -1,6 +1,7 @@
 import {
   ESCRITORIO_NOME_POR_ID,
   ID_MONTEZUMA,
+  ID_ARRUDA,
   ID_VOGELKOP,
   ID_YBYOCA,
 } from "../../constants/escritorios";
@@ -22,6 +23,7 @@ export const ESCRITORIOS_OPCOES = [
   { value: ID_MONTEZUMA, label: ESCRITORIO_NOME_POR_ID[ID_MONTEZUMA] },
   { value: ID_VOGELKOP, label: ESCRITORIO_NOME_POR_ID[ID_VOGELKOP] },
   { value: ID_YBYOCA, label: ESCRITORIO_NOME_POR_ID[ID_YBYOCA] },
+  { value: ID_ARRUDA, label: ESCRITORIO_NOME_POR_ID[ID_ARRUDA] },
 ];
 
 export const SUBCLASSES_OS_OPCOES = [

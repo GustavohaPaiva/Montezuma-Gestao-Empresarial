@@ -81,7 +81,7 @@ export function labelObraResumo(obra) {
 }
 
 /**
- * Agrupa transferências por contraparte (obra ou pessoa).
+ * Agrupa transferências por contraparte (obra, escritório ou pessoa).
  * líquido > 0 => a contraparte te deve (você emprestou mais)
  * líquido < 0 => você deve a ela (pegou emprestado mais)
  */
@@ -97,11 +97,20 @@ export function agregarEmprestimosPorContra(movimentacoes = []) {
     }
 
     const pessoa = String(mov.pessoa_contra || "").trim();
+    const escritorioContraId = mov.escritorio_contra_id ?? null;
     const obraContraId = mov.obra_contra_id ?? mov.obra_contra?.id;
 
     let key;
     let rowBase;
-    if (pessoa) {
+    if (escritorioContraId) {
+      key = `escritorio:${escritorioContraId}`;
+      rowBase = {
+        kind: "escritorio",
+        id: escritorioContraId,
+        label: pessoa || "Escritório",
+        obra: null,
+      };
+    } else if (pessoa) {
       key = `pessoa:${pessoa.toLowerCase()}`;
       rowBase = {
         kind: "pessoa",

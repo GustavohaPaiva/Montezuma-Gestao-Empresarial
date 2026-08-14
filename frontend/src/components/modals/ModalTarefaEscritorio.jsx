@@ -3,7 +3,7 @@ import { Calendar, Loader2, X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
 import BaseSelect from "../gerais/BaseSelect";
 import BaseDatePicker from "../gerais/BaseDatePicker";
-import { ID_VOGELKOP } from "../../constants/escritorios";
+import { temaEscritorio } from "../../constants/escritorios";
 import { api } from "../../services/api";
 import {
   STATUS as TAREFA_STATUS,
@@ -94,7 +94,7 @@ export default function ModalTarefaEscritorio({
   const [enviandoProgresso, setEnviandoProgresso] = useState(false);
 
   const temaClasse =
-    escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
+    temaEscritorio(escritorioId);
   const overlayClass = `${temaClasse} fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md sm:p-6`;
 
   const isDonoOuAdmin = [

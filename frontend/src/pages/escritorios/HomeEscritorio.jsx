@@ -20,8 +20,11 @@ import {
   ClipboardList,
 } from "lucide-react";
 import {
+  ESCRITORIO_BRAND_POR_ID,
   ESCRITORIO_NOME_POR_ID,
+  ID_ARRUDA,
   ID_VOGELKOP,
+  temOrdensServicoEscritorio,
 } from "../../constants/escritorios";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../services/supabase";
@@ -151,6 +154,11 @@ export default function HomeEscritorio() {
   const escritorioId = escritorioIdPath || user?.escritorio_id || null;
   const nomeEscritorio = ESCRITORIO_NOME_POR_ID[escritorioId] ?? "Escritório";
   const isVogelkop = escritorioId === ID_VOGELKOP;
+  const isArruda = escritorioId === ID_ARRUDA;
+  const acessosRapidos = ACESSOS_RAPIDOS.filter(
+    (item) =>
+      item.id !== "ordens-servico" || temOrdensServicoEscritorio(escritorioId),
+  );
 
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
@@ -394,7 +402,7 @@ export default function HomeEscritorio() {
                 aria-hidden
               />
             </>
-          ) : (
+          ) : isArruda ? null : (
             <Earth
               className="pointer-events-none absolute -bottom-10 -right-4 h-36 w-36 text-esc-muted/20 sm:h-52 sm:w-52"
               strokeWidth={1}
@@ -409,6 +417,11 @@ export default function HomeEscritorio() {
                   {nomeEscritorio}
                 </span>
               </h1>
+              {isArruda && ESCRITORIO_BRAND_POR_ID[ID_ARRUDA]?.slogan ? (
+                <p className="mt-2 max-w-xl text-[11px] font-normal uppercase tracking-[0.18em] text-esc-destaque">
+                  {ESCRITORIO_BRAND_POR_ID[ID_ARRUDA].slogan}
+                </p>
+              ) : null}
               <p className="mt-3 max-w-xl text-base leading-relaxed text-esc-muted">
                 {dataHojeExtenso()}
               </p>
@@ -440,7 +453,7 @@ export default function HomeEscritorio() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {ACESSOS_RAPIDOS.map((item) => {
+            {acessosRapidos.map((item) => {
               const { Icon } = item;
               return (
                 <button

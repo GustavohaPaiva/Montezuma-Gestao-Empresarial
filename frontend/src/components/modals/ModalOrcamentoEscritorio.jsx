@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
 import StatusSelectBadge from "../gerais/StatusSelectBadge";
 import { STATUS_ORCAMENTO_OPCOES } from "../gerais/statusSelectOptions";
-import { ID_VOGELKOP } from "../../constants/escritorios";
+import { temaEscritorio } from "../../constants/escritorios";
 
 export default function ModalOrcamentoEscritorio({
   isOpen,
@@ -17,8 +17,7 @@ export default function ModalOrcamentoEscritorio({
   const [valor, setValor] = useState("");
   const [status, setStatus] = useState("Em andamento");
 
-  const temaClasse =
-    escritorioId === ID_VOGELKOP ? "theme-vogelkop" : "theme-ybyoca";
+  const temaClasse = temaEscritorio(escritorioId);
 
   const fieldClass =
     "w-full rounded-xl border border-esc-border bg-esc-card px-4 py-3 text-sm text-esc-text shadow-inner transition-all duration-300 placeholder:text-esc-muted/40 focus:border-esc-destaque focus:bg-esc-bg focus:outline-none focus:ring-1 focus:ring-esc-destaque";

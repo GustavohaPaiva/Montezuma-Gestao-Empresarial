@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
-import { ID_VOGELKOP, ID_YBYOCA } from "../../constants/escritorios";
+import { ESCRITORIOS_ARQUITETURA } from "../../constants/escritorios";
 import { useAuth } from "../../contexts/AuthContext";
 import { useScrollFadeIn } from "../../hooks/useScrollFadeIn";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
@@ -195,10 +195,9 @@ export default function ObraCliente() {
               setCliente(dadosCliente);
             } else if (dadosObra.cliente) {
               try {
-                const todosClientes = await api.getClientesPorEscritorios([
-                  ID_VOGELKOP,
-                  ID_YBYOCA,
-                ]);
+                const todosClientes = await api.getClientesPorEscritorios(
+                  ESCRITORIOS_ARQUITETURA,
+                );
                 const donoDaObra = todosClientes.find(
                   (c) =>
                     c.nome?.toLowerCase() === dadosObra.cliente?.toLowerCase(),

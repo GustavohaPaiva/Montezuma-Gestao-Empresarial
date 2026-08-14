@@ -39,18 +39,36 @@ function iconeMovimentacao(tipo) {
 
 export default function ObraDetalheControleFinanceiro({
   movimentacoes = [],
+  emprestimosLedger = [],
   onNovaEntrada,
   onTransferir,
+  onAmortizarEmprestimo,
 }) {
   const resumo = useMemo(
     () => resumirCaixaObra(movimentacoes),
     [movimentacoes],
   );
 
-  const emprestimos = useMemo(
-    () => agregarEmprestimosPorContra(movimentacoes),
-    [movimentacoes],
-  );
+  const emprestimos = useMemo(() => {
+    const obraPessoa = agregarEmprestimosPorContra(movimentacoes).filter(
+      (row) => row.kind !== "escritorio",
+    );
+    const ledger = (emprestimosLedger || []).map((item) => ({
+      key: `ledger:${item.id}`,
+      kind: "escritorio",
+      ledger: true,
+      emprestimo: item,
+      label: item.contraLabel,
+      emprestou: item.emprestou ? parseFloat(item.valor_original) || 0 : 0,
+      pegouEmprestado: item.emprestou
+        ? 0
+        : parseFloat(item.valor_original) || 0,
+      liquido: item.emprestou
+        ? parseFloat(item.saldo_aberto) || 0
+        : -(parseFloat(item.saldo_aberto) || 0),
+    }));
+    return [...ledger, ...obraPessoa];
+  }, [movimentacoes, emprestimosLedger]);
 
   const timeline = useMemo(
     () =>
@@ -187,8 +205,8 @@ export default function ObraDetalheControleFinanceiro({
               Nenhum empréstimo ainda
             </p>
             <p className="mt-1 text-xs text-text-muted">
-              Ao transferir saldo para outra obra ou pessoa, aparece aqui o que
-              esta obra emprestou e o que pegou emprestado.
+              Empréstimo com escritório aparece com o saldo em aberto. Obra e
+              pessoa continuam pelo histórico de transferências.
             </p>
           </div>
         ) : (
@@ -210,7 +228,11 @@ export default function ObraDetalheControleFinanceiro({
                         {item.label}
                       </span>
                       <span className="mt-0.5 block text-xs text-text-muted">
-                        {item.kind === "pessoa" ? "Pessoa · " : "Obra · "}
+                        {item.kind === "pessoa"
+                          ? "Pessoa · "
+                          : item.kind === "escritorio"
+                            ? "Escritório · "
+                            : "Obra · "}
                         {liquidoPositivo
                           ? "Esta obra tem a receber"
                           : "Esta obra tem a devolver"}
@@ -250,6 +272,16 @@ export default function ObraDetalheControleFinanceiro({
                       </dd>
                     </div>
                   </dl>
+                  {item.ledger && typeof onAmortizarEmprestimo === "function" ? (
+                    <BaseButton
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => onAmortizarEmprestimo(item.emprestimo)}
+                    >
+                      {item.liquido < 0 ? "Devolver" : "Receber"}
+                    </BaseButton>
+                  ) : null}
                 </div>
               );
             })}

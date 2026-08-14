@@ -1,5 +1,8 @@
 import { supabase } from "./supabase";
-import { ID_MONTEZUMA, ID_VOGELKOP, ID_YBYOCA } from "../constants/escritorios";
+import {
+  ESCRITORIOS_ARQUITETURA,
+  ID_MONTEZUMA,
+} from "../constants/escritorios";
 import { escritorioIdsClientesOrdemServico } from "../pages/ordens-servico/ordensServicoUtils";
 import { STATUS as TAREFA_STATUS } from "../pages/tarefas/tarefasHelpers";
 import {
@@ -519,51 +522,30 @@ export const api = {
   },
 
   /**
-   * Soma de lançamentos validados (todos os períodos) para o caixa da empresa.
-   * @returns {{ entradas: number, saidas: number, saldo: number }}
+   * Caixa geral: operação validada ± empréstimos em aberto.
+   * @returns {{ entradas: number, saidas: number, emprestado: number, tomado: number, saldo: number }}
    */
   getFinanceiroCaixaSaldo: async (escritorioId) => {
-    if (!escritorioId) {
-      return { entradas: 0, saidas: 0, saldo: 0 };
-    }
-
-    const somarValidados = async (tabela) => {
-      const pageSize = 1000;
-      let from = 0;
-      let total = 0;
-
-      for (;;) {
-        const { data, error } = await supabase
-          .from(tabela)
-          .select("valor")
-          .eq("escritorio_id", escritorioId)
-          .eq("validacao", 1)
-          .range(from, from + pageSize - 1);
-
-        if (error) throw error;
-        if (!data?.length) break;
-
-        total += data.reduce(
-          (acc, row) => acc + (parseFloat(row.valor) || 0),
-          0,
-        );
-
-        if (data.length < pageSize) break;
-        from += pageSize;
-      }
-
-      return total;
+    const vazio = {
+      entradas: 0,
+      saidas: 0,
+      emprestado: 0,
+      tomado: 0,
+      saldo: 0,
     };
+    if (!escritorioId) return vazio;
 
-    const [entradas, saidas] = await Promise.all([
-      somarValidados("entradas"),
-      somarValidados("saida"),
-    ]);
-
+    const { data, error } = await supabase.rpc("saldo_caixa_escritorio", {
+      p_escritorio_id: escritorioId,
+    });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
     return {
-      entradas,
-      saidas,
-      saldo: entradas - saidas,
+      entradas: parseFloat(row?.entradas) || 0,
+      saidas: parseFloat(row?.saidas) || 0,
+      emprestado: parseFloat(row?.emprestado) || 0,
+      tomado: parseFloat(row?.tomado) || 0,
+      saldo: parseFloat(row?.saldo) || 0,
     };
   },
 
@@ -2007,6 +1989,145 @@ export const api = {
     return grupoId;
   },
 
+  registrarEmprestimoEscritorio: async ({
+    obra_id,
+    escritorio_id,
+    sentido,
+    valor,
+    descricao,
+    data,
+  }) => {
+    const valorNum = parseFloat(valor);
+    if (!obra_id) throw new Error("obra_id obrigatório");
+    if (!escritorio_id) throw new Error("Escritório é obrigatório");
+    if (sentido !== "emprestar" && sentido !== "receber") {
+      throw new Error("Sentido deve ser emprestar ou receber");
+    }
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      throw new Error("Valor do empréstimo deve ser maior que zero");
+    }
+    const { data: grupoId, error } = await supabase.rpc(
+      "registrar_emprestimo_escritorio",
+      {
+        p_obra_id: obra_id,
+        p_escritorio_id: escritorio_id,
+        p_sentido: sentido,
+        p_valor: valorNum,
+        p_descricao: descricao?.trim() || null,
+        p_data: data || new Date().toISOString().split("T")[0],
+      },
+    );
+    if (error) {
+      const msg = error.message || "";
+      if (/saldo insuficiente/i.test(msg)) {
+        throw new Error(msg.replace(/^.*Saldo insuficiente/i, "Saldo insuficiente"));
+      }
+      throw error;
+    }
+    return grupoId;
+  },
+
+  registrarEmprestimo: async ({
+    origem_tipo,
+    origem_escritorio_id,
+    origem_obra_id,
+    destino_tipo,
+    destino_escritorio_id,
+    destino_obra_id,
+    valor,
+    descricao,
+    data,
+  }) => {
+    const valorNum = parseFloat(valor);
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      throw new Error("Valor do empréstimo deve ser maior que zero");
+    }
+    const { data: id, error } = await supabase.rpc("registrar_emprestimo", {
+      p_origem_tipo: origem_tipo,
+      p_origem_escritorio_id: origem_escritorio_id || null,
+      p_origem_obra_id: origem_obra_id ?? null,
+      p_destino_tipo: destino_tipo,
+      p_destino_escritorio_id: destino_escritorio_id || null,
+      p_destino_obra_id: destino_obra_id ?? null,
+      p_valor: valorNum,
+      p_descricao: descricao?.trim() || null,
+      p_data: data || new Date().toISOString().split("T")[0],
+    });
+    if (error) {
+      const msg = error.message || "";
+      if (/saldo insuficiente/i.test(msg)) {
+        throw new Error(msg.replace(/^.*Saldo insuficiente/i, "Saldo insuficiente"));
+      }
+      throw error;
+    }
+    return id;
+  },
+
+  amortizarEmprestimo: async ({ emprestimo_id, valor, descricao, data }) => {
+    const valorNum = parseFloat(valor);
+    if (!emprestimo_id) throw new Error("Empréstimo é obrigatório");
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      throw new Error("Valor deve ser maior que zero");
+    }
+    const { data: id, error } = await supabase.rpc("amortizar_emprestimo", {
+      p_emprestimo_id: emprestimo_id,
+      p_valor: valorNum,
+      p_descricao: descricao?.trim() || null,
+      p_data: data || new Date().toISOString().split("T")[0],
+    });
+    if (error) {
+      const msg = error.message || "";
+      if (/saldo insuficiente/i.test(msg)) {
+        throw new Error(msg.replace(/^.*Saldo insuficiente/i, "Saldo insuficiente"));
+      }
+      throw error;
+    }
+    return id;
+  },
+
+  getEmprestimos: async ({ escritorioId, obraId, apenasAbertos = true } = {}) => {
+    const select = `
+      *,
+      origem_escritorio:escritorios!emprestimos_origem_escritorio_id_fkey(id, nome),
+      destino_escritorio:escritorios!emprestimos_destino_escritorio_id_fkey(id, nome),
+      origem_obra:obras!emprestimos_origem_obra_id_fkey(id, cliente, local),
+      destino_obra:obras!emprestimos_destino_obra_id_fkey(id, cliente, local)
+    `;
+    let query = supabase
+      .from("emprestimos")
+      .select(select)
+      .order("data", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (apenasAbertos) {
+      query = query.gt("saldo_aberto", 0);
+    }
+    if (escritorioId) {
+      query = query.or(
+        `origem_escritorio_id.eq.${escritorioId},destino_escritorio_id.eq.${escritorioId}`,
+      );
+    }
+    if (obraId != null) {
+      query = query.or(
+        `origem_obra_id.eq.${obraId},destino_obra_id.eq.${obraId}`,
+      );
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+
+  listObrasResumo: async () => {
+    const { data, error } = await supabase
+      .from("obras")
+      .select("id, cliente, local")
+      .eq("active", true)
+      .order("cliente", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
   updateMaterialStatus: async (id, novoStatus) => {
     const { data, error } = await supabase
       .from("relatorio_materiais")
@@ -2088,9 +2209,9 @@ export const api = {
       .from("obra_movimentacoes")
       .select(
         `
-        id, tipo, valor, data, pessoa_contra, obra_id, obra_contra_id, transferencia_grupo_id,
-        obra:obras!obra_id(id, cliente, local),
-        obra_contra:obras!obra_contra_id(id, cliente, local)
+        id, tipo, valor, data, pessoa_contra, escritorio_contra_id, obra_id, obra_contra_id, transferencia_grupo_id,
+        obra:obras!obra_movimentacoes_obra_id_fkey(id, cliente, local),
+        obra_contra:obras!obra_movimentacoes_obra_contra_id_fkey(id, cliente, local)
       `,
       )
       .in("tipo", ["transferencia_saida", "transferencia_entrada"])
@@ -4420,7 +4541,7 @@ export const api = {
       supabase
         .from("clientes")
         .select("status")
-        .in("escritorio_id", [ID_VOGELKOP, ID_YBYOCA])
+        .in("escritorio_id", ESCRITORIOS_ARQUITETURA)
         .in("status", ["Prefeitura", "Caixa", "Cartorio", "Obra"]),
       supabase
         .from("entradas")

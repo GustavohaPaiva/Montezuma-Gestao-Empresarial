@@ -29,12 +29,14 @@ import ObraDetalheLotesPagamento from "./detalhe/components/ObraDetalheLotesPaga
 import ObraDetalheControleFinanceiro from "./detalhe/components/ObraDetalheControleFinanceiro";
 import ModalEntradaObra from "../../components/modals/ModalEntradaObra";
 import ModalTransferenciaObra from "../../components/modals/ModalTransferenciaObra";
+import ModalAmortizarEmprestimo from "../../components/modals/ModalAmortizarEmprestimo";
 import { etapasParaSelectOptions } from "./detalhe/utils/etapasLancamento";
 import {
   calcularDataDevolucao,
   formatarMoeda,
 } from "./detalhe/utils/formatters";
 import { calcularSaldoObra } from "./detalhe/utils/obraCaixa";
+import { visaoParaObra } from "../financeiro/emprestimoLabels";
 import {
   getExtratoIdsEmLotesAbertos,
   isExtratoPago,
@@ -97,8 +99,11 @@ export default function ObrasDetalhe() {
   const [modalEntradaObraOpen, setModalEntradaObraOpen] = useState(false);
   const [modalTransferenciaObraOpen, setModalTransferenciaObraOpen] =
     useState(false);
+  const [transferenciaInicial, setTransferenciaInicial] = useState(null);
   const [salvandoCaixaObra, setSalvandoCaixaObra] = useState(false);
   const [obrasParaTransferencia, setObrasParaTransferencia] = useState([]);
+  const [emprestimosObra, setEmprestimosObra] = useState([]);
+  const [emprestimoAmortizar, setEmprestimoAmortizar] = useState(null);
   const [pdfPreview, setPdfPreview] = useState(null);
   const [processandoLoteId, setProcessandoLoteId] = useState(null);
   const [processandoLoteItemId, setProcessandoLoteItemId] = useState(null);
@@ -112,6 +117,26 @@ export default function ObrasDetalhe() {
   const showFeedback = useCallback((message, variant = "error") => {
     setFeedback({ open: true, message, variant });
   }, []);
+
+  const carregarEmprestimosObra = useCallback(async () => {
+    if (!id) return;
+    try {
+      const rows = await api.getEmprestimos({
+        obraId: Number(id),
+        apenasAbertos: true,
+      });
+      setEmprestimosObra(
+        (rows || []).map((e) => visaoParaObra(e, Number(id))),
+      );
+    } catch (err) {
+      console.error("[ObrasDetalhe] emprestimos:", err);
+      setEmprestimosObra([]);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void carregarEmprestimosObra();
+  }, [carregarEmprestimosObra]);
 
   const [filtroExtrato, setFiltroExtrato] = useState("Tudo");
   const [historicoObra, setHistoricoObra] = useState([]);
@@ -751,7 +776,8 @@ export default function ObrasDetalhe() {
     [id, fetchDados, showFeedback],
   );
 
-  const abrirModalTransferenciaObra = useCallback(async () => {
+  const abrirModalTransferenciaObra = useCallback(async (seed = null) => {
+    setTransferenciaInicial(seed);
     setModalTransferenciaObraOpen(true);
     try {
       const lista = await api.getObras();
@@ -761,6 +787,11 @@ export default function ObrasDetalhe() {
       showFeedback("Não foi possível carregar a lista de obras.");
     }
   }, [showFeedback]);
+
+  const fecharModalTransferenciaObra = useCallback(() => {
+    setModalTransferenciaObraOpen(false);
+    setTransferenciaInicial(null);
+  }, []);
 
   const handleSaveEntradaObra = useCallback(
     async (dados) => {
@@ -789,21 +820,22 @@ export default function ObrasDetalhe() {
     async (dados) => {
       setSalvandoCaixaObra(true);
       try {
-        if (dados.destinoTipo === "pessoa") {
-          await api.registrarEmprestimoPessoa({
+        if (dados.destinoTipo === "escritorio") {
+          await api.registrarEmprestimoEscritorio({
             obra_id: Number(id),
-            pessoa: dados.pessoa,
-            sentido: dados.sentido,
+            escritorio_id: dados.escritorio_id,
+            sentido: dados.sentido || "receber",
             valor: dados.valor,
             descricao: dados.descricao,
             data: dados.data,
           });
           await fetchDados();
-          setModalTransferenciaObraOpen(false);
+          await carregarEmprestimosObra();
+          fecharModalTransferenciaObra();
           showFeedback(
-            dados.sentido === "receber"
-              ? "Empréstimo recebido com sucesso."
-              : "Empréstimo registrado com sucesso.",
+            dados.sentido === "emprestar"
+              ? "Empréstimo da obra para o escritório registrado."
+              : "Empréstimo recebido com sucesso.",
             "success",
           );
           return;
@@ -817,7 +849,7 @@ export default function ObrasDetalhe() {
           data: dados.data,
         });
         await fetchDados();
-        setModalTransferenciaObraOpen(false);
+        fecharModalTransferenciaObra();
         showFeedback("Transferência realizada com sucesso.", "success");
       } catch (err) {
         console.error("Erro ao transferir saldo da obra:", err);
@@ -826,7 +858,7 @@ export default function ObrasDetalhe() {
         setSalvandoCaixaObra(false);
       }
     },
-    [id, fetchDados, showFeedback],
+    [id, fetchDados, showFeedback, fecharModalTransferenciaObra, carregarEmprestimosObra],
   );
 
   const salvarEtapaMaoDeObra = useCallback(
@@ -1607,8 +1639,10 @@ export default function ObrasDetalhe() {
           !isSecretaria && (
             <ObraDetalheControleFinanceiro
               movimentacoes={obra?.movimentacoes || []}
+              emprestimosLedger={emprestimosObra}
               onNovaEntrada={() => setModalEntradaObraOpen(true)}
-              onTransferir={abrirModalTransferenciaObra}
+              onTransferir={() => abrirModalTransferenciaObra()}
+              onAmortizarEmprestimo={(emp) => setEmprestimoAmortizar(emp)}
             />
           )}
 
@@ -2514,12 +2548,34 @@ export default function ObrasDetalhe() {
       />
       <ModalTransferenciaObra
         isOpen={modalTransferenciaObraOpen}
-        onClose={() => setModalTransferenciaObraOpen(false)}
+        onClose={fecharModalTransferenciaObra}
         onSave={handleTransferirSaldoObra}
         salvando={salvandoCaixaObra}
         saldoDisponivel={saldoContaObra}
         obraOrigemId={obra?.id}
         obrasDestino={obrasParaTransferencia}
+        initialDestinoTipo={transferenciaInicial?.destinoTipo}
+        initialEscritorioId={transferenciaInicial?.escritorio_id}
+        initialSentido={transferenciaInicial?.sentido}
+        initialValor={transferenciaInicial?.valor}
+      />
+      <ModalAmortizarEmprestimo
+        isOpen={Boolean(emprestimoAmortizar)}
+        onClose={() => setEmprestimoAmortizar(null)}
+        salvando={salvandoCaixaObra}
+        emprestimo={emprestimoAmortizar}
+        onSave={async (payload) => {
+          setSalvandoCaixaObra(true);
+          try {
+            await api.amortizarEmprestimo(payload);
+            await fetchDados();
+            await carregarEmprestimosObra();
+            setEmprestimoAmortizar(null);
+            showFeedback("Amortização registrada.", "success");
+          } finally {
+            setSalvandoCaixaObra(false);
+          }
+        }}
       />
       <PdfPreviewModal
         isOpen={Boolean(pdfPreview)}

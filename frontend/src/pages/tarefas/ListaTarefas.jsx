@@ -33,6 +33,7 @@ import {
 } from "./tarefasHelpers";
 import {
   ID_MONTEZUMA,
+  ID_ARRUDA,
   ID_VOGELKOP,
   ID_YBYOCA,
   ESCRITORIO_NOME_POR_ID,
@@ -176,6 +177,9 @@ function badgeEscritorioClasses(tarefa) {
   }
   if (key === ID_YBYOCA) {
     return "border-orange-500/50 text-orange-400 bg-orange-500/10 shadow-[0_0_14px_-8px_rgba(249,115,22,0.55)]";
+  }
+  if (key === ID_ARRUDA) {
+    return "border-red-500/50 text-red-400 bg-red-500/10 shadow-[0_0_14px_-8px_rgba(225,6,0,0.55)]";
   }
   return "border-white/10 text-esc-muted bg-white/5 shadow-[0_0_12px_-10px_rgba(255,255,255,0.35)]";
 }

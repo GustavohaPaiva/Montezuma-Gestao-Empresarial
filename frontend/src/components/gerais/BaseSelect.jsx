@@ -48,6 +48,7 @@ const SEARCH_AUTO_THRESHOLD = 8;
 function resolveEscritorioPortalTheme(triggerEl) {
   if (triggerEl?.closest(".theme-vogelkop")) return "theme-vogelkop";
   if (triggerEl?.closest(".theme-ybyoca")) return "theme-ybyoca";
+  if (triggerEl?.closest(".theme-arruda")) return "theme-arruda";
   return "theme-ybyoca";
 }
 

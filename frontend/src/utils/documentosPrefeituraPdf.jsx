@@ -1,6 +1,6 @@
 import { pdf, Document } from "@react-pdf/renderer";
 import { api } from "../services/api";
-import { ID_VOGELKOP, ID_YBYOCA } from "../constants/escritorios";
+import { ESCRITORIOS_ARQUITETURA } from "../constants/escritorios";
 import RequerimentoGeralLayout from "../documents/RequerimentoGeralLayout";
 import TermoCienciaLayout from "../documents/TermoCienciaLayout";
 import DeclaracaoCUBLayout from "../documents/DeclaracaoCUBLayout";
@@ -25,7 +25,7 @@ function slugifyNomeCliente(nome) {
  */
 export async function gerarDocumentosPrefeituraPdf(clienteId) {
   const raw = await api.getClienteById(clienteId, {
-    allowedEscritorioIds: [ID_VOGELKOP, ID_YBYOCA],
+    allowedEscritorioIds: ESCRITORIOS_ARQUITETURA,
   });
   if (!raw) {
     throw new Error("Cliente não encontrado ou sem permissão de acesso.");

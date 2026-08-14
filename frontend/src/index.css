@@ -97,16 +97,17 @@
   }
 
   .theme-ybyoca {
-    --esc-bg: #f4f5f7;
-    --esc-card: #ffffff;
-    --esc-text: #2d333a;
-    --esc-muted: #6b7280;
+    color-scheme: dark;
+    --esc-bg: #111111;
+    --esc-card: #1a1a1a;
+    --esc-text: #ffffff;
+    --esc-muted: #b3b3b3;
     --esc-destaque: #ff6000;
-    --esc-border: #e2e4e8;
+    --esc-border: #333333;
     --esc-tipo-reuniao: #ff6000;
-    --esc-tipo-visita: #facc15;
-    --esc-tipo-comprar: #fb923c;
-    --esc-tipo-outro: #a16207;
+    --esc-tipo-visita: #ffffff;
+    --esc-tipo-comprar: #ff6000;
+    --esc-tipo-outro: #333333;
 
     --color-esc-bg: var(--esc-bg);
     --color-esc-card: var(--esc-card);
@@ -131,6 +132,32 @@
     --esc-tipo-visita: #38bdf8;
     --esc-tipo-comprar: #2dd4bf;
     --esc-tipo-outro: #818cf8;
+
+    --color-esc-bg: var(--esc-bg);
+    --color-esc-card: var(--esc-card);
+    --color-esc-text: var(--esc-text);
+    --color-esc-muted: var(--esc-muted);
+    --color-esc-destaque: var(--esc-destaque);
+    --color-esc-border: var(--esc-border);
+    --color-esc-tipo-reuniao: var(--esc-tipo-reuniao);
+    --color-esc-tipo-visita: var(--esc-tipo-visita);
+    --color-esc-tipo-comprar: var(--esc-tipo-comprar);
+    --color-esc-tipo-outro: var(--esc-tipo-outro);
+  }
+
+  .theme-arruda {
+    font-family: "Montserrat", sans-serif;
+    color-scheme: dark;
+    --esc-bg: #111111;
+    --esc-card: #1a1a1a;
+    --esc-text: #ffffff;
+    --esc-muted: #b3b3b3;
+    --esc-destaque: #e10600;
+    --esc-border: #333333;
+    --esc-tipo-reuniao: #e10600;
+    --esc-tipo-visita: #ffffff;
+    --esc-tipo-comprar: #e10600;
+    --esc-tipo-outro: #333333;
 
     --color-esc-bg: var(--esc-bg);
     --color-esc-card: var(--esc-card);
@@ -206,6 +233,11 @@
 .theme-ybyoca .calendar-icon-esc::-webkit-calendar-picker-indicator {
   filter: brightness(0) saturate(100%) invert(52%) sepia(93%) saturate(2860%)
     hue-rotate(360deg) brightness(102%) contrast(102%);
+}
+
+.theme-arruda .calendar-icon-esc::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(14%) sepia(96%) saturate(7482%)
+    hue-rotate(358deg) brightness(95%) contrast(110%);
 }
 
 @layer utilities {
