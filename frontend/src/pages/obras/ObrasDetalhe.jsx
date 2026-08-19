@@ -824,7 +824,7 @@ export default function ObrasDetalhe() {
           await api.registrarEmprestimoEscritorio({
             obra_id: Number(id),
             escritorio_id: dados.escritorio_id,
-            sentido: dados.sentido || "receber",
+            sentido: "receber",
             valor: dados.valor,
             descricao: dados.descricao,
             data: dados.data,
@@ -832,12 +832,7 @@ export default function ObrasDetalhe() {
           await fetchDados();
           await carregarEmprestimosObra();
           fecharModalTransferenciaObra();
-          showFeedback(
-            dados.sentido === "emprestar"
-              ? "Empréstimo da obra para o escritório registrado."
-              : "Empréstimo recebido com sucesso.",
-            "success",
-          );
+          showFeedback("Empréstimo recebido com sucesso.", "success");
           return;
         }
 
@@ -2556,7 +2551,6 @@ export default function ObrasDetalhe() {
         obrasDestino={obrasParaTransferencia}
         initialDestinoTipo={transferenciaInicial?.destinoTipo}
         initialEscritorioId={transferenciaInicial?.escritorio_id}
-        initialSentido={transferenciaInicial?.sentido}
         initialValor={transferenciaInicial?.valor}
       />
       <ModalAmortizarEmprestimo

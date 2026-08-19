@@ -7,6 +7,7 @@ import {
   Loader2,
   Package,
   Wallet,
+  CircleDollarSign,
 } from "lucide-react";
 import BaseSelect from "../../../components/gerais/BaseSelect";
 import ButtonDefault from "../../../components/gerais/ButtonDefault";
@@ -296,6 +297,13 @@ export default function FinanceiroMateriaisDetalhe() {
         icon: <CheckCircle2 className="h-4 w-4" />,
         theme: "emerald",
       },
+      {
+        id: "total-comprado",
+        label: hub.materiaisMetricTotalComprado,
+        value: `R$ ${formatarMoeda(totais.comprado)}`,
+        icon: <CircleDollarSign className="h-4 w-4" />,
+        theme: "blue",
+      }
     ],
     [itensEmAberto.length, totais],
   );
@@ -514,6 +522,7 @@ export default function FinanceiroMateriaisDetalhe() {
       titulo={fornecedorNome || hub.materiaisTitulo}
       onVoltar={() => navigate("/financeiro/materiais")}
       resumo={resumo}
+      resumoGridClass="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5"
       resumoLoading={loading}
       resumoVariant="metricCompact"
       dense

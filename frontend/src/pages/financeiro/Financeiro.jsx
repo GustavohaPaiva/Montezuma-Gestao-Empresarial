@@ -92,6 +92,7 @@ export default function Financeiro() {
   const [emprestimosCaixa, setEmprestimosCaixa] = useState([]);
   const [obrasResumo, setObrasResumo] = useState([]);
   const [modalEmprestimoAberto, setModalEmprestimoAberto] = useState(false);
+  const [emprestimoEditar, setEmprestimoEditar] = useState(null);
   const [emprestimoAmortizar, setEmprestimoAmortizar] = useState(null);
   const [salvandoEmprestimo, setSalvandoEmprestimo] = useState(false);
 
@@ -386,12 +387,55 @@ export default function Financeiro() {
   const handleSalvarEmprestimo = async (payload) => {
     setSalvandoEmprestimo(true);
     try {
-      await api.registrarEmprestimo(payload);
+      if (payload.emprestimo_id) {
+        await api.atualizarEmprestimo(payload);
+      } else {
+        await api.registrarEmprestimo(payload);
+      }
       setModalEmprestimoAberto(false);
+      setEmprestimoEditar(null);
       setRecarregar((prev) => prev + 1);
     } finally {
       setSalvandoEmprestimo(false);
     }
+  };
+
+  const fecharModalEmprestimo = () => {
+    setModalEmprestimoAberto(false);
+    setEmprestimoEditar(null);
+  };
+
+  const handleExcluirEmprestimo = (item) => {
+    setDialogo({
+      aberto: true,
+      titulo: "Excluir empréstimo",
+      mensagem:
+        "Isso estorna a concessão e todas as amortizações. O caixa volta como se o empréstimo não tivesse existido. Continuar?",
+      botoes: [
+        {
+          texto: "Cancelar",
+          className: "bg-gray-100 text-text-primary hover:bg-gray-200",
+          onClick: fecharDialogo,
+        },
+        {
+          texto: "Excluir",
+          className: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
+          onClick: async () => {
+            fecharDialogo();
+            try {
+              await api.excluirEmprestimo(item.id);
+              setRecarregar((prev) => prev + 1);
+            } catch (err) {
+              console.error(err);
+              mostrarAlerta(
+                "Erro",
+                err?.message || "Não foi possível excluir o empréstimo.",
+              );
+            }
+          },
+        },
+      ],
+    });
   };
 
   const handleAmortizarEmprestimo = async (payload) => {
@@ -1285,13 +1329,14 @@ export default function Financeiro() {
       />
       <ModalEmprestimo
         isOpen={modalEmprestimoAberto}
-        onClose={() => setModalEmprestimoAberto(false)}
+        onClose={fecharModalEmprestimo}
         onSave={handleSalvarEmprestimo}
         salvando={salvandoEmprestimo}
         caixaDisponivel={caixaGeral.saldo}
         escritorioAtualId={escritorioId}
         escritorioAtualNome="Montezuma"
         obras={obrasResumo}
+        emprestimo={emprestimoEditar}
       />
       <ModalAmortizarEmprestimo
         isOpen={Boolean(emprestimoAmortizar)}
@@ -1388,17 +1433,21 @@ export default function Financeiro() {
           </section>
         )}
 
-        {isAdmin && (
-          <PainelEmprestimos
-            itens={emprestimosCaixa}
-            podeEditar={isAdmin}
-            onNovo={() => setModalEmprestimoAberto(true)}
-            onAmortizar={(item) => setEmprestimoAmortizar(item)}
-          />
-        )}
-
-        <div className="mb-4 flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
+        <div className="mb-5 overflow-hidden rounded-2xl border border-border-primary/40 bg-white p-4 shadow-[0_5px_20px_rgba(0,0,0,0.06)] sm:p-5">
+          <div className="mb-4 flex items-start gap-3">
+            <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary">
+              <CalendarRange className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+                Extrato do mês
+              </h2>
+              <p className="mt-1 text-sm text-text-muted">
+                Filtre entradas e saídas pelo período.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 flex-1 sm:max-w-[240px]">
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
                 {hub.escritorioFiltroMes}
@@ -1416,16 +1465,16 @@ export default function Financeiro() {
                 options={MESES_OPCOES}
               />
             </div>
+            <ButtonDefault
+              onClick={() => setModalLancamentoAberto(true)}
+              className="!h-11 !w-full !rounded-xl !border !border-accent-primary !bg-accent-primary !px-4 !text-sm !font-semibold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.28)] hover:!bg-accent-primary-dark sm:!w-auto"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                {hub.escritorioNovoLancamento}
+              </span>
+            </ButtonDefault>
           </div>
-          <ButtonDefault
-            onClick={() => setModalLancamentoAberto(true)}
-            className="!h-11 !w-full !rounded-xl !border !border-accent-primary !bg-accent-primary !px-4 !text-sm !font-semibold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.28)] hover:!bg-accent-primary-dark sm:!w-auto"
-          >
-            <span className="inline-flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              {hub.escritorioNovoLancamento}
-            </span>
-          </ButtonDefault>
         </div>
 
         {resumo.length > 0 ? (
@@ -1623,6 +1672,23 @@ export default function Financeiro() {
             </div>
           </section>
         </div>
+
+        {isAdmin && (
+          <PainelEmprestimos
+            itens={emprestimosCaixa}
+            podeEditar={isAdmin}
+            onNovo={() => {
+              setEmprestimoEditar(null);
+              setModalEmprestimoAberto(true);
+            }}
+            onAmortizar={(item) => setEmprestimoAmortizar(item)}
+            onEditar={(item) => {
+              setEmprestimoEditar(item);
+              setModalEmprestimoAberto(true);
+            }}
+            onExcluir={handleExcluirEmprestimo}
+          />
+        )}
 
         {isAdmin && (
           <section className="mb-8 rounded-2xl border border-border-primary/40 bg-white p-4 shadow-[0_5px_20px_rgba(0,0,0,0.06)] sm:p-5">

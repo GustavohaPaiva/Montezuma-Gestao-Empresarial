@@ -1,15 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
   Building2,
+  ChevronDown,
+  ChevronUp,
   Plus,
   Receipt,
   User,
   Wallet,
 } from "lucide-react";
 import BaseButton from "../../../../components/gerais/BaseButton";
+import { homeDictionary } from "../../../../constants/dictionaries";
 import { formatarDataBR, formatarMoeda } from "../utils/formatters";
 import {
   TIPOS_MOVIMENTACAO_OBRA,
@@ -21,6 +24,7 @@ import {
 } from "../utils/obraCaixa";
 
 const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
+const hub = homeDictionary.financeiroHub;
 
 function iconeMovimentacao(tipo) {
   switch (tipo) {
@@ -44,6 +48,7 @@ export default function ObraDetalheControleFinanceiro({
   onTransferir,
   onAmortizarEmprestimo,
 }) {
+  const [emprestimosExpandido, setEmprestimosExpandido] = useState(false);
   const resumo = useMemo(
     () => resumirCaixaObra(movimentacoes),
     [movimentacoes],
@@ -191,11 +196,42 @@ export default function ObraDetalheControleFinanceiro({
         </dl>
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h3 className="text-sm font-bold uppercase tracking-wide text-text-muted">
-          Empréstimos
-        </h3>
-        {emprestimos.length === 0 ? (
+      <section className="flex flex-col gap-3 rounded-2xl border border-border-primary/35 bg-white p-4 shadow-sm ring-1 ring-slate-900/5 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary">
+              <Building2 className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-text-muted">
+                Empréstimos
+              </h3>
+              <p className="mt-0.5 text-sm font-semibold tabular-nums text-text-primary">
+                {emprestimos.length}{" "}
+                {emprestimos.length === 1 ? "empréstimo" : "empréstimos"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEmprestimosExpandido((prev) => !prev)}
+            aria-expanded={emprestimosExpandido}
+            className="inline-flex h-9 w-full items-center justify-center gap-1 rounded-xl border border-border-primary/45 bg-[#FAFAFA] px-3 text-xs font-semibold text-text-primary sm:w-auto"
+          >
+            {emprestimosExpandido ? (
+              <>
+                {hub.emprestimosOcultar}{" "}
+                <ChevronUp className="h-4 w-4" aria-hidden />
+              </>
+            ) : (
+              <>
+                {hub.emprestimosVer}{" "}
+                <ChevronDown className="h-4 w-4" aria-hidden />
+              </>
+            )}
+          </button>
+        </div>
+        {emprestimosExpandido && emprestimos.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border-primary/40 bg-slate-50/80 px-5 py-10 text-center">
             <Building2
               className="mx-auto mb-3 h-8 w-8 text-text-muted/60"
@@ -209,7 +245,7 @@ export default function ObraDetalheControleFinanceiro({
               pessoa continuam pelo histórico de transferências.
             </p>
           </div>
-        ) : (
+        ) : emprestimosExpandido ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
             {emprestimos.map((item) => {
               const liquidoPositivo = item.liquido >= 0;
@@ -286,7 +322,7 @@ export default function ObraDetalheControleFinanceiro({
               );
             })}
           </div>
-        )}
+        ) : null}
       </section>
 
       <section className="flex flex-col gap-3">

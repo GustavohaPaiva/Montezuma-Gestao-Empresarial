@@ -164,8 +164,12 @@ export function resumirKpisMateriais(materiais = [], hoje = new Date()) {
   let vencidosQtd = 0;
   let proximaSemanaValor = 0;
   let proximaSemanaQtd = 0;
+  let totalLancado = 0;
 
   for (const item of materiais || []) {
+    const valor = parseFloat(item.valor) || 0;
+    totalLancado += valor;
+
     if (isPago(item?.status_pagamento ?? item?.status_financeiro)) continue;
     const bucket = getBucketPrioridade(item, hoje);
     if (!bucket) continue;
@@ -173,7 +177,6 @@ export function resumirKpisMateriais(materiais = [], hoje = new Date()) {
     const fornecedorId = item.fornecedor_id ?? item.fornecedores?.id;
     if (fornecedorId != null) fornecedores.add(String(fornecedorId));
 
-    const valor = parseFloat(item.valor) || 0;
     aPagar += valor;
 
     if (bucket === BUCKET_IDS.vencidos) {
@@ -192,6 +195,7 @@ export function resumirKpisMateriais(materiais = [], hoje = new Date()) {
     vencidosQtd,
     proximaSemanaValor,
     proximaSemanaQtd,
+    totalLancado,
   };
 }
 

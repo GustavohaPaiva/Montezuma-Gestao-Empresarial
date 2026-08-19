@@ -2000,8 +2000,13 @@ export const api = {
     const valorNum = parseFloat(valor);
     if (!obra_id) throw new Error("obra_id obrigatório");
     if (!escritorio_id) throw new Error("Escritório é obrigatório");
-    if (sentido !== "emprestar" && sentido !== "receber") {
-      throw new Error("Sentido deve ser emprestar ou receber");
+    if (sentido === "emprestar") {
+      throw new Error(
+        "Escritório e Montezuma não tomam empréstimo de obra",
+      );
+    }
+    if (sentido !== "receber") {
+      throw new Error("Sentido deve ser receber");
     }
     if (!Number.isFinite(valorNum) || valorNum <= 0) {
       throw new Error("Valor do empréstimo deve ser maior que zero");
@@ -2041,6 +2046,11 @@ export const api = {
     const valorNum = parseFloat(valor);
     if (!Number.isFinite(valorNum) || valorNum <= 0) {
       throw new Error("Valor do empréstimo deve ser maior que zero");
+    }
+    if (origem_tipo === "obra" && destino_tipo === "escritorio") {
+      throw new Error(
+        "Escritório e Montezuma não tomam empréstimo de obra",
+      );
     }
     const { data: id, error } = await supabase.rpc("registrar_emprestimo", {
       p_origem_tipo: origem_tipo,
@@ -2083,6 +2093,42 @@ export const api = {
       throw error;
     }
     return id;
+  },
+
+  atualizarEmprestimo: async ({ emprestimo_id, valor, descricao, data }) => {
+    const valorNum = parseFloat(valor);
+    if (!emprestimo_id) throw new Error("Empréstimo é obrigatório");
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      throw new Error("Valor deve ser maior que zero");
+    }
+    const { data: id, error } = await supabase.rpc("atualizar_emprestimo", {
+      p_emprestimo_id: emprestimo_id,
+      p_valor: valorNum,
+      p_descricao: descricao?.trim() || null,
+      p_data: data || new Date().toISOString().split("T")[0],
+    });
+    if (error) {
+      const msg = error.message || "";
+      if (/saldo insuficiente/i.test(msg)) {
+        throw new Error(msg.replace(/^.*Saldo insuficiente/i, "Saldo insuficiente"));
+      }
+      throw error;
+    }
+    return id;
+  },
+
+  excluirEmprestimo: async (emprestimo_id) => {
+    if (!emprestimo_id) throw new Error("Empréstimo é obrigatório");
+    const { error } = await supabase.rpc("excluir_emprestimo", {
+      p_emprestimo_id: emprestimo_id,
+    });
+    if (error) {
+      const msg = error.message || "";
+      if (/saldo insuficiente/i.test(msg)) {
+        throw new Error(msg.replace(/^.*Saldo insuficiente/i, "Saldo insuficiente"));
+      }
+      throw error;
+    }
   },
 
   getEmprestimos: async ({ escritorioId, obraId, apenasAbertos = true } = {}) => {
@@ -2182,11 +2228,8 @@ export const api = {
     return (data || []).map(mapContaPagarParaItemFinanceiro);
   },
 
-  /**
-   * Contas a pagar em aberto (Montezuma → fornecedor) —
-   * visão cross-obra do Financeiro.
-   */
-  getMateriaisFinanceiroPendentes: async () => {
+  
+  getMateriaisFinanceiro: async () => {
     const { data, error } = await supabase
       .from("contas_pagar_fornecedor")
       .select(
@@ -2201,7 +2244,6 @@ export const api = {
     if (error) throw error;
     return (data || [])
       .map(mapContaPagarParaItemFinanceiro)
-      .filter((m) => !isStatusApPago(m?.status_pagamento));
   },
 
   getEmprestimosObrasGlobais: async () => {

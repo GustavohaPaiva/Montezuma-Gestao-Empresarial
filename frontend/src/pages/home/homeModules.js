@@ -1,7 +1,7 @@
 import {
   FolderOpen,
   HardHat,
-  Wallet,
+  CircleDollarSign,
   Handshake,
   ShoppingCart,
   LineChart,
@@ -86,7 +86,7 @@ export const MODULOS_HOME = [
     destaques: dest.financeiro,
     colorTheme: "primary",
     statKey: "pendencias",
-    Icon: Wallet,
+    Icon: CircleDollarSign,
     path: "/financeiro",
     roles: ["gestor_master", "diretoria", "secretaria", "suporte_ti"],
   },

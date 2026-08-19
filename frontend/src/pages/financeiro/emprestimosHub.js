@@ -89,3 +89,69 @@ export function agregarEmprestimosLedger(emprestimos = []) {
     itens,
   };
 }
+
+function chaveParte(tipo, escritorioId, obraId) {
+  return tipo === "escritorio"
+    ? `escritorio:${escritorioId ?? "—"}`
+    : `obra:${obraId ?? "—"}`;
+}
+
+function agruparPorParte(rows, getKey, getLabel, getKind) {
+  const map = new Map();
+
+  for (const row of rows) {
+    const key = getKey(row);
+    const valor = parseFloat(row.saldo_aberto) || 0;
+    const original = parseFloat(row.valor_original) || 0;
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        label: getLabel(row),
+        kind: getKind(row),
+        valor: 0,
+        original: 0,
+        qtd: 0,
+      });
+    }
+    const item = map.get(key);
+    item.valor += valor;
+    item.original += original;
+    item.qtd += 1;
+  }
+
+  return Array.from(map.values()).sort((a, b) => b.valor - a.valor);
+}
+
+/** Agrupa empréstimos abertos por quem emprestou (origem) e quem tomou (destino). */
+export function agregarEmprestimosPorPapel(emprestimos = []) {
+  const abertos = (emprestimos || [])
+    .map((row) => enriquecerEmprestimo(row))
+    .filter((row) => (parseFloat(row.saldo_aberto) || 0) > 1e-9);
+
+  return {
+    totalEmprestado: abertos.reduce(
+      (acc, row) => acc + (parseFloat(row.saldo_aberto) || 0),
+      0,
+    ),
+    qtdRelacoes: abertos.length,
+    qtdMovimentacoes: abertos.length,
+    emprestado: agruparPorParte(
+      abertos,
+      (row) =>
+        chaveParte(row.origem_tipo, row.origem_escritorio_id, row.origem_obra_id),
+      (row) => row.origemLabel,
+      (row) => row.origem_tipo,
+    ),
+    tomado: agruparPorParte(
+      abertos,
+      (row) =>
+        chaveParte(
+          row.destino_tipo,
+          row.destino_escritorio_id,
+          row.destino_obra_id,
+        ),
+      (row) => row.destinoLabel,
+      (row) => row.destino_tipo,
+    ),
+  };
+}

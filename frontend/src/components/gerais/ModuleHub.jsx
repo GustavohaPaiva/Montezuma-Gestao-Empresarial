@@ -200,9 +200,8 @@ export default function ModuleHub({
   onVoltar,
   resumo = [],
   resumoLoading = false,
-  /** "metric" (padrão) | "metricCompact" — KPIs mais baixos em telas de detalhe. */
   resumoVariant = "metric",
-  /** Reduz folga vertical entre header, KPIs e conteúdo. */
+  resumoGridClass,
   dense = false,
   acessos = [],
   loading = false,
@@ -263,12 +262,13 @@ export default function ModuleHub({
         {resumo.length > 0 ? (
           <section
             className={`w-full ${
-              dense
+              resumoGridClass ||
+              (dense
                 ? getKpiGridClass(resumo.length).replace(
                     "gap-4 md:gap-6",
                     "gap-3",
                   )
-                : getKpiGridClass(resumo.length)
+                : getKpiGridClass(resumo.length))
             } ${dense ? "mb-4" : "mb-8"}`}
           >
             {resumo.map((item) => (

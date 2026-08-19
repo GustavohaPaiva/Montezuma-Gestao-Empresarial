@@ -7,6 +7,7 @@ import {
   Package,
   Search,
   Wallet,
+  CircleDollarSign,
 } from "lucide-react";
 import ModuleHub from "../../../components/gerais/ModuleHub";
 import { homeDictionary } from "../../../constants/dictionaries";
@@ -40,7 +41,7 @@ export default function FinanceiroMateriais() {
   const carregar = useCallback(async () => {
     setLoading(true);
     try {
-      const dados = await api.getMateriaisFinanceiroPendentes();
+      const dados = await api.getMateriaisFinanceiro();
       setMateriais(Array.isArray(dados) ? dados : []);
     } catch (error) {
       console.error("[FinanceiroMateriais] carregar:", error);
@@ -79,17 +80,24 @@ export default function FinanceiroMateriais() {
       {
         id: "vencidos",
         label: hub.materiaisMetricVencidos,
-        value: `${kpis.vencidosQtd} · R$ ${formatarMoeda(kpis.vencidosValor)}`,
+        value: `R$ ${formatarMoeda(kpis.vencidosValor)}`,
         icon: <AlertCircle className="h-5 w-5" />,
         theme: "pink",
       },
       {
         id: "semana",
         label: hub.materiaisMetricProximaSemana,
-        value: `${kpis.proximaSemanaQtd} · R$ ${formatarMoeda(kpis.proximaSemanaValor)}`,
+        value: `R$ ${formatarMoeda(kpis.proximaSemanaValor)}`,
         icon: <CalendarClock className="h-5 w-5" />,
         theme: "emerald",
       },
+      {
+        id: "total-lancado",
+        label: hub.materiaisMetricTotalLancado,
+        value: `R$ ${formatarMoeda(kpis.totalLancado)}`,
+        icon: <CircleDollarSign className="h-5 w-5" />,
+        theme: "blue",
+      }
     ],
     [kpis],
   );
@@ -102,6 +110,7 @@ export default function FinanceiroMateriais() {
       titulo={hub.materiaisTitulo}
       onVoltar={() => navigate("/financeiro")}
       resumo={resumo}
+      resumoGridClass="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 xl:grid-cols-5"
       resumoLoading={loading}
       acessos={[]}
       loading={loading}

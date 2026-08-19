@@ -11,7 +11,6 @@ const emptyForm = (seed = {}) => ({
   destinoTipo: seed.destinoTipo || "obra",
   obra_destino_id: "",
   escritorio_id: seed.escritorio_id || "",
-  sentido: seed.sentido || (seed.destinoTipo === "escritorio" ? "receber" : "emprestar"),
   descricao: "",
   valor: seed.valor != null && seed.valor !== "" ? String(seed.valor) : "",
   data: new Date().toISOString().split("T")[0],
@@ -38,7 +37,6 @@ export default function ModalTransferenciaObra({
   obrasDestino = [],
   initialDestinoTipo,
   initialEscritorioId,
-  initialSentido,
   initialValor,
 }) {
   const [formData, setFormData] = useState(emptyForm);
@@ -55,8 +53,7 @@ export default function ModalTransferenciaObra({
     [obrasDestino, obraOrigemId],
   );
 
-  const exigeSaldo =
-    formData.destinoTipo === "obra" || formData.sentido === "emprestar";
+  const exigeSaldo = formData.destinoTipo === "obra";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -65,19 +62,12 @@ export default function ModalTransferenciaObra({
         emptyForm({
           destinoTipo: initialDestinoTipo,
           escritorio_id: initialEscritorioId,
-          sentido: initialSentido,
           valor: initialValor,
         }),
       );
       setErro("");
     });
-  }, [
-    isOpen,
-    initialDestinoTipo,
-    initialEscritorioId,
-    initialSentido,
-    initialValor,
-  ]);
+  }, [isOpen, initialDestinoTipo, initialEscritorioId, initialValor]);
 
   if (!isOpen) return null;
 
@@ -126,7 +116,7 @@ export default function ModalTransferenciaObra({
       await onSave({
         destinoTipo: "escritorio",
         escritorio_id: formData.escritorio_id,
-        sentido: formData.sentido || "receber",
+        sentido: "receber",
         descricao: formData.descricao?.trim() || "",
         valor: v,
         data: formData.data,
@@ -193,7 +183,6 @@ export default function ModalTransferenciaObra({
                     setFormData({
                       ...formData,
                       destinoTipo: "escritorio",
-                      sentido: "receber",
                     })
                   }
                 >
@@ -224,58 +213,30 @@ export default function ModalTransferenciaObra({
                 />
               </div>
             ) : (
-              <>
-                <div className="flex flex-col gap-[5px]">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                    Operação
-                  </label>
-                  <div className="flex gap-1 rounded-xl border border-border-primary/40 bg-slate-100/80 p-1">
-                    <button
-                      type="button"
-                      className={segmentBtnClass(formData.sentido === "receber")}
-                      onClick={() =>
-                        setFormData({ ...formData, sentido: "receber" })
-                      }
-                    >
-                      Pegar emprestado
-                    </button>
-                    <button
-                      type="button"
-                      className={segmentBtnClass(formData.sentido === "emprestar")}
-                      onClick={() =>
-                        setFormData({ ...formData, sentido: "emprestar" })
-                      }
-                    >
-                      Emprestar
-                    </button>
-                  </div>
-                  <p className="text-xs font-medium text-text-muted">
-                    {formData.sentido === "emprestar"
-                      ? "A obra empresta para o escritório. Sai do caixa da obra, não do mês do escritório."
-                      : "O escritório empresta para a obra. Sai do caixa do escritório, não do mês."}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-[5px]">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                    Escritório
-                  </label>
-                  <BaseSelect
-                    searchable
-                    value={formData.escritorio_id}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        escritorio_id: e.target.value,
-                      })
-                    }
-                    options={[
-                      { value: "", label: "Selecione o escritório…" },
-                      ...ESCRITORIOS_OPCOES,
-                    ]}
-                    placeholder="Selecione o escritório…"
-                  />
-                </div>
-              </>
+              <div className="flex flex-col gap-[5px]">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                  Escritório
+                </label>
+                <BaseSelect
+                  searchable
+                  value={formData.escritorio_id}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      escritorio_id: e.target.value,
+                    })
+                  }
+                  options={[
+                    { value: "", label: "Selecione o escritório…" },
+                    ...ESCRITORIOS_OPCOES,
+                  ]}
+                  placeholder="Selecione o escritório…"
+                />
+                <p className="text-xs font-medium text-text-muted">
+                  O escritório empresta para a obra. Sai do caixa do escritório,
+                  não do mês.
+                </p>
+              </div>
             )}
 
             <div className="flex flex-col gap-[5px]">
