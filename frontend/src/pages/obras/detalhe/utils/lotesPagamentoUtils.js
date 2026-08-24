@@ -62,12 +62,12 @@ export function labelStatusLote(status) {
 
 export function classesStatusLote(status) {
   if (status === "pago") {
-    return "bg-emerald-500/15 text-emerald-800 ring-emerald-500/30";
+    return "bg-emerald-600 text-white ring-emerald-700/30";
   }
   if (status === "parcial") {
-    return "bg-blue-500/15 text-blue-800 ring-blue-500/30";
+    return "bg-blue-600 text-white ring-blue-700/30";
   }
-  return "bg-amber-500/15 text-amber-900 ring-amber-400/35";
+  return "bg-amber-500 text-white ring-amber-600/30";
 }
 
 /** Mapa extrato_id → { loteId, numero, status, loteItemId } */
@@ -90,6 +90,28 @@ export function getMapaLotesPorExtrato(lotesPagamento = []) {
 
 export function loteEstaAberto(status) {
   return status === "pendente" || status === "parcial";
+}
+
+/**
+ * Abertos (pendente/parcial) primeiro; depois pagos.
+ * Dentro de cada grupo: ordem de lançamento crescente (numero / data_criacao).
+ */
+export function ordenarLotesPagamento(lotesPagamento = []) {
+  return [...(lotesPagamento || [])].sort((a, b) => {
+    const abertoA = loteEstaAberto(a.status) ? 0 : 1;
+    const abertoB = loteEstaAberto(b.status) ? 0 : 1;
+    if (abertoA !== abertoB) return abertoA - abertoB;
+
+    const numA = Number(a.numero) || 0;
+    const numB = Number(b.numero) || 0;
+    if (numA !== numB) return numA - numB;
+
+    const tA = a.data_criacao ? new Date(a.data_criacao).getTime() : 0;
+    const tB = b.data_criacao ? new Date(b.data_criacao).getTime() : 0;
+    if (tA !== tB) return tA - tB;
+
+    return String(a.id || "").localeCompare(String(b.id || ""));
+  });
 }
 
 /** Total a pagar (lotes pendentes/parciais). */

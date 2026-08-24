@@ -171,7 +171,7 @@ export default function PedidoFormComposer({
                 type="button"
                 onClick={adicionarMaterial}
                 disabled={!itemValido}
-                className={`${btnAccentPremium} !w-full sm:!min-w-[200px]`}
+                className={`${btnAccentPremium} !w-full`}
               >
                 <span className="inline-flex items-center gap-2">
                   <Plus className="h-4 w-4 shrink-0" />

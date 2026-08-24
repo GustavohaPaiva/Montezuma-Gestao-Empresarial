@@ -118,7 +118,7 @@ function badgePrioridadeClass(bucket) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
-export default function FinanceiroMateriaisDetalhe() {
+export default function FinanceiroMateriaisDetalhes() {
   const { fornecedorId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);

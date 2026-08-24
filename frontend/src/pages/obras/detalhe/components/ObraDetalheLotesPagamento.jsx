@@ -15,6 +15,7 @@ import {
   labelStatusLote,
   labelsExtratoFinanceiro,
   loteEstaAberto,
+  ordenarLotesPagamento,
 } from "../utils/lotesPagamentoUtils";
 
 export default function ObraDetalheLotesPagamento({
@@ -31,6 +32,11 @@ export default function ObraDetalheLotesPagamento({
 }) {
   const [expandidos, setExpandidos] = useState(() => new Set());
 
+  const lotesOrdenados = useMemo(
+    () => ordenarLotesPagamento(lotes),
+    [lotes],
+  );
+
   const extratoPorId = useMemo(() => {
     const map = new Map();
     (relatorioExtrato || []).forEach((item) => map.set(item.id, item));
@@ -46,7 +52,7 @@ export default function ObraDetalheLotesPagamento({
     });
   };
 
-  if (!lotes.length) {
+  if (!lotesOrdenados.length) {
     return (
       <div className="rounded-2xl border border-dashed border-border-primary/55 bg-[#FAFAFA] px-4 py-8 text-center">
         <Wallet className="mx-auto mb-2 h-8 w-8 text-text-muted" />
@@ -62,7 +68,7 @@ export default function ObraDetalheLotesPagamento({
 
   return (
     <div className="space-y-3">
-      {lotes.map((lote) => {
+      {lotesOrdenados.map((lote) => {
         const aberto = loteEstaAberto(lote.status);
         const expandido = expandidos.has(lote.id);
         const itens = lote.itens || [];
@@ -125,7 +131,7 @@ export default function ObraDetalheLotesPagamento({
                     type="button"
                     disabled={processando}
                     onClick={() => onMarcarPago?.(lote)}
-                    className="!h-9 !rounded-xl !border !border-emerald-500/30 !bg-emerald-500/12 !px-3 !text-xs !font-semibold !text-emerald-800 hover:!bg-emerald-500/18"
+                    className="!h-9 !rounded-xl !border !border-amber-500/40 !bg-amber-500 !px-3 !text-xs !font-semibold !text-white hover:!bg-amber-600"
                   >
                     {labelsExtratoFinanceiro.marcarExtratoComoPago}
                   </ButtonDefault>
@@ -135,7 +141,7 @@ export default function ObraDetalheLotesPagamento({
                     type="button"
                     disabled={processando}
                     onClick={() => onReabrir?.(lote)}
-                    className="!h-9 !rounded-xl !border !border-amber-500/30 !bg-amber-500/10 !px-3 !text-xs !font-semibold !text-amber-900 hover:!bg-amber-500/16"
+                    className="!h-9 !rounded-xl !border !border-slate-300 !bg-slate-50 !px-3 !text-xs !font-semibold !text-slate-700 hover:!bg-slate-100"
                   >
                     <span className="inline-flex items-center gap-1.5">
                       <RotateCcw className="h-4 w-4" />
@@ -172,8 +178,8 @@ export default function ObraDetalheLotesPagamento({
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
                               isExtratoPago(statusFinanceiro)
-                                ? "bg-emerald-500/15 text-emerald-800 ring-emerald-500/30"
-                                : "bg-amber-500/15 text-amber-900 ring-amber-400/35"
+                                ? "bg-emerald-600 text-white ring-emerald-700/30"
+                                : "bg-amber-500 text-white ring-amber-600/30"
                             }`}
                           >
                             {statusFinanceiro}

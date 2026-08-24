@@ -18,7 +18,10 @@ import {
 } from "../../constants/pedidos";
 import { getCorStatusMaterial } from "../../pages/obras/detalhe/utils/formatters";
 import { formatarQuantidadePedido } from "../../utils/pedidosUtils";
-import { gerarPdfOrdemCompra } from "../../utils/pedidosOrdemCompraPdf";
+import {
+  gerarPdfOrdemCompra,
+  obraTemDadosEnderecoCliente,
+} from "../../utils/pedidosOrdemCompraPdf";
 import { abrirPdfEmNovaAba } from "../../utils/pdfPreview";
 import ButtonDefault from "../gerais/ButtonDefault";
 import BaseSelect from "../gerais/BaseSelect";
@@ -53,6 +56,10 @@ export default function PedidoOrdensCompra({
   const [obraCompleta, setObraCompleta] = useState(obra ?? null);
   const [salvandoGrupoId, setSalvandoGrupoId] = useState(null);
 
+  const itensAssinatura = (pedido?.itens || [])
+    .map((i) => `${i.id}:${i.grupo_compra_id ?? ""}`)
+    .join("|");
+
   const carregar = useCallback(async () => {
     if (!pedido?.id) return;
     setLoading(true);
@@ -67,7 +74,7 @@ export default function PedidoOrdensCompra({
     } finally {
       setLoading(false);
     }
-  }, [pedido?.id]);
+  }, [pedido?.id, itensAssinatura]);
 
   useEffect(() => {
     carregar();
@@ -83,17 +90,17 @@ export default function PedidoOrdensCompra({
   useEffect(() => {
     let cancelled = false;
     const resolverObra = async () => {
-      if (obra?.clientes != null || obra?.cliente) {
+      if (obraTemDadosEnderecoCliente(obra)) {
         setObraCompleta(obra);
         return;
       }
       if (!pedido?.obra_id) {
-        setObraCompleta(null);
+        setObraCompleta(obra ?? null);
         return;
       }
       try {
-        const dados = await api.getObraById(pedido.obra_id);
-        if (!cancelled) setObraCompleta(dados);
+        const dados = await api.getObraComCliente(pedido.obra_id);
+        if (!cancelled) setObraCompleta(dados || obra || null);
       } catch {
         if (!cancelled) setObraCompleta(obra ?? null);
       }

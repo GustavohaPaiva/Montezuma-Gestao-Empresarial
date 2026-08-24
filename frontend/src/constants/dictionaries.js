@@ -152,6 +152,12 @@ export const homeDictionary = {
       erroSalvar: "Não foi possível salvar a reserva.",
       erroCancelar: "Não foi possível cancelar a reserva.",
     },
+    conflitoAoMover: {
+      titulo: "Sala ocupada no novo horário",
+      escolherOutro: "Escolher outro horário",
+      moverSoCompromisso: "Mover só o compromisso",
+      hintCancelarSala: "A reserva da sala será cancelada.",
+    },
   },
   dashboard: {
     sectionTitle: "Resumo rápido",
@@ -226,11 +232,26 @@ export const homeDictionary = {
       "Controle de pagamentos a fornecedores por prioridade de vencimento.",
     materiaisDestaques: ["Vencidos", "Semana", "Kanban"],
     maoObraTitulo: "Mão de obra",
-    maoObraDescricao: "Controle financeiro de prestadores (em breve).",
-    maoObraDestaques: ["Em breve"],
+    maoObraDescricao: "Controle financeiro de prestadores.",
+    maoObraDestaques: ["Itens em aberto", "A pagar", "Pago"],
     maoObraEmConstrucaoTitulo: "Em construção",
     maoObraEmConstrucaoDescricao:
-      "O módulo de mão de obra no financeiro ainda está sendo preparado. Em breve você poderá acompanhar pagamentos a prestadores por aqui.",
+      "A listagem de prestadores entra em seguida. Por enquanto, acompanhe os totais acima.",
+    maoObraBuscaPlaceholder: "Buscar prestador...",
+    maoObraVazioTitulo: "Nenhum prestador com conta em aberto",
+    maoObraVazioDescricao:
+      "Quando houver lançamentos a pagar, os prestadores aparecem aqui.",
+    maoObraVazioBusca: "Nenhum prestador encontrado",
+    maoObraMetricItensAbertos: "Itens em aberto",
+    maoObraMetricAPagar: "A pagar",
+    maoObraMetricPago: "Pago",
+    maoObraMetricTotalLancado: "Total lançado",
+    maoObraLoadingTitulo: "Carregando mão de obra",
+    maoObraLoadingDescricao: "Buscando contas do prestador…",
+    detalheMaoObraVazioTitulo: "Nada a pagar neste prestador",
+    detalheMaoObraVazioDescricao:
+      "Todos os itens foram quitados ou não há pendências com este prestador.",
+    detalheMaoObraBuscaPlaceholder: "Buscar por serviço ou obra...",
     emprestimosLabel: "Caixa",
     emprestimosTitulo: "Empréstimos",
     emprestimosDescricao:

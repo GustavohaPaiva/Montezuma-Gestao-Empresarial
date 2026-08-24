@@ -14,7 +14,8 @@ import BaseSelect from "../gerais/BaseSelect";
 import BaseDatePicker from "../gerais/BaseDatePicker";
 import { temaEscritorio } from "../../constants/escritorios";
 import { useAuth } from "../../contexts/AuthContext";
-import { api } from "../../services/api";
+import { api, isReservaSalaConflitoAoMoverError } from "../../services/api";
+import ModalConflitoSalaAoMover from "./ModalConflitoSalaAoMover";
 
 const TIPOS_PADRAO = ["Reunião", "Visita", "Comprar Material", "Outro"];
 const STATUS = ["Agendado", "Realizado", "Cancelado"];
@@ -187,6 +188,7 @@ export default function ModalCompromissoEscritorio({
   const [carregandoClientes, setCarregandoClientes] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
+  const [conflitoSala, setConflitoSala] = useState(null);
   const [repetirCompromisso, setRepetirCompromisso] = useState(false);
   const [frequenciaRecorrencia, setFrequenciaRecorrencia] = useState("Semanal");
   const [diasSemanaSelecionados, setDiasSemanaSelecionados] = useState([]);
@@ -226,6 +228,7 @@ export default function ModalCompromissoEscritorio({
   useEffect(() => {
     if (!isOpen) return;
     setErro(null);
+    setConflitoSala(null);
     if (modoEdicao && compromissoEdicao) {
       const tipoSalvo = compromissoEdicao.tipo || "Reunião";
       const ehPadrao = TIPOS_PADRAO.includes(tipoSalvo);
@@ -385,7 +388,7 @@ export default function ModalCompromissoEscritorio({
     setPainelRecorrenciaAberto(false);
   };
 
-  const salvar = async () => {
+  const salvar = async (opcoes = {}) => {
     setErro(null);
     if (!titulo.trim()) {
       setErro("Informe o título.");
@@ -487,6 +490,9 @@ export default function ModalCompromissoEscritorio({
             compromissoEdicao.id,
             payload,
             escritorioId,
+            opcoes?.aoConflitoSala
+              ? { aoConflitoSala: opcoes.aoConflitoSala }
+              : undefined,
           );
         }
       } else {
@@ -540,6 +546,7 @@ export default function ModalCompromissoEscritorio({
           });
         }
       }
+      setConflitoSala(null);
       onSaved?.();
       onClose?.();
     } catch (e) {
@@ -551,13 +558,25 @@ export default function ModalCompromissoEscritorio({
           console.error("[ModalCompromisso] rollback reserva:", rollbackErr);
         }
       }
-      setErro(e?.message || "Não foi possível salvar o compromisso.");
+      if (
+        modoEdicao &&
+        opcoes?.aoConflitoSala !== "cancelar_reserva" &&
+        isReservaSalaConflitoAoMoverError(e)
+      ) {
+        setConflitoSala({
+          mensagem: e?.message || "A sala já está reservada neste horário.",
+        });
+        setErro(null);
+      } else {
+        setErro(e?.message || "Não foi possível salvar o compromisso.");
+      }
     } finally {
       setSalvando(false);
     }
   };
 
   return (
+    <>
     <ModalPortal>
       <div className={modalOverlayClass} role="dialog" aria-modal="true">
         <div className={modalPanelClass}>
@@ -966,5 +985,17 @@ export default function ModalCompromissoEscritorio({
         </div>
       </div>
     </ModalPortal>
+    <ModalConflitoSalaAoMover
+      isOpen={Boolean(conflitoSala)}
+      escritorioId={escritorioId}
+      descricao={conflitoSala?.mensagem}
+      loading={salvando}
+      onClose={() => {
+        if (salvando) return;
+        setConflitoSala(null);
+      }}
+      onMoverSemSala={() => void salvar({ aoConflitoSala: "cancelar_reserva" })}
+    />
+    </>
   );
 }

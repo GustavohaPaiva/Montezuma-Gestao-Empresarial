@@ -1146,8 +1146,8 @@ export function useObrasDetalheTableData({
             key={`status-fin-${item.id}`}
             className={`inline-flex w-fit max-w-[13rem] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
               pago
-                ? "bg-emerald-500/18 text-emerald-900 ring-emerald-500/35"
-                : "bg-amber-500/18 text-amber-950 ring-amber-400/35"
+                ? "bg-emerald-600 text-white ring-emerald-700/30"
+                : "bg-amber-500 text-white ring-amber-600/30"
             }`}
           >
             {statusFinanceiro}

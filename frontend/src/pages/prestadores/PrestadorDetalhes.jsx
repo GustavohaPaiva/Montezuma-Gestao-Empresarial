@@ -1,11 +1,19 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { startOfWeek, format } from "date-fns";
 import { api } from "../../services/api";
 import TabelaSimples from "../../components/gerais/TabelaSimples";
 import BaseCard from "../../components/cards/BaseCard";
 import BaseButton from "../../components/gerais/BaseButton";
 import BaseInput from "../../components/gerais/BaseInput";
 import BaseSelect from "../../components/gerais/BaseSelect";
+import BaseDatePicker from "../../components/gerais/BaseDatePicker";
+import ModalAgendaPrestador from "../../components/modals/ModalAgendaPrestador";
+import {
+  addDays,
+  parseISODate,
+  toISODate,
+} from "../../utils/datePickerUtils";
 import {
   UserRound,
   Phone,
@@ -23,6 +31,8 @@ import {
   Plus,
   Link2Off,
   Tags,
+  BadgeCheck,
+  CalendarDays,
 } from "lucide-react";
 
 const FILTRO_INPUT_CLASS =
@@ -36,8 +46,41 @@ const ORDEM_STATUS_PRESTADOR = {
   pago: 1,
 };
 
+const DIAS_SEMANA_AGENDA = [
+  { weekday: 1, label: "Seg", title: "Segunda-feira", barClass: "bg-accent-primary" },
+  { weekday: 2, label: "Ter", title: "Terça-feira", barClass: "bg-accent-amber-600" },
+  { weekday: 3, label: "Qua", title: "Quarta-feira", barClass: "bg-accent-indigo-600" },
+  { weekday: 4, label: "Qui", title: "Quinta-feira", barClass: "bg-accent-emerald-600" },
+  { weekday: 5, label: "Sex", title: "Sexta-feira", barClass: "bg-accent-blue-600" },
+  { weekday: 6, label: "Sáb", title: "Sábado", barClass: "bg-accent-purple-600" },
+];
+
+function diasDaSemanaAgenda(isoSelecionado) {
+  const base = parseISODate(isoSelecionado) || new Date();
+  const segunda = startOfWeek(base, { weekStartsOn: 1 });
+  return DIAS_SEMANA_AGENDA.map((meta, index) => {
+    const date = addDays(segunda, index);
+    return {
+      ...meta,
+      iso: toISODate(date),
+      dataCurta: format(date, "dd/MM"),
+    };
+  });
+}
+
+function hojeISOLocal() {
+  return toISODate(new Date());
+}
+
+function labelObraAgenda(obra) {
+  if (!obra) return "Obra";
+  const cliente = String(obra.cliente || "").trim();
+  const local = String(obra.local || "").trim();
+  if (cliente && local) return `${cliente} — ${local}`;
+  return cliente || local || `Obra #${obra.id}`;
+}
+
 function statusPrestadorItem(item) {
-  // Mesmo critério do extrato da obra (status_financeiro === "Pago").
   const isPago =
     item.pago_extrato === true ||
     (item.status_financeiro || "").toLowerCase().trim() === "pago";
@@ -73,8 +116,32 @@ export default function PrestadorDetalhes() {
     telefone: "",
     email: "",
   });
+  
+  const dataAtual = new Date();
+  const [dataCalendario, setDataCalendario] = useState(
+    `${dataAtual.getFullYear()}-${String(dataAtual.getMonth() + 1).padStart(2, "0")}-${String(dataAtual.getDate()).padStart(2, "0")}`,
+  );
+  const diasSemana = useMemo(
+    () => diasDaSemanaAgenda(dataCalendario),
+    [dataCalendario],
+  );
+  const diaSelecionadoWeekday = useMemo(() => {
+    const match = diasSemana.find((d) => d.iso === dataCalendario);
+    if (match) return match.weekday;
+    const parsed = parseISODate(dataCalendario);
+    return parsed ? parsed.getDay() : 0;
+  }, [diasSemana, dataCalendario]);
+  const hojeIso = hojeISOLocal();
+
+  const [agendaSemana, setAgendaSemana] = useState([]);
+  const [obrasAgenda, setObrasAgenda] = useState([]);
+  const [loadingAgenda, setLoadingAgenda] = useState(false);
+  const [modalAgendaAberto, setModalAgendaAberto] = useState(false);
+  const [modalAgendaDia, setModalAgendaDia] = useState("");
+  const [lancamentoEditando, setLancamentoEditando] = useState(null);
 
   const [classeSelecionada, setClasseSelecionada] = useState("");
+  const [salvandoSubclasse, setSalvandoSubclasse] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroObraId, setFiltroObraId] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
@@ -141,6 +208,118 @@ export default function PrestadorDetalhes() {
     );
   }, [classesDisponiveis, classesVinculadas]);
 
+  const subclassesPrestador = useMemo(() => {
+    const raw = prestador?.subclasses;
+    if (Array.isArray(raw)) return raw.map(String);
+    return [];
+  }, [prestador]);
+  const ehDiarista = subclassesPrestador.includes("diarista");
+
+  const fetchAgendaSemana = useCallback(async () => {
+    if (!id || !ehDiarista || !diasSemana.length) {
+      setAgendaSemana([]);
+      return;
+    }
+    const dataInicio = diasSemana[0].iso;
+    const dataFim = diasSemana[diasSemana.length - 1].iso;
+    setLoadingAgenda(true);
+    try {
+      const lista = await api.getAgendaPrestador(id, dataInicio, dataFim);
+      setAgendaSemana(lista || []);
+    } catch (error) {
+      console.error("Erro ao carregar agenda do prestador:", error);
+      setAgendaSemana([]);
+    } finally {
+      setLoadingAgenda(false);
+    }
+  }, [id, ehDiarista, diasSemana]);
+
+  useEffect(() => {
+    void fetchAgendaSemana();
+  }, [fetchAgendaSemana]);
+
+  useEffect(() => {
+    if (!ehDiarista) return;
+    let cancelled = false;
+    api
+      .listObrasResumo()
+      .then((lista) => {
+        if (!cancelled) setObrasAgenda(lista || []);
+      })
+      .catch(() => {
+        if (!cancelled) setObrasAgenda([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ehDiarista]);
+
+  const agendaPorDia = useMemo(() => {
+    const mapa = {};
+    for (const item of agendaSemana) {
+      const key = String(item.data || "").slice(0, 10);
+      if (!key) continue;
+      if (!mapa[key]) mapa[key] = [];
+      mapa[key].push(item);
+    }
+    return mapa;
+  }, [agendaSemana]);
+
+  const abrirNovoLancamento = (isoDia) => {
+    setModalAgendaDia(isoDia);
+    setLancamentoEditando(null);
+    setModalAgendaAberto(true);
+  };
+
+  const abrirEditarLancamento = (item) => {
+    setModalAgendaDia(String(item.data || "").slice(0, 10));
+    setLancamentoEditando(item);
+    setModalAgendaAberto(true);
+  };
+
+  const fecharModalAgenda = () => {
+    setModalAgendaAberto(false);
+    setLancamentoEditando(null);
+    setModalAgendaDia("");
+  };
+
+  const handleSalvarAgenda = async (payload) => {
+    try {
+      if (payload.id) {
+        await api.updateAgendaPrestador(payload.id, {
+          obra_id: payload.obra_id,
+          data: payload.data,
+          hora_inicio: payload.hora_inicio,
+          hora_fim: payload.hora_fim,
+        });
+      } else {
+        await api.createAgendaPrestador({
+          prestador_id: Number(id),
+          obra_id: payload.obra_id,
+          data: payload.data,
+          hora_inicio: payload.hora_inicio,
+          hora_fim: payload.hora_fim,
+        });
+      }
+      fecharModalAgenda();
+      await fetchAgendaSemana();
+    } catch (error) {
+      console.error("Erro ao salvar agenda:", error);
+      alert(error?.message || "Não foi possível salvar o lançamento.");
+    }
+  };
+
+  const handleExcluirAgenda = async (lancamentoId) => {
+    try {
+      await api.deleteAgendaPrestador(lancamentoId);
+      fecharModalAgenda();
+      await fetchAgendaSemana();
+    } catch (error) {
+      console.error("Erro ao excluir agenda:", error);
+      alert(error?.message || "Não foi possível excluir o lançamento.");
+    }
+  };
+
   const handleSaveEdit = async () => {
     if (!editForm.nome.trim()) {
       alert("O nome do prestador é obrigatório!");
@@ -206,6 +385,24 @@ export default function PrestadorDetalhes() {
     } catch (error) {
       console.error("Erro ao remover classe:", error);
       alert("Não foi possível remover a classe.");
+    }
+  };
+
+  const handleToggleDiarista = async () => {
+    const proximas = ehDiarista
+      ? subclassesPrestador.filter((item) => item !== "diarista")
+      : [...subclassesPrestador, "diarista"];
+    try {
+      setSalvandoSubclasse(true);
+      const atualizado = await api.updatePrestador(id, {
+        subclasses: proximas,
+      });
+      setPrestador(atualizado);
+    } catch (error) {
+      console.error("Erro ao atualizar subclasse:", error);
+      alert("Não foi possível atualizar a subclasse.");
+    } finally {
+      setSalvandoSubclasse(false);
     }
   };
 
@@ -498,6 +695,8 @@ export default function PrestadorDetalhes() {
     );
   }
 
+  
+
   if (!prestador) {
     return null;
   }
@@ -632,15 +831,22 @@ export default function PrestadorDetalhes() {
                 )}
               </button>
 
-              <span
-                className={`text-xs font-bold uppercase tracking-wide ring-1 ${
-                  prestador.ativo
-                    ? "rounded-full bg-emerald-50 px-3 py-1 text-emerald-800 ring-emerald-100"
-                    : "rounded-full bg-amber-50 px-3 py-1 text-amber-900 ring-amber-100"
-                }`}
-              >
-                {prestador.ativo ? "Cadastro ativo" : "Cadastro inativo"}
-              </span>
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                <span
+                  className={`text-xs font-bold uppercase tracking-wide ring-1 ${
+                    prestador.ativo
+                      ? "rounded-full bg-emerald-50 px-3 py-1 text-emerald-800 ring-emerald-100"
+                      : "rounded-full bg-amber-50 px-3 py-1 text-amber-900 ring-amber-100"
+                  }`}
+                >
+                  {prestador.ativo ? "Cadastro ativo" : "Cadastro inativo"}
+                </span>
+                {ehDiarista ? (
+                  <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-800 ring-1 ring-orange-100">
+                    Diarista
+                  </span>
+                ) : null}
+              </div>
             </div>
 
             <div className="min-w-0 flex-1 pt-2 lg:pt-0">
@@ -826,6 +1032,210 @@ export default function PrestadorDetalhes() {
             </div>
           )}
         </section>
+
+        <section
+          className={`rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_8px_40px_rgba(15,23,42,0.05)] transition-all delay-75 duration-700 ease-out sm:p-8 ${
+            showElements
+              ? "translate-y-0 opacity-100"
+              : "translate-y-6 opacity-0"
+          }`}
+        >
+          <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
+            <BadgeCheck className="h-5 w-5 text-orange-600" aria-hidden />
+            Subclasse
+          </h2>
+          <p className="mb-4 text-xs text-text-muted">
+            Independente das classes de ofício. Use para marcar o tipo de
+            vínculo do prestador.
+          </p>
+
+          <button
+            type="button"
+            onClick={handleToggleDiarista}
+            disabled={salvandoSubclasse}
+            aria-pressed={ehDiarista}
+            className={`flex w-full cursor-pointer items-center justify-between gap-4 rounded-xl border px-4 py-3.5 text-left ring-1 transition disabled:cursor-wait disabled:opacity-70 ${
+              ehDiarista
+                ? "border-orange-200 bg-orange-50/70 ring-orange-100 hover:border-orange-300"
+                : "border-slate-200 bg-slate-50/80 ring-slate-900/5 hover:border-slate-300"
+            }`}
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-semibold uppercase tracking-tight text-text-primary">
+                Diarista
+              </p>
+              <p className="mt-0.5 text-xs text-text-muted">
+                {ehDiarista
+                  ? "Subclasse atribuída a este prestador."
+                  : "Toque para atribuir a subclasse diarista."}
+              </p>
+            </div>
+            <span
+              className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${
+                ehDiarista
+                  ? "bg-white text-orange-800 ring-orange-200"
+                  : "bg-white text-slate-600 ring-slate-200"
+              }`}
+            >
+              {salvandoSubclasse
+                ? "Salvando…"
+                : ehDiarista
+                  ? "Atribuída"
+                  : "Atribuir"}
+            </span>
+          </button>
+        </section>
+
+        {ehDiarista ? (
+          <section
+            className={`relative overflow-hidden rounded-2xl border border-accent-primary/15 bg-gradient-to-br from-white via-white to-accent-primary/[0.06] p-6 shadow-[0_10px_40px_-10px_rgba(220,59,11,0.14)] ring-1 ring-slate-900/5 transition-all delay-75 duration-700 ease-out sm:p-8 ${
+              showElements
+                ? "translate-y-0 opacity-100"
+                : "translate-y-6 opacity-0"
+            }`}
+          >
+            <div
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_0%_0%,rgba(220,59,11,0.08),transparent_55%)]"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -right-16 top-0 h-40 w-40 rounded-full bg-accent-primary/10 blur-[70px]"
+              aria-hidden
+            />
+            <CalendarDays
+              className="pointer-events-none absolute -bottom-4 -right-1 h-20 w-20 text-accent-primary/[0.07] md:h-24 md:w-24"
+              strokeWidth={1}
+              aria-hidden
+            />
+
+            <div className="relative z-10">
+              <div className="mb-4 flex flex-col gap-4 lg:mb-5 lg:flex-row lg:items-end lg:justify-between">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent-primary/90">
+                    Agenda
+                  </span>
+                  <h2 className="mt-2 text-lg font-semibold tracking-tight text-text-primary md:text-xl">
+                    Semana do diarista
+                  </h2>
+                  <div
+                    className="mt-1.5 h-0.5 w-12 rounded-full bg-gradient-to-r from-accent-primary/90 to-accent-primary/25"
+                    aria-hidden
+                  />
+                  <p className="mt-2 max-w-md text-xs leading-relaxed text-text-muted">
+                    Segunda a sábado. Escolha um dia no calendário para
+                    posicionar a semana.
+                  </p>
+                </div>
+
+                <div className="w-full shrink-0 lg:w-[17rem]">
+                  <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    <CalendarDays className="h-3.5 w-3.5 text-accent-primary" />
+                    Semana / dia
+                  </label>
+                  <BaseDatePicker 
+                    value={dataCalendario}
+                    onChange={(e) => setDataCalendario(e.target.value)}
+                    placeholder="Selecionar dia" />
+                </div>
+              </div>
+
+              <div className="relative z-10 grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2 lg:flex lg:items-stretch xl:gap-2.5">
+                {diasSemana.map((dia) => {
+                  const selecionado = diaSelecionadoWeekday === dia.weekday;
+                  const ehHoje = dia.iso === hojeIso;
+                  const lancamentosDia = agendaPorDia[dia.iso] || [];
+
+                  return (
+                    <article
+                      key={dia.iso}
+                      className={`group relative flex min-h-[9.5rem] w-full flex-col self-stretch overflow-hidden rounded-xl p-2.5 backdrop-blur-sm transition-all duration-200 lg:min-w-0 lg:p-2 lg:hover:-translate-y-0.5 lg:hover:shadow-md ${
+                        selecionado
+                          ? "border border-accent-primary/40 bg-gradient-to-br from-white to-accent-primary/[0.09] shadow-[0_8px_20px_-8px_rgba(220,59,11,0.2)] ring-2 ring-accent-primary/30 lg:flex-[1.65]"
+                          : "border border-border-primary/30 bg-white/90 shadow-sm ring-1 ring-slate-900/5 lg:flex-1"
+                      }`}
+                    >
+                      <span
+                        className={`absolute inset-x-0 top-0 h-0.5 shrink-0 ${dia.barClass}`}
+                        aria-hidden
+                      />
+                      <div className="flex w-full shrink-0 items-center justify-between gap-2 pb-1.5">
+                        <div className="min-w-0">
+                          <p
+                            className={`tracking-tight ${
+                              selecionado
+                                ? "text-sm font-extrabold text-accent-primary xl:text-base"
+                                : "text-xs font-bold text-text-primary"
+                            }`}
+                            title={dia.title}
+                          >
+                            {dia.label}
+                          </p>
+                          <p className="text-[10px] font-medium tabular-nums text-text-muted">
+                            {dia.dataCurta}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          {ehHoje ? (
+                            <span className="inline-flex rounded-full border border-accent-primary/25 bg-accent-primary/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-accent-primary xl:text-[11px]">
+                              Hoje
+                            </span>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => abrirNovoLancamento(dia.iso)}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-accent-primary/30 bg-accent-primary/10 text-accent-primary transition hover:bg-accent-primary/20"
+                            title={`Lançar em ${dia.title}`}
+                            aria-label={`Lançar obra em ${dia.title}`}
+                          >
+                            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex min-h-0 flex-1 flex-col gap-1 border-t border-border-primary/20 pt-1.5">
+                        {loadingAgenda ? (
+                          <div className="rounded-md border border-dashed border-border-primary/30 bg-white/60 px-1.5 py-2 text-center text-[10px] leading-tight text-text-muted">
+                            …
+                          </div>
+                        ) : lancamentosDia.length === 0 ? (
+                          <div className="rounded-md border border-dashed border-border-primary/30 bg-white/60 px-1.5 py-2 text-center text-[10px] leading-tight text-text-muted">
+                            Livre
+                          </div>
+                        ) : (
+                          lancamentosDia.map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => abrirEditarLancamento(item)}
+                              className="w-full rounded-md border border-accent-primary/20 bg-accent-primary/[0.06] px-1.5 py-1.5 text-left transition hover:border-accent-primary/40 hover:bg-accent-primary/10"
+                            >
+                              <p className="text-[10px] font-bold tabular-nums text-accent-primary">
+                                {item.hora_inicio}–{item.hora_fim}
+                              </p>
+                              <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-text-primary">
+                                {labelObraAgenda(item.obras)}
+                              </p>
+                            </button>
+                          ))
+                        )}
+                        <div className="mt-auto min-h-0 flex-1 shrink" aria-hidden />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <ModalAgendaPrestador
+          isOpen={modalAgendaAberto}
+          onClose={fecharModalAgenda}
+          onSave={handleSalvarAgenda}
+          onDelete={handleExcluirAgenda}
+          obras={obrasAgenda}
+          dataDia={modalAgendaDia}
+          lancamento={lancamentoEditando}
+        />
 
         <div
           className={`grid grid-cols-1 gap-4 transition-all delay-100 duration-700 ease-out sm:grid-cols-3 md:gap-6 ${

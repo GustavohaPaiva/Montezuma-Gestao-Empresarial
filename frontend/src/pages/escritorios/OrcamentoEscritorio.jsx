@@ -222,6 +222,7 @@ export default function OrcamentoEscritorio() {
           {
             nome: payload.nome,
             valor: payload.valor,
+            data: payload.data,
             status: payload.status,
           },
           currentEscritorioId,
@@ -230,7 +231,7 @@ export default function OrcamentoEscritorio() {
         await api.createOrcamento({
           nome: payload.nome,
           valor: payload.valor,
-          data: new Date().toISOString(),
+          data: payload.data || new Date().toISOString().split("T")[0],
           status: payload.status || "Em andamento",
           escritorio_id: currentEscritorioId,
         });

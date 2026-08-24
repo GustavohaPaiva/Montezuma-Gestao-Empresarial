@@ -166,6 +166,15 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     color: COR_TEXTO,
   },
+  enderecoBox: {
+    marginTop: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 0.6,
+    borderColor: COR_DIVISOR,
+  },
   table: {
     borderWidth: 0.7,
     borderColor: COR_DIVISOR,
@@ -314,7 +323,7 @@ function formatarDataHora(raw) {
 function InfoChip({ label, value }) {
   return (
     <View style={styles.infoChip}>
-      <View>
+      <View style={{ flex: 1 }}>
         <Text style={styles.infoChipLabel}>{label}</Text>
         <Text style={styles.infoChipValue}>{value || "—"}</Text>
       </View>
@@ -430,11 +439,10 @@ export default function OrdemCompraPDF({
             />
             <InfoChip label="Status do pedido" value={statusPedido || "—"} />
           </View>
-          {obra.endereco ? (
-            <View style={[styles.infoRow, { marginTop: 4 }]}>
-              <InfoChip label="Endereço" value={obra.endereco} />
-            </View>
-          ) : null}
+          <View style={styles.enderecoBox}>
+            <Text style={styles.infoChipLabel}>Endereço da obra (entrega)</Text>
+            <Text style={styles.infoChipValue}>{obra.endereco || "—"}</Text>
+          </View>
         </View>
 
         <View style={styles.section}>

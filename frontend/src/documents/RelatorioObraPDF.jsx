@@ -15,10 +15,10 @@ const COR_TEXTO = "#111827";
 const COR_MUTED = "#6B7280";
 const COR_DIVISOR = "#E5E7EB";
 const COR_FUNDO = "#FAFAFA";
-const COR_SUCESSO = "#047857";
-const COR_SUCESSO_SUAVE = "#ECFDF5";
-const COR_ALERTA = "#B45309";
-const COR_ALERTA_SUAVE = "#FFFBEB";
+const COR_SUCESSO = "#059669";
+const COR_SUCESSO_SUAVE = "#D1FAE5";
+const COR_ALERTA = "#D97706";
+const COR_ALERTA_SUAVE = "#FEF3C7";
 
 const styles = StyleSheet.create({
   page: {

@@ -23,9 +23,10 @@ import LoginAdm from "./pages/login/LoginAdm";
 import Obra from "./pages/obras/ObraCliente";
 import FinanceiroHub from "./pages/financeiro/FinanceiroHub";
 import Financeiro from "./pages/financeiro/Financeiro";
-import FinanceiroMaoDeObra from "./pages/financeiro/FinanceiroMaoDeObra";
+import FinanceiroMaoDeObra from "./pages/financeiro/maoDeObra/FinanceiroMaoDeObra";
 import FinanceiroMateriais from "./pages/financeiro/materiais/FinanceiroMateriais";
-import FinanceiroMateriaisDetalhe from "./pages/financeiro/materiais/FinanceiroMateriaisDetalhe";
+import FinanceiroMateriaisDetalhes from "./pages/financeiro/materiais/FinanceiroMateriaisDetalhes";
+import FinanceiroMaoDeObraDetalhes from "./pages/financeiro/maoDeObra/FinanceiroMaoDeObraDetalhes";
 import ProcessosDetalhes from "./pages/processos/ProcessosDetalhes";
 import DocumentosProcesso from "./pages/processos/DocumentosProcesso";
 import Fornecedores from "./pages/fornecedores/Fornecedores";
@@ -271,7 +272,7 @@ export default function App() {
                   path="/financeiro/materiais/:fornecedorId"
                   element={
                     <PageTransition>
-                      <FinanceiroMateriaisDetalhe />
+                      <FinanceiroMateriaisDetalhes />
                     </PageTransition>
                   }
                 />
@@ -280,6 +281,14 @@ export default function App() {
                   element={
                     <PageTransition>
                       <FinanceiroMaoDeObra />
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/financeiro/mao-de-obra/:prestadorId"
+                  element={
+                    <PageTransition>
+                      <FinanceiroMaoDeObraDetalhes />
                     </PageTransition>
                   }
                 />

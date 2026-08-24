@@ -6,6 +6,7 @@ import {
   ExternalLink,
   Package,
   Settings2,
+  Trash2,
   User,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -21,6 +22,8 @@ import PedidoOrdensCompra from "../../components/pedidos/PedidoOrdensCompra";
 import PedidoSecaoPainel from "../../components/pedidos/PedidoSecaoPainel";
 import LoadingPainel from "../../components/gerais/LoadingPainel";
 import BaseSelect from "../../components/gerais/BaseSelect";
+import BaseModal from "../../components/gerais/BaseModal";
+import BaseButton from "../../components/gerais/BaseButton";
 import {
   pedidoDetalheHeaderClass,
   pedidoDetalheIconClass,
@@ -52,6 +55,8 @@ export default function PedidoGestaoDetalhe() {
   const [statusSel, setStatusSel] = useState(STATUS_PEDIDO_PENDENTE);
   const [salvandoStatus, setSalvandoStatus] = useState(false);
   const [fornecedores, setFornecedores] = useState([]);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [excluindoPedido, setExcluindoPedido] = useState(false);
   const statusDebounceRef = useRef(null);
   const statusIgnorarRef = useRef(true);
 
@@ -98,6 +103,25 @@ export default function PedidoGestaoDetalhe() {
   const atualizarPedidoSilencioso = useCallback(() => {
     return carregar({ silencioso: true });
   }, [carregar]);
+
+  const pedidoTemItemComprado = (pedido?.itens || []).some(
+    (item) => item.material_relatorio_id != null,
+  );
+
+  const excluirPedido = async () => {
+    if (!pedido?.id) return;
+    setExcluindoPedido(true);
+    setErro(null);
+    try {
+      await api.deleteObraPedido(pedido.id);
+      navigate("/pedidos");
+    } catch (e) {
+      setErro(e?.message || "Não foi possível excluir o pedido.");
+      setConfirmandoExclusao(false);
+    } finally {
+      setExcluindoPedido(false);
+    }
+  };
 
   useEffect(() => {
     statusIgnorarRef.current = true;
@@ -222,11 +246,27 @@ export default function PedidoGestaoDetalhe() {
                       </p>
                     </div>
                   </div>
-                  <span
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${getCorStatusMaterial(pedido.status)}`}
-                  >
-                    {pedido.status}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold ${getCorStatusMaterial(pedido.status)}`}
+                    >
+                      {pedido.status}
+                    </span>
+                    <BaseButton
+                      variant="danger"
+                      size="sm"
+                      icon={<Trash2 className="h-4 w-4" />}
+                      onClick={() => setConfirmandoExclusao(true)}
+                      disabled={pedidoTemItemComprado || excluindoPedido}
+                      title={
+                        pedidoTemItemComprado
+                          ? "Este pedido tem materiais já comprados e não pode ser excluído."
+                          : "Excluir pedido"
+                      }
+                    >
+                      Excluir pedido
+                    </BaseButton>
+                  </div>
                 </div>
                 <p className="mt-3 text-xs text-text-muted">
                   Criado em {formatarDataHora(pedido.created_at)}
@@ -264,6 +304,8 @@ export default function PedidoGestaoDetalhe() {
                 itens={pedido.itens || []}
                 fornecedores={fornecedores}
                 obra={obra}
+                pedidoId={pedido.id}
+                onAtualizarPedido={atualizarPedidoSilencioso}
               />
             </PedidoSecaoPainel>
 
@@ -299,6 +341,47 @@ export default function PedidoGestaoDetalhe() {
           </div>
         ) : null}
       </main>
+
+      <BaseModal
+        isOpen={confirmandoExclusao}
+        onClose={() => {
+          if (!excluindoPedido) setConfirmandoExclusao(false);
+        }}
+        title="Confirmar exclusão"
+        size="sm"
+      >
+        <div className="rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50/70 to-white p-4 shadow-[0_5px_18px_rgba(0,0,0,0.05)]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-rose-700/80">
+            Atenção
+          </p>
+          <p className="mt-1 text-sm text-text-muted">
+            Tem certeza que deseja excluir o pedido{" "}
+            <span className="font-semibold text-text-primary">
+              {pedido ? rotuloPedido(pedido) : ""}
+            </span>
+            ? Ordens de compra ainda não compradas serão removidas. Esta ação
+            não pode ser desfeita.
+          </p>
+        </div>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <BaseButton
+            variant="ghost"
+            onClick={() => setConfirmandoExclusao(false)}
+            disabled={excluindoPedido}
+            className="w-full sm:w-auto"
+          >
+            Cancelar
+          </BaseButton>
+          <BaseButton
+            variant="danger"
+            onClick={excluirPedido}
+            isLoading={excluindoPedido}
+            className="w-full sm:w-auto"
+          >
+            Confirmar exclusão
+          </BaseButton>
+        </div>
+      </BaseModal>
     </div>
   );
 }

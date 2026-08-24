@@ -14,11 +14,12 @@ import {
   Clock,
   User,
 } from "lucide-react";
-import { api } from "../../services/api";
+import { api, isReservaSalaConflitoAoMoverError } from "../../services/api";
 import { ESCRITORIO_NOME_POR_ID } from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import ModalCompromissoEscritorio from "../../components/modals/ModalCompromissoEscritorio";
 import ModalConfirmacaoRecorrencia from "../../components/modals/ModalConfirmacaoRecorrencia";
+import ModalConflitoSalaAoMover from "../../components/modals/ModalConflitoSalaAoMover";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -169,6 +170,7 @@ export default function AgendaEscritorio() {
   const [arrastandoId, setArrastandoId] = useState(null);
   const [diaSobreDrop, setDiaSobreDrop] = useState(null);
   const [movendoId, setMovendoId] = useState(null);
+  const [conflitoSalaMover, setConflitoSalaMover] = useState(null);
   const [miniCalAberto, setMiniCalAberto] = useState(false);
   const [miniCalAno, setMiniCalAno] = useState(() => new Date().getFullYear());
   const miniCalRef = useRef(null);
@@ -342,8 +344,26 @@ export default function AgendaEscritorio() {
     await excluirSomenteItem(item);
   };
 
+  const concluirMoverCompromisso = useCallback(
+    (item, novaDataHora) => {
+      const destino = new Date(novaDataHora);
+      if (Number.isNaN(destino.getTime())) return;
+      destino.setHours(0, 0, 0, 0);
+      setDiaSelecionado(destino);
+      if (destino.getMonth() !== mesVisivel.getMonth()) {
+        setMesVisivel(startOfMonth(destino));
+      }
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === item.id ? { ...it, data_hora: novaDataHora } : it,
+        ),
+      );
+    },
+    [mesVisivel],
+  );
+
   const moverCompromissoParaDia = useCallback(
-    async (item, diaDestino) => {
+    async (item, diaDestino, opcoes = {}) => {
       if (!item?.id || !diaDestino) return;
       const origem = new Date(item.data_hora);
       if (Number.isNaN(origem.getTime())) return;
@@ -355,6 +375,7 @@ export default function AgendaEscritorio() {
       );
       if (!novaDataHora) return;
 
+      setErro(null);
       setMovendoId(item.id);
       const anterior = item.data_hora;
       setItems((prev) =>
@@ -368,13 +389,9 @@ export default function AgendaEscritorio() {
           item.id,
           { data_hora: novaDataHora },
           escritorioId,
+          opcoes,
         );
-        const destino = new Date(diaDestino);
-        destino.setHours(0, 0, 0, 0);
-        setDiaSelecionado(destino);
-        if (destino.getMonth() !== mesVisivel.getMonth()) {
-          setMesVisivel(startOfMonth(destino));
-        }
+        concluirMoverCompromisso(item, novaDataHora);
       } catch (e) {
         console.error("[AgendaEscritorio] mover:", e);
         setItems((prev) =>
@@ -382,12 +399,58 @@ export default function AgendaEscritorio() {
             it.id === item.id ? { ...it, data_hora: anterior } : it,
           ),
         );
+        if (isReservaSalaConflitoAoMoverError(e)) {
+          setConflitoSalaMover({
+            item,
+            novaDataHora,
+            mensagem: e?.message || "A sala já está reservada neste horário.",
+          });
+        } else {
+          setErro(e?.message || "Não foi possível remarcar o compromisso.");
+        }
       } finally {
         setMovendoId(null);
       }
     },
-    [escritorioId, mesVisivel],
+    [escritorioId, concluirMoverCompromisso],
   );
+
+  const confirmarMoverSemSala = useCallback(async () => {
+    const pendente = conflitoSalaMover;
+    if (!pendente?.item?.id || !pendente.novaDataHora) return;
+
+    setErro(null);
+    setMovendoId(pendente.item.id);
+    const anterior = pendente.item.data_hora;
+    setItems((prev) =>
+      prev.map((it) =>
+        it.id === pendente.item.id
+          ? { ...it, data_hora: pendente.novaDataHora }
+          : it,
+      ),
+    );
+
+    try {
+      await api.updateCompromisso(
+        pendente.item.id,
+        { data_hora: pendente.novaDataHora },
+        escritorioId,
+        { aoConflitoSala: "cancelar_reserva" },
+      );
+      concluirMoverCompromisso(pendente.item, pendente.novaDataHora);
+      setConflitoSalaMover(null);
+    } catch (e) {
+      console.error("[AgendaEscritorio] mover sem sala:", e);
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === pendente.item.id ? { ...it, data_hora: anterior } : it,
+        ),
+      );
+      setErro(e?.message || "Não foi possível remarcar o compromisso.");
+    } finally {
+      setMovendoId(null);
+    }
+  }, [conflitoSalaMover, escritorioId, concluirMoverCompromisso]);
 
   const iniciarArraste = (e, item) => {
     if (movendoId) {
@@ -1022,6 +1085,17 @@ export default function AgendaEscritorio() {
         onClose={() => setAcaoRecorrencia(null)}
         onConfirmEvento={() => void executarAcaoRecorrencia("evento")}
         onConfirmFuturos={() => void executarAcaoRecorrencia("futuros")}
+      />
+      <ModalConflitoSalaAoMover
+        isOpen={Boolean(conflitoSalaMover)}
+        escritorioId={escritorioId}
+        descricao={conflitoSalaMover?.mensagem}
+        loading={Boolean(movendoId && conflitoSalaMover)}
+        onClose={() => {
+          if (movendoId) return;
+          setConflitoSalaMover(null);
+        }}
+        onMoverSemSala={() => void confirmarMoverSemSala()}
       />
     </div>
   );

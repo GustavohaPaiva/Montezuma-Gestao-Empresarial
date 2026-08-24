@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import ModalPortal from "../gerais/ModalPortal";
+import BaseDatePicker from "../gerais/BaseDatePicker";
 import StatusSelectBadge from "../gerais/StatusSelectBadge";
 import { STATUS_ORCAMENTO_OPCOES } from "../gerais/statusSelectOptions";
 import { temaEscritorio } from "../../constants/escritorios";
+
+const dataHojeISO = () => new Date().toISOString().split("T")[0];
+
+function normalizarDataISO(valor) {
+  if (!valor) return dataHojeISO();
+  const s = String(valor);
+  const ymd = s.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(ymd) ? ymd : dataHojeISO();
+}
 
 export default function ModalOrcamentoEscritorio({
   isOpen,
@@ -15,6 +25,7 @@ export default function ModalOrcamentoEscritorio({
   const modoEdicao = Boolean(orcamentoEdicao?.id);
   const [nome, setNome] = useState("");
   const [valor, setValor] = useState("");
+  const [data, setData] = useState(dataHojeISO);
   const [status, setStatus] = useState("Em andamento");
 
   const temaClasse = temaEscritorio(escritorioId);
@@ -35,10 +46,14 @@ export default function ModalOrcamentoEscritorio({
         setValor(
           orcamentoEdicao.valor != null ? String(orcamentoEdicao.valor) : "",
         );
+        setData(
+          normalizarDataISO(orcamentoEdicao.data || orcamentoEdicao.created_at),
+        );
         setStatus(orcamentoEdicao.status || "Em andamento");
       } else {
         setNome("");
         setValor("");
+        setData(dataHojeISO());
         setStatus("Em andamento");
       }
     });
@@ -59,6 +74,7 @@ export default function ModalOrcamentoEscritorio({
     const base = {
       nome: nome.trim(),
       valor: v,
+      data: data || dataHojeISO(),
       status: status || "Em andamento",
       escritorio_id: escritorioId,
     };
@@ -103,18 +119,30 @@ export default function ModalOrcamentoEscritorio({
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
-                Valor (R$)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                className={fieldClass}
-                value={valor}
-                onChange={(e) => setValor(e.target.value)}
-                placeholder="0.00"
-              />
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
+                  Valor (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className={fieldClass}
+                  value={valor}
+                  onChange={(e) => setValor(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-esc-muted">
+                  Data
+                </label>
+                <BaseDatePicker
+                  variant="escritorio"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">

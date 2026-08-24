@@ -12,8 +12,9 @@ import {
   filtrarMateriaisLista,
 } from "./detalhe/utils/relatorioFiltrosUtils";
 import {
+  isExtratoPago,
   labelsExtratoFinanceiro,
-  loteEstaAberto,
+  ordenarLotesPagamento,
   totalLotesAPagar,
 } from "./detalhe/utils/lotesPagamentoUtils";
 import { gerarPdfExtrato } from "./detalhe/utils/obraDetalhePdf";
@@ -484,8 +485,8 @@ export default function ObraCliente() {
       );
     }
     lista.sort((a, b) => {
-      const isPagoA = a.status_financeiro === "Pago";
-      const isPagoB = b.status_financeiro === "Pago";
+      const isPagoA = isExtratoPago(a.status_financeiro);
+      const isPagoB = isExtratoPago(b.status_financeiro);
       if (isPagoA !== isPagoB) return isPagoA ? 1 : -1;
       return new Date(a.data) - new Date(b.data);
     });
@@ -500,7 +501,7 @@ export default function ObraCliente() {
       `R$ ${formatarMoeda(item.valor)}`,
       <div
         key={`stat-${item.id}`}
-        className={`text-[12px] font-bold px-3 py-1 rounded-[20px] inline-block ${item.status_financeiro === "Pago" ? "bg-[#E8F5E9] text-[#2E7D32]" : "bg-[#FFF3E0] text-[#E65100]"}`}
+        className={`text-[12px] font-bold px-3 py-1 rounded-[20px] inline-block ${isExtratoPago(item.status_financeiro) ? "bg-emerald-600 text-white" : "bg-amber-500 text-white"}`}
       >
         {item.status_financeiro || "Aguardando"}
       </div>,
@@ -527,16 +528,10 @@ export default function ObraCliente() {
     };
   }, [obra, listaMateriaisFiltrada, listaMaoDeObraFiltrada]);
 
-  const lotesOrdenados = useMemo(() => {
-    const lotes = [...(obra?.lotesPagamento || [])];
-    lotes.sort((a, b) => {
-      const abertoA = loteEstaAberto(a.status) ? 0 : 1;
-      const abertoB = loteEstaAberto(b.status) ? 0 : 1;
-      if (abertoA !== abertoB) return abertoA - abertoB;
-      return (b.numero || 0) - (a.numero || 0);
-    });
-    return lotes;
-  }, [obra?.lotesPagamento]);
+  const lotesOrdenados = useMemo(
+    () => ordenarLotesPagamento(obra?.lotesPagamento),
+    [obra?.lotesPagamento],
+  );
 
   const handleGerarPdfLote = useCallback(
     (lote) => {

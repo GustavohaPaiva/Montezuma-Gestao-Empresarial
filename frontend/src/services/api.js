@@ -90,6 +90,24 @@ function mapContaPagarParaItemFinanceiro(row) {
   };
 }
 
+function mapContaPagarPrestadorParaItemFinanceiro(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    conta_pagar_id: row.id,
+    mao_de_obra_id: row.mao_de_obra_id,
+    descricao: row.descricao,
+    valor: row.valor,
+    status_pagamento: row.status_pagamento,
+    status_financeiro: row.status_pagamento,
+    data_pagamento: row.data_pagamento,
+    obra_id: row.obra_id,
+    prestador_id: row.prestador_id,
+    prestadores: row.prestadores || null,
+    obras: row.obras || null,
+  };  
+}
+
 async function upsertContaPagarFromMaterial(material) {
   if (!material?.id || !material.fornecedor_id || material.obra_id == null) {
     return null;
@@ -125,6 +143,49 @@ async function upsertContaPagarFromMaterial(material) {
     .from("contas_pagar_fornecedor")
     .insert({
       material_id: material.id,
+      ...espelho,
+      status_pagamento: STATUS_AP_AGUARDANDO,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function upsertContaPagarFromMaoDeObra(maoDeObra) {
+  if (!maoDeObra?.id || !maoDeObra.prestador_id || maoDeObra.obra_id == null) {
+    return null;
+  }
+  const espelho = {
+    obra_id: maoDeObra.obra_id,
+    prestador_id: maoDeObra.prestador_id,
+    descricao: [maoDeObra.tipo, maoDeObra.profissional].filter(Boolean).join(" - ") || "Mão de obra",
+    valor: parseFloat(maoDeObra.valor_orcado) || 0,
+    updated_at: new Date().toISOString()
+  };
+
+  const { data: existing, error: errFind } = await supabase
+    .from("contas_pagar_prestador")
+    .select("id")
+    .eq("mao_de_obra_id", maoDeObra.id)
+    .maybeSingle();
+  if (errFind) throw errFind;
+
+  if (existing?.id) {
+    const { data, error } = await supabase
+      .from("contas_pagar_prestador")
+      .update(espelho)
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from("contas_pagar_prestador")
+    .insert({
+      mao_de_obra_id: maoDeObra.id,
       ...espelho,
       status_pagamento: STATUS_AP_AGUARDANDO,
     })
@@ -187,6 +248,96 @@ function isReservaSalaOverlapError(error) {
     code === "23P01" ||
     /overlap|no_overlap|exclusion|reservas_sala_no_overlap/i.test(msg)
   );
+}
+
+const CODE_SALA_OCUPADA_AO_MOVER = "SALA_OCUPADA_AO_MOVER";
+const RESERVA_SALA_SELECT =
+  "id, titulo, cliente_nome, inicio, fim, observacoes";
+
+export function isReservaSalaConflitoAoMoverError(err) {
+  return Boolean(err && err.code === CODE_SALA_OCUPADA_AO_MOVER);
+}
+
+function criarErroSalaOcupadaAoMover(conflito) {
+  const err = new Error(
+    conflito
+      ? formatReservaSalaConflitoMessage(conflito)
+      : "A sala já está reservada neste horário.",
+  );
+  err.code = CODE_SALA_OCUPADA_AO_MOVER;
+  err.conflito = conflito || null;
+  return err;
+}
+
+async function buscarConflitoReservaSala({ inicio, fim, excludeId } = {}) {
+  if (!inicio || !fim) return null;
+
+  let query = supabase
+    .from("reservas_sala")
+    .select("id, titulo, cliente_nome, inicio, fim")
+    .lt("inicio", fim)
+    .gt("fim", inicio)
+    .limit(1);
+
+  if (excludeId) query = query.neq("id", excludeId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return Array.isArray(data) && data.length > 0 ? data[0] : null;
+}
+
+async function resolverReservaSalaDoCompromisso(compromisso) {
+  if (!compromisso) return null;
+
+  if (compromisso.reserva_sala_id) {
+    const { data, error } = await supabase
+      .from("reservas_sala")
+      .select(RESERVA_SALA_SELECT)
+      .eq("id", compromisso.reserva_sala_id)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  }
+
+  if (!compromisso.titulo || !compromisso.data_hora) return null;
+
+  const { data, error } = await supabase
+    .from("reservas_sala")
+    .select(RESERVA_SALA_SELECT)
+    .eq("titulo", String(compromisso.titulo).trim())
+    .eq("inicio", compromisso.data_hora)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+function aplicarDeltaIso(iso, deltaMs) {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return new Date(t + deltaMs).toISOString();
+}
+
+async function atualizarHorarioReservaSala(id, { inicio, fim }) {
+  const { data, error } = await supabase
+    .from("reservas_sala")
+    .update({ inicio, fim, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select(RESERVA_SALA_SELECT)
+    .single();
+
+  if (error) {
+    if (isReservaSalaOverlapError(error)) {
+      const conflito = await buscarConflitoReservaSala({
+        inicio,
+        fim,
+        excludeId: id,
+      });
+      throw criarErroSalaOcupadaAoMover(conflito);
+    }
+    throw error;
+  }
+  return data;
 }
 
 async function buscarCompromissosParaRemoverReserva(filtro) {
@@ -364,6 +515,9 @@ const PEDIDO_SELECT_BASE = `id, obra_id, numero, status, solicitante_id, solicit
 const PEDIDO_SELECT_SIMPLES =
   "id, obra_id, numero, status, solicitante_id, solicitante_nome, created_at, updated_at";
 
+const OBRA_PEDIDO_CLIENTE_SELECT =
+  "nome, telefone, email, cpf, rua, numero_casa, bairro, cidade, estado, cep, complemento, rua_obra, numero_obra, bairro_obra";
+
 async function proximoNumeroPedidoObra(obraId) {
   const oid = normalizeObraIdForHistorico(obraId);
   if (oid == null) return 1;
@@ -415,6 +569,22 @@ function mensagemErroPedido(error) {
   return msg || "Não foi possível concluir a operação de pedidos.";
 }
 
+function statusGrupoCompraEhComprado(status) {
+  return String(status || "").trim().toLowerCase() === "comprado";
+}
+
+function itemPedidoEstaNoRelatorio(item) {
+  return item?.material_relatorio_id != null;
+}
+
+async function tocarPedidoAtualizado(pedidoId) {
+  const { error } = await supabase
+    .from("obra_pedidos")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", pedidoId);
+  if (error) throw new Error(mensagemErroPedido(error));
+}
+
 async function anexarItensAosPedidos(pedidos) {
   if (!pedidos?.length) return pedidos;
   const ids = pedidos.map((p) => p.id).filter((id) => id != null);
@@ -447,7 +617,7 @@ async function enriquecerPedidosComObra(pedidos) {
   const { data: obras, error } = await supabase
     .from("obras")
     .select(
-      "id, local, cliente, etapas_selecionadas, clientes!cliente_id(nome)",
+      `id, local, cliente, cliente_id, etapas_selecionadas, clientes!cliente_id(${OBRA_PEDIDO_CLIENTE_SELECT})`,
     )
     .in("id", obraIds);
   if (error) {
@@ -1795,6 +1965,36 @@ export const api = {
     return true;
   },
 
+  getObraComCliente: async (id) => {
+    if (id == null || id === "") return null;
+    const { data: obra, error } = await supabase
+      .from("obras")
+      .select("id, local, cliente, cliente_id, etapas_selecionadas")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!obra) return null;
+
+    let cliente = null;
+    if (obra.cliente_id != null) {
+      const { data, error: errC } = await supabase
+        .from("clientes")
+        .select(OBRA_PEDIDO_CLIENTE_SELECT)
+        .eq("id", obra.cliente_id)
+        .maybeSingle();
+      if (!errC) cliente = data;
+    }
+    if (!cliente) {
+      const { data, error: errObra } = await supabase
+        .from("clientes")
+        .select(OBRA_PEDIDO_CLIENTE_SELECT)
+        .eq("obra_id", id)
+        .maybeSingle();
+      if (!errObra) cliente = data;
+    }
+    return { ...obra, clientes: cliente };
+  },
+
   getObraById: async (id) => {
     const { data, error } = await supabase
       .from("obras")
@@ -2845,8 +3045,10 @@ export const api = {
         },
       ])
       .select();
-    if (error) throw error;
-    return data[0];
+      if (error) throw error;
+      const lancamento = data[0];
+      await upsertContaPagarFromMaoDeObra(lancamento);
+      return lancamento;
   },
 
   updateMaoDeObraFinanceiro: async (id, dadosFinanceiros) => {
@@ -2865,7 +3067,9 @@ export const api = {
       .eq("id", id)
       .select();
     if (error) throw error;
-    return data[0];
+    const lancamento = data[0];
+    await upsertContaPagarFromMaoDeObra(lancamento);
+    return lancamento;
   },
 
   updateMaoDeObraPrestador: async (id, dadosPrestador) => {
@@ -2880,7 +3084,9 @@ export const api = {
       .eq("id", id)
       .select();
     if (error) throw error;
-    return data[0];
+    const lancamento = data[0];
+    await upsertContaPagarFromMaoDeObra(lancamento);
+    return lancamento;
   },
 
   validarMaoDeObra: async (id, dadosOriginais) => {
@@ -3313,6 +3519,114 @@ export const api = {
     }
   },
 
+  getAgendaPrestador: async (prestadorId, dataInicio, dataFim) => {
+    if (prestadorId == null || !dataInicio || !dataFim) return [];
+    const { data, error } = await supabase
+      .from("prestador_agenda")
+      .select(
+        `
+        id,
+        prestador_id,
+        obra_id,
+        data,
+        hora_inicio,
+        hora_fim,
+        created_at,
+        updated_at,
+        obras ( id, cliente, local )
+      `,
+      )
+      .eq("prestador_id", prestadorId)
+      .gte("data", dataInicio)
+      .lte("data", dataFim)
+      .order("data", { ascending: true })
+      .order("hora_inicio", { ascending: true });
+    if (error) throw error;
+    return (data || []).map((row) => ({
+      ...row,
+      hora_inicio: String(row.hora_inicio || "").slice(0, 5),
+      hora_fim: String(row.hora_fim || "").slice(0, 5),
+    }));
+  },
+
+  createAgendaPrestador: async (payload) => {
+    const { data, error } = await supabase
+      .from("prestador_agenda")
+      .insert([
+        {
+          prestador_id: payload.prestador_id,
+          obra_id: payload.obra_id,
+          data: payload.data,
+          hora_inicio: payload.hora_inicio,
+          hora_fim: payload.hora_fim,
+        },
+      ])
+      .select(
+        `
+        id,
+        prestador_id,
+        obra_id,
+        data,
+        hora_inicio,
+        hora_fim,
+        created_at,
+        updated_at,
+        obras ( id, cliente, local )
+      `,
+      )
+      .single();
+    if (error) throw error;
+    return {
+      ...data,
+      hora_inicio: String(data.hora_inicio || "").slice(0, 5),
+      hora_fim: String(data.hora_fim || "").slice(0, 5),
+    };
+  },
+
+  updateAgendaPrestador: async (id, payload) => {
+    const updatePayload = {};
+    if (payload.obra_id != null) updatePayload.obra_id = payload.obra_id;
+    if (payload.data != null) updatePayload.data = payload.data;
+    if (payload.hora_inicio != null) {
+      updatePayload.hora_inicio = payload.hora_inicio;
+    }
+    if (payload.hora_fim != null) updatePayload.hora_fim = payload.hora_fim;
+
+    const { data, error } = await supabase
+      .from("prestador_agenda")
+      .update(updatePayload)
+      .eq("id", id)
+      .select(
+        `
+        id,
+        prestador_id,
+        obra_id,
+        data,
+        hora_inicio,
+        hora_fim,
+        created_at,
+        updated_at,
+        obras ( id, cliente, local )
+      `,
+      )
+      .single();
+    if (error) throw error;
+    return {
+      ...data,
+      hora_inicio: String(data.hora_inicio || "").slice(0, 5),
+      hora_fim: String(data.hora_fim || "").slice(0, 5),
+    };
+  },
+
+  deleteAgendaPrestador: async (id) => {
+    const { error } = await supabase
+      .from("prestador_agenda")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+    return true;
+  },
+
   getLancamentosFinanceirosPrestador: async (prestadorId) => {
     const { data, error } = await supabase
       .from("relatorio_mao_de_obra")
@@ -3507,7 +3821,7 @@ export const api = {
     return Array.isArray(data) ? data : [];
   },
 
-  updateCompromisso: async (id, dados, escritorioId) => {
+  updateCompromisso: async (id, dados, escritorioId, opcoes = {}) => {
     if (!escritorioId) {
       throw new Error("escritorio_id obrigatório em updateCompromisso");
     }
@@ -3516,9 +3830,15 @@ export const api = {
     delete limpo.escritorio_id;
     delete limpo.cliente;
     const cleaned = omitUndefined(limpo);
+    const aoConflitoSala = opcoes?.aoConflitoSala;
+
+    const precisaReserva =
+      cleaned.status === "Cancelado" ||
+      cleaned.data_hora != null ||
+      aoConflitoSala === "cancelar_reserva";
 
     let atual = null;
-    if (cleaned.status === "Cancelado") {
+    if (precisaReserva) {
       const rows = await buscarCompromissosParaRemoverReserva({
         id,
         escritorio_id: escritorioId,
@@ -3526,24 +3846,84 @@ export const api = {
       atual = rows[0] || null;
     }
 
-    const { data, error } = await supabase
-      .from("agenda")
-      .update(cleaned)
-      .eq("id", id)
-      .eq("escritorio_id", escritorioId)
-      .select()
-      .single();
-    if (error) throw error;
+    const dataHoraMudou =
+      Boolean(cleaned.data_hora) &&
+      Boolean(atual?.data_hora) &&
+      cleaned.data_hora !== atual.data_hora;
 
-    if (cleaned.status === "Cancelado" && atual?.status !== "Cancelado") {
-      try {
-        await removerReservasSalaDosCompromissos(atual || data);
-      } catch (errReserva) {
-        console.error("[updateCompromisso] remover reserva sala:", errReserva);
+    let reservaOriginal = null;
+    if (dataHoraMudou || aoConflitoSala === "cancelar_reserva") {
+      reservaOriginal = await resolverReservaSalaDoCompromisso(atual);
+    }
+
+    let reservaMovida = false;
+
+    if (reservaOriginal && aoConflitoSala === "cancelar_reserva") {
+      await removerReservasSalaDosCompromissos(atual);
+      cleaned.reserva_sala_id = null;
+    } else if (reservaOriginal && dataHoraMudou) {
+      const origemMs = new Date(atual.data_hora).getTime();
+      const destinoMs = new Date(cleaned.data_hora).getTime();
+      const deltaMs = destinoMs - origemMs;
+      if (!Number.isNaN(origemMs) && !Number.isNaN(destinoMs) && deltaMs !== 0) {
+        const novoInicio = aplicarDeltaIso(reservaOriginal.inicio, deltaMs);
+        const novoFim = aplicarDeltaIso(reservaOriginal.fim, deltaMs);
+        if (!novoInicio || !novoFim) {
+          throw new Error("Não foi possível calcular o novo horário da sala.");
+        }
+
+        const conflito = await buscarConflitoReservaSala({
+          inicio: novoInicio,
+          fim: novoFim,
+          excludeId: reservaOriginal.id,
+        });
+        if (conflito) {
+          throw criarErroSalaOcupadaAoMover(conflito);
+        }
+
+        await atualizarHorarioReservaSala(reservaOriginal.id, {
+          inicio: novoInicio,
+          fim: novoFim,
+        });
+        reservaMovida = true;
       }
     }
 
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from("agenda")
+        .update(cleaned)
+        .eq("id", id)
+        .eq("escritorio_id", escritorioId)
+        .select()
+        .single();
+      if (error) throw error;
+
+      if (cleaned.status === "Cancelado" && atual?.status !== "Cancelado") {
+        try {
+          await removerReservasSalaDosCompromissos(atual || data);
+        } catch (errReserva) {
+          console.error("[updateCompromisso] remover reserva sala:", errReserva);
+        }
+      }
+
+      return data;
+    } catch (errAgenda) {
+      if (reservaMovida && reservaOriginal) {
+        try {
+          await atualizarHorarioReservaSala(reservaOriginal.id, {
+            inicio: reservaOriginal.inicio,
+            fim: reservaOriginal.fim,
+          });
+        } catch (rollbackErr) {
+          console.error(
+            "[updateCompromisso] rollback reserva sala:",
+            rollbackErr,
+          );
+        }
+      }
+      throw errAgenda;
+    }
   },
 
   deleteCompromisso: async (id, escritorioId) => {
@@ -3995,6 +4375,149 @@ export const api = {
     if (errUpd) throw errUpd;
 
     return api.getObraPedidoById(pedidoId);
+  },
+
+  addObraPedidoItem: async (pedidoId, item) => {
+    if (pedidoId == null) throw new Error("Pedido inválido.");
+    const atual = await api.getObraPedidoById(pedidoId);
+    if (!atual) throw new Error("Pedido não encontrado.");
+
+    const v = validarItemPedido(item);
+    if (!v) {
+      throw new Error(
+        "O material precisa de nome, quantidade, unidade e data de entrega.",
+      );
+    }
+
+    const { error: errIns } = await supabase.from("obra_pedido_itens").insert({
+      pedido_id: pedidoId,
+      material: v.material,
+      quantidade: v.quantidade,
+      unidade: v.unidade,
+      data_entrega: v.data_entrega,
+    });
+    if (errIns) throw new Error(mensagemErroPedido(errIns));
+
+    await tocarPedidoAtualizado(pedidoId);
+    return api.getObraPedidoById(pedidoId);
+  },
+
+  deleteObraPedidoItem: async (itemId) => {
+    if (itemId == null) throw new Error("Item inválido.");
+
+    const { data: item, error: errItem } = await supabase
+      .from("obra_pedido_itens")
+      .select("id, pedido_id, grupo_compra_id, material_relatorio_id")
+      .eq("id", itemId)
+      .maybeSingle();
+    if (errItem) throw new Error(mensagemErroPedido(errItem));
+    if (!item) throw new Error("Material não encontrado.");
+
+    if (itemPedidoEstaNoRelatorio(item)) {
+      throw new Error(
+        "Este material já foi comprado e está no relatório. Não pode ser excluído.",
+      );
+    }
+
+    const grupoId = item.grupo_compra_id;
+    if (grupoId != null) {
+      const { data: grupo, error: errGrupo } = await supabase
+        .from("obra_pedido_grupos_compra")
+        .select("id, status")
+        .eq("id", grupoId)
+        .maybeSingle();
+      if (errGrupo) throw new Error(mensagemErroPedido(errGrupo));
+      if (statusGrupoCompraEhComprado(grupo?.status)) {
+        throw new Error(
+          "Este material já foi comprado na ordem de compra. Não pode ser excluído.",
+        );
+      }
+    }
+
+    const { data: irmaos, error: errCount } = await supabase
+      .from("obra_pedido_itens")
+      .select("id")
+      .eq("pedido_id", item.pedido_id);
+    if (errCount) throw new Error(mensagemErroPedido(errCount));
+    if ((irmaos || []).length <= 1) {
+      throw new Error(
+        "Não é possível excluir o último material. Exclua o pedido inteiro.",
+      );
+    }
+
+    const { error: errDel } = await supabase
+      .from("obra_pedido_itens")
+      .delete()
+      .eq("id", itemId);
+    if (errDel) throw new Error(mensagemErroPedido(errDel));
+
+    if (grupoId != null) {
+      const { data: restantes, error: errRest } = await supabase
+        .from("obra_pedido_itens")
+        .select("id")
+        .eq("grupo_compra_id", grupoId);
+      if (errRest) throw new Error(mensagemErroPedido(errRest));
+      if (!(restantes || []).length) {
+        const { error: errGrupoDel } = await supabase
+          .from("obra_pedido_grupos_compra")
+          .delete()
+          .eq("id", grupoId);
+        if (errGrupoDel) throw new Error(mensagemErroPedido(errGrupoDel));
+      }
+    }
+
+    await tocarPedidoAtualizado(item.pedido_id);
+    return api.getObraPedidoById(item.pedido_id);
+  },
+
+  deleteObraPedido: async (pedidoId) => {
+    if (pedidoId == null) throw new Error("Pedido inválido.");
+
+    const { data: itens, error: errItens } = await supabase
+      .from("obra_pedido_itens")
+      .select("id, grupo_compra_id, material_relatorio_id")
+      .eq("pedido_id", pedidoId);
+    if (errItens) throw new Error(mensagemErroPedido(errItens));
+
+    if ((itens || []).some(itemPedidoEstaNoRelatorio)) {
+      throw new Error(
+        "Este pedido tem materiais já comprados e não pode ser excluído.",
+      );
+    }
+
+    const grupoIds = [
+      ...new Set(
+        (itens || [])
+          .map((i) => i.grupo_compra_id)
+          .filter((id) => id != null),
+      ),
+    ];
+    if (grupoIds.length) {
+      const { data: grupos, error: errGrupos } = await supabase
+        .from("obra_pedido_grupos_compra")
+        .select("id, status")
+        .in("id", grupoIds);
+      if (errGrupos) throw new Error(mensagemErroPedido(errGrupos));
+      if ((grupos || []).some((g) => statusGrupoCompraEhComprado(g.status))) {
+        throw new Error(
+          "Este pedido tem materiais já comprados e não pode ser excluído.",
+        );
+      }
+    }
+
+    const { error: errUnlink } = await supabase
+      .from("obra_pedido_itens")
+      .update({ grupo_compra_id: null })
+      .eq("pedido_id", pedidoId);
+    if (errUnlink) throw new Error(mensagemErroPedido(errUnlink));
+
+    const { error: errDel } = await supabase
+      .from("obra_pedidos")
+      .delete()
+      .eq("id", pedidoId);
+    if (errDel) throw new Error(mensagemErroPedido(errDel));
+
+    return true;
   },
 
   updateObraPedidoItemGestao: async (itemId, campos = {}) => {
@@ -5320,20 +5843,7 @@ export const api = {
    * @param {{ inicio: string, fim: string, excludeId?: string }}
    */
   findReservaSalaConflito: async ({ inicio, fim, excludeId } = {}) => {
-    if (!inicio || !fim) return null;
-
-    let query = supabase
-      .from("reservas_sala")
-      .select("id, titulo, cliente_nome, inicio, fim")
-      .lt("inicio", fim)
-      .gt("fim", inicio)
-      .limit(1);
-
-    if (excludeId) query = query.neq("id", excludeId);
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return Array.isArray(data) && data.length > 0 ? data[0] : null;
+    return buscarConflitoReservaSala({ inicio, fim, excludeId });
   },
 
   createReservaSala: async (payload) => {
@@ -5459,4 +5969,21 @@ export const api = {
     if (error) throw error;
     return true;
   },
+
+  getContasPagarPrestador: async () => {
+    const { data, error } = await supabase 
+    .from("contas_pagar_prestador")
+    .select(`
+      id, mao_de_obra_id, descricao, valor, status_pagamento, data_pagamento,
+      obra_id, prestador_id,
+      prestadores ( id, nome ),
+      obras ( id, cliente, local )
+      `)
+    .order("created_at", { ascending: true, nullsFirst: false});
+    if (error) throw error;
+    return (data || [])
+      .map(mapContaPagarPrestadorParaItemFinanceiro);
+  },
 };
+
+
