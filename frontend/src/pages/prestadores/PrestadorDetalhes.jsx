@@ -33,6 +33,7 @@ import {
   Tags,
   BadgeCheck,
   CalendarDays,
+  QrCode,
 } from "lucide-react";
 
 const FILTRO_INPUT_CLASS =
@@ -115,6 +116,7 @@ export default function PrestadorDetalhes() {
     cnpj_cpf: "",
     telefone: "",
     email: "",
+    pix: "",
   });
   
   const dataAtual = new Date();
@@ -170,6 +172,7 @@ export default function PrestadorDetalhes() {
         cnpj_cpf: dadosPrestador.cnpj_cpf || "",
         telefone: dadosPrestador.telefone || "",
         email: dadosPrestador.email || "",
+        pix: dadosPrestador.chave_pix || "",
       });
     } catch (err) {
       console.error("Erro ao carregar detalhes do prestador:", err);
@@ -331,6 +334,7 @@ export default function PrestadorDetalhes() {
         cnpj_cpf: editForm.cnpj_cpf.trim(),
         telefone: editForm.telefone.trim(),
         email: editForm.email.trim(),
+        chave_pix: editForm.pix.trim(),
       });
       setIsEditing(false);
       fetchPrestador();
@@ -346,9 +350,35 @@ export default function PrestadorDetalhes() {
       cnpj_cpf: prestador.cnpj_cpf || "",
       telefone: prestador.telefone || "",
       email: prestador.email || "",
+      pix: prestador.chave_pix || "",
     });
     setIsEditing(false);
   };
+
+  const opcoesChavePix = useMemo(() => {
+    const opcoes = [];
+    const vistos = new Set();
+
+    const adicionar = (tipo, valor) => {
+      const chave = (valor || "").trim();
+      if (!chave) return;
+      const chaveNorm = chave.toLowerCase();
+      if (vistos.has(chaveNorm)) return;
+      vistos.add(chaveNorm);
+      opcoes.push({ value: chave, label: `${tipo}: ${chave}` });
+    };
+
+    adicionar("E-mail", editForm.email);
+    adicionar("Telefone", editForm.telefone);
+    adicionar("CPF / CNPJ / NIF", editForm.cnpj_cpf);
+
+    const atual = (editForm.pix || "").trim();
+    if (atual && !vistos.has(atual.toLowerCase())) {
+      opcoes.unshift({ value: atual, label: atual });
+    }
+
+    return opcoes;
+  }, [editForm.email, editForm.telefone, editForm.cnpj_cpf, editForm.pix]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -909,9 +939,30 @@ export default function PrestadorDetalhes() {
                       />
                     </div>
                   </div>
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                      Chave PIX
+                    </label>
+                    <BaseSelect
+                      searchable
+                      value={editForm.pix}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          pix: e.target.value,
+                        })
+                      }
+                      placeholder="Selecione e-mail, telefone, CPF/CNPJ ou adicione outra"
+                      searchPlaceholder="Buscar ou escrever uma nova chave..."
+                      emptyMessage="Preencha e-mail, telefone ou documento acima, ou digite uma chave nova."
+                      createOptionLabel={(query) => `Adicionar “${query}”`}
+                      onCreateOption={async (query) => query.trim()}
+                      options={opcoesChavePix}
+                    />
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-6 pr-0 sm:pr-28">
+                <div className="space-y-6 pr-0">
                   <div>
                     <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900 sm:text-3xl">
                       {prestador.nome}
@@ -922,8 +973,8 @@ export default function PrestadorDetalhes() {
                     </p>
                   </div>
 
-                  <div className="flex flex-col gap-4 sm:flex-row">
-                    <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+                    <div className="flex min-w-[200px] flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
                         <Phone className="h-5 w-5 text-gray-600" aria-hidden />
                       </div>
@@ -936,7 +987,7 @@ export default function PrestadorDetalhes() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
+                    <div className="flex min-w-[200px] flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
                         <Mail className="h-5 w-5 text-gray-600" aria-hidden />
                       </div>
@@ -949,6 +1000,22 @@ export default function PrestadorDetalhes() {
                           title={prestador.email}
                         >
                           {prestador.email || "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex min-w-[200px] flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                        <QrCode className="h-5 w-5 text-gray-600" aria-hidden />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                          Chave PIX
+                        </span>
+                        <p
+                          className="truncate font-semibold text-gray-900"
+                          title={prestador.chave_pix}
+                        >
+                          {prestador.chave_pix || "—"}
                         </p>
                       </div>
                     </div>

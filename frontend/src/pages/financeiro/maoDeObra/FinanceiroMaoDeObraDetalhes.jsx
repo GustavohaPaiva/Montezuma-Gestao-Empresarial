@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  Check,
   CheckCircle2,
   CircleDollarSign,
+  Copy,
   HardHat,
   Package,
   Wallet,
 } from "lucide-react";
 import BaseSelect from "../../../components/gerais/BaseSelect";
+import ButtonDefault from "../../../components/gerais/ButtonDefault";
 import ModuleHub from "../../../components/gerais/ModuleHub";
 import TabelaSimples from "../../../components/gerais/TabelaSimples";
 import { homeDictionary } from "../../../constants/dictionaries";
@@ -29,6 +32,9 @@ const FILTRO_SELECT_CLASS =
 
 const colSortClass =
   "cursor-pointer select-none text-text-muted transition-colors hover:text-accent-primary";
+
+const btnAccentPremium =
+  "!h-9 !cursor-pointer !rounded-xl !border !border-accent-primary !bg-accent-primary !px-3.5 !text-sm !font-semibold !text-white !shadow-[0_4px_14px_rgba(220,59,11,0.35)] transition-all hover:!-translate-y-0.5 hover:!bg-accent-primary-dark hover:!shadow-lg focus:!outline-none focus:!ring-2 focus:!ring-accent-primary/35 focus:!ring-offset-2 active:!translate-y-0 disabled:!cursor-not-allowed";
 
 function valorSort(item, campo) {
   switch (campo) {
@@ -55,6 +61,20 @@ export default function FinanceiroMaoDeObraDetalhes() {
     campo: null,
     direcao: "asc",
   });
+  const [chavePix, setChavePix] = useState("");
+  const [pixCopiado, setPixCopiado] = useState(false);
+
+  const copiarChavePix = async () => {
+    const chave = (chavePix || "").trim();
+    if (!chave) return;
+    try {
+      await navigator.clipboard.writeText(chave);
+      setPixCopiado(true);
+      window.setTimeout(() => setPixCopiado(false), 2000);
+    } catch (error) {
+      console.error("[FinanceiroMaoDeObraDetalhes] copiar chave pix", error);
+    }
+  };
 
   const carregar = useCallback(async () => {
     if (!prestadorId) return;
@@ -74,10 +94,12 @@ export default function FinanceiroMaoDeObraDetalhes() {
             ?.nome ||
           "Prestador",
       );
+      setChavePix(prestador?.chave_pix || "");
     } catch (error) {
       console.error("[FinanceiroMaoDeObraDetalhes] carregar:", error);
       setContas([]);
       setPrestadorNome("Prestador");
+      setChavePix("");
     } finally {
       setLoading(false);
     }
@@ -277,6 +299,33 @@ export default function FinanceiroMaoDeObraDetalhes() {
       loadingDescricao={hub.maoObraLoadingDescricao}
       loadingIcon={<HardHat className="h-7 w-7" strokeWidth={2} />}
     >
+      <div className="mb-3 flex items-center gap-3 rounded-2xl border border-border-primary/35 bg-white px-4 py-3 shadow-[0_5px_20px_rgba(0,0,0,0.08)] sm:px-5">
+        <div className="min-w-0 flex-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+            Chave PIX
+          </span>
+          <p
+            className="truncate text-sm font-semibold text-text-primary"
+            title={chavePix}
+          >
+            {chavePix || "—"}
+          </p>
+        </div>
+        <ButtonDefault
+          type="button"
+          className={`${btnAccentPremium} !w-auto shrink-0 gap-1.5 cursor-pointer`}
+          onClick={() => void copiarChavePix()}
+          disabled={!chavePix}
+        >
+          {pixCopiado ? (
+            <Check className="h-4 w-4" aria-hidden />
+          ) : (
+            <Copy className="h-4 w-4" aria-hidden />
+          )}
+          {pixCopiado ? "Copiado" : "Copiar"}
+        </ButtonDefault>
+      </div>
+
       {!temPendencias ? (
         <div className="rounded-2xl border border-dashed border-border-primary/40 bg-white px-5 py-10 text-center shadow-sm">
           <CheckCircle2

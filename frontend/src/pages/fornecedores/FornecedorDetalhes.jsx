@@ -20,6 +20,7 @@ import {
   Camera,
   ArrowLeft,
   Loader2,
+  QrCode,
 } from "lucide-react";
 import {
   agregarFinanceiroFornecedor,
@@ -56,6 +57,7 @@ export default function FornecedorDetalhes() {
     cnpj: "",
     telefone: "",
     email: "",
+    chave_pix: "",
   });
 
   const [busca, setBusca] = useState("");
@@ -76,6 +78,7 @@ export default function FornecedorDetalhes() {
         cnpj: dados.cnpj || "",
         telefone: dados.telefone || "",
         email: dados.email || "",
+        chave_pix: dados.chave_pix || "",
       });
     } catch (err) {
       console.error("Erro ao carregar detalhes do fornecedor:", err);
@@ -104,12 +107,17 @@ export default function FornecedorDetalhes() {
       return;
     }
     try {
-      await api.updateFornecedor(id, editForm);
+      const payload = { ...editForm };
+      await api.updateFornecedor(id, payload);
       setIsEditing(false);
       fetchFornecedor();
     } catch (error) {
       console.error("Erro ao atualizar fornecedor:", error);
-      alert("Falha ao salvar alterações.");
+      if (String(error?.code ?? "") === "23505") {
+        alert("Já existe um fornecedor registado com este CNPJ / NIF.");
+      } else {
+        alert("Falha ao salvar alterações.");
+      }
     }
   };
 
@@ -119,9 +127,35 @@ export default function FornecedorDetalhes() {
       cnpj: fornecedor.cnpj || "",
       telefone: fornecedor.telefone || "",
       email: fornecedor.email || "",
+      chave_pix: fornecedor.chave_pix || "",
     });
     setIsEditing(false);
   };
+
+  const opcoesChavePix = useMemo(() => {
+    const opcoes = [];
+    const vistos = new Set();
+
+    const adicionar = (tipo, valor) => {
+      const chave = (valor || "").trim();
+      if (!chave) return;
+      const chaveNorm = chave.toLowerCase();
+      if (vistos.has(chaveNorm)) return;
+      vistos.add(chaveNorm);
+      opcoes.push({ value: chave, label: `${tipo}: ${chave}` });
+    };
+
+    adicionar("E-mail", editForm.email);
+    adicionar("Telefone", editForm.telefone);
+    adicionar("CNPJ / NIF", editForm.cnpj);
+
+    const atual = (editForm.chave_pix || "").trim();
+    if (atual && !vistos.has(atual.toLowerCase())) {
+      opcoes.unshift({ value: atual, label: atual });
+    }
+
+    return opcoes;
+  }, [editForm.email, editForm.telefone, editForm.cnpj, editForm.chave_pix]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -639,9 +673,30 @@ export default function FornecedorDetalhes() {
                       />
                     </div>
                   </div>
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                      Chave PIX
+                    </label>
+                    <BaseSelect
+                      searchable
+                      value={editForm.chave_pix}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          chave_pix: e.target.value,
+                        })
+                      }
+                      placeholder="Selecione e-mail, telefone, CNPJ ou adicione outra"
+                      searchPlaceholder="Buscar ou escrever uma nova chave..."
+                      emptyMessage="Preencha e-mail, telefone ou CNPJ acima, ou digite uma chave nova."
+                      createOptionLabel={(query) => `Adicionar “${query}”`}
+                      onCreateOption={async (query) => query.trim()}
+                      options={opcoesChavePix}
+                    />
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-6 pr-0 sm:pr-28">
+                <div className="space-y-6 pr-0 ">
                   <div>
                     <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900 sm:text-3xl">
                       {fornecedor.nome}
@@ -652,8 +707,8 @@ export default function FornecedorDetalhes() {
                     </p>
                   </div>
 
-                  <div className="flex flex-col gap-4 sm:flex-row">
-                    <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+                    <div className="flex min-w-[200px] flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
                         <Phone className="h-5 w-5 text-gray-600" aria-hidden />
                       </div>
@@ -666,7 +721,7 @@ export default function FornecedorDetalhes() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
+                    <div className="flex min-w-[200px] flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
                         <Mail className="h-5 w-5 text-gray-600" aria-hidden />
                       </div>
@@ -679,6 +734,22 @@ export default function FornecedorDetalhes() {
                           title={fornecedor.email}
                         >
                           {fornecedor.email || "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex min-w-[200px] flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-[#FAFAFA]/80 p-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                        <QrCode className="h-5 w-5 text-gray-600" aria-hidden />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                          Chave PIX
+                        </span>
+                        <p
+                          className="truncate font-semibold text-gray-900"
+                          title={fornecedor.chave_pix}
+                        >
+                          {fornecedor.chave_pix || "—"}
                         </p>
                       </div>
                     </div>

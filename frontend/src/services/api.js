@@ -3222,9 +3222,35 @@ export const api = {
   },
 
   updateFornecedor: async (id, dadosAtualizados) => {
+    const dadosLimpos = omitUndefined({ ...(dadosAtualizados ?? {}) });
+    delete dadosLimpos.id;
+
+    if (Object.prototype.hasOwnProperty.call(dadosLimpos, "cnpj")) {
+      const cnpj = normalizeCnpjNif(dadosLimpos.cnpj);
+      dadosLimpos.cnpj = cnpj;
+      if (cnpj) {
+        const { data: existentes, error: errLista } = await supabase
+          .from("fornecedores")
+          .select("id, cnpj");
+        if (errLista) throw errLista;
+        const duplicado = (existentes ?? []).some(
+          (row) =>
+            String(row.id) !== String(id) &&
+            normalizeCnpjNif(row.cnpj) === cnpj,
+        );
+        if (duplicado) {
+          const e = new Error(
+            'duplicate key value violates unique constraint "fornecedores_cnpj_key"',
+          );
+          e.code = "23505";
+          throw e;
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from("fornecedores")
-      .update(dadosAtualizados)
+      .update(dadosLimpos)
       .eq("id", id)
       .select();
     if (error) throw error;
@@ -3643,7 +3669,8 @@ export const api = {
         data_solicitacao,
         validacao,
         classe_id,
-        obras ( cliente, local )
+        obras ( cliente, local ),
+        prestadores ( chave_pix )
       `,
       )
       .eq("prestador_id", prestadorId)
