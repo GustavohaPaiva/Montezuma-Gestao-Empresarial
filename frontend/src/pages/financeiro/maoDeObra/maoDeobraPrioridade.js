@@ -7,23 +7,6 @@ function statusPagamentoItem(item) {
   return item?.status_pagamento ?? item?.status_financeiro;
 }
 
-export function resumirKpisMaoDeObra(maoDeObra = []) {
-    let itensAbertos = 0
-    let aPagar = 0;
-    let totalLancado = 0;
-    let pago = 0;
-    for (const item of maoDeObra || []) {
-        totalLancado += parseFloat(item.valor);
-        if (item?.status_pagamento === 'Pago') {
-            pago += parseFloat(item.valor) || "-";
-        } else {
-            aPagar += parseFloat(item.valor) || "-";
-            itensAbertos ++
-        }
-    }
-    return { aPagar, totalLancado, pago, itensAbertos };
-}
-
 export function agregarFinanceiroPrestador(itens = []) {
   let totalLancado = 0;
   let pago = 0;
@@ -47,6 +30,10 @@ export function agregarFinanceiroPrestador(itens = []) {
   };
 }
 
+export function resumirKpisMaoDeObra(maoDeObra = []) {
+  return agregarFinanceiroPrestador(maoDeObra);
+}
+
 export function itensEmAbertoPrestador(itens = []) {
   return [...(itens || [])]
     .filter((item) => !isPago(statusPagamentoItem(item)))
@@ -64,7 +51,7 @@ export function prestadoresEmAberto(maoDeObra = []) {
     const porPrestador = new Map();
 
     for (const item of maoDeObra || []) {
-        if (item?.status_pagamento === 'Aguardando pagamento') {    
+        if (!isPago(statusPagamentoItem(item))) {
 
             const id = item.prestador_id ?? item.prestadores?.id; 
             const key = String(id);

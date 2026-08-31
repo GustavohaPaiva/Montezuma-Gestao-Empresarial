@@ -1,9 +1,57 @@
 import { formatarDataBR } from "../pages/obras/detalhe/utils/formatters";
 import {
+  STATUS_GRUPO_COMPRA_OPCOES,
+  STATUS_PEDIDO_EM_COTACAO,
   STATUS_PEDIDO_OPCOES,
   STATUS_PEDIDO_PENDENTE,
   UNIDADES_MEDIDA_PEDIDO,
 } from "../constants/pedidos";
+
+function indiceStatusPedido(status) {
+  const i = STATUS_PEDIDO_OPCOES.indexOf(String(status || "").trim());
+  return i === -1 ? 0 : i;
+}
+
+/** Converte o status da ordem de compra para o equivalente do pedido. */
+export function statusPedidoEquivalenteDaOrdem(statusOrdem) {
+  const s = String(statusOrdem || "").trim();
+  if (STATUS_PEDIDO_OPCOES.includes(s)) return s;
+  const idx = STATUS_GRUPO_COMPRA_OPCOES.indexOf(s);
+  if (idx >= 0 && idx < STATUS_PEDIDO_OPCOES.length) {
+    return STATUS_PEDIDO_OPCOES[idx];
+  }
+  return STATUS_PEDIDO_PENDENTE;
+}
+
+/**
+ * Status automático do pedido a partir das ordens de compra: segue o mais
+ * atrasado. Se alguma ordem já saiu de Pendente, o piso é Em cotação.
+ * Sem ordens, devolve null (não altera o pedido).
+ */
+export function statusPedidoAutomaticoDasOrdens(statusOrdens) {
+  const lista = (Array.isArray(statusOrdens) ? statusOrdens : []).map(
+    statusPedidoEquivalenteDaOrdem,
+  );
+  if (!lista.length) return null;
+
+  const ranks = lista.map(indiceStatusPedido);
+  let minRank = Math.min(...ranks);
+
+  const rankPendente = indiceStatusPedido(STATUS_PEDIDO_PENDENTE);
+  const rankCancelado = indiceStatusPedido("Cancelado");
+  const algumaAvancou = ranks.some(
+    (r) => r > rankPendente && r !== rankCancelado,
+  );
+  if (algumaAvancou && minRank <= rankPendente) {
+    minRank = indiceStatusPedido(STATUS_PEDIDO_EM_COTACAO);
+  }
+
+  return STATUS_PEDIDO_OPCOES[minRank] || STATUS_PEDIDO_PENDENTE;
+}
+
+export function pedidoStatusFoiAlteradoManual(pedido) {
+  return Boolean(pedido?.status_manual);
+}
 
 /** Tema de cor do BaseCard conforme o status do pedido. */
 export function getPedidoStatusColorTheme(status) {

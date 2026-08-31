@@ -501,9 +501,9 @@ export function modalidadeEstaPreenchida(
 ) {
   if (id === "financeiro") {
     const obs = lancamento
-      ? normalizarConteudo(lancamento.conteudo).observacoes?.trim()
+      ? normalizarConteudo(lancamento.conteudo).observacoes
       : "";
-    if (obs) return true;
+    if (resumoObraTemConteudo(obs)) return true;
     if (financeiroResumo != null) {
       const temExtrato = (financeiroResumo.extratoSemana?.length || 0) > 0;
       const temEspera = (financeiroResumo.emEsperaSemana?.length || 0) > 0;
@@ -514,7 +514,7 @@ export function modalidadeEstaPreenchida(
   if (!lancamento) return false;
   if (id === "obra") return conteudoObraTemItens(lancamento.conteudo);
   const obs = normalizarConteudo(lancamento.conteudo).observacoes;
-  return Boolean(obs?.trim());
+  return resumoObraTemConteudo(obs);
 }
 
 /**

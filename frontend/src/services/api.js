@@ -9,6 +9,7 @@ import {
   enriquecerNumerosPedidos,
   normalizarNomeMaterial,
   normalizarMateriaisLista,
+  statusPedidoAutomaticoDasOrdens,
   validarItemPedido,
 } from "../utils/pedidosUtils";
 import {
@@ -16,6 +17,7 @@ import {
   normalizarItensProjecao,
 } from "../utils/projecaoUtils";
 import { semanasDoMes } from "../pages/relatorios-diretoria/relatoriosDiretoriaUtils";
+import { inserirEtapaMurosSeFaltar } from "../utils/etapasObra";
 import {
   calcularTotalValoresProposta,
   normalizarPropostaDados,
@@ -106,6 +108,56 @@ function mapContaPagarPrestadorParaItemFinanceiro(row) {
     prestadores: row.prestadores || null,
     obras: row.obras || null,
   };  
+}
+
+async function upsertExtratoFromMaterial(material) {
+  if (!material?.id || material.obra_id == null) return null;
+  const valor = parseFloat(material.valor);
+  const valorNum = Number.isFinite(valor) ? valor : 0;
+
+  const { data: extratoData, error: errFind } = await supabase
+    .from("relatorio_extrato")
+    .select("id")
+    .eq("material_id", material.id)
+    .maybeSingle();
+  if (errFind) throw errFind;
+
+  if (extratoData?.id) {
+    const { data, error } = await supabase
+      .from("relatorio_extrato")
+      .update({
+        valor: valorNum,
+        descricao: material.material,
+      })
+      .eq("id", extratoData.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  if (!(valorNum > 0)) return null;
+
+  const { data, error } = await supabase
+    .from("relatorio_extrato")
+    .insert([
+      {
+        obra_id: material.obra_id,
+        material_id: material.id,
+        descricao: material.material,
+        tipo: "Material",
+        quantidade: material.quantidade,
+        data: material.data_solicitacao || new Date().toISOString(),
+        valor: valorNum,
+        validacao: 0,
+        status_financeiro: STATUS_AP_AGUARDANDO,
+        etapa_nome: material.etapa_nome || null,
+      },
+    ])
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 async function upsertContaPagarFromMaterial(material) {
@@ -510,7 +562,7 @@ function normalizeObraIdForHistorico(obraId) {
 const PEDIDO_SELECT_ITENS =
   "obra_pedido_itens(id, material, quantidade, unidade, data_entrega, created_at, fornecedor_id, data_pagamento, valor)";
 
-const PEDIDO_SELECT_BASE = `id, obra_id, numero, status, solicitante_id, solicitante_nome, created_at, updated_at, ${PEDIDO_SELECT_ITENS}`;
+const PEDIDO_SELECT_BASE = `id, obra_id, numero, status, status_manual, solicitante_id, solicitante_nome, created_at, updated_at, ${PEDIDO_SELECT_ITENS}`;
 
 const PEDIDO_SELECT_SIMPLES =
   "id, obra_id, numero, status, solicitante_id, solicitante_nome, created_at, updated_at";
@@ -573,8 +625,31 @@ function statusGrupoCompraEhComprado(status) {
   return String(status || "").trim().toLowerCase() === "comprado";
 }
 
+function erroPorColunaAusente(error, coluna) {
+  const msg = String(error?.message || "");
+  const code = String(error?.code || "");
+  if (code === "42703") return true;
+  return new RegExp(coluna, "i").test(msg) && /column|schema cache/i.test(msg);
+}
+
 function itemPedidoEstaNoRelatorio(item) {
   return item?.material_relatorio_id != null;
+}
+
+async function atualizarCamposPedido(pedidoId, campos) {
+  let { error } = await supabase
+    .from("obra_pedidos")
+    .update(campos)
+    .eq("id", pedidoId);
+  if (error && campos.status_manual !== undefined && erroPorColunaAusente(error, "status_manual")) {
+    const semFlag = { ...campos };
+    delete semFlag.status_manual;
+    ({ error } = await supabase
+      .from("obra_pedidos")
+      .update(semFlag)
+      .eq("id", pedidoId));
+  }
+  if (error) throw new Error(mensagemErroPedido(error));
 }
 
 async function tocarPedidoAtualizado(pedidoId) {
@@ -583,6 +658,44 @@ async function tocarPedidoAtualizado(pedidoId) {
     .update({ updated_at: new Date().toISOString() })
     .eq("id", pedidoId);
   if (error) throw new Error(mensagemErroPedido(error));
+}
+
+async function sincronizarStatusPedidoComOrdens(pedidoId) {
+  if (pedidoId == null) return;
+
+  let { data: pedido, error: errP } = await supabase
+    .from("obra_pedidos")
+    .select("id, status, status_manual")
+    .eq("id", pedidoId)
+    .maybeSingle();
+  if (errP && erroPorColunaAusente(errP, "status_manual")) {
+    const fb = await supabase
+      .from("obra_pedidos")
+      .select("id, status")
+      .eq("id", pedidoId)
+      .maybeSingle();
+    if (fb.error) throw new Error(mensagemErroPedido(fb.error));
+    pedido = fb.data ? { ...fb.data, status_manual: false } : null;
+  } else if (errP) {
+    throw new Error(mensagemErroPedido(errP));
+  }
+  if (!pedido || pedido.status_manual) return;
+
+  const { data: grupos, error: errG } = await supabase
+    .from("obra_pedido_grupos_compra")
+    .select("status")
+    .eq("pedido_id", pedidoId);
+  if (errG) throw new Error(mensagemErroPedido(errG));
+
+  const automatico = statusPedidoAutomaticoDasOrdens(
+    (grupos || []).map((g) => g.status),
+  );
+  if (!automatico || automatico === pedido.status) return;
+
+  await atualizarCamposPedido(pedidoId, {
+    status: automatico,
+    updated_at: new Date().toISOString(),
+  });
 }
 
 async function anexarItensAosPedidos(pedidos) {
@@ -689,6 +802,25 @@ export const api = {
 
     if (error) throw error;
     return data;
+  },
+
+  getFinanceiroTodos: async (
+    tabela,
+    escritorioId,
+    { apenasValidados = false } = {},
+  ) => {
+    if (!escritorioId) return [];
+    let query = supabase
+      .from(tabela)
+      .select("*")
+      .eq("escritorio_id", escritorioId)
+      .order("data", { ascending: false });
+    if (apenasValidados) {
+      query = query.eq("validacao", 1);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   },
 
   /**
@@ -1992,7 +2124,16 @@ export const api = {
         .maybeSingle();
       if (!errObra) cliente = data;
     }
-    return { ...obra, clientes: cliente };
+    const etapasOriginais = obra.etapas_selecionadas || [];
+    const etapas = inserirEtapaMurosSeFaltar(etapasOriginais);
+    if (etapas !== etapasOriginais) {
+      supabase
+        .from("obras")
+        .update({ etapas_selecionadas: etapas })
+        .eq("id", id)
+        .then();
+    }
+    return { ...obra, etapas_selecionadas: etapas, clientes: cliente };
   },
 
   getObraById: async (id) => {
@@ -2038,6 +2179,7 @@ export const api = {
     }
 
     let etapas = data.etapas_selecionadas || [];
+    let persistirEtapas = false;
 
     if (data.clientes?.tipo?.toLowerCase() === "reforma" && etapas.length > 0) {
       const temDemolicao = etapas.some((e) => e.nome === "Demolição");
@@ -2046,12 +2188,22 @@ export const api = {
           { nome: "Demolição", progresso: 0, status: "pendente" },
           ...etapas,
         ];
-        supabase
-          .from("obras")
-          .update({ etapas_selecionadas: etapas })
-          .eq("id", id)
-          .then();
+        persistirEtapas = true;
       }
+    }
+
+    const etapasComMuros = inserirEtapaMurosSeFaltar(etapas);
+    if (etapasComMuros !== etapas) {
+      etapas = etapasComMuros;
+      persistirEtapas = true;
+    }
+
+    if (persistirEtapas) {
+      supabase
+        .from("obras")
+        .update({ etapas_selecionadas: etapas })
+        .eq("id", id)
+        .then();
     }
 
     return {
@@ -2384,6 +2536,43 @@ export const api = {
     return data[0];
   },
 
+
+  /** Status financeiro Montezuma → prestador (contas a pagar). */
+  updateContaPagarPrestadorStatus: async (id, novoStatus) => {
+    const statusPago = isStatusApPago(novoStatus);
+    const status = statusPago ? STATUS_AP_PAGO : STATUS_AP_AGUARDANDO;
+    const { data, error } = await supabase
+      .from("contas_pagar_prestador")
+      .update({
+        status_pagamento: status,
+        data_pagamento: statusPago ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return mapContaPagarPrestadorParaItemFinanceiro(data);
+  },
+
+  updateContasPagarPrestadorStatusInIds: async (ids, novoStatus) => {
+    const lista = (Array.isArray(ids) ? ids : []).filter((id) => id != null);
+    if (!lista.length) return [];
+    const statusPago = isStatusApPago(novoStatus);
+    const status = statusPago ? STATUS_AP_PAGO : STATUS_AP_AGUARDANDO;
+    const { data, error } = await supabase
+      .from("contas_pagar_prestador")
+      .update({
+        status_pagamento: status,
+        data_pagamento: statusPago ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .in("id", lista)
+      .select("*");
+    if (error) throw error;
+    return (data || []).map(mapContaPagarPrestadorParaItemFinanceiro);
+  },
+
   /** Status financeiro Montezuma → fornecedor (contas a pagar). */
   updateMaterialStatusFinanceiro: async (id, novoStatus) => {
     return api.updateContaPagarStatus(id, novoStatus);
@@ -2509,33 +2698,7 @@ export const api = {
       if (materialAtualizado.fornecedor_id) {
         await upsertContaPagarFromMaterial(materialAtualizado);
       }
-      const { data: extratoData } = await supabase
-        .from("relatorio_extrato")
-        .select("*")
-        .eq("material_id", id)
-        .maybeSingle();
-      if (extratoData) {
-        await supabase
-          .from("relatorio_extrato")
-          .update({ valor: novoValor, descricao: materialAtualizado.material })
-          .eq("id", extratoData.id);
-      } else if (parseFloat(novoValor) > 0) {
-        await supabase.from("relatorio_extrato").insert([
-          {
-            obra_id: materialAtualizado.obra_id,
-            material_id: materialAtualizado.id,
-            descricao: materialAtualizado.material,
-            tipo: "Material",
-            quantidade: materialAtualizado.quantidade,
-            data:
-              materialAtualizado.data_solicitacao || new Date().toISOString(),
-            valor: novoValor,
-            validacao: 0,
-            status_financeiro: STATUS_AP_AGUARDANDO,
-            etapa_nome: materialAtualizado.etapa_nome || null,
-          },
-        ]);
-      }
+      await upsertExtratoFromMaterial(materialAtualizado);
     }
     return materialAtualizado;
   },
@@ -4601,6 +4764,15 @@ export const api = {
     ) {
       await api.updateMaterialEtapa(data.material_relatorio_id, payload.etapa_nome);
     }
+    if (
+      campos.valor !== undefined &&
+      data?.material_relatorio_id != null
+    ) {
+      await api.updateMaterialValor(
+        data.material_relatorio_id,
+        payload.valor ?? 0,
+      );
+    }
     return true;
   },
 
@@ -4682,13 +4854,21 @@ export const api = {
     if (!pedidoId || !novo) {
       throw new Error("Pedido e status são obrigatórios.");
     }
-    const { error } = await supabase
-      .from("obra_pedidos")
-      .update({ status: novo, updated_at: new Date().toISOString() })
-      .eq("id", pedidoId);
-    if (error) {
-      throw new Error(mensagemErroPedido(error));
-    }
+    await atualizarCamposPedido(pedidoId, {
+      status: novo,
+      status_manual: true,
+      updated_at: new Date().toISOString(),
+    });
+    return api.getObraPedidoById(pedidoId);
+  },
+
+  restaurarStatusPedidoAutomatico: async (pedidoId) => {
+    if (!pedidoId) throw new Error("Pedido inválido.");
+    await atualizarCamposPedido(pedidoId, {
+      status_manual: false,
+      updated_at: new Date().toISOString(),
+    });
+    await sincronizarStatusPedidoComOrdens(pedidoId);
     return api.getObraPedidoById(pedidoId);
   },
 
@@ -4899,6 +5079,7 @@ export const api = {
     }
 
     const pedidoId = grupo.pedido_id;
+    await sincronizarStatusPedidoComOrdens(pedidoId);
     return api.getPedidoGruposCompra(pedidoId);
   },
 
@@ -4978,10 +5159,41 @@ export const api = {
               console.error("[grupo compra] sync conta a pagar:", errAp);
             }
           }
+          try {
+            await upsertExtratoFromMaterial(mat);
+          } catch (errEx) {
+            console.error("[grupo compra] sync extrato:", errEx);
+          }
           await supabase
             .from("obra_pedido_itens")
             .update({ material_relatorio_id: mat.id })
             .eq("id", item.id);
+        }
+      }),
+    );
+
+    const vinculados = (itens || []).filter(
+      (item) => item.material_relatorio_id != null,
+    );
+    await Promise.all(
+      vinculados.map(async (item) => {
+        const { data: mat, error: errMat } = await supabase
+          .from("relatorio_materiais")
+          .select("*")
+          .eq("id", item.material_relatorio_id)
+          .maybeSingle();
+        if (errMat || !mat) return;
+        const valorPedido =
+          item.valor != null && item.valor !== "" ? Number(item.valor) : 0;
+        const valorMat = parseFloat(mat.valor) || 0;
+        try {
+          if (valorMat <= 0 && Number.isFinite(valorPedido) && valorPedido > 0) {
+            await api.updateMaterialValor(mat.id, valorPedido);
+          } else {
+            await upsertExtratoFromMaterial(mat);
+          }
+        } catch (errEx) {
+          console.error("[grupo compra] sync extrato existente:", errEx);
         }
       }),
     );

@@ -39,22 +39,19 @@ ${texto}
   }
 
   if (contexto === "relatorio_financeiro") {
-    return `Você é redator de relatórios financeiros semanais para a diretoria de uma empresa de construção civil no Brasil.
+    return `Você é corretor ortográfico de relatórios financeiros semanais para a diretoria de uma empresa de construção civil no Brasil.
 
-Reescreva o texto abaixo em português brasileiro claro, objetivo e profissional.
-Corrija gramática, ortografia e pontuação. Melhore a fluidez sem mudar o sentido nem inventar informações.
+O texto abaixo está em HTML. Corrija APENAS ortografia, gramática e pontuação do conteúdo textual.
+NÃO resuma, NÃO reescreva o sentido, NÃO reorganize parágrafos e NÃO remova informações.
 Use tom adequado a observações de acompanhamento financeiro (direto, preciso e informativo).
 
-Regras obrigatórias:
-- Máximo ${maxLinhas} linhas (quebras de linha só entre frases completas).
-- Cada linha deve ser uma frase completa terminada em . ! ou ?
-- A última linha DEVE fechar o texto com pontuação final — nunca pare no meio de palavra ou frase.
-- Se o conteúdo for longo, resuma reescrevendo de forma mais concisa; não truncar nem cortar.
+Formatação HTML:
+- Preserve todas as tags existentes (p, strong, b, em, ul, ol, li, br, etc.).
+- Você PODE usar negrito ou listas se isso melhorar a clareza, sem apagar formatação já presente.
+- Não envolva a resposta em markdown, code fences ou aspas.
+- Retorne APENAS o HTML corrigido.
 
-Não use markdown, títulos, bullets, aspas envolvendo o texto inteiro nem explicações.
-Retorne APENAS o texto final reescrito.
-
-Texto original:
+Texto original (HTML):
 """
 ${texto}
 """`;
@@ -101,6 +98,10 @@ Texto original:
 """
 ${texto}
 """`;
+}
+
+function contextoUsaHtml(contexto) {
+  return contexto === "relatorio_obra" || contexto === "relatorio_financeiro";
 }
 
 function montarPromptAjuste(texto, maxLinhas, contexto = "proposta") {
@@ -158,7 +159,7 @@ async function chamarGeminiDiretoPrompt(prompt, { maxOutputTokens = 2048 } = {})
 async function finalizarSugestaoIA(textoBruto, maxLinhas, gerarPrompt, contexto) {
   let texto = limparTextoGemini(textoBruto);
 
-  if (contexto === "relatorio_obra") {
+  if (contextoUsaHtml(contexto)) {
     return texto;
   }
 
@@ -182,7 +183,7 @@ async function finalizarSugestaoIA(textoBruto, maxLinhas, gerarPrompt, contexto)
 }
 
 async function chamarGeminiDireto(texto, maxLinhas, contexto) {
-  const tokens = contexto === "relatorio_obra" ? 8192 : 2048;
+  const tokens = contextoUsaHtml(contexto) ? 8192 : 2048;
   const gerar = (prompt) =>
     chamarGeminiDiretoPrompt(prompt, { maxOutputTokens: tokens });
   const bruto = await gerar(montarPromptGemini(texto, maxLinhas, contexto));
@@ -200,7 +201,7 @@ async function chamarGeminiEdgeFunction(texto, maxLinhas, contexto) {
   if (data?.erro) throw new Error(data.erro);
 
   const sugerido =
-    contexto === "relatorio_obra"
+    contextoUsaHtml(contexto)
       ? limparTextoGemini(data?.sugerido ?? "")
       : removerFinalIncompleto(data?.sugerido ?? "");
 
@@ -261,11 +262,13 @@ export async function melhorarTextoPortugues(
     }
   }
 
-  const local =
-    contexto === "relatorio_obra" ? original : limpezaBasicaLocal(original);
+  const local = contextoUsaHtml(contexto)
+    ? original
+    : limpezaBasicaLocal(original);
   return {
-    sugerido:
-      contexto === "relatorio_obra" ? local : limitarLinhasDescricao(local),
+    sugerido: contextoUsaHtml(contexto)
+      ? local
+      : limitarLinhasDescricao(local),
     origem: "local",
     aviso:
       "IA indisponível. Configure Gemini (veja instruções) ou edite manualmente. Aplicamos apenas ajustes básicos.",

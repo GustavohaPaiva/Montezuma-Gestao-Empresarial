@@ -1,5 +1,6 @@
 import { Document, Text, View } from "@react-pdf/renderer";
 import { TIPOS_EXTRATO } from "../pages/relatorios-diretoria/relatorioFinanceiroUtils";
+import { HtmlResumoObraPdf } from "./HtmlResumoObraPdf";
 import {
   InfoChip,
   ReportHeader,
@@ -8,8 +9,56 @@ import {
   formatMoeda,
   styles,
 } from "./RelatorioDiretoriaPdfShared";
+import { textoLivreParaHtml, textoLivreTemConteudo } from "../utils/textoLivre";
 
 const SUBTITULO = "Relatórios da Diretoria · Montezuma Gestão Empresarial";
+
+const htmlPdfStyles = {
+  ...styles,
+  resumoBody: { marginBottom: 6 },
+  paragraph: {
+    fontSize: 9,
+    lineHeight: 1.4,
+    marginBottom: 5,
+  },
+  heading1: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  heading2: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 6,
+    marginBottom: 3,
+  },
+  heading3: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 5,
+    marginBottom: 2,
+  },
+  bold: { fontFamily: "Helvetica-Bold" },
+  italic: { fontFamily: "Helvetica-Oblique" },
+  underline: { textDecoration: "underline" },
+  strike: { textDecoration: "line-through" },
+  blockquote: {
+    marginBottom: 6,
+    paddingLeft: 8,
+    borderLeftWidth: 2,
+    borderLeftColor: "#DC3B0B",
+  },
+  list: { marginBottom: 5, paddingLeft: 2 },
+  listItem: {
+    flexDirection: "row",
+    marginBottom: 3,
+    paddingRight: 8,
+  },
+  listBullet: { width: 14, fontSize: 9 },
+  listItemText: { flex: 1, fontSize: 9, lineHeight: 1.4 },
+  itemText: { fontSize: 9, lineHeight: 1.4 },
+};
 
 function MetricCard({ label, value }) {
   return (
@@ -168,7 +217,8 @@ export default function RelatorioDiretoriaFinanceiroPDF({
   observacoes = "",
 }) {
   const totais = resumo?.totais || {};
-  const textoObs = String(observacoes || "").trim();
+  const htmlObs = textoLivreParaHtml(observacoes);
+  const temObservacoes = textoLivreTemConteudo(htmlObs);
 
   return (
     <Document title={titulo} author="Montezuma Gestão Empresarial">
@@ -211,10 +261,10 @@ export default function RelatorioDiretoriaFinanceiroPDF({
           itens={resumo?.emEsperaSemana}
         />
 
-        {textoObs ? (
+        {temObservacoes ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Observações</Text>
-            <Text style={styles.prosa}>{textoObs}</Text>
+            <HtmlResumoObraPdf html={htmlObs} styles={htmlPdfStyles} />
           </View>
         ) : null}
       </ReportPage>

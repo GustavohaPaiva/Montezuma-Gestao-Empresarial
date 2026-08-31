@@ -24,10 +24,11 @@ export const SUB_ABAS_PEDIDOS_OBRA = [
 ];
 
 export const STATUS_PEDIDO_PENDENTE = "Pendente";
+export const STATUS_PEDIDO_EM_COTACAO = "Em cotação";
 
 export const STATUS_PEDIDO_OPCOES = [
   STATUS_PEDIDO_PENDENTE,
-  "Em cotação",
+  STATUS_PEDIDO_EM_COTACAO,
   "Aprovado",
   "Aguardando entrega",
   "Entregue",
@@ -63,6 +64,10 @@ export function labelEmitenteGrupo(emitente, obra) {
   return "Montezuma";
 }
 
+/**
+ * Pipeline das ordens de compra. A posição de cada item corresponde ao
+ * equivalente em STATUS_PEDIDO_OPCOES (Comprado → Entregue).
+ */
 export const STATUS_GRUPO_COMPRA_OPCOES = [
   "Pendente",
   "Em cotação",

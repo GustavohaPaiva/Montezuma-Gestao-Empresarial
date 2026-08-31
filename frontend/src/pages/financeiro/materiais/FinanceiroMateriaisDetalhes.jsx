@@ -22,6 +22,8 @@ import {
   formatarDataBR,
   formatarMoeda,
 } from "../../obras/detalhe/utils/formatters";
+import { historicoMateriais } from "../historicoLancamentos";
+import { useHistoricoLancamentos } from "../useHistoricoLancamentos";
 import {
   BUCKET_META,
   BUCKET_ORDER,
@@ -123,6 +125,7 @@ function badgePrioridadeClass(bucket) {
 export default function FinanceiroMateriaisDetalhes() {
   const { fornecedorId } = useParams();
   const navigate = useNavigate();
+  const { abrirHistorico, modalHistorico } = useHistoricoLancamentos();
   const [loading, setLoading] = useState(true);
   const [fornecedorNome, setFornecedorNome] = useState("");
   const [materiais, setMateriais] = useState([]);
@@ -286,13 +289,28 @@ export default function FinanceiroMateriaisDetalhes() {
   }, [itensFiltrados, selecionados]);
 
   const resumo = useMemo(
-    () => [
+    () => {
+      const extras = { fornecedorNome };
+      const abrirKpi = (kpiId, titulo, subtitulo) => {
+        abrirHistorico({
+          titulo,
+          subtitulo,
+          itens: historicoMateriais(materiais, kpiId, extras),
+        });
+      };
+      return [
       {
         id: "itens",
         label: hub.detalheMetricItens,
         value: itensEmAberto.length,
         icon: <Package className="h-4 w-4" />,
         theme: "primary",
+        onClick: () =>
+          abrirKpi(
+            "itens",
+            hub.detalheMetricItens,
+            `${itensEmAberto.length} ${itensEmAberto.length === 1 ? "item" : "itens"}`,
+          ),
       },
       {
         id: "a-pagar",
@@ -300,6 +318,12 @@ export default function FinanceiroMateriaisDetalhes() {
         value: `R$ ${formatarMoeda(totais.pendente)}`,
         icon: <Wallet className="h-4 w-4" />,
         theme: "amber",
+        onClick: () =>
+          abrirKpi(
+            "a-pagar",
+            hub.materiaisMetricAPagar,
+            `R$ ${formatarMoeda(totais.pendente)}`,
+          ),
       },
       {
         id: "vencido",
@@ -307,6 +331,12 @@ export default function FinanceiroMateriaisDetalhes() {
         value: `R$ ${formatarMoeda(totais.vencido)}`,
         icon: <AlertCircle className="h-4 w-4" />,
         theme: "pink",
+        onClick: () =>
+          abrirKpi(
+            "vencido",
+            hub.materiaisMetricVencidos,
+            `R$ ${formatarMoeda(totais.vencido)}`,
+          ),
       },
       {
         id: "pago",
@@ -314,6 +344,12 @@ export default function FinanceiroMateriaisDetalhes() {
         value: `R$ ${formatarMoeda(totais.pago)}`,
         icon: <CheckCircle2 className="h-4 w-4" />,
         theme: "emerald",
+        onClick: () =>
+          abrirKpi(
+            "pago",
+            hub.detalheMetricPago,
+            `R$ ${formatarMoeda(totais.pago)}`,
+          ),
       },
       {
         id: "total-comprado",
@@ -321,9 +357,16 @@ export default function FinanceiroMateriaisDetalhes() {
         value: `R$ ${formatarMoeda(totais.comprado)}`,
         icon: <CircleDollarSign className="h-4 w-4" />,
         theme: "blue",
+        onClick: () =>
+          abrirKpi(
+            "total-comprado",
+            hub.materiaisMetricTotalComprado,
+            `R$ ${formatarMoeda(totais.comprado)}`,
+          ),
       }
-    ],
-    [itensEmAberto.length, totais],
+    ];
+    },
+    [itensEmAberto.length, totais, materiais, fornecedorNome, abrirHistorico],
   );
 
   const handleSort = (campo) => {
@@ -535,6 +578,8 @@ export default function FinanceiroMateriaisDetalhes() {
   const temResultados = itensFiltrados.length > 0;
 
   return (
+    <>
+    {modalHistorico}
     <ModuleHub
       eyebrow={hub.eyebrow}
       titulo={fornecedorNome || hub.materiaisTitulo}
@@ -732,5 +777,6 @@ export default function FinanceiroMateriaisDetalhes() {
         </section>
       )}
     </ModuleHub>
+    </>
   );
 }

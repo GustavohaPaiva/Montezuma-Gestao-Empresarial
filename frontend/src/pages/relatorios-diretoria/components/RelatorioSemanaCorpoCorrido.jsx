@@ -11,6 +11,8 @@ import {
   relatorioProsaClass,
   themeModalidade,
 } from "../relatoriosDiretoriaUi";
+import { HtmlTextoLivre } from "../../../components/gerais/EditorTextoLivre";
+import { textoLivreTemConteudo } from "../../../utils/textoLivre";
 import RelatorioFinanceiroDetalhes from "./RelatorioFinanceiroDetalhes";
 import RelatorioFinanceiroResumo from "./RelatorioFinanceiroResumo";
 import RelatorioObraConsolidadoView from "./RelatorioObraConsolidadoView";
@@ -91,7 +93,8 @@ export default function RelatorioSemanaCorpoCorrido({ consolidado }) {
 
         if (mod.id === "financeiro") {
           const observacoes =
-            normalizarConteudo(lancamento?.conteudo).observacoes?.trim() || "";
+            normalizarConteudo(lancamento?.conteudo).observacoes || "";
+          const temObservacoes = textoLivreTemConteudo(observacoes);
           return (
             <SecaoModulo key={mod.id} mod={mod}>
               {financeiroResumo ? (
@@ -106,29 +109,37 @@ export default function RelatorioSemanaCorpoCorrido({ consolidado }) {
                   />
                 </>
               ) : null}
-              {observacoes ? (
+              {temObservacoes ? (
                 <div className="mt-4">
                   <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
                     Observações
                   </p>
-                  <p className={`whitespace-pre-wrap ${relatorioProsaClass}`}>
-                    {observacoes}
-                  </p>
+                  <HtmlTextoLivre
+                    html={observacoes}
+                    className={relatorioProsaClass}
+                  />
                 </div>
               ) : null}
             </SecaoModulo>
           );
         }
 
-        const texto =
-          normalizarConteudo(lancamento.conteudo).observacoes?.trim() ||
-          "Sem observações registradas.";
+        const observacoes =
+          normalizarConteudo(lancamento.conteudo).observacoes || "";
+        const temObservacoes = textoLivreTemConteudo(observacoes);
 
         return (
           <SecaoModulo key={mod.id} mod={mod}>
-            <p className={`whitespace-pre-wrap ${relatorioProsaClass}`}>
-              {texto}
-            </p>
+            {temObservacoes ? (
+              <HtmlTextoLivre
+                html={observacoes}
+                className={relatorioProsaClass}
+              />
+            ) : (
+              <p className={`${relatorioProsaClass} text-text-muted`}>
+                Sem observações registradas.
+              </p>
+            )}
           </SecaoModulo>
         );
       })}

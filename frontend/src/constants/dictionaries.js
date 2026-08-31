@@ -297,6 +297,13 @@ export const homeDictionary = {
     detalhePainelTitulo: "Pendências",
     detalhePainelSubtitulo: (n) =>
       `${n} item${n === 1 ? "" : "s"} em aberto`,
+    historicoVazio: "Nenhum lançamento neste total.",
+    historicoTotal: "Total",
+    historicoLancamentos: (n) =>
+      `${n} lançamento${n === 1 ? "" : "s"}`,
+    historicoCaixaEmprestado: "Emprestado",
+    historicoCaixaTomado: "Tomado",
+    historicoCaixaSaldo: "Em caixa",
   },
 };
 

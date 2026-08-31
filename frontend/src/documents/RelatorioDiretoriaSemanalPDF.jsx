@@ -9,6 +9,7 @@ import {
   formatMoeda,
   styles,
 } from "./RelatorioDiretoriaPdfShared";
+import { textoLivreParaHtml, textoLivreTemConteudo } from "../utils/textoLivre";
 
 const SUBTITULO = "Relatórios da Diretoria · Montezuma Gestão Empresarial";
 
@@ -56,6 +57,7 @@ const htmlPdfStyles = {
   },
   listBullet: { width: 14, fontSize: 9 },
   listItemText: { flex: 1, fontSize: 9, lineHeight: 1.4 },
+  itemText: { fontSize: 9, lineHeight: 1.4 },
 };
 
 function LinhaLista({ children }) {
@@ -150,12 +152,15 @@ function FinanceiroResumoCompacto({ resumo, observacoes = "" }) {
         </>
       ) : null}
 
-      {observacoes ? (
+      {textoLivreTemConteudo(observacoes) ? (
         <View style={{ marginTop: temResumo ? 10 : 0 }}>
           <Text style={[styles.sectionTitle, { fontSize: 9 }]} wrap={false}>
             Observações
           </Text>
-          <Text style={styles.prosa}>{observacoes}</Text>
+          <HtmlResumoObraPdf
+            html={textoLivreParaHtml(observacoes)}
+            styles={htmlPdfStyles}
+          />
         </View>
       ) : null}
     </View>
@@ -235,7 +240,10 @@ export default function RelatorioDiretoriaSemanalPDF({
             if (bloco.tipo === "prosa") {
               return (
                 <ModalitySection key={bloco.id} titulo={bloco.titulo}>
-                  <Text style={styles.prosa}>{bloco.texto}</Text>
+                  <HtmlResumoObraPdf
+                    html={textoLivreParaHtml(bloco.texto)}
+                    styles={htmlPdfStyles}
+                  />
                 </ModalitySection>
               );
             }

@@ -13,12 +13,15 @@ import ModuleHub from "../../../components/gerais/ModuleHub";
 import { homeDictionary } from "../../../constants/dictionaries";
 import { formatarMoeda } from "../../obras/detalhe/utils/formatters";
 import { api } from "../../../services/api";
+import { historicoMaoDeObra } from "../historicoLancamentos";
+import { useHistoricoLancamentos } from "../useHistoricoLancamentos";
 import { resumirKpisMaoDeObra, prestadoresEmAberto } from "./maoDeobraPrioridade";
 
 const hub = homeDictionary.financeiroHub;
 
 export default function FinanceiroMaoDeObra() {
   const navigate = useNavigate();
+  const { abrirHistorico, modalHistorico } = useHistoricoLancamentos();
   const [maoDeObra, setMaoDeObra] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -40,6 +43,14 @@ export default function FinanceiroMaoDeObra() {
 
   const prestadores = useMemo(() => prestadoresEmAberto(maoDeObra), [maoDeObra]);
 
+  const abrirKpi = (kpiId, titulo, subtitulo) => {
+    abrirHistorico({
+      titulo,
+      subtitulo,
+      itens: historicoMaoDeObra(maoDeObra, kpiId),
+    });
+  };
+
   const resumo = useMemo(
     () => [
       {
@@ -48,6 +59,12 @@ export default function FinanceiroMaoDeObra() {
         value: kpis.itensAbertos,
         icon: <Package className="h-5 w-5" />,
         theme: "primary",
+        onClick: () =>
+          abrirKpi(
+            "itens-abertos",
+            hub.maoObraMetricItensAbertos,
+            `${kpis.itensAbertos} ${kpis.itensAbertos === 1 ? "item" : "itens"}`,
+          ),
       },
       {
         id: "a-pagar",
@@ -55,6 +72,12 @@ export default function FinanceiroMaoDeObra() {
         value: `R$ ${formatarMoeda(kpis.aPagar)}`,
         icon: <Wallet className="h-5 w-5" />,
         theme: "amber",
+        onClick: () =>
+          abrirKpi(
+            "a-pagar",
+            hub.maoObraMetricAPagar,
+            `R$ ${formatarMoeda(kpis.aPagar)}`,
+          ),
       },
       {
         id: "pago",
@@ -62,6 +85,12 @@ export default function FinanceiroMaoDeObra() {
         value: `R$ ${formatarMoeda(kpis.pago)}`,
         icon: <CheckCircle2 className="h-5 w-5" />,
         theme: "emerald",
+        onClick: () =>
+          abrirKpi(
+            "pago",
+            hub.maoObraMetricPago,
+            `R$ ${formatarMoeda(kpis.pago)}`,
+          ),
       },
       {
         id: "total-lancado",
@@ -69,9 +98,15 @@ export default function FinanceiroMaoDeObra() {
         value: `R$ ${formatarMoeda(kpis.totalLancado)}`,
         icon: <CircleDollarSign className="h-5 w-5" />,
         theme: "blue",
+        onClick: () =>
+          abrirKpi(
+            "total-lancado",
+            hub.maoObraMetricTotalLancado,
+            `R$ ${formatarMoeda(kpis.totalLancado)}`,
+          ),
       },
     ],
-    [kpis],
+    [kpis, maoDeObra, abrirHistorico],
   );
 
   const termo = busca.trim().toLowerCase();
@@ -80,6 +115,8 @@ export default function FinanceiroMaoDeObra() {
     : prestadores;
 
   return (
+    <>
+    {modalHistorico}
     <ModuleHub
       eyebrow={hub.eyebrow}
       titulo={hub.maoObraTitulo}
@@ -152,5 +189,6 @@ export default function FinanceiroMaoDeObra() {
         </div>
       )}
     </ModuleHub>
+    </>
   );
 }

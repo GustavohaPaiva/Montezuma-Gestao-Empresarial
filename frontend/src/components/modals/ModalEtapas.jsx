@@ -6,6 +6,7 @@ const ETAPAS_OBRA = [
   "Infraestrutura",
   "Supraestrutura",
   "Paredes e Painéis",
+  "Muros",
   "Cobertura",
   "Revestimentos externos",
   "Revestimentos internos",
@@ -41,7 +42,9 @@ export default function ModalEtapas({
   }
 
   if (!isOpen) return null;
-  const isAllSelected = etapasSelecionadas.length === ETAPAS_OBRA.length;
+  const isAllSelected = ETAPAS_OBRA.every((nome) =>
+    etapasSelecionadas.includes(nome),
+  );
 
   const handleToggleAll = () => {
     if (isAllSelected) {
@@ -60,22 +63,25 @@ export default function ModalEtapas({
   };
 
   const handleConfirmar = () => {
-    const arrayFormatado = etapasSelecionadas.map((nomeEtapa) => {
+    const montarEtapa = (nomeEtapa) => {
       const etapaExistente = etapasSalvas.find((e) => e.nome === nomeEtapa);
-
-      if (etapaExistente) {
-        return etapaExistente;
-      }
-
+      if (etapaExistente) return etapaExistente;
       return {
         nome: nomeEtapa,
         status: "pendente",
         data_inicio: null,
         data_conclusao: null,
       };
-    });
+    };
 
-    onSave(arrayFormatado);
+    const extras = etapasSalvas.filter(
+      (e) => e?.nome && !ETAPAS_OBRA.includes(e.nome),
+    );
+    const catalogadas = ETAPAS_OBRA.filter((nome) =>
+      etapasSelecionadas.includes(nome),
+    ).map(montarEtapa);
+
+    onSave([...extras, ...catalogadas]);
   };
 
   return (

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import BaseButton from "../../../components/gerais/BaseButton";
 import BaseModal from "../../../components/gerais/BaseModal";
 import BaseSelect from "../../../components/gerais/BaseSelect";
+import EditorTextoLivre from "../../../components/gerais/EditorTextoLivre";
+import { serializarTextoLivre } from "../../../utils/textoLivre";
 import {
   isSemanaAtual,
   labelSemanaFromInicio,
@@ -12,7 +14,7 @@ import {
   semanaAtualInicio,
   chaveSemanaLancamento,
 } from "../relatoriosDiretoriaUtils";
-import { projecaoSubpainelClass, textareaCampoClass } from "../../projecoes/projecoesUi";
+import { projecaoSubpainelClass } from "../../projecoes/projecoesUi";
 
 export default function ModalLancamentoRelatorio({
   isOpen,
@@ -55,7 +57,7 @@ export default function ModalLancamentoRelatorio({
       ano,
       mes,
       semana_inicio: String(semanaInicio).slice(0, 10),
-      conteudo: { observacoes: observacoes.trim() },
+      conteudo: { observacoes: serializarTextoLivre(observacoes) },
     });
   };
 
@@ -119,13 +121,12 @@ export default function ModalLancamentoRelatorio({
           >
             Observações
           </label>
-          <textarea
-            id="relatorio-observacoes"
-            rows={6}
+          <EditorTextoLivre
             value={observacoes}
-            onChange={(e) => setObservacoes(e.target.value)}
-            placeholder={`Descreva o relatório ${mod?.label?.toLowerCase() || ""} desta semana…`}
-            className={textareaCampoClass}
+            onChange={setObservacoes}
+            disabled={salvando}
+            variant="simples"
+            placeholder={`Descreva o relatório ${mod?.label?.toLowerCase() || ""} desta semana… Use **negrito** ao colar.`}
           />
         </div>
 

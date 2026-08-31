@@ -90,6 +90,7 @@ export default function BaseCard({
   leading,
   /** Destaque visual do card ativo (ex.: filtro selecionado). */
   selected = false,
+  htmlTitle,
 }) {
   const palette = THEME_STYLES[colorTheme] || THEME_STYLES.primary;
   const isInteractive = typeof onClick === "function";
@@ -99,6 +100,7 @@ export default function BaseCard({
   const interactiveProps = isInteractive
     ? {
         onClick,
+        ...(htmlTitle ? { title: htmlTitle } : {}),
         ...(useDivAsInteractive
           ? {
               role: "button",
@@ -113,7 +115,9 @@ export default function BaseCard({
           : { type: "button" }),
         ...(selected ? { "aria-pressed": true } : {}),
       }
-    : {};
+    : htmlTitle
+      ? { title: htmlTitle }
+      : {};
 
   if (variant === "action") {
     return (

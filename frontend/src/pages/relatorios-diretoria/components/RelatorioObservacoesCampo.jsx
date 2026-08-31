@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import BaseButton from "../../../components/gerais/BaseButton";
 import BaseModal from "../../../components/gerais/BaseModal";
+import EditorTextoLivre, {
+  HtmlTextoLivre,
+  textoLivreTemConteudo,
+} from "../../../components/gerais/EditorTextoLivre";
 import { melhorarTextoPortugues } from "../../../utils/textoPortuguesAssistant";
-import { textareaCampoClass } from "../../projecoes/projecoesUi";
+import { sanitizeResumoObraHtml } from "../../../utils/sanitizeHtml";
 import {
   relatorioSecaoAccentLineClass,
   relatorioSecaoLabelAccentClass,
@@ -19,21 +23,21 @@ export default function RelatorioObservacoesCampo({
   titulo = "Observações",
   descricao = "Texto livre para comentários, destaques e notas da semana.",
   placeholder = "Escreva observações sobre o relatório financeiro desta semana…",
-  rows = 5,
   maxLinhas = 20,
   contextoIa = "relatorio_financeiro",
 }) {
+  const editorRef = useRef(null);
   const [assistenteAberto, setAssistenteAberto] = useState(false);
-  const [rascunho, setRascunho] = useState("");
-  const [sugerido, setSugerido] = useState("");
+  const [rascunhoHtml, setRascunhoHtml] = useState("");
+  const [sugeridoHtml, setSugeridoHtml] = useState("");
   const [aviso, setAviso] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [modo, setModo] = useState("editar");
 
   useEffect(() => {
     if (!assistenteAberto) return;
-    setRascunho(value || "");
-    setSugerido("");
+    setRascunhoHtml(value || "");
+    setSugeridoHtml("");
     setAviso("");
     setModo("editar");
   }, [assistenteAberto, value]);
@@ -42,11 +46,11 @@ export default function RelatorioObservacoesCampo({
     setCarregando(true);
     setAviso("");
     try {
-      const resultado = await melhorarTextoPortugues(rascunho, {
+      const resultado = await melhorarTextoPortugues(rascunhoHtml, {
         contexto: contextoIa,
         maxLinhas,
       });
-      setSugerido(resultado.sugerido || "");
+      setSugeridoHtml(sanitizeResumoObraHtml(resultado.sugerido || ""));
       setAviso(resultado.aviso || "");
       setModo("revisar");
     } catch (e) {
@@ -57,10 +61,15 @@ export default function RelatorioObservacoesCampo({
     }
   };
 
-  const aplicar = (texto) => {
-    onChange(String(texto ?? "").trim());
+  const aplicar = (html) => {
+    const safe = sanitizeResumoObraHtml(html);
+    onChange(safe);
+    editorRef.current?.commands.setContent(safe || "", { emitUpdate: false });
     setAssistenteAberto(false);
   };
+
+  const temConteudo = textoLivreTemConteudo(value);
+  const editorDisabled = disabled || salvando;
 
   return (
     <>
@@ -74,13 +83,15 @@ export default function RelatorioObservacoesCampo({
           ) : null}
         </div>
 
-        <textarea
+        <EditorTextoLivre
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={rows}
-          disabled={disabled || salvando}
+          onChange={onChange}
+          disabled={editorDisabled}
+          variant="simples"
           placeholder={placeholder}
-          className={textareaCampoClass}
+          onEditorReady={(ed) => {
+            editorRef.current = ed;
+          }}
         />
 
         <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
@@ -90,7 +101,7 @@ export default function RelatorioObservacoesCampo({
               variant="outline"
               size="sm"
               onClick={() => setAssistenteAberto(true)}
-              disabled={!String(value ?? "").trim() || salvando}
+              disabled={!temConteudo || salvando}
               icon={<Sparkles className="h-4 w-4" />}
             >
               Corretor com IA
@@ -119,7 +130,8 @@ export default function RelatorioObservacoesCampo({
       >
         <div className="space-y-4">
           <p className="text-xs text-text-muted">
-            Correção com IA (Google Gemini) — revise antes de aplicar ao campo.
+            Corrige ortografia e gramática, preservando negrito e listas. Revise
+            antes de aplicar ao campo.
           </p>
 
           {modo === "editar" ? (
@@ -128,12 +140,12 @@ export default function RelatorioObservacoesCampo({
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Texto original
                 </label>
-                <textarea
-                  rows={rows}
-                  value={rascunho}
-                  onChange={(e) => setRascunho(e.target.value)}
-                  className={textareaCampoClass}
-                />
+                <div className="max-h-64 overflow-y-auto rounded-xl border border-border-primary/30 bg-[#FAFAFA]/60 px-4 py-3">
+                  <HtmlTextoLivre
+                    html={rascunhoHtml}
+                    emptyMessage="Nenhum conteúdo."
+                  />
+                </div>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 <BaseButton
@@ -145,7 +157,7 @@ export default function RelatorioObservacoesCampo({
                 <BaseButton
                   variant="primary"
                   onClick={gerarSugestao}
-                  disabled={!rascunho.trim() || carregando}
+                  disabled={!textoLivreTemConteudo(rascunhoHtml) || carregando}
                   icon={
                     carregando ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -154,7 +166,7 @@ export default function RelatorioObservacoesCampo({
                     )
                   }
                 >
-                  {carregando ? "Gerando…" : "Melhorar com IA"}
+                  {carregando ? "Corrigindo…" : "Corrigir com IA"}
                 </BaseButton>
               </div>
             </>
@@ -169,12 +181,12 @@ export default function RelatorioObservacoesCampo({
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Sugestão
                 </label>
-                <textarea
-                  rows={rows}
-                  value={sugerido}
-                  onChange={(e) => setSugerido(e.target.value)}
-                  className={textareaCampoClass}
-                />
+                <div className="max-h-64 overflow-y-auto rounded-xl border border-border-primary/30 bg-[#FAFAFA]/60 px-4 py-3">
+                  <HtmlTextoLivre
+                    html={sugeridoHtml}
+                    emptyMessage="Nenhum conteúdo."
+                  />
+                </div>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 <BaseButton variant="outline" onClick={() => setModo("editar")}>
@@ -182,8 +194,8 @@ export default function RelatorioObservacoesCampo({
                 </BaseButton>
                 <BaseButton
                   variant="primary"
-                  onClick={() => aplicar(sugerido)}
-                  disabled={!sugerido.trim()}
+                  onClick={() => aplicar(sugeridoHtml)}
+                  disabled={!textoLivreTemConteudo(sugeridoHtml)}
                 >
                   Aplicar sugestão
                 </BaseButton>

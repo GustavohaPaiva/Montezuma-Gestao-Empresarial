@@ -285,6 +285,16 @@ export default function ModuleHub({
                 }
                 icon={item.icon}
                 colorTheme={item.theme || "primary"}
+                onClick={
+                  !resumoLoading && typeof item.onClick === "function"
+                    ? item.onClick
+                    : undefined
+                }
+                htmlTitle={
+                  typeof item.onClick === "function"
+                    ? "Ver histórico de lançamentos"
+                    : undefined
+                }
               />
             ))}
           </section>

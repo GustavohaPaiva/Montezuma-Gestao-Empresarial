@@ -17,6 +17,7 @@ import {
   STATUS_PEDIDO_PENDENTE,
 } from "../../constants/pedidos";
 import { getCorStatusMaterial } from "../obras/detalhe/utils/formatters";
+import { pedidoStatusFoiAlteradoManual } from "../../utils/pedidosUtils";
 import PedidoItensTableGestao from "../../components/pedidos/PedidoItensTableGestao";
 import PedidoOrdensCompra from "../../components/pedidos/PedidoOrdensCompra";
 import PedidoSecaoPainel from "../../components/pedidos/PedidoSecaoPainel";
@@ -54,6 +55,7 @@ export default function PedidoGestaoDetalhe() {
   const [erro, setErro] = useState(null);
   const [statusSel, setStatusSel] = useState(STATUS_PEDIDO_PENDENTE);
   const [salvandoStatus, setSalvandoStatus] = useState(false);
+  const [restaurandoAutomatico, setRestaurandoAutomatico] = useState(false);
   const [fornecedores, setFornecedores] = useState([]);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [excluindoPedido, setExcluindoPedido] = useState(false);
@@ -80,11 +82,9 @@ export default function PedidoGestaoDetalhe() {
         }
         return;
       }
+      statusIgnorarRef.current = true;
       setPedido(dados);
-      if (!silencioso) {
-        setStatusSel(dados.status || STATUS_PEDIDO_PENDENTE);
-        statusIgnorarRef.current = true;
-      }
+      setStatusSel(dados.status || STATUS_PEDIDO_PENDENTE);
     } catch (e) {
       console.error("[PedidoGestaoDetalhe] carregar:", e);
       if (!silencioso) {
@@ -93,10 +93,10 @@ export default function PedidoGestaoDetalhe() {
     } finally {
       if (!silencioso) {
         setLoading(false);
-        setTimeout(() => {
-          statusIgnorarRef.current = false;
-        }, 0);
       }
+      setTimeout(() => {
+        statusIgnorarRef.current = false;
+      }, 0);
     }
   }, [pedidoId, autorizado]);
 
@@ -107,6 +107,28 @@ export default function PedidoGestaoDetalhe() {
   const pedidoTemItemComprado = (pedido?.itens || []).some(
     (item) => item.material_relatorio_id != null,
   );
+
+  const pedidoStatusManual = pedidoStatusFoiAlteradoManual(pedido);
+
+  const restaurarStatusAutomatico = async () => {
+    if (!pedido?.id) return;
+    setRestaurandoAutomatico(true);
+    setErro(null);
+    statusIgnorarRef.current = true;
+    try {
+      const atualizado = await api.restaurarStatusPedidoAutomatico(pedido.id);
+      if (String(atualizado?.id) !== String(pedidoId)) return;
+      setPedido(atualizado);
+      setStatusSel(atualizado.status || STATUS_PEDIDO_PENDENTE);
+    } catch (e) {
+      setErro(e?.message || "Não foi possível restaurar o status automático.");
+    } finally {
+      setRestaurandoAutomatico(false);
+      setTimeout(() => {
+        statusIgnorarRef.current = false;
+      }, 0);
+    }
+  };
 
   const excluirPedido = async () => {
     if (!pedido?.id) return;
@@ -311,7 +333,11 @@ export default function PedidoGestaoDetalhe() {
 
             <PedidoSecaoPainel
               titulo="Status do pedido"
-              descricao="Alterações são guardadas automaticamente."
+              descricao={
+                pedidoStatusManual
+                  ? "Status definido manualmente. Deixa de acompanhar as ordens de compra até voltar ao automático."
+                  : "Acompanha automaticamente o status mais atrasado das ordens de compra. Alterar aqui passa a ser manual."
+              }
               icon={<Settings2 className="h-5 w-5" />}
               iconTheme="amber"
             >
@@ -323,7 +349,7 @@ export default function PedidoGestaoDetalhe() {
                   searchable={false}
                   value={statusSel}
                   onChange={(e) => setStatusSel(e.target.value)}
-                  disabled={salvandoStatus}
+                  disabled={salvandoStatus || restaurandoAutomatico}
                   className={selectPremium}
                   options={STATUS_PEDIDO_OPCOES.map((s) => ({
                     value: s,
@@ -331,6 +357,27 @@ export default function PedidoGestaoDetalhe() {
                   }))}
                 />
               </label>
+              {pedidoStatusManual ? (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-text-muted">
+                    Alteração manual — as ordens de compra já não atualizam este status.
+                  </p>
+                  <BaseButton
+                    variant="ghost"
+                    onClick={restaurarStatusAutomatico}
+                    disabled={restaurandoAutomatico || salvandoStatus}
+                    isLoading={restaurandoAutomatico}
+                    className="w-full sm:w-auto"
+                  >
+                    Voltar ao automático
+                  </BaseButton>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-text-muted">
+                  Quando todas as ordens avançam juntas, o pedido segue. Se uma
+                  ficar para trás, o pedido fica com o status dessa ordem.
+                </p>
+              )}
             </PedidoSecaoPainel>
 
             <PedidoOrdensCompra

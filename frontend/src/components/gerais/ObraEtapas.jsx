@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, HardHat, Hourglass, Download } from "lucide-react";
 import { toPng } from "html-to-image";
+import {
+  PESOS_ETAPAS,
+  calcularProgressoPonderado,
+} from "../../utils/etapasObra";
 
 import infraestrutura from "../../assets/imagensEtapas/Infraestrutura.png";
 import supraestrutura from "../../assets/imagensEtapas/Supraestrutura.png";
@@ -23,7 +27,7 @@ import demolicao from "../../assets/imagensEtapas/Demolição.png";
 const etapasMock = [
   {
     titulo: "Demolição",
-    peso: 0,
+    peso: PESOS_ETAPAS.Demolição,
     descricao: (
       <>
         Etapa inicial exclusiva para projetos de reforma. Consiste na derrubada
@@ -36,7 +40,7 @@ const etapasMock = [
   },
   {
     titulo: "Infraestrutura",
-    peso: 9.33,
+    peso: PESOS_ETAPAS.Infraestrutura,
     descricao: (
       <>
         Esta é a fase que exige a maior precisão técnica, pois erros aqui são
@@ -59,7 +63,7 @@ const etapasMock = [
   },
   {
     titulo: "Supraestrutura",
-    peso: 13.33,
+    peso: PESOS_ETAPAS.Supraestrutura,
     descricao: (
       <>
         É a armação que mantém o prédio de pé. A lógica de distribuição de peso
@@ -77,7 +81,7 @@ const etapasMock = [
   },
   {
     titulo: "Paredes e Painéis",
-    peso: 8.89,
+    peso: PESOS_ETAPAS["Paredes e Painéis"],
     descricao: (
       <>
         Existem duas formas principais de erguer essas paredes, e a escolha muda
@@ -96,8 +100,29 @@ const etapasMock = [
     imagem: alvenaria,
   },
   {
+    titulo: "Muros",
+    peso: PESOS_ETAPAS.Muros,
+    descricao: (
+      <>
+        Os muros delimitam o terreno, garantem privacidade e, em muitos casos,
+        também retêm o solo em desníveis.
+        <br />
+        <strong>Muros de vedação:</strong> Executados em alvenaria, bloco ou
+        concreto, com fundação própria para não trincar com o movimento do
+        terreno.
+        <br />
+        <strong>Muros de arrimo:</strong> Contêm desníveis. Exigem drenagem
+        (barbacãs) para aliviar a pressão da água no tardoz.
+        <br />
+        <strong>Acabamento e impermeabilização:</strong> Chapisco, emboço e
+        proteção contra umidade aumentam a durabilidade da alvenaria exposta.
+      </>
+    ),
+    imagem: alvenaria,
+  },
+  {
     titulo: "Cobertura",
-    peso: 7.56,
+    peso: PESOS_ETAPAS.Cobertura,
     descricao: (
       <>
         O telhado é um sistema complexo que vai muito além de colocar telhas
@@ -117,7 +142,7 @@ const etapasMock = [
   },
   {
     titulo: "Revestimentos externos",
-    peso: 8.45,
+    peso: PESOS_ETAPAS["Revestimentos externos"],
     descricao: (
       <>
         O lado de fora da casa sofre com dilatação térmica (sol) e chuva, por
@@ -138,7 +163,7 @@ const etapasMock = [
   },
   {
     titulo: "Revestimentos internos",
-    peso: 10.93,
+    peso: PESOS_ETAPAS["Revestimentos internos"],
     descricao: (
       <>
         Aqui a casa começa a ficar confortável e pronta para a decoração.
@@ -158,7 +183,7 @@ const etapasMock = [
   },
   {
     titulo: "Hidráulica",
-    peso: 8.44,
+    peso: PESOS_ETAPAS.Hidráulica,
     descricao: (
       <>
         A regra de ouro da hidráulica é: faça testes antes de fechar as paredes.
@@ -178,7 +203,7 @@ const etapasMock = [
   },
   {
     titulo: "Estrutura Elétrica",
-    peso: 2.5,
+    peso: PESOS_ETAPAS["Estrutura Elétrica"],
     descricao: (
       <>
         Uma elétrica malfeita gera alto consumo de energia e risco de incêndio.
@@ -195,7 +220,7 @@ const etapasMock = [
   },
   {
     titulo: "Primeira etapa de pintura",
-    peso: 2.5,
+    peso: PESOS_ETAPAS["Primeira etapa de pintura"],
     descricao: (
       <>
         A pintura é a maquiagem da obra. Se a pele (parede) não estiver bem
@@ -216,7 +241,7 @@ const etapasMock = [
   },
   {
     titulo: "Assentamento de piso",
-    peso: 8.89,
+    peso: PESOS_ETAPAS["Assentamento de piso"],
     descricao: (
       <>
         A escolha do piso dita o conforto e a estética, mas a instalação correta
@@ -236,7 +261,7 @@ const etapasMock = [
   },
   {
     titulo: "Esquadrias",
-    peso: 7.34,
+    peso: PESOS_ETAPAS.Esquadrias,
     descricao: (
       <>
         Fechar os vãos exige precisão milimétrica para evitar infiltrações de
@@ -256,7 +281,7 @@ const etapasMock = [
   },
   {
     titulo: "Pedras",
-    peso: 1.33,
+    peso: PESOS_ETAPAS.Pedras,
     descricao: (
       <>
         Bancadas, pias e soleiras são itens pesados e frágeis antes de
@@ -276,7 +301,7 @@ const etapasMock = [
   },
   {
     titulo: "Louças e metais",
-    peso: 4.84,
+    peso: PESOS_ETAPAS["Louças e metais"],
     descricao: (
       <>
         A instalação dos acabamentos transforma os canos saindo da parede em
@@ -296,7 +321,7 @@ const etapasMock = [
   },
   {
     titulo: "Final Elétrica",
-    peso: 1.72,
+    peso: PESOS_ETAPAS["Final Elétrica"],
     descricao: (
       <>
         É o momento de dar vida à casa instalando tomadas, luzes e ligando tudo
@@ -316,7 +341,7 @@ const etapasMock = [
   },
   {
     titulo: "Final Pintura",
-    peso: 2.39,
+    peso: PESOS_ETAPAS["Final Pintura"],
     descricao: (
       <>
         A pintura final é muito sensível e exige isolamento total de tudo o que
@@ -336,7 +361,7 @@ const etapasMock = [
   },
   {
     titulo: "Detalhes e limpeza final",
-    peso: 1.56,
+    peso: PESOS_ETAPAS["Detalhes e limpeza final"],
     descricao: (
       <>
         A obra acabou, mas a casa ainda não é um lar. A limpeza pós-obra é um
@@ -401,13 +426,7 @@ export default function Etapas({ etapas = [], isCliente = false }) {
   ).length;
   const restantes = totalEtapas - concluidas - emAndamento;
 
-  const porcentagemExata = dadosEtapas.reduce(
-    (acc, etapa) => acc + (etapa.peso || 0) * (etapa.progresso / 100),
-    0,
-  );
-
-  const porcentagem =
-    totalEtapas === 0 ? 0 : Math.min(100, Math.round(porcentagemExata));
+  const porcentagem = calcularProgressoPonderado(dadosEtapas);
 
   let currentIndex = dadosEtapas.findIndex((e) => e.status === "em andamento");
   if (currentIndex === -1) {

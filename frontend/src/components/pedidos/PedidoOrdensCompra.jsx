@@ -173,9 +173,7 @@ export default function PedidoOrdensCompra({
       const resultado = await api.updateGrupoCompraStatus(grupoId, novoStatus);
       setGrupos(resultado.grupos || []);
       setItensSemGrupo(resultado.itensSemGrupo || []);
-      if (novoStatus === "Comprado") {
-        await onAtualizarPedido?.();
-      }
+      await onAtualizarPedido?.();
     } catch (e) {
       setErro(e?.message || "Não foi possível atualizar o grupo.");
     } finally {

@@ -24,6 +24,8 @@ import {
 } from "./relatoriosDiretoriaUtils";
 import { relatorioNavbarAcaoClass } from "./relatoriosDiretoriaUi";
 import { gerarPdfRelatorioDiretoriaFinanceiro } from "./utils/relatoriosDiretoriaPdf";
+import { resumoObraTemConteudo } from "./relatoriosDiretoriaUtils";
+import { serializarTextoLivre } from "../../utils/textoLivre";
 
 export default function RelatorioFinanceiroSemana() {
   const { semanaRef: semanaInicioParam } = useParams();
@@ -74,7 +76,7 @@ export default function RelatorioFinanceiroSemana() {
         ano,
         mes,
         semana_inicio: semanaInicio,
-        conteudo: { observacoes: observacoes.trim() },
+        conteudo: { observacoes: serializarTextoLivre(observacoes) },
       });
       await carregarObservacoes();
     } catch (e) {
@@ -116,7 +118,7 @@ export default function RelatorioFinanceiroSemana() {
   }
 
   const temDados = financeiroSemanaTemDados(resumo);
-  const temObservacoes = Boolean(observacoes.trim());
+  const temObservacoes = resumoObraTemConteudo(observacoes);
 
   const handleGerarPdf = () => {
     setPdfPreview({
@@ -126,7 +128,7 @@ export default function RelatorioFinanceiroSemana() {
         gerarPdfRelatorioDiretoriaFinanceiro({
           semanaInicio,
           resumo,
-          observacoes: observacoes.trim(),
+          observacoes: serializarTextoLivre(observacoes),
         }),
     });
   };

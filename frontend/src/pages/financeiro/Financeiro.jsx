@@ -39,6 +39,11 @@ import {
 } from "./financeiroUtils";
 import PainelEmprestimos from "./PainelEmprestimos";
 import { visaoParaEscritorio } from "./emprestimoLabels";
+import {
+  historicoCaixa,
+  historicoEscritorioMes,
+} from "./historicoLancamentos";
+import { useHistoricoLancamentos } from "./useHistoricoLancamentos";
 
 const hub = homeDictionary.financeiroHub;
 
@@ -66,6 +71,7 @@ export default function Financeiro() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = TIPOS_FINANCEIRO_ADMIN.includes(user?.tipo);
+  const { abrirHistorico, modalHistorico } = useHistoricoLancamentos();
 
   const [modalLancamentoAberto, setModalLancamentoAberto] = useState(false);
 
@@ -908,6 +914,57 @@ export default function Financeiro() {
       ? entradas.filter((i) => i.validacao !== 1).length
       : 0) + saidas.filter((i) => i.validacao !== 1).length;
 
+  const abrirHistoricoMes = (kpiId, titulo, subtitulo) => {
+    abrirHistorico({
+      titulo,
+      subtitulo,
+      itens: historicoEscritorioMes({ entradas, saidas, kpiId }),
+    });
+  };
+
+  const abrirHistoricoCaixa = async (kpiId, titulo, subtitulo) => {
+    if (kpiId === "caixa-emprestado" || kpiId === "caixa-tomado") {
+      abrirHistorico({
+        titulo,
+        subtitulo,
+        itens: historicoCaixa({ emprestimos: emprestimosCaixa, kpiId }),
+      });
+      return;
+    }
+    abrirHistorico({ titulo, subtitulo, itens: [], loading: true });
+    try {
+      const precisaEntradas =
+        kpiId === "caixa-entradas" || kpiId === "caixa-saldo";
+      const precisaSaidas =
+        kpiId === "caixa-saidas" || kpiId === "caixa-saldo";
+      const [todasEntradas, todasSaidas] = await Promise.all([
+        precisaEntradas
+          ? api.getFinanceiroTodos("entradas", escritorioId, {
+              apenasValidados: true,
+            })
+          : Promise.resolve([]),
+        precisaSaidas
+          ? api.getFinanceiroTodos("saida", escritorioId, {
+              apenasValidados: true,
+            })
+          : Promise.resolve([]),
+      ]);
+      abrirHistorico({
+        titulo,
+        subtitulo,
+        itens: historicoCaixa({
+          entradas: todasEntradas,
+          saidas: todasSaidas,
+          emprestimos: emprestimosCaixa,
+          kpiId,
+        }),
+      });
+    } catch (erro) {
+      console.error("[Financeiro] historico caixa:", erro);
+      abrirHistorico({ titulo, subtitulo, itens: [] });
+    }
+  };
+
   const gerarListaFiltrada = (dadosIniciais, termoBusca) => {
     if (!Array.isArray(dadosIniciais)) return [];
     let lista = [...dadosIniciais];
@@ -1225,6 +1282,12 @@ export default function Financeiro() {
           value: `R$ ${formatarMoeda(saldoValidado)}`,
           icon: <Wallet className="h-5 w-5" />,
           theme: saldoValidado >= 0 ? "emerald" : "pink",
+          onClick: () =>
+            abrirHistoricoMes(
+              "saldo-validado",
+              hub.escritorioMetricSaldoValidado,
+              `R$ ${formatarMoeda(saldoValidado)}`,
+            ),
         },
         {
           id: "saldo-previsto",
@@ -1232,6 +1295,12 @@ export default function Financeiro() {
           value: `R$ ${formatarMoeda(saldoPrevisto)}`,
           icon: <CircleDollarSign className="h-5 w-5" />,
           theme: "primary",
+          onClick: () =>
+            abrirHistoricoMes(
+              "saldo-previsto",
+              hub.escritorioMetricSaldoPrevisto,
+              `R$ ${formatarMoeda(saldoPrevisto)}`,
+            ),
         },
         {
           id: "entradas",
@@ -1239,6 +1308,12 @@ export default function Financeiro() {
           value: `R$ ${formatarMoeda(totalEntradasValidadas)}`,
           icon: <TrendingUp className="h-5 w-5" />,
           theme: "emerald",
+          onClick: () =>
+            abrirHistoricoMes(
+              "entradas",
+              hub.escritorioMetricEntradas,
+              `R$ ${formatarMoeda(totalEntradasValidadas)}`,
+            ),
         },
         {
           id: "saidas",
@@ -1246,6 +1321,12 @@ export default function Financeiro() {
           value: `R$ ${formatarMoeda(totalSaidasValidadas)}`,
           icon: <TrendingDown className="h-5 w-5" />,
           theme: "pink",
+          onClick: () =>
+            abrirHistoricoMes(
+              "saidas",
+              hub.escritorioMetricSaidas,
+              `R$ ${formatarMoeda(totalSaidasValidadas)}`,
+            ),
         },
       ]
     : [
@@ -1255,6 +1336,12 @@ export default function Financeiro() {
           value: `R$ ${formatarMoeda(totalSaidasValidadas)}`,
           icon: <TrendingDown className="h-5 w-5" />,
           theme: "pink",
+          onClick: () =>
+            abrirHistoricoMes(
+              "saidas",
+              hub.escritorioMetricSaidas,
+              `R$ ${formatarMoeda(totalSaidasValidadas)}`,
+            ),
         },
         {
           id: "total",
@@ -1262,6 +1349,12 @@ export default function Financeiro() {
           value: `R$ ${formatarMoeda(somaTotalSaidas)}`,
           icon: <Wallet className="h-5 w-5" />,
           theme: "primary",
+          onClick: () =>
+            abrirHistoricoMes(
+              "total",
+              hub.escritorioTotalLancado,
+              `R$ ${formatarMoeda(somaTotalSaidas)}`,
+            ),
         },
         {
           id: "pendentes",
@@ -1269,6 +1362,12 @@ export default function Financeiro() {
           value: String(pendentesCount),
           icon: <AlertCircle className="h-5 w-5" />,
           theme: "amber",
+          onClick: () =>
+            abrirHistoricoMes(
+              "pendentes",
+              hub.escritorioMetricPendentes,
+              `${pendentesCount} ${pendentesCount === 1 ? "item" : "itens"}`,
+            ),
         },
       ];
 
@@ -1345,6 +1444,7 @@ export default function Financeiro() {
         salvando={salvandoEmprestimo}
         emprestimo={emprestimoAmortizar}
       />
+      {modalHistorico}
 
       <ModuleHub
         eyebrow={hub.eyebrow}
@@ -1375,7 +1475,17 @@ export default function Financeiro() {
                   {hub.escritorioCaixaSubtitulo}
                 </p>
               </div>
-              <div className="rounded-xl border border-border-primary/40 bg-white px-4 py-3 shadow-sm sm:min-w-[200px] sm:text-right">
+              <button
+                type="button"
+                onClick={() =>
+                  void abrirHistoricoCaixa(
+                    "caixa-saldo",
+                    hub.historicoCaixaSaldo,
+                    `R$ ${formatarMoeda(caixaGeral.saldo)}`,
+                  )
+                }
+                className="cursor-pointer rounded-xl border border-border-primary/40 bg-white px-4 py-3 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/25 sm:min-w-[200px] sm:text-right"
+              >
                 <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
                   {hub.escritorioCaixaEmCaixa}
                 </p>
@@ -1388,10 +1498,20 @@ export default function Financeiro() {
                 >
                   R$ {formatarMoeda(caixaGeral.saldo)}
                 </p>
-              </div>
+              </button>
             </div>
             <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 sm:px-5 sm:pb-5">
-              <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/40 px-4 py-3">
+              <button
+                type="button"
+                onClick={() =>
+                  void abrirHistoricoCaixa(
+                    "caixa-entradas",
+                    hub.escritorioCaixaEntradas,
+                    `R$ ${formatarMoeda(caixaGeral.entradas)}`,
+                  )
+                }
+                className="cursor-pointer rounded-xl border border-emerald-200/60 bg-emerald-50/40 px-4 py-3 text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+              >
                 <div className="mb-1 inline-flex items-center gap-2 text-emerald-700">
                   <TrendingUp className="h-4 w-4" />
                   <p className="text-[10px] font-bold uppercase tracking-wider">
@@ -1401,8 +1521,18 @@ export default function Financeiro() {
                 <p className="text-lg font-semibold text-emerald-800">
                   R$ {formatarMoeda(caixaGeral.entradas)}
                 </p>
-              </div>
-              <div className="rounded-xl border border-rose-200/60 bg-rose-50/40 px-4 py-3">
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  void abrirHistoricoCaixa(
+                    "caixa-saidas",
+                    hub.escritorioCaixaSaidas,
+                    `R$ ${formatarMoeda(caixaGeral.saidas)}`,
+                  )
+                }
+                className="cursor-pointer rounded-xl border border-rose-200/60 bg-rose-50/40 px-4 py-3 text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/30"
+              >
                 <div className="mb-1 inline-flex items-center gap-2 text-rose-700">
                   <TrendingDown className="h-4 w-4" />
                   <p className="text-[10px] font-bold uppercase tracking-wider">
@@ -1412,23 +1542,43 @@ export default function Financeiro() {
                 <p className="text-lg font-semibold text-rose-800">
                   R$ {formatarMoeda(caixaGeral.saidas)}
                 </p>
-              </div>
-              <div className="rounded-xl border border-amber-200/60 bg-amber-50/40 px-4 py-3">
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  void abrirHistoricoCaixa(
+                    "caixa-emprestado",
+                    hub.historicoCaixaEmprestado,
+                    `R$ ${formatarMoeda(caixaGeral.emprestado)}`,
+                  )
+                }
+                className="cursor-pointer rounded-xl border border-amber-200/60 bg-amber-50/40 px-4 py-3 text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
+              >
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-amber-800">
                   Emprestado
                 </p>
                 <p className="text-lg font-semibold text-amber-900">
                   R$ {formatarMoeda(caixaGeral.emprestado)}
                 </p>
-              </div>
-              <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 px-4 py-3">
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  void abrirHistoricoCaixa(
+                    "caixa-tomado",
+                    hub.historicoCaixaTomado,
+                    `R$ ${formatarMoeda(caixaGeral.tomado)}`,
+                  )
+                }
+                className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-50/60 px-4 py-3 text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40"
+              >
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                   Tomado
                 </p>
                 <p className="text-lg font-semibold text-slate-800">
                   R$ {formatarMoeda(caixaGeral.tomado)}
                 </p>
-              </div>
+              </button>
             </div>
           </section>
         )}
@@ -1498,6 +1648,12 @@ export default function Financeiro() {
                 }
                 icon={item.icon}
                 colorTheme={item.theme || "primary"}
+                onClick={
+                  loadingMensal ? undefined : item.onClick
+                }
+                htmlTitle={
+                  item.onClick ? "Ver histórico de lançamentos" : undefined
+                }
               />
             ))}
           </section>
@@ -1571,22 +1727,42 @@ export default function Financeiro() {
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-border-primary/40 bg-[#FAFAFA] p-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    abrirHistoricoMes(
+                      "total-entradas-lancado",
+                      hub.escritorioTotalLancado,
+                      `R$ ${formatarMoeda(somaTotalEntradas)}`,
+                    )
+                  }
+                  className="cursor-pointer rounded-xl border border-border-primary/40 bg-[#FAFAFA] p-3 text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/25"
+                >
                   <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
                     {hub.escritorioTotalLancado}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-text-primary">
                     R$ {formatarMoeda(somaTotalEntradas)}
                   </p>
-                </div>
-                <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/50 p-3">
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    abrirHistoricoMes(
+                      "total-entradas-validado",
+                      hub.escritorioTotalValidado,
+                      `R$ ${formatarMoeda(totalEntradasValidadas)}`,
+                    )
+                  }
+                  className="cursor-pointer rounded-xl border border-emerald-200/60 bg-emerald-50/50 p-3 text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+                >
                   <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/80">
                     {hub.escritorioTotalValidado}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-emerald-800">
                     R$ {formatarMoeda(totalEntradasValidadas)}
                   </p>
-                </div>
+                </button>
               </div>
             </section>
           )}
@@ -1653,22 +1829,42 @@ export default function Financeiro() {
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-border-primary/40 bg-[#FAFAFA] p-3">
+              <button
+                type="button"
+                onClick={() =>
+                  abrirHistoricoMes(
+                    "total-saidas-lancado",
+                    hub.escritorioTotalLancado,
+                    `R$ ${formatarMoeda(somaTotalSaidas)}`,
+                  )
+                }
+                className="cursor-pointer rounded-xl border border-border-primary/40 bg-[#FAFAFA] p-3 text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/25"
+              >
                 <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
                   {hub.escritorioTotalLancado}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-text-primary">
                   R$ {formatarMoeda(somaTotalSaidas)}
                 </p>
-              </div>
-              <div className="rounded-xl border border-rose-200/60 bg-rose-50/50 p-3">
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  abrirHistoricoMes(
+                    "total-saidas-validado",
+                    hub.escritorioTotalValidado,
+                    `R$ ${formatarMoeda(totalSaidasValidadas)}`,
+                  )
+                }
+                className="cursor-pointer rounded-xl border border-rose-200/60 bg-rose-50/50 p-3 text-left transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/30"
+              >
                 <p className="text-[10px] font-bold uppercase tracking-wider text-rose-700/80">
                   {hub.escritorioTotalValidado}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-rose-800">
                   R$ {formatarMoeda(totalSaidasValidadas)}
                 </p>
-              </div>
+              </button>
             </div>
           </section>
         </div>
