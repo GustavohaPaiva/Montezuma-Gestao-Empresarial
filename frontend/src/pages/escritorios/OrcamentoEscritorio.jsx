@@ -13,6 +13,7 @@ import ModalPortal from "../../components/gerais/ModalPortal";
 import {
   ESCRITORIO_NOME_POR_ID,
   ID_VOGELKOP,
+  ID_YBYOCA,
   pathEscritorio,
   temaEscritorio,
 } from "../../constants/escritorios";
@@ -537,33 +538,38 @@ export default function OrcamentoEscritorio() {
           </div>
         ) : (
           <ul className="divide-y divide-esc-border">
-            {linhas.map((o) => (
+            {linhas.map((o) => {
+              const temDetalheProposta =
+                currentEscritorioId === ID_VOGELKOP ||
+                currentEscritorioId === ID_YBYOCA;
+              const pathDetalhe = temDetalheProposta
+                ? `${pathEscritorio(currentEscritorioId)}/orcamentos/${o.id}`
+                : null;
+              return (
               <li
                 key={o.id}
                 className={`flex flex-col gap-3 p-4 transition-colors sm:flex-row sm:items-center sm:justify-between ${
-                  currentEscritorioId === ID_VOGELKOP
+                  temDetalheProposta
                     ? "cursor-pointer hover:bg-esc-bg"
                     : "hover:bg-esc-bg"
                 }`}
                 onClick={
-                  currentEscritorioId === ID_VOGELKOP
-                    ? () => navigate(`/escritorio/vogelkop/orcamentos/${o.id}`)
+                  pathDetalhe
+                    ? () => navigate(pathDetalhe)
                     : undefined
                 }
                 onKeyDown={
-                  currentEscritorioId === ID_VOGELKOP
+                  pathDetalhe
                     ? (e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          navigate(`/escritorio/vogelkop/orcamentos/${o.id}`);
+                          navigate(pathDetalhe);
                         }
                       }
                     : undefined
                 }
-                role={
-                  currentEscritorioId === ID_VOGELKOP ? "button" : undefined
-                }
-                tabIndex={currentEscritorioId === ID_VOGELKOP ? 0 : undefined}
+                role={temDetalheProposta ? "button" : undefined}
+                tabIndex={temDetalheProposta ? 0 : undefined}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -617,7 +623,8 @@ export default function OrcamentoEscritorio() {
                   </div>
                 </div>
               </li>
-            ))}
+            );
+            })}
           </ul>
         )}
       </div>

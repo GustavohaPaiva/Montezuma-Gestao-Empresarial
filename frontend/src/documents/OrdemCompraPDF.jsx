@@ -216,8 +216,7 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     color: COR_MUTED,
   },
-  colIdx: { width: "6%" },
-  colMaterial: { width: "46%" },
+  colMaterial: { width: "52%" },
   colQtd: { width: "14%", textAlign: "right" },
   colUn: { width: "12%", textAlign: "center" },
   colEntrega: { width: "22%", textAlign: "right" },
@@ -449,7 +448,6 @@ export default function OrdemCompraPDF({
           <Text style={styles.sectionTitle}>Materiais solicitados</Text>
           <View style={styles.table}>
             <View style={styles.tableHead}>
-              <Text style={[styles.tableHeadCell, styles.colIdx]}>#</Text>
               <Text style={[styles.tableHeadCell, styles.colMaterial]}>
                 Material
               </Text>
@@ -467,7 +465,6 @@ export default function OrdemCompraPDF({
                   idx % 2 === 1 ? styles.tableRowAlt : null,
                 ]}
               >
-                <Text style={[styles.tableCell, styles.colIdx]}>{idx + 1}</Text>
                 <Text style={[styles.tableCell, styles.colMaterial]}>
                   {item.material}
                 </Text>

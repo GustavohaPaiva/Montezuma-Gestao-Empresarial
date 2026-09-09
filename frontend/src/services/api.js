@@ -21,6 +21,7 @@ import { inserirEtapaMurosSeFaltar } from "../utils/etapasObra";
 import {
   calcularTotalValoresProposta,
   normalizarPropostaDados,
+  normalizarPropostaDadosYbyoca,
 } from "../utils/orcamentoPropostaUtils";
 
 function projecaoPayloadComValoresDerivados(payload) {
@@ -1248,6 +1249,17 @@ export const api = {
       { proposta_dados: norm, valor: total },
       escritorioId,
     );
+  },
+
+  /** Ybyoca: atualiza só proposta_dados (contato/endereço) sem recalcular valor. */
+  updatePropostaOrcamentoYbyoca: async (id, propostaDados, escritorioId) => {
+    if (!id || !escritorioId) {
+      throw new Error(
+        "id e escritorio_id obrigatórios em updatePropostaOrcamentoYbyoca",
+      );
+    }
+    const norm = normalizarPropostaDadosYbyoca(propostaDados);
+    return api.updateOrcamento(id, { proposta_dados: norm }, escritorioId);
   },
 
   createOrcamento: async (novoOrcamento) => {

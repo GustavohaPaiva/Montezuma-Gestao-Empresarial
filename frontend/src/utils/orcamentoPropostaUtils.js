@@ -147,6 +147,61 @@ export function formatarCodigoPropostaVK(numero, dataReferencia) {
   return `${String(numero).padStart(2, "0")}${ano}`;
 }
 
+/** Capa Ybyoca: 015_26 (número com 3 dígitos + underscore + 2 dígitos do ano). */
+export function formatarCodigoPropostaYB(numero, dataReferencia) {
+  if (!numero) return "—";
+  const d = dataReferencia ? new Date(dataReferencia) : new Date();
+  const ano = Number.isNaN(d.getTime())
+    ? String(new Date().getFullYear()).slice(-2)
+    : String(d.getFullYear()).slice(-2);
+  return `${String(numero).padStart(3, "0")}_${ano}`;
+}
+
+/** Cabeçalho interno Ybyoca: 09 JUL 2026. */
+export function formatarDataCabecalhoYB(dataReferencia) {
+  const MESES_CURTOS = [
+    "JAN",
+    "FEV",
+    "MAR",
+    "ABR",
+    "MAI",
+    "JUN",
+    "JUL",
+    "AGO",
+    "SET",
+    "OUT",
+    "NOV",
+    "DEZ",
+  ];
+  const d = dataReferencia ? new Date(dataReferencia) : new Date();
+  const valida = Number.isNaN(d.getTime()) ? new Date() : d;
+  const dd = String(valida.getUTCDate()).padStart(2, "0");
+  const mes = MESES_CURTOS[valida.getUTCMonth()];
+  const yyyy = valida.getUTCFullYear();
+  return `${dd} ${mes} ${yyyy}`;
+}
+
+export const MAX_CARACTERES_CONTATO_YB = 40;
+export const MAX_CARACTERES_ENDERECO_YB = 80;
+
+/**
+ * Dados da proposta Ybyoca (capa). Preserva campos Vogelkop se existirem no JSON.
+ */
+export function normalizarPropostaDadosYbyoca(raw) {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const contato = String(src.contato ?? "")
+    .trim()
+    .slice(0, MAX_CARACTERES_CONTATO_YB);
+  const endereco = String(src.endereco ?? "")
+    .trim()
+    .slice(0, MAX_CARACTERES_ENDERECO_YB);
+  return {
+    ...src,
+    contato,
+    endereco,
+  };
+}
+
 /** Cabeçalho INFO GERAIS — dia|mês - ano a partir da coluna `data` do orçamento. */
 export function formatarInfoGeraisCabecalho(dataReferencia) {
   const d = dataReferencia ? new Date(dataReferencia) : new Date();
@@ -154,7 +209,32 @@ export function formatarInfoGeraisCabecalho(dataReferencia) {
   const dd = String(d.getUTCDate()).padStart(2, "0");
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   const yyyy = d.getUTCFullYear();
-  return `INFO GERAIS - ${dd}|${mm} - ${yyyy}`;
+  return `INFO GERAIS - ${dd} | ${mm} - ${yyyy}`;
+}
+
+const MESES_CAPA_PT = [
+  "JANEIRO",
+  "FEVEREIRO",
+  "MARÇO",
+  "ABRIL",
+  "MAIO",
+  "JUNHO",
+  "JULHO",
+  "AGOSTO",
+  "SETEMBRO",
+  "OUTUBRO",
+  "NOVEMBRO",
+  "DEZEMBRO",
+];
+
+/** Capa: { mes: 'AGOSTO', ano: '2026' }. */
+export function formatarMesAnoCapa(dataReferencia) {
+  const d = dataReferencia ? new Date(dataReferencia) : new Date();
+  const valida = Number.isNaN(d.getTime()) ? new Date() : d;
+  return {
+    mes: MESES_CAPA_PT[valida.getUTCMonth()],
+    ano: String(valida.getUTCFullYear()),
+  };
 }
 
 export function limitarLinhasDescricao(texto) {

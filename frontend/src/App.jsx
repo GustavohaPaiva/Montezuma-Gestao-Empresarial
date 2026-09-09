@@ -559,6 +559,14 @@ export default function App() {
                 }
               />
               <Route
+                path="orcamentos/:orcamentoId"
+                element={
+                  <PageTransition>
+                    <OrcamentoDetalhe />
+                  </PageTransition>
+                }
+              />
+              <Route
                 path="financeiro"
                 element={
                   <PageTransition>

@@ -43,16 +43,15 @@ export default function FinanceiroMaoDeObra() {
 
   const prestadores = useMemo(() => prestadoresEmAberto(maoDeObra), [maoDeObra]);
 
-  const abrirKpi = (kpiId, titulo, subtitulo) => {
-    abrirHistorico({
-      titulo,
-      subtitulo,
-      itens: historicoMaoDeObra(maoDeObra, kpiId),
-    });
-  };
-
-  const resumo = useMemo(
-    () => [
+  const resumo = useMemo(() => {
+    const abrirKpi = (kpiId, titulo, subtitulo) => {
+      abrirHistorico({
+        titulo,
+        subtitulo,
+        itens: historicoMaoDeObra(maoDeObra, kpiId),
+      });
+    };
+    return [
       {
         id: "itens-abertos",
         label: hub.maoObraMetricItensAbertos,
@@ -105,9 +104,8 @@ export default function FinanceiroMaoDeObra() {
             `R$ ${formatarMoeda(kpis.totalLancado)}`,
           ),
       },
-    ],
-    [kpis, maoDeObra, abrirHistorico],
-  );
+    ];
+  }, [kpis, maoDeObra, abrirHistorico]);
 
   const termo = busca.trim().toLowerCase();
   const prestadoresFiltrados = termo

@@ -8,6 +8,8 @@ import {
   Image,
   Layers,
   Loader2,
+  MapPin,
+  Phone,
   Save,
   ScrollText,
   Sparkles,
@@ -15,7 +17,11 @@ import {
   Wrench,
 } from "lucide-react";
 import { api } from "../../services/api";
-import { ID_VOGELKOP, pathEscritorio } from "../../constants/escritorios";
+import {
+  ID_VOGELKOP,
+  ID_YBYOCA,
+  pathEscritorio,
+} from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import OrcamentoSecaoPainel from "../../components/escritorios/OrcamentoSecaoPainel";
 import DescricaoAssistenteModal from "../../components/escritorios/DescricaoAssistenteModal";
@@ -25,18 +31,23 @@ import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import {
   CHAVES_VALORES,
   MAX_CARACTERES_COMPLEMENTARES_OUTROS,
+  MAX_CARACTERES_CONTATO_YB,
+  MAX_CARACTERES_ENDERECO_YB,
   MAX_LINHAS_DESCRICAO,
   SECOES_PROPOSTA,
   calcularTotalValoresProposta,
   contarLinhasDescricao,
   formatarCodigoPropostaVK,
+  formatarCodigoPropostaYB,
   formatarDataPropostaBR,
   formatarMoedaBRL,
   limitarLinhasDescricao,
   normalizarPropostaDados,
+  normalizarPropostaDadosYbyoca,
   toggleOpcaoLista,
 } from "../../utils/orcamentoPropostaUtils";
 import { gerarPdfOrcamentoVogelKop } from "../../utils/orcamentoVogelkopPdf";
+import { gerarPdfOrcamentoYbyoca } from "../../utils/orcamentoYbyocaPdf";
 import {
   orcCheckboxCardClass,
   orcCheckboxInputClass,
@@ -53,10 +64,17 @@ export default function OrcamentoDetalhe() {
   const navigate = useNavigate();
   const escritorioId = useEscritorioIdFromPath();
   const isVogelkop = escritorioId === ID_VOGELKOP;
+  const isYbyoca = escritorioId === ID_YBYOCA;
+  const temProposta = isVogelkop || isYbyoca;
   const temaClasse = isVogelkop ? "theme-vogelkop" : "theme-ybyoca";
+  const baseOrcamentos =
+    pathEscritorio(escritorioId) || "/escritorio/ybyoca";
+  const listaOrcamentosPath = `${baseOrcamentos}/orcamentos`;
 
   const [orcamento, setOrcamento] = useState(null);
-  const [proposta, setProposta] = useState(() => normalizarPropostaDados({}));
+  const [proposta, setProposta] = useState(() =>
+    isYbyoca ? normalizarPropostaDadosYbyoca({}) : normalizarPropostaDados({}),
+  );
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
   const [salvando, setSalvando] = useState(false);
@@ -71,14 +89,13 @@ export default function OrcamentoDetalhe() {
   }, [proposta]);
 
   useEffect(() => {
-    if (escritorioId && escritorioId !== ID_VOGELKOP) {
-      const base = pathEscritorio(escritorioId) || "/escritorio/ybyoca";
-      navigate(`${base}/orcamentos`, { replace: true });
+    if (escritorioId && !temProposta) {
+      navigate(listaOrcamentosPath, { replace: true });
     }
-  }, [escritorioId, navigate]);
+  }, [escritorioId, temProposta, listaOrcamentosPath, navigate]);
 
   const carregar = useCallback(async () => {
-    if (!orcamentoId || !escritorioId || !isVogelkop) return;
+    if (!orcamentoId || !escritorioId || !temProposta) return;
     setLoading(true);
     setErro(null);
     try {
@@ -92,7 +109,11 @@ export default function OrcamentoDetalhe() {
         row = await api.ensureNumeroPropostaOrcamento(orcamentoId, escritorioId);
       }
       setOrcamento(row);
-      setProposta(normalizarPropostaDados(row.proposta_dados));
+      setProposta(
+        isYbyoca
+          ? normalizarPropostaDadosYbyoca(row.proposta_dados)
+          : normalizarPropostaDados(row.proposta_dados),
+      );
     } catch (e) {
       console.error("[OrcamentoDetalhe] carregar:", e);
       setErro(e?.message || "Erro ao carregar o orçamento.");
@@ -100,7 +121,7 @@ export default function OrcamentoDetalhe() {
     } finally {
       setLoading(false);
     }
-  }, [orcamentoId, escritorioId, isVogelkop]);
+  }, [orcamentoId, escritorioId, temProposta, isYbyoca]);
 
   useEffect(() => {
     void carregar();
@@ -111,14 +132,13 @@ export default function OrcamentoDetalhe() {
     [proposta.valores],
   );
 
-  const numeroCapa = useMemo(
-    () =>
-      formatarCodigoPropostaVK(
-        orcamento?.numero_proposta,
-        orcamento?.data || orcamento?.created_at,
-      ),
-    [orcamento],
-  );
+  const numeroCapa = useMemo(() => {
+    const dataRef = orcamento?.data || orcamento?.created_at;
+    if (isYbyoca) {
+      return formatarCodigoPropostaYB(orcamento?.numero_proposta, dataRef);
+    }
+    return formatarCodigoPropostaVK(orcamento?.numero_proposta, dataRef);
+  }, [orcamento, isYbyoca]);
 
   const persistir = useCallback(
     async (dadosProposta) => {
@@ -126,13 +146,23 @@ export default function OrcamentoDetalhe() {
       setSalvando(true);
       setSalvoMsg("");
       try {
-        const atualizado = await api.updatePropostaOrcamento(
-          orcamentoId,
-          dadosProposta,
-          escritorioId,
-        );
+        const atualizado = isYbyoca
+          ? await api.updatePropostaOrcamentoYbyoca(
+              orcamentoId,
+              dadosProposta,
+              escritorioId,
+            )
+          : await api.updatePropostaOrcamento(
+              orcamentoId,
+              dadosProposta,
+              escritorioId,
+            );
         setOrcamento(atualizado);
-        setProposta(normalizarPropostaDados(atualizado.proposta_dados));
+        setProposta(
+          isYbyoca
+            ? normalizarPropostaDadosYbyoca(atualizado.proposta_dados)
+            : normalizarPropostaDados(atualizado.proposta_dados),
+        );
         setSalvoMsg("Salvo");
         setTimeout(() => setSalvoMsg(""), 2000);
       } catch (e) {
@@ -143,7 +173,7 @@ export default function OrcamentoDetalhe() {
         setSalvando(false);
       }
     },
-    [orcamentoId, escritorioId],
+    [orcamentoId, escritorioId, isYbyoca],
   );
 
   const agendarSalvar = useCallback(
@@ -165,7 +195,9 @@ export default function OrcamentoDetalhe() {
 
   const atualizarProposta = (patch) => {
     setProposta((prev) => {
-      const next = normalizarPropostaDados({ ...prev, ...patch });
+      const next = isYbyoca
+        ? normalizarPropostaDadosYbyoca({ ...prev, ...patch })
+        : normalizarPropostaDados({ ...prev, ...patch });
       agendarSalvar(next);
       return next;
     });
@@ -221,7 +253,7 @@ export default function OrcamentoDetalhe() {
     }
   };
 
-  if (!isVogelkop) return null;
+  if (!temProposta) return null;
 
   if (loading) {
     return (
@@ -237,7 +269,7 @@ export default function OrcamentoDetalhe() {
       <div className="w-full pb-12">
         <button
           type="button"
-          onClick={() => navigate("/escritorio/vogelkop/orcamentos")}
+          onClick={() => navigate(listaOrcamentosPath)}
           className="mb-4 flex items-center gap-2 text-sm text-esc-muted hover:text-esc-destaque"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -250,12 +282,17 @@ export default function OrcamentoDetalhe() {
     );
   }
 
+  const rotuloProposta = isYbyoca ? "Proposta Ybyoca" : "Proposta VogelKop";
+  const codigoLabel = isYbyoca
+    ? `PROPOSTA ${numeroCapa}`
+    : `PROPOSTA VK - ${numeroCapa}`;
+
   return (
     <div className="w-full pb-16">
       <div className="mb-4 mt-4 flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
-          onClick={() => navigate("/escritorio/vogelkop/orcamentos")}
+          onClick={() => navigate(listaOrcamentosPath)}
           className="inline-flex items-center gap-2 text-sm text-esc-muted transition hover:text-esc-destaque"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -304,7 +341,7 @@ export default function OrcamentoDetalhe() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-wider text-esc-muted">
-              Proposta VogelKop
+              {rotuloProposta}
             </p>
             <h1 className="mt-1 truncate text-xl font-bold text-esc-text sm:text-2xl">
               {orcamento.nome || "—"}
@@ -312,9 +349,11 @@ export default function OrcamentoDetalhe() {
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-esc-muted">
               <span className="inline-flex items-center gap-1.5 font-semibold text-esc-destaque">
                 <FileSpreadsheet className="h-4 w-4" />
-                PROPOSTA VK - {numeroCapa}
+                {codigoLabel}
               </span>
-              <span>{formatarDataPropostaBR(orcamento.data || orcamento.created_at)}</span>
+              <span>
+                {formatarDataPropostaBR(orcamento.data || orcamento.created_at)}
+              </span>
             </div>
           </div>
           <StatusSelectBadge
@@ -325,153 +364,209 @@ export default function OrcamentoDetalhe() {
             onChange={mudarStatus}
           />
         </div>
+
+        {isYbyoca ? (
+          <div className="mt-5 grid grid-cols-1 gap-4 border-t border-esc-border pt-5 sm:grid-cols-2">
+            <div>
+              <label className={orcLabelCampoClass}>
+                <span className="inline-flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5" />
+                  Contato (capa)
+                </span>
+              </label>
+              <input
+                type="text"
+                value={proposta.contato || ""}
+                maxLength={MAX_CARACTERES_CONTATO_YB}
+                onChange={(e) =>
+                  atualizarProposta({ contato: e.target.value })
+                }
+                placeholder="Ex.: 34 99999-9999"
+                className={orcInputClass}
+              />
+            </div>
+            <div>
+              <label className={orcLabelCampoClass}>
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Endereço (capa)
+                </span>
+              </label>
+              <input
+                type="text"
+                value={proposta.endereco || ""}
+                maxLength={MAX_CARACTERES_ENDERECO_YB}
+                onChange={(e) =>
+                  atualizarProposta({ endereco: e.target.value })
+                }
+                placeholder="Ex.: Uberaba - MG"
+                className={orcInputClass}
+              />
+            </div>
+          </div>
+        ) : null}
       </header>
 
-      <div className="flex flex-col gap-6">
-        {SECOES_PROPOSTA.map((sec) => {
-          const iconMap = {
-            tecnico: <Layers className="h-4 w-4" />,
-            tramites: <ClipboardList className="h-4 w-4" />,
-            complementares: <Wrench className="h-4 w-4" />,
-            renderizacoes: <Image className="h-4 w-4" />,
-          };
-          return (
-            <OrcamentoSecaoPainel
-              key={sec.id}
-              titulo={sec.titulo}
-              descricao="Marque os itens incluídos nesta proposta"
-              icon={iconMap[sec.id]}
-            >
-              <div className={orcGridCheckboxesClass}>
-                {sec.opcoes.map((opcao) => {
-                  const marcado = (proposta[sec.id] || []).includes(opcao);
-                  return (
-                    <label
-                      key={opcao}
-                      className={orcCheckboxCardClass}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={marcado}
-                        onChange={() => toggleCheckbox(sec.id, opcao)}
-                        className={orcCheckboxInputClass}
-                      />
-                      <span className="text-sm text-esc-text">{opcao}</span>
+      {isVogelkop ? (
+        <div className="flex flex-col gap-6">
+          {SECOES_PROPOSTA.map((sec) => {
+            const iconMap = {
+              tecnico: <Layers className="h-4 w-4" />,
+              tramites: <ClipboardList className="h-4 w-4" />,
+              complementares: <Wrench className="h-4 w-4" />,
+              renderizacoes: <Image className="h-4 w-4" />,
+            };
+            return (
+              <OrcamentoSecaoPainel
+                key={sec.id}
+                titulo={sec.titulo}
+                descricao="Marque os itens incluídos nesta proposta"
+                icon={iconMap[sec.id]}
+              >
+                <div className={orcGridCheckboxesClass}>
+                  {sec.opcoes.map((opcao) => {
+                    const marcado = (proposta[sec.id] || []).includes(opcao);
+                    return (
+                      <label key={opcao} className={orcCheckboxCardClass}>
+                        <input
+                          type="checkbox"
+                          checked={marcado}
+                          onChange={() => toggleCheckbox(sec.id, opcao)}
+                          className={orcCheckboxInputClass}
+                        />
+                        <span className="text-sm text-esc-text">{opcao}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {sec.id === "complementares" &&
+                (proposta.complementares || []).includes("Outros") ? (
+                  <div className="mt-4">
+                    <label className={orcLabelCampoClass}>
+                      Especifique o complementar (Outros)
                     </label>
-                  );
-                })}
-              </div>
-              {sec.id === "complementares" &&
-              (proposta.complementares || []).includes("Outros") ? (
-                <div className="mt-4">
-                  <label className={orcLabelCampoClass}>
-                    Especifique o complementar (Outros)
-                  </label>
+                    <input
+                      type="text"
+                      value={proposta.complementares_outros || ""}
+                      maxLength={MAX_CARACTERES_COMPLEMENTARES_OUTROS}
+                      onChange={(e) =>
+                        atualizarProposta({
+                          complementares_outros: e.target.value,
+                        })
+                      }
+                      placeholder="Ex.: Projeto de paisagismo, acústica…"
+                      className={orcInputClass}
+                    />
+                    <p className="mt-1 text-[11px] text-esc-muted">
+                      Este texto aparece no escopo e no orçamento do PDF.
+                    </p>
+                  </div>
+                ) : null}
+              </OrcamentoSecaoPainel>
+            );
+          })}
+
+          <OrcamentoSecaoPainel
+            titulo="Valores"
+            descricao="Informe os valores de cada pacote (R$)"
+            icon={<Wallet className="h-4 w-4" />}
+          >
+            <div className={orcGridValoresClass}>
+              {CHAVES_VALORES.map(({ key, label }) => (
+                <div key={key}>
+                  <label className={orcLabelCampoClass}>{label}</label>
                   <input
-                    type="text"
-                    value={proposta.complementares_outros || ""}
-                    maxLength={MAX_CARACTERES_COMPLEMENTARES_OUTROS}
-                    onChange={(e) =>
-                      atualizarProposta({
-                        complementares_outros: e.target.value,
-                      })
-                    }
-                    placeholder="Ex.: Projeto de paisagismo, acústica…"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={proposta.valores[key] ?? ""}
+                    onChange={(e) => atualizarValor(key, e.target.value)}
+                    placeholder="0,00"
                     className={orcInputClass}
                   />
-                  <p className="mt-1 text-[11px] text-esc-muted">
-                    Este texto aparece no escopo e no orçamento do PDF.
-                  </p>
                 </div>
-              ) : null}
-            </OrcamentoSecaoPainel>
-          );
-        })}
+              ))}
+            </div>
+            <div className={`${orcTotalBarClass} mt-4`}>
+              <span className="text-sm font-semibold text-esc-text">
+                Total da proposta
+              </span>
+              <span className="text-lg font-bold tabular-nums text-esc-destaque">
+                {formatarMoedaBRL(totalValores)}
+              </span>
+            </div>
+          </OrcamentoSecaoPainel>
 
-        <OrcamentoSecaoPainel
-          titulo="Valores"
-          descricao="Informe os valores de cada pacote (R$)"
-          icon={<Wallet className="h-4 w-4" />}
-        >
-          <div className={orcGridValoresClass}>
-            {CHAVES_VALORES.map(({ key, label }) => (
-              <div key={key}>
-                <label className={orcLabelCampoClass}>{label}</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={proposta.valores[key] ?? ""}
-                  onChange={(e) => atualizarValor(key, e.target.value)}
-                  placeholder="0,00"
-                  className={orcInputClass}
-                />
-              </div>
-            ))}
-          </div>
-          <div className={`${orcTotalBarClass} mt-4`}>
-            <span className="text-sm font-semibold text-esc-text">
-              Total da proposta
-            </span>
-            <span className="text-lg font-bold tabular-nums text-esc-destaque">
-              {formatarMoedaBRL(totalValores)}
-            </span>
-          </div>
-        </OrcamentoSecaoPainel>
-
-        <OrcamentoSecaoPainel
-          titulo="Descrição"
-          descricao={`Resumo da proposta (até ${MAX_LINHAS_DESCRICAO} linhas)`}
-          icon={<ScrollText className="h-4 w-4" />}
-          acoes={
-            <button
-              type="button"
-              onClick={() => setAssistenteAberto(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-esc-destaque/40 bg-esc-destaque/15 px-2.5 py-1.5 text-[11px] font-semibold text-esc-destaque transition hover:bg-esc-destaque/25"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Assistente
-            </button>
-          }
-        >
-          <textarea
-            rows={MAX_LINHAS_DESCRICAO}
-            value={proposta.descricao}
-            onChange={(e) =>
-              atualizarProposta({
-                descricao: limitarLinhasDescricao(e.target.value),
-              })
+          <OrcamentoSecaoPainel
+            titulo="Descrição"
+            descricao={`Resumo da proposta (até ${MAX_LINHAS_DESCRICAO} linhas)`}
+            icon={<ScrollText className="h-4 w-4" />}
+            acoes={
+              <button
+                type="button"
+                onClick={() => setAssistenteAberto(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-esc-destaque/40 bg-esc-destaque/15 px-2.5 py-1.5 text-[11px] font-semibold text-esc-destaque transition hover:bg-esc-destaque/25"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Assistente
+              </button>
             }
-            placeholder="Descreva o escopo e condições da proposta…"
-            className={orcTextareaClass}
-          />
-          <p className="mt-1.5 text-[11px] text-esc-muted">
-            {contarLinhasDescricao(proposta.descricao)}/{MAX_LINHAS_DESCRICAO}{" "}
-            linhas
-          </p>
-        </OrcamentoSecaoPainel>
-      </div>
+          >
+            <textarea
+              rows={MAX_LINHAS_DESCRICAO}
+              value={proposta.descricao}
+              onChange={(e) =>
+                atualizarProposta({
+                  descricao: limitarLinhasDescricao(e.target.value),
+                })
+              }
+              placeholder="Descreva o escopo e condições da proposta…"
+              className={orcTextareaClass}
+            />
+            <p className="mt-1.5 text-[11px] text-esc-muted">
+              {contarLinhasDescricao(proposta.descricao)}/{MAX_LINHAS_DESCRICAO}{" "}
+              linhas
+            </p>
+          </OrcamentoSecaoPainel>
+        </div>
+      ) : (
+        <p className="rounded-xl border border-esc-border bg-esc-card px-4 py-5 text-sm text-esc-muted">
+          Nesta primeira versão da proposta Ybyoca, preencha o contato e o
+          endereço da capa e use <strong className="text-esc-text">Gerar PDF</strong>{" "}
+          para baixar a cópia visual do modelo. Seleção de serviços e valores
+          entram em seguida.
+        </p>
+      )}
 
-      <DescricaoAssistenteModal
-        isOpen={assistenteAberto}
-        textoInicial={proposta.descricao}
-        onClose={() => setAssistenteAberto(false)}
-        onAplicar={(texto) => atualizarProposta({ descricao: texto })}
-        temaClasse={temaClasse}
-      />
+      {isVogelkop ? (
+        <DescricaoAssistenteModal
+          isOpen={assistenteAberto}
+          textoInicial={proposta.descricao}
+          onClose={() => setAssistenteAberto(false)}
+          onAplicar={(texto) => atualizarProposta({ descricao: texto })}
+          temaClasse={temaClasse}
+        />
+      ) : null}
 
       <PdfPreviewModal
         isOpen={pdfPreview}
         onClose={() => setPdfPreview(false)}
-        titulo="Proposta VogelKop"
-        nomeFallback="proposta_vogelkop.pdf"
+        titulo={rotuloProposta}
+        nomeFallback={
+          isYbyoca ? "proposta_ybyoca.pdf" : "proposta_vogelkop.pdf"
+        }
         temaClasse={temaClasse}
         gerador={() =>
-          gerarPdfOrcamentoVogelKop({
-            ...orcamento,
-            proposta_dados: proposta,
-            valor: totalValores,
-          })
+          isYbyoca
+            ? gerarPdfOrcamentoYbyoca({
+                ...orcamento,
+                proposta_dados: proposta,
+              })
+            : gerarPdfOrcamentoVogelKop({
+                ...orcamento,
+                proposta_dados: proposta,
+                valor: totalValores,
+              })
         }
       />
     </div>
