@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Download,
   FileSpreadsheet,
+  HardHat,
   Image,
   Layers,
   Loader2,
@@ -30,12 +31,16 @@ import { STATUS_ORCAMENTO_OPCOES } from "../../components/gerais/statusSelectOpt
 import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import {
   CHAVES_VALORES,
+  CHAVES_VALORES_YB,
   MAX_CARACTERES_COMPLEMENTARES_OUTROS,
   MAX_CARACTERES_CONTATO_YB,
   MAX_CARACTERES_ENDERECO_YB,
   MAX_LINHAS_DESCRICAO,
   SECOES_PROPOSTA,
+  SECOES_PROPOSTA_YBYOCA,
+  calcularTotalProjetosYbyoca,
   calcularTotalValoresProposta,
+  calcularTotalValoresPropostaYbyoca,
   contarLinhasDescricao,
   formatarCodigoPropostaVK,
   formatarCodigoPropostaYB,
@@ -127,9 +132,19 @@ export default function OrcamentoDetalhe() {
     void carregar();
   }, [carregar]);
 
+  const secoesProposta = isYbyoca ? SECOES_PROPOSTA_YBYOCA : SECOES_PROPOSTA;
+  const chavesValores = isYbyoca ? CHAVES_VALORES_YB : CHAVES_VALORES;
+
   const totalValores = useMemo(
-    () => calcularTotalValoresProposta(proposta.valores),
-    [proposta.valores],
+    () =>
+      isYbyoca
+        ? calcularTotalValoresPropostaYbyoca(proposta.valores)
+        : calcularTotalValoresProposta(proposta.valores),
+    [isYbyoca, proposta.valores],
+  );
+  const totalProjetosYbyoca = useMemo(
+    () => (isYbyoca ? calcularTotalProjetosYbyoca(proposta.valores) : 0),
+    [isYbyoca, proposta.valores],
   );
 
   const numeroCapa = useMemo(() => {
@@ -203,6 +218,11 @@ export default function OrcamentoDetalhe() {
     });
   };
 
+  const normalizarAtual = (dados) =>
+    isYbyoca
+      ? normalizarPropostaDadosYbyoca(dados)
+      : normalizarPropostaDados(dados);
+
   const toggleCheckbox = (secaoId, opcao) => {
     setProposta((prev) => {
       const novaLista = toggleOpcaoLista(prev[secaoId], opcao);
@@ -214,7 +234,7 @@ export default function OrcamentoDetalhe() {
       ) {
         patch.complementares_outros = "";
       }
-      const next = normalizarPropostaDados({ ...prev, ...patch });
+      const next = normalizarAtual({ ...prev, ...patch });
       agendarSalvar(next);
       return next;
     });
@@ -224,7 +244,7 @@ export default function OrcamentoDetalhe() {
     const n = raw === "" ? null : parseFloat(raw);
     const valor = Number.isFinite(n) && n >= 0 ? n : null;
     setProposta((prev) => {
-      const next = normalizarPropostaDados({
+      const next = normalizarAtual({
         ...prev,
         valores: { ...prev.valores, [key]: valor },
       });
@@ -407,14 +427,15 @@ export default function OrcamentoDetalhe() {
         ) : null}
       </header>
 
-      {isVogelkop ? (
-        <div className="flex flex-col gap-6">
-          {SECOES_PROPOSTA.map((sec) => {
+      <div className="flex flex-col gap-6">
+          {secoesProposta.map((sec) => {
             const iconMap = {
               tecnico: <Layers className="h-4 w-4" />,
+              arquitetonico: <Layers className="h-4 w-4" />,
               tramites: <ClipboardList className="h-4 w-4" />,
               complementares: <Wrench className="h-4 w-4" />,
               renderizacoes: <Image className="h-4 w-4" />,
+              gestao: <HardHat className="h-4 w-4" />,
             };
             return (
               <OrcamentoSecaoPainel
@@ -472,14 +493,16 @@ export default function OrcamentoDetalhe() {
             icon={<Wallet className="h-4 w-4" />}
           >
             <div className={orcGridValoresClass}>
-              {CHAVES_VALORES.map(({ key, label }) => (
+              {chavesValores.map(({ key, label }) => (
                 <div key={key}>
-                  <label className={orcLabelCampoClass}>{label}</label>
+                  <label className={orcLabelCampoClass}>
+                    {key === "gestao" ? `${label} (mês)` : label}
+                  </label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
-                    value={proposta.valores[key] ?? ""}
+                    value={proposta.valores?.[key] ?? ""}
                     onChange={(e) => atualizarValor(key, e.target.value)}
                     placeholder="0,00"
                     className={orcInputClass}
@@ -488,11 +511,21 @@ export default function OrcamentoDetalhe() {
               ))}
             </div>
             <div className={`${orcTotalBarClass} mt-4`}>
-              <span className="text-sm font-semibold text-esc-text">
-                Total da proposta
-              </span>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-esc-text">
+                  {isYbyoca
+                    ? "Total (projetos e trâmites)"
+                    : "Total da proposta"}
+                </span>
+                {isYbyoca && (proposta.valores?.gestao || 0) > 0 ? (
+                  <span className="text-[11px] text-esc-muted">
+                    Gestão de obras:{" "}
+                    {formatarMoedaBRL(proposta.valores.gestao)} / mês
+                  </span>
+                ) : null}
+              </div>
               <span className="text-lg font-bold tabular-nums text-esc-destaque">
-                {formatarMoedaBRL(totalValores)}
+                {formatarMoedaBRL(isYbyoca ? totalProjetosYbyoca : totalValores)}
               </span>
             </div>
           </OrcamentoSecaoPainel>
@@ -514,7 +547,7 @@ export default function OrcamentoDetalhe() {
           >
             <textarea
               rows={MAX_LINHAS_DESCRICAO}
-              value={proposta.descricao}
+              value={proposta.descricao || ""}
               onChange={(e) =>
                 atualizarProposta({
                   descricao: limitarLinhasDescricao(e.target.value),
@@ -529,24 +562,14 @@ export default function OrcamentoDetalhe() {
             </p>
           </OrcamentoSecaoPainel>
         </div>
-      ) : (
-        <p className="rounded-xl border border-esc-border bg-esc-card px-4 py-5 text-sm text-esc-muted">
-          Nesta primeira versão da proposta Ybyoca, preencha o contato e o
-          endereço da capa e use <strong className="text-esc-text">Gerar PDF</strong>{" "}
-          para baixar a cópia visual do modelo. Seleção de serviços e valores
-          entram em seguida.
-        </p>
-      )}
 
-      {isVogelkop ? (
-        <DescricaoAssistenteModal
-          isOpen={assistenteAberto}
-          textoInicial={proposta.descricao}
-          onClose={() => setAssistenteAberto(false)}
-          onAplicar={(texto) => atualizarProposta({ descricao: texto })}
-          temaClasse={temaClasse}
-        />
-      ) : null}
+      <DescricaoAssistenteModal
+        isOpen={assistenteAberto}
+        textoInicial={proposta.descricao}
+        onClose={() => setAssistenteAberto(false)}
+        onAplicar={(texto) => atualizarProposta({ descricao: texto })}
+        temaClasse={temaClasse}
+      />
 
       <PdfPreviewModal
         isOpen={pdfPreview}

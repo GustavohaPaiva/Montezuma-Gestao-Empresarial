@@ -11,7 +11,7 @@ export const OPCOES_TECNICO = [
 export const OPCOES_TRAMITES = ["Cartório", "Caixa", "PMU"];
 
 export const OPCOES_COMPLEMENTARES = [
-  "Hidro",
+  "Hidrossanitário",
   "Estrutural",
   "Elétrico",
   "Outros",
@@ -70,7 +70,9 @@ export function normalizarPropostaDados(raw) {
     .slice(0, MAX_LINHAS_DESCRICAO)
     .join("\n");
   const complementares = normalizarLista(
-    src.complementares,
+    (Array.isArray(src.complementares) ? src.complementares : []).map((item) =>
+      String(item).trim() === "Hidro" ? "Hidrossanitário" : item,
+    ),
     OPCOES_COMPLEMENTARES,
   );
   const complementares_outros = String(src.complementares_outros ?? "")
@@ -184,8 +186,73 @@ export function formatarDataCabecalhoYB(dataReferencia) {
 export const MAX_CARACTERES_CONTATO_YB = 40;
 export const MAX_CARACTERES_ENDERECO_YB = 80;
 
+export const OPCOES_ENTREGA_YB = [
+  "Planta baixa humanizada e técnica",
+  "Planta de cobertura",
+  "Fachadas",
+  "Cortes",
+  "Planta de locação e implantação no terreno",
+  "Planta com Layout",
+  "Quadro de esquadrias e acabamentos",
+  "Imagens 3D",
+  "Emissão de ART de projeto",
+  "Pranchas técnicas em PDF e impressas",
+  "Imagens 3D de apresentação",
+];
+
+export const OPCOES_COMPLEMENTARES_YB = [
+  "Projeto Hidrossanitário",
+  "Projeto Elétrico",
+  "Projeto de Interiores",
+  "Regularização de Imóveis",
+  "Estudo de Viabilidade Financeira",
+  "Assessoria para Investimento Imobiliário",
+  "Outros",
+];
+
+export const OPCOES_TRAMITES_YB = ["Trâmites e Documentações"];
+
+export const OPCOES_GESTAO_YB = ["Gestão de Obras"];
+
+export const CHAVES_VALORES_YB = [
+  { key: "arquitetonico", label: "Projeto Arquitetônico" },
+  { key: "tramites", label: "Trâmites" },
+  { key: "complementares", label: "Complementares" },
+  { key: "gestao", label: "Gestão de Obras" },
+];
+
+export const SECOES_PROPOSTA_YBYOCA = [
+  {
+    id: "arquitetonico",
+    titulo: "Projeto Arquitetônico",
+    opcoes: OPCOES_ENTREGA_YB,
+  },
+  {
+    id: "complementares",
+    titulo: "Complementares e demais serviços",
+    opcoes: OPCOES_COMPLEMENTARES_YB,
+  },
+  { id: "tramites", titulo: "Trâmites", opcoes: OPCOES_TRAMITES_YB },
+  { id: "gestao", titulo: "Gestão de Obras", opcoes: OPCOES_GESTAO_YB },
+];
+
+function normalizarValoresYbyoca(raw) {
+  const base = {
+    arquitetonico: null,
+    tramites: null,
+    complementares: null,
+    gestao: null,
+  };
+  if (!raw || typeof raw !== "object") return base;
+  for (const { key } of CHAVES_VALORES_YB) {
+    const n = parseFloat(raw[key]);
+    base[key] = Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  return base;
+}
+
 /**
- * Dados da proposta Ybyoca (capa). Preserva campos Vogelkop se existirem no JSON.
+ * Dados da proposta Ybyoca: capa + questionário de serviços/valores.
  */
 export function normalizarPropostaDadosYbyoca(raw) {
   const src = raw && typeof raw === "object" ? raw : {};
@@ -195,11 +262,102 @@ export function normalizarPropostaDadosYbyoca(raw) {
   const endereco = String(src.endereco ?? "")
     .trim()
     .slice(0, MAX_CARACTERES_ENDERECO_YB);
+  const descricao = String(src.descricao ?? "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .slice(0, MAX_LINHAS_DESCRICAO)
+    .join("\n");
+  const complementares = normalizarLista(
+    src.complementares,
+    OPCOES_COMPLEMENTARES_YB,
+  );
+  const complementares_outros = String(src.complementares_outros ?? "")
+    .trim()
+    .slice(0, MAX_CARACTERES_COMPLEMENTARES_OUTROS);
+
   return {
-    ...src,
     contato,
     endereco,
+    arquitetonico: normalizarLista(src.arquitetonico, OPCOES_ENTREGA_YB),
+    tramites: normalizarLista(src.tramites, OPCOES_TRAMITES_YB),
+    complementares,
+    complementares_outros: complementares.includes("Outros")
+      ? complementares_outros
+      : "",
+    gestao: normalizarLista(src.gestao, OPCOES_GESTAO_YB),
+    valores: normalizarValoresYbyoca(src.valores),
+    descricao,
   };
+}
+
+export function calcularTotalValoresPropostaYbyoca(valores) {
+  const v = normalizarValoresYbyoca(valores);
+  return CHAVES_VALORES_YB.reduce(
+    (acc, { key }) => acc + (parseFloat(v[key]) || 0),
+    0,
+  );
+}
+
+/** Soma sem gestão de obras (valor mensal, exibido à parte). */
+export function calcularTotalProjetosYbyoca(valores) {
+  const v = normalizarValoresYbyoca(valores);
+  return (
+    (parseFloat(v.arquitetonico) || 0) +
+    (parseFloat(v.tramites) || 0) +
+    (parseFloat(v.complementares) || 0)
+  );
+}
+
+const ORDEM_SERVICOS_YB = [
+  "Projeto Arquitetônico",
+  "Projetos Complementares",
+  "Projeto de Interiores",
+  "Regularização de Imóveis",
+  "Trâmites e Documentações",
+  "Estudo de Viabilidade Financeira",
+  "Gestão de Obras",
+  "Assessoria para Investimento Imobiliário",
+];
+
+const COMPLEMENTARES_PACOTE_YB = new Set([
+  "Projeto Hidrossanitário",
+  "Projeto Elétrico",
+  "Outros",
+]);
+
+export function listaServicosOferecidosYbyoca(proposta) {
+  const p = proposta && typeof proposta === "object" ? proposta : {};
+  const selecionados = new Set();
+  if ((p.arquitetonico || []).length) selecionados.add("Projeto Arquitetônico");
+  const comps = p.complementares || [];
+  if (comps.some((item) => COMPLEMENTARES_PACOTE_YB.has(item))) {
+    selecionados.add("Projetos Complementares");
+  }
+  for (const item of comps) {
+    if (item !== "Outros" && !COMPLEMENTARES_PACOTE_YB.has(item)) {
+      selecionados.add(item);
+    }
+  }
+  if ((p.tramites || []).length) selecionados.add("Trâmites e Documentações");
+  if ((p.gestao || []).length) selecionados.add("Gestão de Obras");
+  return ORDEM_SERVICOS_YB.filter((item) => selecionados.has(item));
+}
+
+export function listaDemaisServicosYbyoca(proposta) {
+  const p = proposta && typeof proposta === "object" ? proposta : {};
+  const demais = [];
+  for (const item of p.complementares || []) {
+    demais.push(rotuloComplementar(item, p.complementares_outros));
+  }
+  for (const item of p.tramites || []) demais.push(item);
+  for (const item of p.gestao || []) demais.push(item);
+  return demais;
+}
+
+export function textoEntregaArquitetonicoYbyoca(itens) {
+  const lista = normalizarLista(itens, OPCOES_ENTREGA_YB);
+  if (!lista.length) return "";
+  return `${lista.join("; ")}.`;
 }
 
 /** Cabeçalho INFO GERAIS — dia|mês - ano a partir da coluna `data` do orçamento. */

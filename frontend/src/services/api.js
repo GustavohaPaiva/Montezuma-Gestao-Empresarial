@@ -20,6 +20,7 @@ import { semanasDoMes } from "../pages/relatorios-diretoria/relatoriosDiretoriaU
 import { inserirEtapaMurosSeFaltar } from "../utils/etapasObra";
 import {
   calcularTotalValoresProposta,
+  calcularTotalValoresPropostaYbyoca,
   normalizarPropostaDados,
   normalizarPropostaDadosYbyoca,
 } from "../utils/orcamentoPropostaUtils";
@@ -1251,7 +1252,7 @@ export const api = {
     );
   },
 
-  /** Ybyoca: atualiza só proposta_dados (contato/endereço) sem recalcular valor. */
+  /** Ybyoca: proposta_dados (capa + questionário) e valor total da proposta. */
   updatePropostaOrcamentoYbyoca: async (id, propostaDados, escritorioId) => {
     if (!id || !escritorioId) {
       throw new Error(
@@ -1259,7 +1260,12 @@ export const api = {
       );
     }
     const norm = normalizarPropostaDadosYbyoca(propostaDados);
-    return api.updateOrcamento(id, { proposta_dados: norm }, escritorioId);
+    const total = calcularTotalValoresPropostaYbyoca(norm.valores);
+    return api.updateOrcamento(
+      id,
+      { proposta_dados: norm, valor: total },
+      escritorioId,
+    );
   },
 
   createOrcamento: async (novoOrcamento) => {
