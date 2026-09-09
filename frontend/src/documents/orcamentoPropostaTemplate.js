@@ -87,7 +87,7 @@ export const PAGAMENTO_ETAPAS_TITULO = "1. Pagamento por Etapas (A vista):";
 
 export const PAGAMENTO_CARTAO_TITULO = "2. Pagamento via Cartão de Crédito:";
 
-export const PAGAMENTO_CARTAO_TEXTO = "Até em 10x sem juros.";
+export const PAGAMENTO_CARTAO_TEXTO = "Até em 5x sem juros.";
 
 export const PAGAMENTO_ETAPAS = [
   "40% do valor total na assinatura do contrato (entrada);",
