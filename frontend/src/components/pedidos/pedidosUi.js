@@ -24,6 +24,7 @@ const LEADING_ICON_BY_THEME = {
   blue: "bg-accent-blue-50 text-accent-blue-600",
   emerald: "bg-accent-emerald-50 text-accent-emerald-600",
   pink: "bg-accent-pink-50 text-accent-pink-600",
+  yellow: "bg-yellow-50 text-yellow-700",
   primary: "bg-accent-primary/10 text-accent-primary",
 };
 

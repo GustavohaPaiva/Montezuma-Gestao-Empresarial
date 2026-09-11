@@ -1,7 +1,10 @@
 import { formatarDataBR } from "../pages/obras/detalhe/utils/formatters";
 import {
-  STATUS_GRUPO_COMPRA_OPCOES,
+  STATUS_GRUPO_COMPRA_COMPRADO,
+  STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+  STATUS_PEDIDO_CANCELADO,
   STATUS_PEDIDO_EM_COTACAO,
+  STATUS_PEDIDO_ENTREGUE,
   STATUS_PEDIDO_OPCOES,
   STATUS_PEDIDO_PENDENTE,
   UNIDADES_MEDIDA_PEDIDO,
@@ -15,11 +18,8 @@ function indiceStatusPedido(status) {
 /** Converte o status da ordem de compra para o equivalente do pedido. */
 export function statusPedidoEquivalenteDaOrdem(statusOrdem) {
   const s = String(statusOrdem || "").trim();
+  if (s === STATUS_GRUPO_COMPRA_COMPRADO) return STATUS_PEDIDO_ENTREGUE;
   if (STATUS_PEDIDO_OPCOES.includes(s)) return s;
-  const idx = STATUS_GRUPO_COMPRA_OPCOES.indexOf(s);
-  if (idx >= 0 && idx < STATUS_PEDIDO_OPCOES.length) {
-    return STATUS_PEDIDO_OPCOES[idx];
-  }
   return STATUS_PEDIDO_PENDENTE;
 }
 
@@ -38,7 +38,7 @@ export function statusPedidoAutomaticoDasOrdens(statusOrdens) {
   let minRank = Math.min(...ranks);
 
   const rankPendente = indiceStatusPedido(STATUS_PEDIDO_PENDENTE);
-  const rankCancelado = indiceStatusPedido("Cancelado");
+  const rankCancelado = indiceStatusPedido(STATUS_PEDIDO_CANCELADO);
   const algumaAvancou = ranks.some(
     (r) => r > rankPendente && r !== rankCancelado,
   );
@@ -61,13 +61,15 @@ export function getPedidoStatusColorTheme(status) {
       return "amber";
     case "Em cotação":
       return "purple";
+    case STATUS_PEDIDO_AGUARDANDO_APROVACAO:
+      return "yellow";
     case "Aprovado":
       return "indigo";
     case "Aguardando entrega":
       return "blue";
-    case "Entregue":
+    case STATUS_PEDIDO_ENTREGUE:
       return "emerald";
-    case "Cancelado":
+    case STATUS_PEDIDO_CANCELADO:
       return "pink";
     default:
       return "primary";

@@ -69,6 +69,16 @@ const THEME_STYLES = {
     actionHover: "hover:bg-accent-indigo-50",
     selectedRing: "ring-2 ring-accent-indigo-600/45 shadow-md",
   },
+  yellow: {
+    topBar: "bg-yellow-500",
+    softBg: "bg-yellow-50",
+    strongText: "text-yellow-700",
+    leftIdle: "border-l-yellow-500",
+    leftHover: "group-hover:border-l-yellow-500",
+    pill: "bg-yellow-50 text-yellow-700",
+    actionHover: "hover:bg-yellow-50",
+    selectedRing: "ring-2 ring-yellow-500/45 shadow-md",
+  },
 };
 
 const joinClasses = (...classes) => classes.filter(Boolean).join(" ");

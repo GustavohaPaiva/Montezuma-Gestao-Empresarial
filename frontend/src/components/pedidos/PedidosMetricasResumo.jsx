@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import {
-  Ban,
   CheckCircle2,
   ClipboardList,
   Clock,
   FileSearch,
+  Hourglass,
   Package,
   Truck,
 } from "lucide-react";
@@ -13,13 +13,12 @@ import { PEDIDO_METRICAS_CONFIG } from "../../constants/pedidos";
 import { calcularMetricasPedidos } from "../../utils/pedidosUtils";
 
 const ICONES_METRICA = {
-  
+  "Aguardando aprovação": Hourglass,
   Pendente: Clock,
   "Em cotação": FileSearch,
   Aprovado: CheckCircle2,
   "Aguardando entrega": Truck,
   Entregue: ClipboardList,
-  Cancelado: Ban,
   total: Package,
 };
 

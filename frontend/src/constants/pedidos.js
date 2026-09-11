@@ -19,20 +19,28 @@ export const UNIDADES_MEDIDA_PEDIDO = [
 ];
 
 export const SUB_ABAS_PEDIDOS_OBRA = [
-  { id: "lista", label: "Pedidos lançados", sub: "Consultar pedidos desta obra" },
+  {
+    id: "lista",
+    label: "Pedidos lançados",
+    sub: "Consultar pedidos desta obra",
+  },
   { id: "novo", label: "Novo pedido", sub: "Adicionar materiais e lançar" },
 ];
 
 export const STATUS_PEDIDO_PENDENTE = "Pendente";
 export const STATUS_PEDIDO_EM_COTACAO = "Em cotação";
+export const STATUS_PEDIDO_AGUARDANDO_APROVACAO = "Aguardando aprovação";
+export const STATUS_PEDIDO_ENTREGUE = "Entregue";
+export const STATUS_PEDIDO_CANCELADO = "Cancelado";
 
 export const STATUS_PEDIDO_OPCOES = [
   STATUS_PEDIDO_PENDENTE,
   STATUS_PEDIDO_EM_COTACAO,
+  STATUS_PEDIDO_AGUARDANDO_APROVACAO,
   "Aprovado",
   "Aguardando entrega",
-  "Entregue",
-  "Cancelado",
+  STATUS_PEDIDO_ENTREGUE,
+  STATUS_PEDIDO_CANCELADO,
 ];
 
 export function isGestorPedidos(user) {
@@ -41,7 +49,11 @@ export function isGestorPedidos(user) {
 }
 
 export function isPedidoEditavel(status) {
-  return String(status || "").trim().toLowerCase() === "pendente";
+  return (
+    String(status || "")
+      .trim()
+      .toLowerCase() === "pendente"
+  );
 }
 
 export const EMITENTE_ORDEM_CLIENTE = "cliente";
@@ -65,16 +77,17 @@ export function labelEmitenteGrupo(emitente, obra) {
 }
 
 /**
- * Pipeline das ordens de compra. A posição de cada item corresponde ao
- * equivalente em STATUS_PEDIDO_OPCOES (Comprado → Entregue).
+ * Pipeline das ordens de compra. Nomes iguais aos do pedido, com a
+ * exceção Comprado → Entregue (ver statusPedidoEquivalenteDaOrdem).
  */
 export const STATUS_GRUPO_COMPRA_OPCOES = [
-  "Pendente",
-  "Em cotação",
+  STATUS_PEDIDO_PENDENTE,
+  STATUS_PEDIDO_EM_COTACAO,
+  STATUS_PEDIDO_AGUARDANDO_APROVACAO,
   "Aprovado",
   "Aguardando entrega",
   "Comprado",
-  "Cancelado",
+  STATUS_PEDIDO_CANCELADO,
 ];
 
 export const STATUS_GRUPO_COMPRA_COMPRADO = "Comprado";
@@ -89,11 +102,46 @@ export const DADOS_EMITENTE_MONTEZUMA = {
 
 /** Cards informativos (métricas) — alinhado às cores de status do sistema. */
 export const PEDIDO_METRICAS_CONFIG = [
-  { id: "Pendente", label: "Pendente", colorTheme: "amber", filtro: "Pendente" },
-  { id: "Em cotação", label: "Em cotação", colorTheme: "purple", filtro: "Em cotação" },
-  { id: "Aprovado", label: "Aprovado", colorTheme: "indigo", filtro: "Aprovado" },
-  { id: "Aguardando entrega", label: "Aguardando entrega", colorTheme: "blue", filtro: "Aguardando entrega" },
-  { id: "Entregue", label: "Entregue", colorTheme: "emerald", filtro: "Entregue" },
-  { id: "Cancelado", label: "Cancelado", colorTheme: "pink", filtro: "Cancelado" },
-  { id: "total", label: "Total de pedidos", colorTheme: "blue", filtro: "Tudo" },
+  {
+    id: "Pendente",
+    label: "Pendente",
+    colorTheme: "amber",
+    filtro: "Pendente",
+  },
+  {
+    id: "Em cotação",
+    label: "Em cotação",
+    colorTheme: "purple",
+    filtro: "Em cotação",
+  },
+  {
+    id: STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+    label: STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+    colorTheme: "yellow",
+    filtro: STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+  },
+  {
+    id: "Aprovado",
+    label: "Aprovado",
+    colorTheme: "indigo",
+    filtro: "Aprovado",
+  },
+  {
+    id: "Aguardando entrega",
+    label: "Aguardando entrega",
+    colorTheme: "blue",
+    filtro: "Aguardando entrega",
+  },
+  {
+    id: "Entregue",
+    label: "Entregue",
+    colorTheme: "emerald",
+    filtro: "Entregue",
+  },
+  {
+    id: "total",
+    label: "Total de pedidos",
+    colorTheme: "blue",
+    filtro: "Tudo",
+  },
 ];
