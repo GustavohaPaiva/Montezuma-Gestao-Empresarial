@@ -43,6 +43,12 @@ export const STATUS_PEDIDO_OPCOES = [
   STATUS_PEDIDO_CANCELADO,
 ];
 
+/** Ordem de exibição na lista (o que precisa de ação vem primeiro). */
+export const STATUS_PEDIDO_ORDEM_LISTA = [
+  STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+  ...STATUS_PEDIDO_OPCOES.filter((s) => s !== STATUS_PEDIDO_AGUARDANDO_APROVACAO),
+];
+
 export function isGestorPedidos(user) {
   if (!user?.subclasses) return false;
   return String(user.subclasses).includes(GESTOR_PEDIDOS_USER_ID);
@@ -76,10 +82,6 @@ export function labelEmitenteGrupo(emitente, obra) {
   return "Montezuma";
 }
 
-/**
- * Pipeline das ordens de compra. Nomes iguais aos do pedido, com a
- * exceção Comprado → Entregue (ver statusPedidoEquivalenteDaOrdem).
- */
 export const STATUS_GRUPO_COMPRA_OPCOES = [
   STATUS_PEDIDO_PENDENTE,
   STATUS_PEDIDO_EM_COTACAO,
@@ -103,6 +105,12 @@ export const DADOS_EMITENTE_MONTEZUMA = {
 /** Cards informativos (métricas) — alinhado às cores de status do sistema. */
 export const PEDIDO_METRICAS_CONFIG = [
   {
+    id: STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+    label: STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+    colorTheme: "yellow",
+    filtro: STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+  },
+  {
     id: "Pendente",
     label: "Pendente",
     colorTheme: "amber",
@@ -113,12 +121,6 @@ export const PEDIDO_METRICAS_CONFIG = [
     label: "Em cotação",
     colorTheme: "purple",
     filtro: "Em cotação",
-  },
-  {
-    id: STATUS_PEDIDO_AGUARDANDO_APROVACAO,
-    label: STATUS_PEDIDO_AGUARDANDO_APROVACAO,
-    colorTheme: "yellow",
-    filtro: STATUS_PEDIDO_AGUARDANDO_APROVACAO,
   },
   {
     id: "Aprovado",

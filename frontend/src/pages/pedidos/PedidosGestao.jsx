@@ -4,7 +4,11 @@ import { Package } from "lucide-react";
 import LoadingPainel from "../../components/gerais/LoadingPainel";
 import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../services/api";
-import { isGestorPedidos, STATUS_PEDIDO_OPCOES } from "../../constants/pedidos";
+import {
+  isGestorPedidos,
+  STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+  STATUS_PEDIDO_OPCOES,
+} from "../../constants/pedidos";
 import PedidoCardLista from "../../components/pedidos/PedidoCardLista";
 import PedidosMetricasResumo from "../../components/pedidos/PedidosMetricasResumo";
 import Navbar from "../../components/navbar/Navbar";
@@ -19,7 +23,9 @@ export default function PedidosGestao() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
   const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("Pendente");
+  const [filtroStatus, setFiltroStatus] = useState(
+    STATUS_PEDIDO_AGUARDANDO_APROVACAO,
+  );
 
   const autorizado = isGestorPedidos(user);
 

@@ -6,6 +6,7 @@ import {
   STATUS_PEDIDO_EM_COTACAO,
   STATUS_PEDIDO_ENTREGUE,
   STATUS_PEDIDO_OPCOES,
+  STATUS_PEDIDO_ORDEM_LISTA,
   STATUS_PEDIDO_PENDENTE,
   UNIDADES_MEDIDA_PEDIDO,
 } from "../constants/pedidos";
@@ -204,10 +205,10 @@ export function filtrarPedidos(pedidos, { busca = "", status = "Tudo" } = {}) {
     if (!status || status === "Tudo") {
       const sa = a.status || STATUS_PEDIDO_PENDENTE;
       const sb = b.status || STATUS_PEDIDO_PENDENTE;
-      const ia = STATUS_PEDIDO_OPCOES.indexOf(sa);
-      const ib = STATUS_PEDIDO_OPCOES.indexOf(sb);
-      const ordA = ia === -1 ? STATUS_PEDIDO_OPCOES.length : ia;
-      const ordB = ib === -1 ? STATUS_PEDIDO_OPCOES.length : ib;
+      const ia = STATUS_PEDIDO_ORDEM_LISTA.indexOf(sa);
+      const ib = STATUS_PEDIDO_ORDEM_LISTA.indexOf(sb);
+      const ordA = ia === -1 ? STATUS_PEDIDO_ORDEM_LISTA.length : ia;
+      const ordB = ib === -1 ? STATUS_PEDIDO_ORDEM_LISTA.length : ib;
       if (ordA !== ordB) return ordA - ordB;
     }
 
