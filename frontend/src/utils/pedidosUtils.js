@@ -97,6 +97,104 @@ export function formatarQuantidadePedido(valor) {
   }).format(n);
 }
 
+export function arredondarCasas(valor, casas = 2) {
+  const n = Number(valor);
+  if (!Number.isFinite(n)) return 0;
+  const f = 10 ** casas;
+  return Math.round((n + Number.EPSILON) * f) / f;
+}
+
+export function arredondarMoeda(valor) {
+  return arredondarCasas(valor, 2);
+}
+
+export function arredondarValorUnitario(valor) {
+  return arredondarCasas(valor, 4);
+}
+
+function numeroOuNull(valor) {
+  if (valor === "" || valor == null) return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Soma o valor dos materiais do pedido (linhas sem valor contam como 0). */
+export function calcularTotalValorPedido(itens) {
+  if (!Array.isArray(itens)) return 0;
+  return itens.reduce((acc, item) => acc + (parseFloat(item?.valor) || 0), 0);
+}
+
+/**
+ * Recalcula unitário e total da linha.
+ * origem: "unitario" | "valor" | "quantidade"
+ */
+export function recalcularValoresLinha(item, origem) {
+  const quantidade = numeroOuNull(item?.quantidade);
+  const qOk = quantidade != null && quantidade > 0;
+  const unitario = numeroOuNull(item?.valor_unitario);
+  const valor = numeroOuNull(item?.valor);
+
+  if (origem === "unitario") {
+    if (unitario == null) {
+      return { valor_unitario: null };
+    }
+    return {
+      valor_unitario: unitario,
+      valor: qOk ? arredondarMoeda(unitario * quantidade) : item?.valor ?? null,
+    };
+  }
+
+  if (origem === "valor") {
+    if (valor == null) {
+      return { valor: null };
+    }
+    return {
+      valor,
+      valor_unitario: qOk
+        ? arredondarValorUnitario(valor / quantidade)
+        : item?.valor_unitario ?? null,
+    };
+  }
+
+  if (!qOk) return { quantidade: item?.quantidade };
+  if (unitario != null) {
+    return {
+      quantidade,
+      valor_unitario: unitario,
+      valor: arredondarMoeda(unitario * quantidade),
+    };
+  }
+  if (valor != null) {
+    return {
+      quantidade,
+      valor,
+      valor_unitario: arredondarValorUnitario(valor / quantidade),
+    };
+  }
+  return { quantidade };
+}
+
+export function resumoValoresPedido(itens, desconto = {}) {
+  const subtotal = arredondarMoeda(calcularTotalValorPedido(itens));
+  let valor = Number(desconto?.desconto_valor);
+  if (!Number.isFinite(valor) || valor < 0) valor = 0;
+  valor = arredondarMoeda(Math.min(subtotal, valor));
+
+  return {
+    subtotal,
+    desconto_valor: valor,
+    total: arredondarMoeda(Math.max(0, subtotal - valor)),
+  };
+}
+
+export function fatorDescontoPedido(resumo) {
+  const subtotal = Number(resumo?.subtotal) || 0;
+  if (!(subtotal > 0)) return 1;
+  const total = Number(resumo?.total);
+  if (!Number.isFinite(total)) return 1;
+  return total / subtotal;
+}
+
 /** Número exibido do pedido dentro da obra (1, 2, 3…). */
 export function numeroPedidoObra(pedido) {
   const n = Number(pedido?.numero);

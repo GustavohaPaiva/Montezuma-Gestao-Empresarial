@@ -6,8 +6,10 @@ import { formatarMoeda } from "../../pages/obras/detalhe/utils/formatters";
 import { etapasParaSelectOptions } from "../../pages/obras/detalhe/utils/etapasLancamento";
 import {
   normalizarNomeMaterial,
+  recalcularValoresLinha,
   validarItemPedido,
 } from "../../utils/pedidosUtils";
+import PedidoValorTotal from "./PedidoValorTotal";
 import BaseSelect from "../gerais/BaseSelect";
 import BaseDatePicker from "../gerais/BaseDatePicker";
 import ButtonDefault from "../gerais/ButtonDefault";
@@ -66,6 +68,7 @@ export default function PedidoItensTableGestao({
   fornecedores = [],
   obra = null,
   pedidoId,
+  pedido = null,
   onAtualizarPedido,
 }) {
   const [linhas, setLinhas] = useState(itens);
@@ -237,6 +240,16 @@ export default function PedidoItensTableGestao({
     }
   };
 
+  const salvarDesconto = async (campos) => {
+    if (!pedidoId) return;
+    try {
+      await api.updateObraPedidoDesconto(pedidoId, campos);
+      if (onAtualizarPedido) await onAtualizarPedido();
+    } catch (e) {
+      console.error("[PedidoItensTableGestao] desconto:", e);
+    }
+  };
+
   const idsSelecionaveis = linhas.filter((i) => i.id).map((i) => i.id);
   const todosSelecionados =
     idsSelecionaveis.length > 0 &&
@@ -384,7 +397,7 @@ export default function PedidoItensTableGestao({
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border-primary/35">
-          <table className="w-full min-w-[1100px] border-collapse text-center text-sm">
+          <table className="w-full min-w-[1240px] border-collapse text-center text-sm">
             <thead>
               <tr className="border-b border-border-primary/30 bg-[#FAFAFA]">
                 <th className="w-10 px-2 py-3">
@@ -403,7 +416,8 @@ export default function PedidoItensTableGestao({
                   "Entrega",
                   "Fornecedor",
                   "Etapa",
-                  "Valor (R$)",
+                  "Unitário (R$)",
+                  "Total (R$)",
                   "Data pagamento",
                   "Ações",
                 ].map((label) => (
@@ -470,14 +484,22 @@ export default function PedidoItensTableGestao({
                         disabled={!item.id}
                         onFocus={() => marcarEditando(item.id, "quantidade")}
                         onChange={(e) => {
-                          atualizarLinha(item.id, { quantidade: e.target.value });
+                          atualizarLinha(
+                            item.id,
+                            recalcularValoresLinha(
+                              { ...item, quantidade: e.target.value },
+                              "quantidade",
+                            ),
+                          );
                         }}
                         onBlur={(e) => {
                           const val = e.target.value;
                           if (!val) return;
-                          salvarNoBlur(item.id, "quantidade", {
-                            quantidade: val,
-                          });
+                          const campos = recalcularValoresLinha(
+                            { ...item, quantidade: val },
+                            "quantidade",
+                          );
+                          salvarNoBlur(item.id, "quantidade", campos);
                         }}
                         className={`${inputTabelaGestao} mx-auto max-w-[5rem]`}
                       />
@@ -557,19 +579,83 @@ export default function PedidoItensTableGestao({
                           min="0"
                           step="0.01"
                           placeholder="—"
+                          value={valorInputValue(item.valor_unitario)}
+                          disabled={!item.id}
+                          onFocus={() =>
+                            marcarEditando(item.id, "valor_unitario")
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            atualizarLinha(
+                              item.id,
+                              recalcularValoresLinha(
+                                {
+                                  ...item,
+                                  valor_unitario: val === "" ? null : val,
+                                },
+                                "unitario",
+                              ),
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value;
+                            const campos = recalcularValoresLinha(
+                              {
+                                ...item,
+                                valor_unitario: val === "" ? null : val,
+                              },
+                              "unitario",
+                            );
+                            salvarNoBlur(item.id, "valor_unitario", {
+                              valor_unitario: campos.valor_unitario ?? null,
+                              valor:
+                                campos.valor !== undefined
+                                  ? campos.valor
+                                  : item.valor ?? null,
+                            });
+                          }}
+                          className={inputTabelaGestao}
+                          title={
+                            item.valor_unitario != null &&
+                            item.valor_unitario !== ""
+                              ? formatarMoeda(item.valor_unitario)
+                              : undefined
+                          }
+                        />
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 align-middle">
+                      <div className="relative mx-auto flex max-w-[6.5rem] items-center justify-center">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="—"
                           value={valorInputValue(item.valor)}
                           disabled={!item.id}
                           onFocus={() => marcarEditando(item.id, "valor")}
                           onChange={(e) => {
                             const val = e.target.value;
-                            atualizarLinha(item.id, {
-                              valor: val === "" ? null : val,
-                            });
+                            atualizarLinha(
+                              item.id,
+                              recalcularValoresLinha(
+                                { ...item, valor: val === "" ? null : val },
+                                "valor",
+                              ),
+                            );
                           }}
                           onBlur={(e) => {
                             const val = e.target.value;
+                            const campos = recalcularValoresLinha(
+                              { ...item, valor: val === "" ? null : val },
+                              "valor",
+                            );
                             salvarNoBlur(item.id, "valor", {
-                              valor: val === "" ? null : val,
+                              valor: campos.valor ?? null,
+                              valor_unitario:
+                                campos.valor_unitario !== undefined
+                                  ? campos.valor_unitario
+                                  : item.valor_unitario ?? null,
                             });
                           }}
                           className={inputTabelaGestao}
@@ -621,6 +707,14 @@ export default function PedidoItensTableGestao({
           </table>
         </div>
       )}
+      {linhas.length ? (
+        <PedidoValorTotal
+          itens={linhas}
+          desconto={pedido || {}}
+          editavel
+          onSalvarDesconto={salvarDesconto}
+        />
+      ) : null}
 
       <BaseModal
         isOpen={Boolean(itemParaExcluir)}

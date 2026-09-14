@@ -6,9 +6,12 @@ import {
 import { escritorioIdsClientesOrdemServico } from "../pages/ordens-servico/ordensServicoUtils";
 import { STATUS as TAREFA_STATUS } from "../pages/tarefas/tarefasHelpers";
 import {
+  arredondarMoeda,
   enriquecerNumerosPedidos,
+  fatorDescontoPedido,
   normalizarNomeMaterial,
   normalizarMateriaisLista,
+  resumoValoresPedido,
   statusPedidoAutomaticoDasOrdens,
   validarItemPedido,
 } from "../utils/pedidosUtils";
@@ -562,9 +565,9 @@ function normalizeObraIdForHistorico(obraId) {
 }
 
 const PEDIDO_SELECT_ITENS =
-  "obra_pedido_itens(id, material, quantidade, unidade, data_entrega, created_at, fornecedor_id, data_pagamento, valor)";
+  "obra_pedido_itens(id, material, quantidade, unidade, data_entrega, created_at, fornecedor_id, data_pagamento, valor, valor_unitario)";
 
-const PEDIDO_SELECT_BASE = `id, obra_id, numero, status, status_manual, solicitante_id, solicitante_nome, created_at, updated_at, ${PEDIDO_SELECT_ITENS}`;
+const PEDIDO_SELECT_BASE = `id, obra_id, numero, status, status_manual, solicitante_id, solicitante_nome, created_at, updated_at, desconto_valor, desconto_percentual, desconto_modo, ${PEDIDO_SELECT_ITENS}`;
 
 const PEDIDO_SELECT_SIMPLES =
   "id, obra_id, numero, status, solicitante_id, solicitante_nome, created_at, updated_at";
@@ -708,7 +711,7 @@ async function anexarItensAosPedidos(pedidos) {
   const { data: itens, error } = await supabase
     .from("obra_pedido_itens")
     .select(
-      "id, pedido_id, material, quantidade, unidade, data_entrega, created_at, grupo_compra_id, material_relatorio_id, fornecedor_id, data_pagamento, valor, etapa_nome",
+      "id, pedido_id, material, quantidade, unidade, data_entrega, created_at, grupo_compra_id, material_relatorio_id, fornecedor_id, data_pagamento, valor, valor_unitario, etapa_nome",
     )
     .in("pedido_id", ids);
   if (error) throw new Error(mensagemErroPedido(error));
@@ -4766,14 +4769,33 @@ export const api = {
         payload.valor = Number.isFinite(v) ? v : null;
       }
     }
+    if (campos.valor_unitario !== undefined) {
+      if (campos.valor_unitario === "" || campos.valor_unitario == null) {
+        payload.valor_unitario = null;
+      } else {
+        const v = Number(campos.valor_unitario);
+        payload.valor_unitario = Number.isFinite(v) ? v : null;
+      }
+    }
     if (!Object.keys(payload).length) return true;
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("obra_pedido_itens")
       .update(payload)
       .eq("id", itemId)
       .select("id, material_relatorio_id")
       .maybeSingle();
+    if (error && payload.valor_unitario !== undefined && erroPorColunaAusente(error, "valor_unitario")) {
+      const semUnitario = { ...payload };
+      delete semUnitario.valor_unitario;
+      if (!Object.keys(semUnitario).length) return true;
+      ({ data, error } = await supabase
+        .from("obra_pedido_itens")
+        .update(semUnitario)
+        .eq("id", itemId)
+        .select("id, material_relatorio_id")
+        .maybeSingle());
+    }
     if (error) throw new Error(mensagemErroPedido(error));
 
     if (
@@ -4791,6 +4813,24 @@ export const api = {
         payload.valor ?? 0,
       );
     }
+    return true;
+  },
+
+  updateObraPedidoDesconto: async (pedidoId, campos = {}) => {
+    if (pedidoId == null) throw new Error("Pedido inválido.");
+    const n = Number(campos.desconto_valor);
+    const payload = {
+      updated_at: new Date().toISOString(),
+      desconto_valor: Number.isFinite(n) && n >= 0 ? n : 0,
+      desconto_percentual: 0,
+      desconto_modo: "valor",
+    };
+    const { error } = await supabase
+      .from("obra_pedidos")
+      .update(payload)
+      .eq("id", pedidoId);
+    if (error && erroPorColunaAusente(error, "desconto")) return true;
+    if (error) throw new Error(mensagemErroPedido(error));
     return true;
   },
 
@@ -5110,15 +5150,33 @@ export const api = {
     if (errG) throw new Error(mensagemErroPedido(errG));
     if (!grupoRow?.pedido_id) return;
 
-    const { data: pedidoRow, error: errP } = await supabase
+    let { data: pedidoRow, error: errP } = await supabase
       .from("obra_pedidos")
-      .select("obra_id")
+      .select("obra_id, desconto_valor, desconto_percentual, desconto_modo")
       .eq("id", grupoRow.pedido_id)
       .maybeSingle();
-    if (errP) throw new Error(mensagemErroPedido(errP));
+    if (errP && erroPorColunaAusente(errP, "desconto")) {
+      const fb = await supabase
+        .from("obra_pedidos")
+        .select("obra_id")
+        .eq("id", grupoRow.pedido_id)
+        .maybeSingle();
+      if (fb.error) throw new Error(mensagemErroPedido(fb.error));
+      pedidoRow = fb.data;
+    } else if (errP) {
+      throw new Error(mensagemErroPedido(errP));
+    }
 
     const obraId = pedidoRow?.obra_id;
     if (obraId == null) return;
+
+    const { data: itensPedido } = await supabase
+      .from("obra_pedido_itens")
+      .select("valor")
+      .eq("pedido_id", grupoRow.pedido_id);
+    const fator = fatorDescontoPedido(
+      resumoValoresPedido(itensPedido || [], pedidoRow || {}),
+    );
 
     const { data: itens, error: errI } = await supabase
       .from("obra_pedido_itens")
@@ -5137,12 +5195,15 @@ export const api = {
       pendentes.map(async (item) => {
         const valorNum =
           item.valor != null && item.valor !== "" ? Number(item.valor) : 0;
+        const valorComDesconto = arredondarMoeda(
+          (Number.isFinite(valorNum) ? valorNum : 0) * fator,
+        );
 
         const payload = {
           obra_id: obraId,
           material: normalizarNomeMaterial(item.material),
           quantidade: `${item.quantidade} ${item.unidade || "Un."}`,
-          valor: Number.isFinite(valorNum) ? valorNum : 0,
+          valor: valorComDesconto,
           fornecedor_id: item.fornecedor_id || null,
           data_solicitacao: dataAtual,
           data_vencimento: item.data_entrega || null,
@@ -5203,10 +5264,13 @@ export const api = {
         if (errMat || !mat) return;
         const valorPedido =
           item.valor != null && item.valor !== "" ? Number(item.valor) : 0;
+        const valorPedidoComDesconto = arredondarMoeda(
+          (Number.isFinite(valorPedido) ? valorPedido : 0) * fator,
+        );
         const valorMat = parseFloat(mat.valor) || 0;
         try {
-          if (valorMat <= 0 && Number.isFinite(valorPedido) && valorPedido > 0) {
-            await api.updateMaterialValor(mat.id, valorPedido);
+          if (valorMat <= 0 && valorPedidoComDesconto > 0) {
+            await api.updateMaterialValor(mat.id, valorPedidoComDesconto);
           } else {
             await upsertExtratoFromMaterial(mat);
           }

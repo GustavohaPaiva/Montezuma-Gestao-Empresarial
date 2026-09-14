@@ -10,6 +10,7 @@ import { rotuloPedido } from "../../../utils/pedidosUtils";
 import { isPedidoEditavel } from "../../../constants/pedidos";
 import PedidoItensTable from "../../../components/pedidos/PedidoItensTable";
 import PedidoFormComposer from "../../../components/pedidos/PedidoFormComposer";
+import PedidoValorTotal from "../../../components/pedidos/PedidoValorTotal";
 import ButtonDefault from "../../../components/gerais/ButtonDefault";
 import {
   btnOutlinePremium,
@@ -173,12 +174,19 @@ export default function PedidoObraDetalhe() {
                   {status}
                 </span>
               </div>
-              <p className="mt-3 text-xs text-text-muted">
-                Criado em {formatarDataHora(pedido.created_at)}
-                {pedido.updated_at !== pedido.created_at
-                  ? ` · Atualizado em ${formatarDataHora(pedido.updated_at)}`
-                  : ""}
-              </p>
+              <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                <p className="text-xs text-text-muted">
+                  Criado em {formatarDataHora(pedido.created_at)}
+                  {pedido.updated_at !== pedido.created_at
+                    ? ` · Atualizado em ${formatarDataHora(pedido.updated_at)}`
+                    : ""}
+                </p>
+                <PedidoValorTotal
+                  itens={pedido.itens || []}
+                  desconto={pedido}
+                  variant="header"
+                />
+              </div>
             </div>
 
             <div className="p-5 sm:p-6">
@@ -235,7 +243,7 @@ export default function PedidoObraDetalhe() {
                       </ButtonDefault>
                     ) : null}
                   </div>
-                  <PedidoItensTable itens={pedido.itens || []} />
+                  <PedidoItensTable itens={pedido.itens || []} desconto={pedido} />
                 </section>
               )}
             </div>

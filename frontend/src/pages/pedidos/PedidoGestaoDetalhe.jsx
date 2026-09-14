@@ -21,6 +21,7 @@ import { pedidoStatusFoiAlteradoManual } from "../../utils/pedidosUtils";
 import PedidoItensTableGestao from "../../components/pedidos/PedidoItensTableGestao";
 import PedidoOrdensCompra from "../../components/pedidos/PedidoOrdensCompra";
 import PedidoSecaoPainel from "../../components/pedidos/PedidoSecaoPainel";
+import PedidoValorTotal from "../../components/pedidos/PedidoValorTotal";
 import LoadingPainel from "../../components/gerais/LoadingPainel";
 import BaseSelect from "../../components/gerais/BaseSelect";
 import BaseModal from "../../components/gerais/BaseModal";
@@ -290,9 +291,16 @@ export default function PedidoGestaoDetalhe() {
                     </BaseButton>
                   </div>
                 </div>
-                <p className="mt-3 text-xs text-text-muted">
-                  Criado em {formatarDataHora(pedido.created_at)}
-                </p>
+                <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                  <p className="text-xs text-text-muted">
+                    Criado em {formatarDataHora(pedido.created_at)}
+                  </p>
+                  <PedidoValorTotal
+                    itens={pedido.itens || []}
+                    desconto={pedido}
+                    variant="header"
+                  />
+                </div>
                 {pedido.obra_id ? (
                   <button
                     type="button"
@@ -327,6 +335,7 @@ export default function PedidoGestaoDetalhe() {
                 fornecedores={fornecedores}
                 obra={obra}
                 pedidoId={pedido.id}
+                pedido={pedido}
                 onAtualizarPedido={atualizarPedidoSilencioso}
               />
             </PedidoSecaoPainel>
