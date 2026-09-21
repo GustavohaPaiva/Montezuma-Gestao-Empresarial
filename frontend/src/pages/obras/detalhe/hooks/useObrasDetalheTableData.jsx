@@ -25,6 +25,10 @@ import {
   isExtratoPago,
   labelsExtratoFinanceiro,
 } from "../utils/lotesPagamentoUtils";
+import {
+  materialPagoNoExtrato,
+  montarMapaExtratosPorMaterialId,
+} from "../utils/materiaisPorFornecedor";
 
 /** Lista do extrato após busca textual e filtro de tipo (mesma regra da tabela). */
 export function filtrarExtratoLista(
@@ -175,6 +179,10 @@ export function useObrasDetalheTableData({
       });
     }
 
+    const mapaExtratosMateriais = montarMapaExtratosPorMaterialId(
+      obra?.relatorioExtrato || [],
+    );
+
     return {
       rowIds: listaMateriais.map((m) => m.id),
       dados: listaMateriais.map((m) => {
@@ -195,12 +203,7 @@ export function useObrasDetalheTableData({
       const nomeFornecedorExibicao =
         m.fornecedores?.nome || m.fornecedor || "-";
 
-      const isPagoMat =
-        (
-          m.status_pagamento_fornecedor ||
-          m.status_pagamento ||
-          ""
-        ).toLowerCase() === "pago";
+      const isPagoMat = materialPagoNoExtrato(mapaExtratosMateriais, m.id);
       const valorTotalClassMat = isPagoMat
         ? "text-emerald-700"
         : "text-text-primary";
@@ -214,10 +217,8 @@ export function useObrasDetalheTableData({
           key={`val-${m.id}`}
           title={
             isPagoMat
-              ? "Pago ao fornecedor"
-              : m.fornecedor_id
-                ? "Aguardando pagamento ao fornecedor"
-                : "Sem fornecedor / conta a pagar"
+              ? "Pago pelo cliente no extrato"
+              : "Aguardando pagamento do cliente"
           }
         >
           {isEditingValor ? (

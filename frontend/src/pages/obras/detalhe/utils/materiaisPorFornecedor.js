@@ -1,27 +1,46 @@
 /** Sentinel for materials without fornecedor_id in the obra report hub. */
 export const SEM_FORNECEDOR_ID = "__none__";
 
-function isStatusPago(statusFinanceiro) {
+function isExtratoPago(statusFinanceiro) {
   return String(statusFinanceiro || "")
     .trim()
     .toLowerCase() === "pago";
 }
 
-function statusPagamentoFornecedor(m) {
-  return (
-    m?.status_pagamento_fornecedor ??
-    m?.status_pagamento ??
-    m?.status_financeiro
-  );
+/**
+ * Materiais na obra (relação Cliente → Montezuma) contam como pagos quando
+ * existe extrato vinculado e todos os lançamentos estão "Pago".
+ */
+export function montarMapaExtratosPorMaterialId(extrato = []) {
+  const mapa = new Map();
+  for (const e of extrato || []) {
+    if (e?.material_id == null) continue;
+    const chave = String(e.material_id);
+    if (!mapa.has(chave)) mapa.set(chave, []);
+    mapa.get(chave).push(e);
+  }
+  return mapa;
 }
 
-function somarTotais(materiais) {
+export function materialPagoNoExtrato(mapaExtratos, materialId) {
+  const extratos = mapaExtratos.get(String(materialId));
+  if (!extratos?.length) return false;
+  return extratos.every((e) => isExtratoPago(e?.status_financeiro));
+}
+
+export function statusPagamentoClienteDoMaterial(mapaExtratos, materialId) {
+  return materialPagoNoExtrato(mapaExtratos, materialId)
+    ? "Pago"
+    : "Aguardando pagamento";
+}
+
+function somarTotais(materiais, mapaExtratos) {
   let comprado = 0;
   let pago = 0;
   for (const m of materiais || []) {
     const val = parseFloat(m.valor) || 0;
     comprado += val;
-    if (isStatusPago(statusPagamentoFornecedor(m))) {
+    if (materialPagoNoExtrato(mapaExtratos, m.id)) {
       pago += val;
     }
   }
@@ -35,9 +54,11 @@ function somarTotais(materiais) {
 
 /**
  * Groups obra materials by supplier and returns summary cards + obra totals.
- * Only suppliers with at least one lançamento on this obra are included.
+ * "Pago" é validado pelo extrato financeiro (relatorio_extrato) — relação
+ * Cliente → Montezuma — e não pela conta a pagar do fornecedor.
  */
-export function agregarMateriaisPorFornecedor(materiais = []) {
+export function agregarMateriaisPorFornecedor(materiais = [], extrato = []) {
+  const mapaExtratos = montarMapaExtratosPorMaterialId(extrato);
   const porId = new Map();
 
   for (const m of materiais || []) {
@@ -61,7 +82,7 @@ export function agregarMateriaisPorFornecedor(materiais = []) {
   }
 
   const fornecedores = Array.from(porId.values()).map((g) => {
-    const totais = somarTotais(g.materiais);
+    const totais = somarTotais(g.materiais, mapaExtratos);
     return {
       id: g.id,
       nome: g.nome,
@@ -77,7 +98,7 @@ export function agregarMateriaisPorFornecedor(materiais = []) {
     return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
   });
 
-  const totaisObra = somarTotais(materiais);
+  const totaisObra = somarTotais(materiais, mapaExtratos);
 
   return {
     fornecedores,

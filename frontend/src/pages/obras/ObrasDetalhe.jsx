@@ -278,8 +278,12 @@ export default function ObrasDetalhe() {
 
   const { fornecedores: fornecedoresMateriaisHub, totaisObra: totaisMateriaisObra, qtdFornecedores: qtdFornecedoresMateriais } =
     useMemo(
-      () => agregarMateriaisPorFornecedor(obra?.materiais || []),
-      [obra?.materiais],
+      () =>
+        agregarMateriaisPorFornecedor(
+          obra?.materiais || [],
+          obra?.relatorioExtrato || [],
+        ),
+      [obra?.materiais, obra?.relatorioExtrato],
     );
 
   const fornecedorMateriaisSelecionado = useMemo(() => {

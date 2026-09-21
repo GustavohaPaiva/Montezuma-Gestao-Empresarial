@@ -6,6 +6,11 @@ import {
   filtrarMaoDeObraLista,
   filtrarMateriaisLista,
 } from "./relatorioFiltrosUtils";
+import {
+  materialPagoNoExtrato,
+  montarMapaExtratosPorMaterialId,
+  statusPagamentoClienteDoMaterial,
+} from "./materiaisPorFornecedor";
 
 /**
  * Todos os geradores devolvem `{ blob, nomePadrao }`.
@@ -273,6 +278,10 @@ export async function gerarPdfRelatorioMateriais(
     return;
   }
 
+  const mapaExtratos = montarMapaExtratosPorMaterialId(
+    obra.relatorioExtrato || obra.extrato || [],
+  );
+
   const totalGeral = lista.reduce(
     (acc, m) => acc + (parseFloat(m.valor) || 0),
     0,
@@ -289,9 +298,8 @@ export async function gerarPdfRelatorioMateriais(
   const linhas = lista.map((m) => {
     const valorTotal = parseFloat(m.valor) || 0;
     const fornecedor = m.fornecedores?.nome || m.fornecedor || "—";
-    const statusForn =
-      m.status_pagamento_fornecedor || m.status_pagamento || "";
-    const pago = statusForn.toLowerCase() === "pago";
+    const statusCliente = statusPagamentoClienteDoMaterial(mapaExtratos, m.id);
+    const pago = materialPagoNoExtrato(mapaExtratos, m.id);
     return [
       m.material || "—",
       String(m.quantidade ?? "—"),
@@ -302,8 +310,8 @@ export async function gerarPdfRelatorioMateriais(
       formatarDataBR(m.data_solicitacao),
       {
         kind: "pill",
-        tone: tonePagamento(statusForn),
-        text: rotuloPagamento(statusForn || "Aguardando pagamento"),
+        tone: tonePagamento(statusCliente),
+        text: rotuloPagamento(statusCliente),
       },
     ];
   });
