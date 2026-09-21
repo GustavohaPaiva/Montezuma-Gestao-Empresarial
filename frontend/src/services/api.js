@@ -7,8 +7,10 @@ import { escritorioIdsClientesOrdemServico } from "../pages/ordens-servico/orden
 import { STATUS as TAREFA_STATUS } from "../pages/tarefas/tarefasHelpers";
 import {
   arredondarMoeda,
+  diluirDescontoNosItens,
   enriquecerNumerosPedidos,
   fatorDescontoPedido,
+  marcarDescontoDiluido,
   normalizarNomeMaterial,
   normalizarMateriaisLista,
   resumoValoresPedido,
@@ -639,6 +641,17 @@ function erroPorColunaAusente(error, coluna) {
 
 function itemPedidoEstaNoRelatorio(item) {
   return item?.material_relatorio_id != null;
+}
+
+function dataYmdOuNull(valor) {
+  if (valor == null || valor === "") return null;
+  const s = String(valor).split("T")[0].trim();
+  return s || null;
+}
+
+/** Vencimento no financeiro: data de pagamento do item; se vazia, a de entrega. */
+function dataVencimentoDoItemPedido(item) {
+  return dataYmdOuNull(item?.data_pagamento) || dataYmdOuNull(item?.data_entrega);
 }
 
 async function atualizarCamposPedido(pedidoId, campos) {
@@ -4813,25 +4826,65 @@ export const api = {
         payload.valor ?? 0,
       );
     }
+    if (
+      campos.data_pagamento !== undefined &&
+      data?.material_relatorio_id != null
+    ) {
+      await api.updateMaterialDataVencimento(
+        data.material_relatorio_id,
+        payload.data_pagamento,
+      );
+    }
     return true;
   },
 
   updateObraPedidoDesconto: async (pedidoId, campos = {}) => {
     if (pedidoId == null) throw new Error("Pedido inválido.");
     const n = Number(campos.desconto_valor);
+    const descontoNovo = Number.isFinite(n) && n >= 0 ? n : 0;
+
+    const pedido = await api.getObraPedidoById(pedidoId);
+    if (!pedido) throw new Error("Pedido não encontrado.");
+
+    const jaDiluido = marcarDescontoDiluido(pedido);
+    const { itens, desconto } = diluirDescontoNosItens(
+      pedido.itens || [],
+      pedido.desconto_valor,
+      descontoNovo,
+      { jaDiluido },
+    );
+
+    const originais = new Map(
+      (pedido.itens || []).map((item) => [String(item.id), item]),
+    );
+    for (const item of itens) {
+      if (item.id == null) continue;
+      const anterior = originais.get(String(item.id));
+      const valorMudou =
+        Number(anterior?.valor) !== Number(item.valor) ||
+        Number(anterior?.valor_unitario) !== Number(item.valor_unitario);
+      if (!valorMudou) continue;
+      await api.updateObraPedidoItemGestao(item.id, {
+        valor: item.valor ?? null,
+        valor_unitario: item.valor_unitario ?? null,
+      });
+    }
+
     const payload = {
       updated_at: new Date().toISOString(),
-      desconto_valor: Number.isFinite(n) && n >= 0 ? n : 0,
-      desconto_percentual: 0,
+      desconto_valor: desconto,
+      desconto_percentual: desconto > 0 ? 1 : 0,
       desconto_modo: "valor",
     };
     const { error } = await supabase
       .from("obra_pedidos")
       .update(payload)
       .eq("id", pedidoId);
-    if (error && erroPorColunaAusente(error, "desconto")) return true;
+    if (error && erroPorColunaAusente(error, "desconto")) {
+      return api.getObraPedidoById(pedidoId);
+    }
     if (error) throw new Error(mensagemErroPedido(error));
-    return true;
+    return api.getObraPedidoById(pedidoId);
   },
 
   updateObraPedidoItensGestaoInIds: async (itemIds, campos = {}) => {
@@ -5174,16 +5227,27 @@ export const api = {
       .from("obra_pedido_itens")
       .select("valor")
       .eq("pedido_id", grupoRow.pedido_id);
-    const fator = fatorDescontoPedido(
-      resumoValoresPedido(itensPedido || [], pedidoRow || {}),
-    );
+    const jaDiluido = marcarDescontoDiluido(pedidoRow);
+    const fator = jaDiluido
+      ? 1
+      : fatorDescontoPedido(
+          resumoValoresPedido(itensPedido || [], pedidoRow || {}),
+        );
 
-    const { data: itens, error: errI } = await supabase
+    let { data: itens, error: errI } = await supabase
       .from("obra_pedido_itens")
       .select(
-        "id, material, quantidade, unidade, data_entrega, material_relatorio_id, fornecedor_id, valor, etapa_nome",
+        "id, material, quantidade, unidade, data_entrega, material_relatorio_id, fornecedor_id, data_pagamento, valor, etapa_nome",
       )
       .eq("grupo_compra_id", grupoId);
+    if (errI && erroPorColunaAusente(errI, "data_pagamento")) {
+      ({ data: itens, error: errI } = await supabase
+        .from("obra_pedido_itens")
+        .select(
+          "id, material, quantidade, unidade, data_entrega, material_relatorio_id, fornecedor_id, valor, etapa_nome",
+        )
+        .eq("grupo_compra_id", grupoId));
+    }
     if (errI) throw new Error(mensagemErroPedido(errI));
 
     const dataAtual = new Date().toISOString().split("T")[0];
@@ -5206,7 +5270,7 @@ export const api = {
           valor: valorComDesconto,
           fornecedor_id: item.fornecedor_id || null,
           data_solicitacao: dataAtual,
-          data_vencimento: item.data_entrega || null,
+          data_vencimento: dataVencimentoDoItemPedido(item),
           status_financeiro: "Aguardando pagamento",
           status: "Aguardando entrega",
           etapa_nome: item.etapa_nome || null,
@@ -5268,7 +5332,11 @@ export const api = {
           (Number.isFinite(valorPedido) ? valorPedido : 0) * fator,
         );
         const valorMat = parseFloat(mat.valor) || 0;
+        const dataVencimento = dataVencimentoDoItemPedido(item);
         try {
+          if (dataVencimento && dataYmdOuNull(mat.data_vencimento) !== dataVencimento) {
+            await api.updateMaterialDataVencimento(mat.id, dataVencimento);
+          }
           if (valorMat <= 0 && valorPedidoComDesconto > 0) {
             await api.updateMaterialValor(mat.id, valorPedidoComDesconto);
           } else {

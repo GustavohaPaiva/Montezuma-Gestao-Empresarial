@@ -39,7 +39,7 @@ function chaveItens(itens) {
   return (itens || [])
     .map(
       (i) =>
-        `${i.id}:${i.material_relatorio_id ?? ""}:${i.grupo_compra_id ?? ""}:${i.etapa_nome ?? ""}`,
+        `${i.id}:${i.material_relatorio_id ?? ""}:${i.grupo_compra_id ?? ""}:${i.etapa_nome ?? ""}:${i.valor ?? ""}:${i.valor_unitario ?? ""}`,
     )
     .join("|");
 }
@@ -86,6 +86,7 @@ export default function PedidoItensTableGestao({
   const [erroAcao, setErroAcao] = useState(null);
   const [itemParaExcluir, setItemParaExcluir] = useState(null);
   const [excluindo, setExcluindo] = useState(false);
+  const [descontoLocal, setDescontoLocal] = useState(null);
   const itensChaveRef = useRef(chaveItens(itens));
   const editandoRef = useRef(new Set());
 
@@ -97,6 +98,10 @@ export default function PedidoItensTableGestao({
     setLinhas(itens);
     setSelecionados(new Set());
   }, [itens]);
+
+  useEffect(() => {
+    setDescontoLocal(null);
+  }, [pedido?.desconto_valor, pedido?.desconto_percentual]);
 
   const opcoesEtapa = etapasParaSelectOptions(obra);
 
@@ -243,8 +248,10 @@ export default function PedidoItensTableGestao({
   const salvarDesconto = async (campos) => {
     if (!pedidoId) return;
     try {
-      await api.updateObraPedidoDesconto(pedidoId, campos);
-      if (onAtualizarPedido) await onAtualizarPedido();
+      const atualizado = await api.updateObraPedidoDesconto(pedidoId, campos);
+      setDescontoLocal(atualizado);
+      await aplicarPedidoAtualizado(atualizado);
+      return atualizado;
     } catch (e) {
       console.error("[PedidoItensTableGestao] desconto:", e);
     }
@@ -710,7 +717,7 @@ export default function PedidoItensTableGestao({
       {linhas.length ? (
         <PedidoValorTotal
           itens={linhas}
-          desconto={pedido || {}}
+          desconto={descontoLocal || pedido || {}}
           editavel
           onSalvarDesconto={salvarDesconto}
         />

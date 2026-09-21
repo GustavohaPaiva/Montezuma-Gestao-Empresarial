@@ -35,25 +35,37 @@ export default function PedidoValorTotal({
   const resumoBase = resumoValoresPedido(itens, baseDesconto);
   const resumo = dirty.current
     ? resumoValoresPedido(itens, {
+        ...baseDesconto,
+        desconto_valor_salvo: baseDesconto.desconto_valor,
         desconto_valor: valInput === "" ? 0 : Number(valInput) || 0,
       })
     : resumoBase;
 
   useEffect(() => {
     setDescontoSalvo(null);
-  }, [desconto?.desconto_valor]);
+  }, [desconto?.desconto_valor, desconto?.desconto_percentual]);
 
   useEffect(() => {
     if (editando.current) return;
     setValInput(textoNumero(resumoBase.desconto_valor));
   }, [resumoBase.desconto_valor]);
 
-  const salvar = (valor) => {
+  const salvar = async (valor) => {
     const campos = {
       desconto_valor: valor === "" ? 0 : Number(valor) || 0,
     };
-    setDescontoSalvo(campos);
-    if (onSalvarDesconto) onSalvarDesconto(campos);
+    if (!onSalvarDesconto) {
+      setDescontoSalvo({ ...desconto, ...campos });
+      return;
+    }
+    const atualizado = await onSalvarDesconto(campos);
+    setDescontoSalvo(
+      atualizado || {
+        ...desconto,
+        ...campos,
+        desconto_percentual: campos.desconto_valor > 0 ? 1 : 0,
+      },
+    );
   };
 
   if (variant === "header") {
@@ -101,11 +113,11 @@ export default function PedidoValorTotal({
                 dirty.current = true;
                 setValInput(e.target.value);
               }}
-              onBlur={() => {
+              onBlur={async () => {
                 editando.current = false;
                 if (!dirty.current) return;
+                await salvar(valInput);
                 dirty.current = false;
-                salvar(valInput);
               }}
               className={`${inputTabelaGestao} w-24 !text-right`}
               aria-label="Desconto em reais"

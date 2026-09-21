@@ -175,15 +175,104 @@ export function recalcularValoresLinha(item, origem) {
 }
 
 export function resumoValoresPedido(itens, desconto = {}) {
-  const subtotal = arredondarMoeda(calcularTotalValorPedido(itens));
-  let valor = Number(desconto?.desconto_valor);
-  if (!Number.isFinite(valor) || valor < 0) valor = 0;
-  valor = arredondarMoeda(Math.min(subtotal, valor));
+  const liquido = arredondarMoeda(calcularTotalValorPedido(itens));
+  let descNovo = Number(desconto?.desconto_valor);
+  if (!Number.isFinite(descNovo) || descNovo < 0) descNovo = 0;
+  let descSalvo = Number(desconto?.desconto_valor_salvo);
+  if (!Number.isFinite(descSalvo) || descSalvo < 0) descSalvo = descNovo;
+
+  const jaDiluido = desconto?.desconto_diluido === true || marcarDescontoDiluido(desconto);
+  const bruto = jaDiluido
+    ? arredondarMoeda(liquido + descSalvo)
+    : liquido;
+  const desc = arredondarMoeda(Math.min(bruto, descNovo));
 
   return {
-    subtotal,
-    desconto_valor: valor,
-    total: arredondarMoeda(Math.max(0, subtotal - valor)),
+    subtotal: bruto,
+    desconto_valor: desc,
+    total: arredondarMoeda(Math.max(0, bruto - desc)),
+  };
+}
+
+function itemTemValor(item) {
+  return (parseFloat(item?.valor) || 0) > 0;
+}
+
+function recalcularUnitarioDaLinha(item) {
+  const quantidade = Number(item?.quantidade);
+  const valor = parseFloat(item?.valor);
+  if (!Number.isFinite(quantidade) || quantidade <= 0 || !Number.isFinite(valor)) {
+    return { ...item };
+  }
+  return {
+    ...item,
+    valor_unitario: arredondarValorUnitario(valor / quantidade),
+  };
+}
+
+function ajustarSomaItens(itens, alvo) {
+  const lista = Array.isArray(itens) ? itens : [];
+  const comValor = lista.filter(itemTemValor);
+  if (!comValor.length) return lista;
+  const soma = arredondarMoeda(calcularTotalValorPedido(lista));
+  const diff = arredondarMoeda(alvo - soma);
+  if (diff === 0) return lista;
+  const maior = comValor.reduce((a, b) =>
+    parseFloat(a.valor) >= parseFloat(b.valor) ? a : b,
+  );
+  return lista.map((item) =>
+    item === maior
+      ? { ...item, valor: arredondarMoeda((parseFloat(item.valor) || 0) + diff) }
+      : item,
+  );
+}
+
+export function restaurarValoresBrutosPedido(itens, descontoAplicado) {
+  const lista = (Array.isArray(itens) ? itens : []).map((item) => ({ ...item }));
+  const desc = arredondarMoeda(Math.max(0, Number(descontoAplicado) || 0));
+  const liquido = arredondarMoeda(calcularTotalValorPedido(lista));
+  if (!(desc > 0) || !(liquido > 0)) return lista;
+  const bruto = arredondarMoeda(liquido + desc);
+  const fator = bruto / liquido;
+  const atualizados = lista.map((item) => {
+    const valor = parseFloat(item.valor);
+    if (!Number.isFinite(valor) || valor <= 0) return item;
+    return { ...item, valor: arredondarMoeda(valor * fator) };
+  });
+  return ajustarSomaItens(atualizados, bruto).map(recalcularUnitarioDaLinha);
+}
+
+/** Dilui o desconto em R$ no valor (e unitário) de cada material. */
+export function diluirDescontoNosItens(
+  itens,
+  descontoAnterior,
+  descontoNovo,
+  { jaDiluido = false } = {},
+) {
+  const brutos = jaDiluido
+    ? restaurarValoresBrutosPedido(itens, descontoAnterior)
+    : (Array.isArray(itens) ? itens : []).map((item) => ({ ...item }));
+
+  const bruto = arredondarMoeda(calcularTotalValorPedido(brutos));
+  let desc = Number(descontoNovo);
+  if (!Number.isFinite(desc) || desc < 0) desc = 0;
+  desc = arredondarMoeda(Math.min(bruto, desc));
+  const alvo = arredondarMoeda(Math.max(0, bruto - desc));
+
+  if (!(bruto > 0) || desc <= 0) {
+    return { itens: brutos.map(recalcularUnitarioDaLinha), desconto: desc };
+  }
+
+  const fator = alvo / bruto;
+  const atualizados = brutos.map((item) => {
+    const valor = parseFloat(item.valor);
+    if (!Number.isFinite(valor) || valor <= 0) return item;
+    return { ...item, valor: arredondarMoeda(valor * fator) };
+  });
+
+  return {
+    itens: ajustarSomaItens(atualizados, alvo).map(recalcularUnitarioDaLinha),
+    desconto: desc,
   };
 }
 
@@ -193,6 +282,11 @@ export function fatorDescontoPedido(resumo) {
   const total = Number(resumo?.total);
   if (!Number.isFinite(total)) return 1;
   return total / subtotal;
+}
+
+/** desconto_percentual = 1 marca que o desconto já foi diluído nos itens. */
+export function marcarDescontoDiluido(desconto) {
+  return Number(desconto?.desconto_percentual) === 1;
 }
 
 /** Número exibido do pedido dentro da obra (1, 2, 3…). */

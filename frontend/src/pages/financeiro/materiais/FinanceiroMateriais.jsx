@@ -176,12 +176,14 @@ export default function FinanceiroMateriais() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-5">
         {BUCKET_ORDER.map((bucketId) => {
           const meta = BUCKET_META[bucketId];
           const cards = (colunas[bucketId] || []).filter((f) =>
             termo ? (f.nome || "").toLowerCase().includes(termo) : true,
           );
+          const rotuloValor =
+            bucketId === "vencidos" ? hub.materiaisMetricVencidos : hub.materiaisMetricAPagar;
 
           return (
             <section
@@ -208,10 +210,12 @@ export default function FinanceiroMateriais() {
                 <div className="flex flex-col gap-2.5">
                   {cards.map((f) => (
                     <button
-                      key={f.id}
+                      key={`${bucketId}-${f.id}`}
                       type="button"
                       onClick={() =>
-                        navigate(`/financeiro/materiais/${f.id}`)
+                        navigate(
+                          `/financeiro/materiais/${f.id}?prioridade=${bucketId}`,
+                        )
                       }
                       className="flex w-full cursor-pointer flex-col gap-2 rounded-xl border border-border-primary/35 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-accent-primary/30 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/25"
                     >
@@ -230,7 +234,7 @@ export default function FinanceiroMateriais() {
                         </div>
                       </div>
                       <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
-                        <span className="text-text-muted">A pagar</span>
+                        <span className="text-text-muted">{rotuloValor}</span>
                         <span className="font-semibold tabular-nums text-text-primary">
                           R$ {formatarMoeda(f.aPagar)}
                         </span>

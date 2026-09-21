@@ -85,40 +85,47 @@ export function labelObraCliente(obra) {
   return `${cliente}${local}`;
 }
 
+function novoCardFornecedorBucket(item, bucket, fornecedorId) {
+  return {
+    id: fornecedorId,
+    nome: item.fornecedores?.nome || "Fornecedor",
+    bucket,
+    itens: [],
+    aPagar: 0,
+    vencido: 0,
+    proximaSemana: 0,
+    vencimentoMaisProximo: parseDataLocal(item.data_vencimento),
+  };
+}
+
 /**
- * Agrupa materiais em aberto por fornecedor e posiciona cada card
- * no bucket do item mais urgente (menor data de vencimento).
+ * Agrupa materiais em aberto por fornecedor e coluna.
+ * O mesmo fornecedor aparece em cada prioridade que tiver item,
+ * só com os valores daquela coluna.
  */
 export function agregarFornecedoresKanban(materiais = [], hoje = new Date()) {
-  const porFornecedor = new Map();
+  const colunas = Object.fromEntries(BUCKET_ORDER.map((id) => [id, []]));
+  const porColunaFornecedor = new Map();
 
   for (const item of materiais || []) {
     if (isPago(item?.status_pagamento ?? item?.status_financeiro)) continue;
     const bucket = getBucketPrioridade(item, hoje);
-    if (!bucket) continue;
+    if (!bucket || !colunas[bucket]) continue;
 
     const fornecedorId = item.fornecedor_id ?? item.fornecedores?.id;
     if (fornecedorId == null) continue;
 
-    const key = String(fornecedorId);
-    if (!porFornecedor.has(key)) {
-      porFornecedor.set(key, {
-        id: fornecedorId,
-        nome: item.fornecedores?.nome || "Fornecedor",
-        itens: [],
-        aPagar: 0,
-        vencido: 0,
-        proximaSemana: 0,
-        bucketMaisUrgente: bucket,
-        vencimentoMaisProximo: parseDataLocal(item.data_vencimento),
-      });
+    const key = `${bucket}|${String(fornecedorId)}`;
+    if (!porColunaFornecedor.has(key)) {
+      const row = novoCardFornecedorBucket(item, bucket, fornecedorId);
+      porColunaFornecedor.set(key, row);
+      colunas[bucket].push(row);
     }
 
-    const row = porFornecedor.get(key);
+    const row = porColunaFornecedor.get(key);
     const valor = parseFloat(item.valor) || 0;
     row.itens.push(item);
     row.aPagar += valor;
-
     if (bucket === BUCKET_IDS.vencidos) row.vencido += valor;
     if (bucket === BUCKET_IDS.proximaSemana) row.proximaSemana += valor;
 
@@ -129,23 +136,13 @@ export function agregarFornecedoresKanban(materiais = [], hoje = new Date()) {
         venc.getTime() < row.vencimentoMaisProximo.getTime())
     ) {
       row.vencimentoMaisProximo = venc;
-      row.bucketMaisUrgente = bucket;
-    } else if (rankBucket(bucket) < rankBucket(row.bucketMaisUrgente)) {
-      row.bucketMaisUrgente = bucket;
     }
   }
 
-  const colunas = Object.fromEntries(
-    BUCKET_ORDER.map((id) => [id, []]),
-  );
-
-  for (const fornecedor of porFornecedor.values()) {
-    fornecedor.qtdItens = fornecedor.itens.length;
-    const col = fornecedor.bucketMaisUrgente;
-    if (colunas[col]) colunas[col].push(fornecedor);
-  }
-
   for (const id of BUCKET_ORDER) {
+    for (const fornecedor of colunas[id]) {
+      fornecedor.qtdItens = fornecedor.itens.length;
+    }
     colunas[id].sort((a, b) => {
       const ta = a.vencimentoMaisProximo?.getTime() ?? Number.POSITIVE_INFINITY;
       const tb = b.vencimentoMaisProximo?.getTime() ?? Number.POSITIVE_INFINITY;

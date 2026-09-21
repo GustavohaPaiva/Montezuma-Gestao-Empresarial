@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
   Building2,
@@ -122,8 +122,13 @@ function badgePrioridadeClass(bucket) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
+function prioridadeValida(valor) {
+  return BUCKET_ORDER.includes(valor) ? valor : "";
+}
+
 export default function FinanceiroMateriaisDetalhes() {
   const { fornecedorId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { abrirHistorico, modalHistorico } = useHistoricoLancamentos();
   const [loading, setLoading] = useState(true);
@@ -133,7 +138,7 @@ export default function FinanceiroMateriaisDetalhes() {
   const [savingId, setSavingId] = useState(null);
   const [busca, setBusca] = useState("");
   const [filtroObraId, setFiltroObraId] = useState("");
-  const [filtroPrioridade, setFiltroPrioridade] = useState("");
+  const filtroPrioridade = prioridadeValida(searchParams.get("prioridade"));
   const [sortConfig, setSortConfig] = useState({
     campo: null,
     direcao: "asc",
@@ -178,6 +183,19 @@ export default function FinanceiroMateriaisDetalhes() {
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  const aplicarFiltroPrioridade = (id) => {
+    const proximo = prioridadeValida(id);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (proximo) next.set("prioridade", proximo);
+        else next.delete("prioridade");
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const itensEmAberto = useMemo(
     () => ordenarItensPorPrioridade(materiais),
@@ -677,7 +695,7 @@ export default function FinanceiroMateriaisDetalhes() {
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setFiltroPrioridade("")}
+                onClick={() => aplicarFiltroPrioridade("")}
                 className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${
                   !filtroPrioridade
                     ? "border-accent-primary/40 bg-accent-primary/10 text-accent-primary ring-1 ring-accent-primary/20"
@@ -698,7 +716,7 @@ export default function FinanceiroMateriaisDetalhes() {
                     key={id}
                     type="button"
                     onClick={() =>
-                      setFiltroPrioridade((prev) => (prev === id ? "" : id))
+                      aplicarFiltroPrioridade(ativo ? "" : id)
                     }
                     className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${
                       ativo ? chip.active : chip.idle
