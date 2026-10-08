@@ -1,19 +1,21 @@
 <!doctype html>
-<html lang="pt-Br">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="../src/assets/logos/logo sem fundo.png"
-    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="/frontend/src/index.css" />
     <title>Montezuma</title>
+    <script>
+      (function () {
+        var path = location.pathname.replace(/^\/+|\/+$/g, "");
+        var search = location.search || "";
+        var hash = location.hash || "";
+        if (!path) {
+          location.replace("/" + search + hash);
+          return;
+        }
+        location.replace("/#/" + path + search);
+      })();
+    </script>
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+  <body></body>
 </html>
