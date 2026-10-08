@@ -1,0 +1,11 @@
+.DS_Store
+.cursor/
+
+# Artefatos locais do Supabase (dumps, segredos de CLI, branches)
+supabase/.temp/
+supabase/.branches/
+supabase/local/
+
+# Documentos locais de cliente — o repositório é público
+/Proposta Ybyoca/
+/Relatorio Rocha - itens em aberto.docx
