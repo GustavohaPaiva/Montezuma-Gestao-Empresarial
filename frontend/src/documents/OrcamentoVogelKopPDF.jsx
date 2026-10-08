@@ -255,6 +255,13 @@ function estilosComEscala(escala) {
       marginBottom: s(4, escala),
       textAlign: "left",
     },
+    orcSecaoTituloInvestimento: {
+      fontSize: s(13, escala),
+      fontWeight: "bold",
+      color: COR_TITULO,
+      textAlign: "center",
+      marginBottom: s(8, escala),
+    },
     orcSecaoTitulo: {
       fontSize: s(13, escala),
       fontWeight: "bold",
@@ -461,16 +468,26 @@ function linhasPdf(itens, mapaRotulos) {
   return itens.map((item) => `${mapaRotulos[item] || item};`);
 }
 
-function BlocoOrcamento({ titulo, valor, itens, comMarcador = false, styles: st }) {
-  if (!itens?.length) return null;
-  const rotulo = `${titulo} : ${formatarMoedaBRL(valor)}`;
+function BlocoOrcamento({
+  titulo,
+  valor,
+  itens,
+  texto,
+  comMarcador = false,
+  styles: st,
+}) {
+  if (!itens?.length && !texto) return null;
+  const rotulo = texto ? titulo : `${titulo} : ${formatarMoedaBRL(valor)}`;
 
   return (
     <View>
       <Text style={st.orcItemTitulo}>
         {comMarcador ? `• ${rotulo}` : rotulo}
       </Text>
-      <Text style={st.orcItemDesc}>{itens.join(", ")}</Text>
+      {texto ? <Text style={st.orcItemDesc}>{texto}</Text> : null}
+      {itens?.length ? (
+        <Text style={st.orcItemDesc}>{itens.join(", ")}</Text>
+      ) : null}
     </View>
   );
 }
@@ -492,7 +509,9 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
   );
   const infoGerais = formatarInfoGeraisCabecalho(dataRef);
   const mesAnoCapa = formatarMesAnoCapa(dataRef);
-  const total = calcularTotalValoresProposta(proposta.valores);
+  const total =
+    calcularTotalValoresProposta(proposta.valores) -
+    (Number(proposta.valores?.tramites) || 0);
 
   const linhasTecnico = linhasPdf(proposta.tecnico, ROTULO_TECNICO_PDF);
   const linhasRender = linhasPdf(proposta.renderizacoes, ROTULO_RENDER_PDF);
@@ -569,11 +588,6 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
               {item};
             </LinhaEscopo>
           ))}
-          <Text style={st.escopoParagrafoObs}>
-            <Text style={st.escopoParagrafoObsText}>Obs.: </Text>
-            Projetos complementares são executados por parceiros e orçados
-            separadamente.
-          </Text>
         </SecaoEscopo>
       ),
     });
@@ -633,7 +647,10 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
       altura:
         7 * 12.5 * 1.55 +
         24 +
-        INTRO_PROPOSTA.reduce((acc, p) => acc + alturaTexto(p, 12, 1.5) + 14, 0),
+        INTRO_PROPOSTA.reduce(
+          (acc, p) => acc + alturaTexto(p, 12, 1.5) + 14,
+          0,
+        ),
     },
     {
       key: "sobre",
@@ -647,24 +664,46 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
   const escalaInfo = escalaPara(alturaInfo);
   const stInfo = estilosComEscala(escalaInfo);
 
-  function alturaBlocoOrc(itens, titulo) {
-    if (!itens?.length) return 0;
-    return 20 + alturaTexto(`${titulo} : 00.000,00`, 12, 1.5) + alturaTexto(itens.join(", "), 11, 1.5) + 8;
+  function alturaBlocoOrc(itens, titulo, texto = "") {
+    if (!itens?.length && !texto) return 0;
+    const tituloLinha = texto ? titulo : `${titulo} : 00.000,00`;
+    return (
+      20 +
+      alturaTexto(tituloLinha, 12, 1.5) +
+      (texto ? alturaTexto(texto, 11, 1.5) + 8 : 0) +
+      (itens?.length ? alturaTexto(itens.join(", "), 11, 1.5) + 8 : 0)
+    );
   }
 
   const topicosInvestimento = [
     {
       key: "orcamento",
       altura:
-        INVESTIMENTO_INTRO.reduce((acc, p) => acc + alturaTexto(p, 12, 1.5) + 12, 0) +
+        INVESTIMENTO_INTRO.reduce(
+          (acc, p) => acc + alturaTexto(p, 12, 1.5) + 12,
+          0,
+        ) +
         24 +
-        alturaBlocoOrc(itensTecnico, ORCAMENTO_ITENS_FIXOS.pacote_tecnico.titulo) +
-        alturaBlocoOrc(itensComplementares, ORCAMENTO_ITENS_FIXOS.complementares.titulo) +
+        alturaBlocoOrc(
+          itensTecnico,
+          ORCAMENTO_ITENS_FIXOS.pacote_tecnico.titulo,
+        ) +
+        alturaBlocoOrc(
+          itensComplementares,
+          ORCAMENTO_ITENS_FIXOS.complementares.titulo,
+        ) +
         alturaBlocoOrc(itensRender, ORCAMENTO_ITENS_FIXOS.renderizados.titulo) +
-        alturaBlocoOrc(itensTramites, ORCAMENTO_ITENS_FIXOS.tramites.titulo) +
+        alturaBlocoOrc(
+          itensTramites,
+          ORCAMENTO_ITENS_FIXOS.tramites.titulo,
+          itensTramites.length ? ORCAMENTO_ITENS_FIXOS.tramites.descricao : "",
+        ) +
         48,
       render: (st) => (
         <View key="orcamento">
+          <Text style={st.orcSecaoTituloInvestimento}>
+            INVESTIMENTO NO PROJETO:
+          </Text>
           {INVESTIMENTO_INTRO.map((p) => (
             <Text key={p.slice(0, 28)} style={st.bodyCenter}>
               {p}
@@ -693,13 +732,15 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
             comMarcador
             styles={st}
           />
-          <BlocoOrcamento
-            titulo={ORCAMENTO_ITENS_FIXOS.tramites.titulo}
-            valor={proposta.valores.tramites}
-            itens={itensTramites}
-            comMarcador
-            styles={st}
-          />
+          {itensTramites.length > 0 ? (
+            <BlocoOrcamento
+              titulo={ORCAMENTO_ITENS_FIXOS.tramites.titulo}
+              texto={ORCAMENTO_ITENS_FIXOS.tramites.descricao}
+              //itens={itensTramites}
+              comMarcador
+              styles={st}
+            />
+          ) : null}
           <View style={st.totalBar}>
             <Text style={st.totalText}>
               Investimento geral: {formatarMoedaBRL(total)}
@@ -762,7 +803,8 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
     },
     {
       key: "imagem",
-      altura: 28 + alturaTexto(RESPONSABILIDADES.direitoImagem.texto, 12.5, 1.5),
+      altura:
+        28 + alturaTexto(RESPONSABILIDADES.direitoImagem.texto, 12.5, 1.5),
       render: (st) => (
         <View key="imagem">
           <Text style={st.respSubtitulo}>
@@ -786,9 +828,7 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
           <Text style={st.respSubtitulo}>
             {RESPONSABILIDADES.prazos.titulo}
           </Text>
-          <Text style={st.respParagrafo}>
-            {RESPONSABILIDADES.prazos.texto}
-          </Text>
+          <Text style={st.respParagrafo}>{RESPONSABILIDADES.prazos.texto}</Text>
           <Text style={[st.respParagrafo, { marginTop: 6 }]}>
             {RESPONSABILIDADES.prazos.validade}
           </Text>

@@ -533,7 +533,7 @@ export default function Etapas({ etapas = [], isCliente = false }) {
             id="botao-print"
             onClick={handlePrint}
             disabled={isPrinting}
-            className="mb-4 text-sm absolute top-6 right-6 z-50 hidden md:flex hidden items-center flex-row gap-2 px-4 py-2 bg-white border border-[#DC3B0B] text-[#DC3B0B] hover:bg-[#DC3B0B] hover:text-white font-bold rounded-xl transition-all duration-300 shadow-sm hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group"
+            className="mb-4 text-sm absolute top-6 right-6 z-50 hidden md:flex items-center flex-row gap-2 px-4 py-2 bg-white border border-[#DC3B0B] text-[#DC3B0B] hover:bg-[#DC3B0B] hover:text-white font-bold rounded-xl transition-all duration-300 shadow-sm hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group"
             title="Baixar imagem do resumo da obra"
           >
             <Download className="w-4 h-4 transition-transform duration-300 group-hover:-translate-y-1" />

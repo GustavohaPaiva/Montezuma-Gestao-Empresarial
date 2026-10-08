@@ -14,7 +14,7 @@ export const SOBRE_ESCRITORIO = {
     "Regularização de imóveis",
     "Processos de financiamento habitacional junto à Caixa Econômica Federal",
     "Gestão de obras completas",
-    "Elaboração e coordenação de projetos complementares (executados por parceiros terceirizados confiáveis)",
+    "Elaboração e coordenação de projetos complementares",
   ],
 };
 
@@ -71,7 +71,7 @@ export const ORCAMENTO_ITENS_FIXOS = {
     descricao: "",
   },
   tramites: {
-    titulo: "Documentação e trâmites necessários para aprovação",
+    titulo: "Gestão e Acompanhamento Técnico de Obras",
     descricao:
       "Elaboração de requerimentos para alvará junto à Prefeitura e acompanhamento dos respectivos trâmites, além de PCI/PLS para engenharia da Caixa e medições subsequentes.",
   },
