@@ -48,10 +48,11 @@ import {
   formatarDataCabecalhoYB,
   formatarDataPropostaBR,
   formatarMoedaBRL,
+  OPCOES_COMPLEMENTARES_YB,
+  listaComplementaresExibicao,
   listaDemaisServicosYbyoca,
   listaServicosOferecidosYbyoca,
   normalizarPropostaDadosYbyoca,
-  rotuloComplementar,
   textoEntregaArquitetonicoYbyoca,
 } from "../utils/orcamentoPropostaUtils";
 
@@ -489,8 +490,10 @@ export default function OrcamentoYbyocaPDF({ orcamento }) {
   const servicosOferecidos = listaServicosOferecidosYbyoca(proposta);
   const demaisServicos = listaDemaisServicosYbyoca(proposta);
   const entregaTexto = textoEntregaArquitetonicoYbyoca(proposta.arquitetonico);
-  const itensComplementares = (proposta.complementares || []).map((item) =>
-    rotuloComplementar(item, proposta.complementares_outros),
+  const itensComplementares = listaComplementaresExibicao(
+    proposta.complementares,
+    proposta.complementares_outros,
+    OPCOES_COMPLEMENTARES_YB,
   );
   const temArquitetonico =
     proposta.arquitetonico.length > 0 ||

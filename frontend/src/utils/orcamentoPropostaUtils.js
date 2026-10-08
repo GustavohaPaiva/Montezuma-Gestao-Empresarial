@@ -14,7 +14,6 @@ export const OPCOES_COMPLEMENTARES = [
   "Hidrossanitário",
   "Estrutural",
   "Elétrico",
-  "Outros",
 ];
 
 export const OPCOES_RENDERIZACOES = [
@@ -37,7 +36,12 @@ export const CHAVES_VALORES = [
 ];
 
 export const MAX_LINHAS_DESCRICAO = 10;
-export const MAX_CARACTERES_COMPLEMENTARES_OUTROS = 120;
+export const MAX_ITENS_LIVRES = 30;
+export const MAX_CARACTERES_ITEM_LIVRE = 160;
+
+function limitarTexto(valor, max) {
+  return String(valor ?? "").slice(0, max);
+}
 
 const CHAVES_LISTA = ["tecnico", "tramites", "complementares", "renderizacoes"];
 
@@ -45,6 +49,41 @@ function normalizarLista(valor, opcoesValidas) {
   if (!Array.isArray(valor)) return [];
   const setValidos = new Set(opcoesValidas);
   return valor.filter((item) => setValidos.has(String(item).trim()));
+}
+
+/** Itens livres já lançados. Aceita a lista nova ou o texto único antigo. */
+export function normalizarItensLivres(valor) {
+  const bruto = Array.isArray(valor)
+    ? valor
+    : typeof valor === "string" && valor.trim()
+      ? [valor]
+      : [];
+  const vistos = new Set();
+  const out = [];
+  for (const item of bruto) {
+    const t = String(item ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, MAX_CARACTERES_ITEM_LIVRE);
+    if (!t) continue;
+    const chave = t.toLocaleLowerCase("pt-BR");
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    out.push(t);
+    if (out.length >= MAX_ITENS_LIVRES) break;
+  }
+  return out;
+}
+
+export function listaTramitesExibicao(
+  tramites,
+  outros,
+  opcoesValidas = OPCOES_TRAMITES,
+) {
+  return [
+    ...normalizarLista(tramites, opcoesValidas),
+    ...normalizarItensLivres(outros),
+  ];
 }
 
 function normalizarValores(raw) {
@@ -75,36 +114,29 @@ export function normalizarPropostaDados(raw) {
     ),
     OPCOES_COMPLEMENTARES,
   );
-  const complementares_outros = String(src.complementares_outros ?? "")
-    .trim()
-    .slice(0, MAX_CARACTERES_COMPLEMENTARES_OUTROS);
-
   return {
     tecnico: normalizarLista(src.tecnico, OPCOES_TECNICO),
     tramites: normalizarLista(src.tramites, OPCOES_TRAMITES),
+    tramites_outros: normalizarItensLivres(src.tramites_outros),
     complementares,
-    complementares_outros: complementares.includes("Outros")
-      ? complementares_outros
-      : "",
+    complementares_outros: normalizarItensLivres(src.complementares_outros),
     renderizacoes: normalizarLista(src.renderizacoes, OPCOES_RENDERIZACOES),
     valores: normalizarValores(src.valores),
     descricao,
   };
 }
 
-/** Rótulo exibido no PDF/UI quando a opção é "Outros" com texto livre. */
-export function rotuloComplementar(item, outrosTexto) {
-  if (item === "Outros") {
-    const t = String(outrosTexto ?? "").trim();
-    return t || "Outros";
-  }
-  return item;
-}
-
-export function listaComplementaresExibicao(complementares, outrosTexto) {
-  return normalizarLista(complementares, OPCOES_COMPLEMENTARES).map((item) =>
-    rotuloComplementar(item, outrosTexto),
-  );
+export function listaComplementaresExibicao(
+  complementares,
+  outros,
+  opcoesValidas = OPCOES_COMPLEMENTARES,
+) {
+  return [
+    ...normalizarLista(complementares, opcoesValidas).filter(
+      (item) => item !== "Outros",
+    ),
+    ...normalizarItensLivres(outros),
+  ];
 }
 
 export function calcularTotalValoresProposta(valores) {
@@ -207,7 +239,6 @@ export const OPCOES_COMPLEMENTARES_YB = [
   "Regularização de Imóveis",
   "Estudo de Viabilidade Financeira",
   "Assessoria para Investimento Imobiliário",
-  "Outros",
 ];
 
 export const OPCOES_TRAMITES_YB = ["Trâmites e Documentações"];
@@ -256,12 +287,8 @@ function normalizarValoresYbyoca(raw) {
  */
 export function normalizarPropostaDadosYbyoca(raw) {
   const src = raw && typeof raw === "object" ? raw : {};
-  const contato = String(src.contato ?? "")
-    .trim()
-    .slice(0, MAX_CARACTERES_CONTATO_YB);
-  const endereco = String(src.endereco ?? "")
-    .trim()
-    .slice(0, MAX_CARACTERES_ENDERECO_YB);
+  const contato = limitarTexto(src.contato, MAX_CARACTERES_CONTATO_YB);
+  const endereco = limitarTexto(src.endereco, MAX_CARACTERES_ENDERECO_YB);
   const descricao = String(src.descricao ?? "")
     .replace(/\r\n/g, "\n")
     .split("\n")
@@ -271,19 +298,14 @@ export function normalizarPropostaDadosYbyoca(raw) {
     src.complementares,
     OPCOES_COMPLEMENTARES_YB,
   );
-  const complementares_outros = String(src.complementares_outros ?? "")
-    .trim()
-    .slice(0, MAX_CARACTERES_COMPLEMENTARES_OUTROS);
-
   return {
     contato,
     endereco,
     arquitetonico: normalizarLista(src.arquitetonico, OPCOES_ENTREGA_YB),
     tramites: normalizarLista(src.tramites, OPCOES_TRAMITES_YB),
+    tramites_outros: normalizarItensLivres(src.tramites_outros),
     complementares,
-    complementares_outros: complementares.includes("Outros")
-      ? complementares_outros
-      : "",
+    complementares_outros: normalizarItensLivres(src.complementares_outros),
     gestao: normalizarLista(src.gestao, OPCOES_GESTAO_YB),
     valores: normalizarValoresYbyoca(src.valores),
     descricao,
@@ -322,7 +344,6 @@ const ORDEM_SERVICOS_YB = [
 const COMPLEMENTARES_PACOTE_YB = new Set([
   "Projeto Hidrossanitário",
   "Projeto Elétrico",
-  "Outros",
 ]);
 
 export function listaServicosOferecidosYbyoca(proposta) {
@@ -330,7 +351,10 @@ export function listaServicosOferecidosYbyoca(proposta) {
   const selecionados = new Set();
   if ((p.arquitetonico || []).length) selecionados.add("Projeto Arquitetônico");
   const comps = p.complementares || [];
-  if (comps.some((item) => COMPLEMENTARES_PACOTE_YB.has(item))) {
+  if (
+    comps.some((item) => COMPLEMENTARES_PACOTE_YB.has(item)) ||
+    normalizarItensLivres(p.complementares_outros).length
+  ) {
     selecionados.add("Projetos Complementares");
   }
   for (const item of comps) {
@@ -338,7 +362,12 @@ export function listaServicosOferecidosYbyoca(proposta) {
       selecionados.add(item);
     }
   }
-  if ((p.tramites || []).length) selecionados.add("Trâmites e Documentações");
+  if (
+    (p.tramites || []).length ||
+    normalizarItensLivres(p.tramites_outros).length
+  ) {
+    selecionados.add("Trâmites e Documentações");
+  }
   if ((p.gestao || []).length) selecionados.add("Gestão de Obras");
   return ORDEM_SERVICOS_YB.filter((item) => selecionados.has(item));
 }
@@ -346,10 +375,20 @@ export function listaServicosOferecidosYbyoca(proposta) {
 export function listaDemaisServicosYbyoca(proposta) {
   const p = proposta && typeof proposta === "object" ? proposta : {};
   const demais = [];
-  for (const item of p.complementares || []) {
-    demais.push(rotuloComplementar(item, p.complementares_outros));
+  for (const item of listaComplementaresExibicao(
+    p.complementares,
+    p.complementares_outros,
+    OPCOES_COMPLEMENTARES_YB,
+  )) {
+    demais.push(item);
   }
-  for (const item of p.tramites || []) demais.push(item);
+  for (const item of listaTramitesExibicao(
+    p.tramites,
+    p.tramites_outros,
+    OPCOES_TRAMITES_YB,
+  )) {
+    demais.push(item);
+  }
   for (const item of p.gestao || []) demais.push(item);
   return demais;
 }
@@ -440,7 +479,9 @@ export function precisaAjusteSugestaoIA(
 
 /** Remove linha final cortada no meio (sem pontuação de fim). */
 export function removerFinalIncompleto(texto) {
-  const linhas = String(texto ?? "").replace(/\r\n/g, "\n").split("\n");
+  const linhas = String(texto ?? "")
+    .replace(/\r\n/g, "\n")
+    .split("\n");
   while (linhas.length > 0 && !linhaTerminaFrase(linhas[linhas.length - 1])) {
     linhas.pop();
   }

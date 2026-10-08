@@ -25,6 +25,7 @@ import {
 } from "../../constants/escritorios";
 import { useEscritorioIdFromPath } from "../../hooks/useEscritorioIdFromPath";
 import OrcamentoSecaoPainel from "../../components/escritorios/OrcamentoSecaoPainel";
+import CampoMultiLancamento from "../../components/ordens-servico/CampoMultiLancamento";
 import DescricaoAssistenteModal from "../../components/escritorios/DescricaoAssistenteModal";
 import StatusSelectBadge from "../../components/gerais/StatusSelectBadge";
 import { STATUS_ORCAMENTO_OPCOES } from "../../components/gerais/statusSelectOptions";
@@ -32,7 +33,6 @@ import PdfPreviewModal from "../../components/gerais/PdfPreviewModal";
 import {
   CHAVES_VALORES,
   CHAVES_VALORES_YB,
-  MAX_CARACTERES_COMPLEMENTARES_OUTROS,
   MAX_CARACTERES_CONTATO_YB,
   MAX_CARACTERES_ENDERECO_YB,
   MAX_LINHAS_DESCRICAO,
@@ -72,8 +72,7 @@ export default function OrcamentoDetalhe() {
   const isYbyoca = escritorioId === ID_YBYOCA;
   const temProposta = isVogelkop || isYbyoca;
   const temaClasse = isVogelkop ? "theme-vogelkop" : "theme-ybyoca";
-  const baseOrcamentos =
-    pathEscritorio(escritorioId) || "/escritorio/ybyoca";
+  const baseOrcamentos = pathEscritorio(escritorioId) || "/escritorio/ybyoca";
   const listaOrcamentosPath = `${baseOrcamentos}/orcamentos`;
 
   const [orcamento, setOrcamento] = useState(null);
@@ -111,7 +110,10 @@ export default function OrcamentoDetalhe() {
         return;
       }
       if (!row.numero_proposta) {
-        row = await api.ensureNumeroPropostaOrcamento(orcamentoId, escritorioId);
+        row = await api.ensureNumeroPropostaOrcamento(
+          orcamentoId,
+          escritorioId,
+        );
       }
       setOrcamento(row);
       setProposta(
@@ -226,15 +228,7 @@ export default function OrcamentoDetalhe() {
   const toggleCheckbox = (secaoId, opcao) => {
     setProposta((prev) => {
       const novaLista = toggleOpcaoLista(prev[secaoId], opcao);
-      const patch = { [secaoId]: novaLista };
-      if (
-        secaoId === "complementares" &&
-        opcao === "Outros" &&
-        !novaLista.includes("Outros")
-      ) {
-        patch.complementares_outros = "";
-      }
-      const next = normalizarAtual({ ...prev, ...patch });
+      const next = normalizarAtual({ ...prev, [secaoId]: novaLista });
       agendarSalvar(next);
       return next;
     });
@@ -320,7 +314,9 @@ export default function OrcamentoDetalhe() {
         </button>
         <div className="flex flex-wrap items-center gap-2">
           {salvoMsg ? (
-            <span className="text-xs font-semibold text-emerald-700">{salvoMsg}</span>
+            <span className="text-xs font-semibold text-emerald-700">
+              {salvoMsg}
+            </span>
           ) : null}
           {salvando ? (
             <span className="inline-flex items-center gap-1 text-xs text-esc-muted">
@@ -398,9 +394,7 @@ export default function OrcamentoDetalhe() {
                 type="text"
                 value={proposta.contato || ""}
                 maxLength={MAX_CARACTERES_CONTATO_YB}
-                onChange={(e) =>
-                  atualizarProposta({ contato: e.target.value })
-                }
+                onChange={(e) => atualizarProposta({ contato: e.target.value })}
                 placeholder="Ex.: 34 99999-9999"
                 className={orcInputClass}
               />
@@ -428,140 +422,144 @@ export default function OrcamentoDetalhe() {
       </header>
 
       <div className="flex flex-col gap-6">
-          {secoesProposta.map((sec) => {
-            const iconMap = {
-              tecnico: <Layers className="h-4 w-4" />,
-              arquitetonico: <Layers className="h-4 w-4" />,
-              tramites: <ClipboardList className="h-4 w-4" />,
-              complementares: <Wrench className="h-4 w-4" />,
-              renderizacoes: <Image className="h-4 w-4" />,
-              gestao: <HardHat className="h-4 w-4" />,
-            };
-            return (
-              <OrcamentoSecaoPainel
-                key={sec.id}
-                titulo={sec.titulo}
-                descricao="Marque os itens incluídos nesta proposta"
-                icon={iconMap[sec.id]}
-              >
-                <div className={orcGridCheckboxesClass}>
-                  {sec.opcoes.map((opcao) => {
-                    const marcado = (proposta[sec.id] || []).includes(opcao);
-                    return (
-                      <label key={opcao} className={orcCheckboxCardClass}>
-                        <input
-                          type="checkbox"
-                          checked={marcado}
-                          onChange={() => toggleCheckbox(sec.id, opcao)}
-                          className={orcCheckboxInputClass}
-                        />
-                        <span className="text-sm text-esc-text">{opcao}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-                {sec.id === "complementares" &&
-                (proposta.complementares || []).includes("Outros") ? (
-                  <div className="mt-4">
-                    <label className={orcLabelCampoClass}>
-                      Especifique o complementar (Outros)
+        {secoesProposta.map((sec) => {
+          const iconMap = {
+            tecnico: <Layers className="h-4 w-4" />,
+            arquitetonico: <Layers className="h-4 w-4" />,
+            tramites: <ClipboardList className="h-4 w-4" />,
+            complementares: <Wrench className="h-4 w-4" />,
+            renderizacoes: <Image className="h-4 w-4" />,
+            gestao: <HardHat className="h-4 w-4" />,
+          };
+          return (
+            <OrcamentoSecaoPainel
+              key={sec.id}
+              titulo={sec.titulo}
+              descricao="Marque os itens incluídos nesta proposta"
+              icon={iconMap[sec.id]}
+            >
+              <div className={orcGridCheckboxesClass}>
+                {sec.opcoes.map((opcao) => {
+                  const marcado = (proposta[sec.id] || []).includes(opcao);
+                  return (
+                    <label key={opcao} className={orcCheckboxCardClass}>
+                      <input
+                        type="checkbox"
+                        checked={marcado}
+                        onChange={() => toggleCheckbox(sec.id, opcao)}
+                        className={orcCheckboxInputClass}
+                      />
+                      <span className="text-sm text-esc-text">{opcao}</span>
                     </label>
-                    <input
-                      type="text"
-                      value={proposta.complementares_outros || ""}
-                      maxLength={MAX_CARACTERES_COMPLEMENTARES_OUTROS}
-                      onChange={(e) =>
-                        atualizarProposta({
-                          complementares_outros: e.target.value,
-                        })
-                      }
-                      placeholder="Ex.: Projeto de paisagismo, acústica…"
-                      className={orcInputClass}
-                    />
-                    <p className="mt-1 text-[11px] text-esc-muted">
-                      Este texto aparece no escopo e no orçamento do PDF.
-                    </p>
-                  </div>
-                ) : null}
-              </OrcamentoSecaoPainel>
-            );
-          })}
-
-          <OrcamentoSecaoPainel
-            titulo="Valores"
-            descricao="Informe os valores de cada pacote (R$)"
-            icon={<Wallet className="h-4 w-4" />}
-          >
-            <div className={orcGridValoresClass}>
-              {chavesValores.map(({ key, label }) => (
-                <div key={key}>
-                  <label className={orcLabelCampoClass}>
-                    {key === "gestao" ? `${label} (mês)` : label}
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={proposta.valores?.[key] ?? ""}
-                    onChange={(e) => atualizarValor(key, e.target.value)}
-                    placeholder="0,00"
-                    className={orcInputClass}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className={`${orcTotalBarClass} mt-4`}>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-esc-text">
-                  {isYbyoca
-                    ? "Total (projetos e trâmites)"
-                    : "Total da proposta"}
-                </span>
-                {isYbyoca && (proposta.valores?.gestao || 0) > 0 ? (
-                  <span className="text-[11px] text-esc-muted">
-                    Gestão de obras:{" "}
-                    {formatarMoedaBRL(proposta.valores.gestao)} / mês
-                  </span>
-                ) : null}
+                  );
+                })}
               </div>
-              <span className="text-lg font-bold tabular-nums text-esc-destaque">
-                {formatarMoedaBRL(isYbyoca ? totalProjetosYbyoca : totalValores)}
-              </span>
-            </div>
-          </OrcamentoSecaoPainel>
+              {sec.id === "tramites" || sec.id === "complementares" ? (
+                <div className="mt-4">
+                  <label className={orcLabelCampoClass}>Outros</label>
+                  <CampoMultiLancamento
+                    itens={
+                      sec.id === "tramites"
+                        ? proposta.tramites_outros || []
+                        : proposta.complementares_outros || []
+                    }
+                    onChange={(itens) =>
+                      atualizarProposta(
+                        sec.id === "tramites"
+                          ? { tramites_outros: itens }
+                          : { complementares_outros: itens },
+                      )
+                    }
+                    placeholder={
+                      sec.id === "tramites"
+                        ? "Ex.: Habite-se, corpo de bombeiros…"
+                        : "Ex.: Projeto de paisagismo, acústica…"
+                    }
+                    isVk
+                  />
+                  <p className="mt-1 text-[11px] text-esc-muted">
+                    Escreva o item, lance e adicione quantos precisar. Eles
+                    entram no orçamento do PDF.
+                  </p>
+                </div>
+              ) : null}
+            </OrcamentoSecaoPainel>
+          );
+        })}
 
-          <OrcamentoSecaoPainel
-            titulo="Descrição"
-            descricao={`Resumo da proposta (até ${MAX_LINHAS_DESCRICAO} linhas)`}
-            icon={<ScrollText className="h-4 w-4" />}
-            acoes={
-              <button
-                type="button"
-                onClick={() => setAssistenteAberto(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-esc-destaque/40 bg-esc-destaque/15 px-2.5 py-1.5 text-[11px] font-semibold text-esc-destaque transition hover:bg-esc-destaque/25"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Assistente
-              </button>
+        <OrcamentoSecaoPainel
+          titulo="Valores"
+          descricao="Informe os valores de cada pacote (R$)"
+          icon={<Wallet className="h-4 w-4" />}
+        >
+          <div className={orcGridValoresClass}>
+            {chavesValores.map(({ key, label }) => (
+              <div key={key}>
+                <label className={orcLabelCampoClass}>
+                  {key === "gestao" ? `${label} (mês)` : label}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={proposta.valores?.[key] ?? ""}
+                  onChange={(e) => atualizarValor(key, e.target.value)}
+                  placeholder="0,00"
+                  className={orcInputClass}
+                />
+              </div>
+            ))}
+          </div>
+          <div className={`${orcTotalBarClass} mt-4`}>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-esc-text">
+                {isYbyoca ? "Total (projetos e trâmites)" : "Total da proposta"}
+              </span>
+              {isYbyoca && (proposta.valores?.gestao || 0) > 0 ? (
+                <span className="text-[11px] text-esc-muted">
+                  Gestão de obras: {formatarMoedaBRL(proposta.valores.gestao)} /
+                  mês
+                </span>
+              ) : null}
+            </div>
+            <span className="text-lg font-bold tabular-nums text-esc-destaque">
+              {formatarMoedaBRL(isYbyoca ? totalProjetosYbyoca : totalValores)}
+            </span>
+          </div>
+        </OrcamentoSecaoPainel>
+
+        <OrcamentoSecaoPainel
+          titulo="Descrição"
+          descricao={`Resumo da proposta (até ${MAX_LINHAS_DESCRICAO} linhas)`}
+          icon={<ScrollText className="h-4 w-4" />}
+          acoes={
+            <button
+              type="button"
+              onClick={() => setAssistenteAberto(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-esc-destaque/40 bg-esc-destaque/15 px-2.5 py-1.5 text-[11px] font-semibold text-esc-destaque transition hover:bg-esc-destaque/25"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Assistente
+            </button>
+          }
+        >
+          <textarea
+            rows={MAX_LINHAS_DESCRICAO}
+            value={proposta.descricao || ""}
+            onChange={(e) =>
+              atualizarProposta({
+                descricao: limitarLinhasDescricao(e.target.value),
+              })
             }
-          >
-            <textarea
-              rows={MAX_LINHAS_DESCRICAO}
-              value={proposta.descricao || ""}
-              onChange={(e) =>
-                atualizarProposta({
-                  descricao: limitarLinhasDescricao(e.target.value),
-                })
-              }
-              placeholder="Descreva o escopo e condições da proposta…"
-              className={orcTextareaClass}
-            />
-            <p className="mt-1.5 text-[11px] text-esc-muted">
-              {contarLinhasDescricao(proposta.descricao)}/{MAX_LINHAS_DESCRICAO}{" "}
-              linhas
-            </p>
-          </OrcamentoSecaoPainel>
-        </div>
+            placeholder="Descreva o escopo e condições da proposta…"
+            className={orcTextareaClass}
+          />
+          <p className="mt-1.5 text-[11px] text-esc-muted">
+            {contarLinhasDescricao(proposta.descricao)}/{MAX_LINHAS_DESCRICAO}{" "}
+            linhas
+          </p>
+        </OrcamentoSecaoPainel>
+      </div>
 
       <DescricaoAssistenteModal
         isOpen={assistenteAberto}

@@ -278,7 +278,7 @@ export default function PedidoOrdensCompra({
   return (
     <PedidoSecaoPainel
       titulo="Ordens de compra"
-      descricao="Selecione materiais, fornecedor e emitente. Ao marcar a ordem como Comprado, os itens dessa ordem são lançados na obra com status Aguardando entrega."
+      descricao="Selecione materiais, fornecedor e emitente. Ao marcar a ordem como Aprovado, os itens dessa ordem são lançados na obra com status Aguardando entrega."
       icon={<ShoppingCart className="h-5 w-5" />}
       iconTheme="emerald"
     >

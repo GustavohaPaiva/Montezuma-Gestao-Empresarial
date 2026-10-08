@@ -5185,7 +5185,7 @@ export const api = {
       .single();
     if (error) throw new Error(mensagemErroPedido(error));
 
-    if (novo === "Comprado") {
+    if (novo === "Aprovado") {
       await api._sincronizarGrupoCompraComMateriais(grupoId);
     }
 

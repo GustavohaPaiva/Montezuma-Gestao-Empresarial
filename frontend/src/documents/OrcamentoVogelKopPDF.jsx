@@ -34,6 +34,7 @@ import {
   formatarMesAnoCapa,
   formatarMoedaBRL,
   listaComplementaresExibicao,
+  listaTramitesExibicao,
   normalizarPropostaDados,
 } from "../utils/orcamentoPropostaUtils";
 
@@ -504,10 +505,13 @@ export default function OrcamentoVogelKopPDF({ orcamento }) {
     proposta.complementares,
     proposta.complementares_outros,
   );
-  const itensTramites = proposta.tramites;
+  const itensTramites = listaTramitesExibicao(
+    proposta.tramites,
+    proposta.tramites_outros,
+  );
 
   const temTecnico = proposta.tecnico.length > 0;
-  const temComplementares = proposta.complementares.length > 0;
+  const temComplementares = itensComplementares.length > 0;
   const temRenderizacoes = proposta.renderizacoes.length > 0;
   const temObjeto = proposta.descricao?.trim()?.length > 0;
 
