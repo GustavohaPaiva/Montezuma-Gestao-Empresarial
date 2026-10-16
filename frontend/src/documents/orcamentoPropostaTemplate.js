@@ -70,10 +70,10 @@ export const ORCAMENTO_ITENS_FIXOS = {
     titulo: "Modelagem 3D e Renderização",
     descricao: "",
   },
+
   tramites: {
-    titulo: "Gestão e Acompanhamento Técnico de Obras",
-    descricao:
-      "Elaboração de requerimentos para alvará junto à Prefeitura e acompanhamento dos respectivos trâmites, além de PCI/PLS para engenharia da Caixa e medições subsequentes.",
+    titulo: "",
+    descricao: "",
   },
 };
 
