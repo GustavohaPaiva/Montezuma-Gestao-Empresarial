@@ -266,7 +266,9 @@ export default function PedidoItensTableGestao({
   return (
     <div className="space-y-4">
       <div className={pedidoSubpainelClass}>
-        <p className={`${pedidoSubpainelTituloClass} mb-3`}>Adicionar material</p>
+        <p className={`${pedidoSubpainelTituloClass} mb-3`}>
+          Adicionar material
+        </p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
           <CampoForm label="Material" className="md:col-span-12">
             <input
@@ -618,7 +620,7 @@ export default function PedidoItensTableGestao({
                               valor:
                                 campos.valor !== undefined
                                   ? campos.valor
-                                  : item.valor ?? null,
+                                  : (item.valor ?? null),
                             });
                           }}
                           className={inputTabelaGestao}
@@ -662,7 +664,7 @@ export default function PedidoItensTableGestao({
                               valor_unitario:
                                 campos.valor_unitario !== undefined
                                   ? campos.valor_unitario
-                                  : item.valor_unitario ?? null,
+                                  : (item.valor_unitario ?? null),
                             });
                           }}
                           className={inputTabelaGestao}
