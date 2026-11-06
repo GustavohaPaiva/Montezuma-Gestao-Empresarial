@@ -35,8 +35,8 @@ const COR_FUNDO = "#FAFAFA";
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 36,
-    paddingBottom: 52,
+    paddingTop: 25,
+    paddingBottom: 45,
     paddingHorizontal: 40,
     fontFamily: "Helvetica",
     fontSize: 10,
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 4,
   },
-  section: { marginBottom: 12 },
+  section: { marginBottom: 10 },
   sectionTitle: {
     fontSize: 9.5,
     fontFamily: "Helvetica-Bold",
@@ -304,7 +304,9 @@ export default function ProjecaoComercialPDF({ projecao = {} }) {
                 <Text style={[styles.tableHeadCell, { width: "22%" }]}>
                   Período
                 </Text>
-                <Text style={[styles.tableHeadCell, { width: "8%" }]}>Qtd.</Text>
+                <Text style={[styles.tableHeadCell, { width: "8%" }]}>
+                  Qtd.
+                </Text>
                 <Text style={[styles.tableHeadCell, { width: "15%" }]}>
                   V. Unit.
                 </Text>

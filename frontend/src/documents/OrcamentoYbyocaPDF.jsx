@@ -7,56 +7,38 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import coverBg from "../assets/documents/ybyoca-proposta/page-1.png";
-import photoCasa1 from "../assets/documents/ybyoca-proposta/crops/casa-1.png";
-import photoCasa2 from "../assets/documents/ybyoca-proposta/crops/casa-2.png";
-import photoEquipe from "../assets/documents/ybyoca-proposta/crops/equipe-c.png";
-import qrInstagram from "../assets/documents/ybyoca-proposta/crops/qr-card.png";
 import photoFachada from "../assets/documents/ybyoca-proposta/crops/fachada.png";
-import photoPrancheta from "../assets/documents/ybyoca-proposta/crops/prancheta.png";
-import photoInvestimento from "../assets/documents/ybyoca-proposta/crops/investimento.png";
-import questrialSrc from "../assets/fonts/ybyoca/Questrial-Regular.ttf";
 import montserratRegular from "../assets/fonts/ybyoca/Montserrat-Regular.ttf";
 import montserratBold from "../assets/fonts/ybyoca/Montserrat-Bold.ttf";
 import montserratExtraBold from "../assets/fonts/ybyoca/Montserrat-ExtraBold.ttf";
-import archivoBlack from "../assets/fonts/ybyoca/ArchivoBlack-Regular.ttf";
 import {
   YB_ARQUITETONICO,
   YB_BOAS_VINDAS_AGRADECIMENTO,
-  YB_BOAS_VINDAS_SUFIXO,
+  YB_CAPA_SUBTITULO,
   YB_CONDICOES_INTRO,
   YB_CONTATO,
-  YB_COR_BANNER,
-  YB_COR_CAPA_MASK,
-  YB_COR_FUNDO,
-  YB_COR_HEADER_P2,
-  YB_COR_LARANJA,
-  YB_COR_LARANJA_LINHA,
-  YB_COR_TEXTO,
-  YB_COR_TITULO,
   YB_DEMAIS_INTRO,
   YB_DEMAIS_TITULO,
   YB_EQUIPE,
   YB_INTRO_ESCRITORIO,
-  YB_MARCA_ESPACADA,
   YB_OBSERVACOES,
   YB_PAGAMENTO,
   YB_SERVICOS_DETALHE,
 } from "./orcamentoPropostaYbyocaTemplate";
 import {
+  calcularTotalProjetosYbyoca,
   formatarCodigoPropostaYB,
   formatarDataCabecalhoYB,
-  formatarDataPropostaBR,
+  formatarMesAnoCapa,
   formatarMoedaBRL,
-  OPCOES_COMPLEMENTARES_YB,
   listaComplementaresExibicao,
   listaDemaisServicosYbyoca,
   listaServicosOferecidosYbyoca,
   normalizarPropostaDadosYbyoca,
+  OPCOES_COMPLEMENTARES_YB,
   textoEntregaArquitetonicoYbyoca,
 } from "../utils/orcamentoPropostaUtils";
 
-Font.register({ family: "Questrial", src: questrialSrc });
 Font.register({
   family: "Montserrat",
   fonts: [
@@ -65,424 +47,465 @@ Font.register({
     { src: montserratExtraBold, fontWeight: 800 },
   ],
 });
-Font.register({ family: "ArchivoBlack", src: archivoBlack });
 Font.registerHyphenationCallback((word) => [word]);
+
+const COR_LARANJA = "#F16723";
+const COR_LARANJA_SUAVE = "#FFF3EC";
+const COR_TITULO = "#1C1C1C";
+const COR_TEXTO = "#3A3A3A";
+const COR_MUTED = "#6A6A6A";
+const COR_LINHA = "#E4E4E4";
+const COR_CAPA = "#FBFAF9";
+const COR_FUNDO = "#FFFFFF";
 
 const A4_ALTURA = 841.89;
 const A4_LARGURA = 595.28;
+const PAD_H = 46;
+const PAD_TOP = 74;
+const PAD_BOTTOM = 46;
+const ALTURA_UTIL = A4_ALTURA - PAD_TOP - PAD_BOTTOM;
 
 const styles = StyleSheet.create({
-  page: {
-    backgroundColor: YB_COR_FUNDO,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
-    color: YB_COR_TEXTO,
-    position: "relative",
-  },
-  fundoBox: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: A4_LARGURA,
+  capa: {
     height: A4_ALTURA,
-  },
-  fundo: {
-    width: A4_LARGURA,
-    height: A4_ALTURA,
-  },
-  maskValorEsq: {
-    position: "absolute",
-    left: 31,
-    width: 230,
-    height: 16,
-    backgroundColor: YB_COR_CAPA_MASK,
-    justifyContent: "center",
-  },
-  maskCliente: { top: 691 },
-  maskContato: { top: 738 },
-  maskEndereco: { top: 785 },
-  valorEsq: {
-    fontSize: 13,
+    backgroundColor: COR_CAPA,
     fontFamily: "Montserrat",
     fontWeight: 400,
-    color: "#111111",
+    color: COR_TITULO,
+    flexDirection: "column",
   },
-  maskValorDir: {
-    position: "absolute",
-    right: 28,
-    width: 110,
-    height: 16,
-    backgroundColor: YB_COR_CAPA_MASK,
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
+  capaTopo: {
+    paddingTop: 48,
+    paddingHorizontal: 48,
   },
-  maskProposta: { top: 731 },
-  maskData: { top: 785 },
-  valorDir: {
-    fontSize: 13,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
-    color: "#111111",
-    textAlign: "right",
-  },
-  headerP2: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: A4_LARGURA,
-    height: 107,
-    backgroundColor: YB_COR_HEADER_P2,
-    paddingTop: 40,
-    paddingHorizontal: 38,
-  },
-  headerP2Nome: {
-    fontSize: 12,
-    fontFamily: "Montserrat",
+  capaMarca: {
+    fontSize: 20,
     fontWeight: 700,
-    color: "#111111",
+    letterSpacing: 3.4,
+    color: COR_TITULO,
   },
-  headerP2Texto: {
-    fontSize: 12,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
-    color: "#111111",
+  capaMarcaSub: {
+    marginTop: 3,
+    fontSize: 8,
+    letterSpacing: 2.8,
+    color: COR_MUTED,
   },
-  headerP2Agrad: {
-    marginTop: 5,
-    fontSize: 12,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
-    color: "#111111",
+  capaMiolo: {
+    paddingHorizontal: 48,
+    paddingBottom: 16,
   },
-  p2Intro: {
-    position: "absolute",
-    top: 120,
-    left: 38,
-    width: 516,
-    fontSize: 12,
-    lineHeight: 1.72,
-    color: "#111111",
+  capaTraco: {
+    width: 28,
+    height: 2.5,
+    backgroundColor: COR_LARANJA,
+    marginBottom: 12,
   },
-  p2IntroBold: {
-    fontFamily: "Montserrat",
-    fontWeight: 700,
+  capaTitulo: {
+    fontSize: 26,
+    lineHeight: 1.05,
+    letterSpacing: 0.6,
+    color: COR_TITULO,
   },
-  p2ServicosTitulo: {
-    position: "absolute",
-    top: 254,
-    left: 38,
-    fontSize: 12,
-    fontFamily: "Montserrat",
-    fontWeight: 700,
-    color: "#111111",
-  },
-  p2Servico: {
-    fontSize: 12,
-    lineHeight: 1.72,
-    color: "#111111",
-    marginBottom: 0,
-  },
-  p2ServicosLista: {
-    position: "absolute",
-    top: 275,
-    left: 38,
-    width: 300,
-  },
-  p2Casa1: {
-    position: "absolute",
-    left: 354,
-    top: 250,
-    width: 200,
-    height: 133,
-    objectFit: "cover",
-  },
-  p2Casa2: {
-    position: "absolute",
-    left: 342,
-    top: 370,
-    width: 224,
-    height: 149,
-    objectFit: "cover",
-  },
-  p2EquipeTitulo: {
-    position: "absolute",
-    top: 462,
-    left: 38,
-    fontSize: 12,
-    fontFamily: "Montserrat",
-    fontWeight: 700,
-    color: "#111111",
-  },
-  p2EquipeFoto: {
-    position: "absolute",
-    left: 38,
-    top: 490,
-    width: 198,
-    height: 300,
-    objectFit: "cover",
-  },
-  p2EquipeTexto: {
-    position: "absolute",
-    left: 254,
-    top: 536,
-    width: 208,
-    fontSize: 12,
-    lineHeight: 1.38,
-    color: "#111111",
-  },
-  p2EquipeParagrafo: {
-    marginBottom: 8,
-  },
-  qrBox: {
-    position: "absolute",
-    left: 468,
-    top: 718,
-    width: 102,
-    height: 108,
-  },
-  qrImg: {
-    width: 102,
-    height: 108,
-    objectFit: "contain",
-  },
-  headerTitulo1: {
-    position: "absolute",
-    top: 51,
-    left: 36,
-    fontSize: 36,
-    fontFamily: "Montserrat",
+  capaTituloForte: {
+    fontSize: 26,
+    lineHeight: 1.05,
     fontWeight: 800,
-    color: YB_COR_TITULO,
-    lineHeight: 1,
+    letterSpacing: 0.4,
+    color: COR_TITULO,
   },
-  headerTitulo2: {
-    position: "absolute",
-    top: 93,
-    left: 36,
-    fontSize: 36,
-    fontFamily: "Montserrat",
-    fontWeight: 800,
-    color: YB_COR_LARANJA,
-    lineHeight: 1,
+  capaSubtitulo: {
+    marginTop: 8,
+    fontSize: 10,
+    color: COR_MUTED,
   },
-  headerLinhaVertical: {
-    position: "absolute",
-    left: 359,
-    top: 0,
-    width: 3.6,
-    height: 165,
-    backgroundColor: YB_COR_LARANJA_LINHA,
-  },
-  headerContato: {
-    position: "absolute",
-    left: 371,
-    top: 46,
-    width: 200,
-  },
-  headerMarca: {
-    fontSize: 14,
-    fontFamily: "Montserrat",
-    fontWeight: 700,
-    letterSpacing: 1.8,
-    color: "#111111",
-    marginBottom: 6,
-  },
-  headerContatoLinha: {
-    fontSize: 11.5,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
-    color: "#111111",
-    marginBottom: 1,
-  },
-  headerData: {
-    marginTop: 10,
-    fontSize: 14,
-    fontFamily: "ArchivoBlack",
-    color: "#111111",
-  },
-  banner: {
-    position: "absolute",
-    top: 171,
-    left: 0,
+  capaFotoJanela: {
     width: A4_LARGURA,
-    height: 197,
-    backgroundColor: YB_COR_BANNER,
+    height: 336,
+    overflow: "hidden",
   },
-  bannerTexto: {
-    position: "absolute",
-    top: 12,
-    left: 36,
-    width: 300,
+  // A foto original tem faixas cinza nas laterais; o recorte mostra só a casa.
+  capaFoto: {
+    width: 737,
+    height: 524,
+    marginLeft: -49.5,
+    marginTop: -42,
   },
-  bannerParagrafo: {
-    fontSize: 12,
-    lineHeight: 1.5,
-    color: "#111111",
-    fontFamily: "Montserrat",
-    fontWeight: 400,
+  capaFaixa: {
+    height: 2.5,
+    backgroundColor: COR_LARANJA,
   },
-  corpo: {
-    marginTop: 382,
-    paddingHorizontal: 36,
+  capaRodape: {
+    paddingTop: 16,
     paddingBottom: 28,
+    paddingHorizontal: 48,
   },
-  secaoLaranja: {
-    fontSize: 12,
-    fontFamily: "Montserrat",
-    fontWeight: 700,
-    color: YB_COR_LARANJA,
-    marginBottom: 10,
+  capaLinhaCampos: {
+    flexDirection: "row",
   },
-  etapaTitulo: {
-    fontSize: 11,
-    fontFamily: "Montserrat",
-    fontWeight: 700,
-    color: YB_COR_TEXTO,
-    marginBottom: 3,
-    marginTop: 10,
+  capaColEsq: {
+    flex: 1,
+    paddingRight: 22,
   },
-  etapaTexto: {
-    fontSize: 11,
-    lineHeight: 1.45,
-    color: YB_COR_TEXTO,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
+  capaColDir: {
+    width: 156,
+  },
+  capaRotulo: {
+    fontSize: 8,
+    letterSpacing: 1.1,
+    color: COR_MUTED,
     marginBottom: 2,
   },
-  entregaTexto: {
+  capaValor: {
+    fontSize: 12,
+    color: COR_LARANJA,
+    lineHeight: 1.3,
+  },
+  capaValorNeutro: {
+    fontSize: 12,
+    color: COR_TITULO,
+    lineHeight: 1.3,
+  },
+  capaFilete: {
+    marginTop: 4,
+    marginBottom: 10,
+    height: 0.6,
+    backgroundColor: COR_LINHA,
+  },
+  page: {
+    backgroundColor: COR_FUNDO,
+    fontFamily: "Montserrat",
+    fontWeight: 400,
+    color: COR_TEXTO,
+    paddingTop: PAD_TOP,
+    paddingBottom: PAD_BOTTOM,
+    paddingHorizontal: PAD_H,
+  },
+  header: {
+    position: "absolute",
+    top: 26,
+    left: PAD_H,
+    width: A4_LARGURA - PAD_H * 2,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
+  headerMarca: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 1.6,
+    color: COR_TITULO,
+  },
+  headerSub: {
+    marginTop: 1,
+    fontSize: 7,
+    letterSpacing: 1.5,
+    color: COR_MUTED,
+  },
+  headerTitulo: {
+    fontSize: 9,
+    fontWeight: 700,
+    letterSpacing: 0.7,
+    color: COR_LARANJA,
+    textAlign: "right",
+  },
+  headerData: {
+    marginTop: 2,
+    fontSize: 8,
+    letterSpacing: 0.6,
+    color: COR_MUTED,
+    textAlign: "right",
+  },
+  headerLinha: {
+    marginTop: 8,
+    height: 1,
+    backgroundColor: COR_LARANJA,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 20,
+    left: PAD_H,
+    width: A4_LARGURA - PAD_H * 2,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  footerMarca: {
+    fontSize: 8,
+    letterSpacing: 0.8,
+    color: COR_MUTED,
+  },
+  footerMarcaForte: {
+    fontWeight: 700,
+    color: COR_LARANJA,
+  },
+  pageNum: {
+    fontSize: 8,
+    color: COR_MUTED,
+    letterSpacing: 0.4,
+  },
+  contatoBloco: {
     fontSize: 11,
     lineHeight: 1.5,
-    color: YB_COR_TEXTO,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
+    color: COR_LARANJA,
+    textAlign: "center",
+    marginBottom: 14,
   },
-  demaisTitulo: {
-    fontSize: 11,
-    fontFamily: "Montserrat",
+  contatoForte: {
     fontWeight: 700,
-    color: YB_COR_TEXTO,
-    marginBottom: 3,
-    marginTop: 12,
   },
-  demaisTexto: {
-    fontSize: 11,
+  saudacao: {
+    fontSize: 11.5,
+    lineHeight: 1.5,
+    color: COR_TEXTO,
+    marginBottom: 8,
+  },
+  paragrafo: {
+    fontSize: 10.5,
+    lineHeight: 1.5,
+    color: COR_TEXTO,
+    marginBottom: 8,
+  },
+  secao: {
+    marginTop: 14,
+    marginBottom: 8,
+    alignItems: "center",
+  },
+  secaoTitulo: {
+    fontSize: 11.5,
+    fontWeight: 700,
+    letterSpacing: 0.6,
+    color: COR_TITULO,
+    textAlign: "center",
+  },
+  secaoTraco: {
+    marginTop: 4,
+    width: 22,
+    height: 2,
+    backgroundColor: COR_LARANJA,
+  },
+  bullet: {
+    fontSize: 10.5,
     lineHeight: 1.45,
-    color: YB_COR_TEXTO,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
+    color: COR_TEXTO,
+    marginBottom: 3,
   },
-  investRow: {
+  bulletForte: {
+    fontWeight: 700,
+  },
+  itemTitulo: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: COR_TITULO,
+    marginBottom: 2,
+  },
+  bloco: {
+    marginBottom: 10,
+  },
+  investLinha: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 4,
+    paddingBottom: 6,
+    marginBottom: 6,
+    borderBottomWidth: 0.6,
+    borderBottomColor: COR_LINHA,
   },
   investLabel: {
-    fontSize: 11,
-    fontFamily: "Montserrat",
-    fontWeight: 700,
-    color: YB_COR_TEXTO,
     flex: 1,
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: COR_TITULO,
     paddingRight: 12,
   },
   investValor: {
-    fontSize: 11,
-    fontFamily: "Montserrat",
+    fontSize: 10.5,
     fontWeight: 700,
-    color: YB_COR_TEXTO,
+    color: COR_TITULO,
     textAlign: "right",
   },
-  pagtoTitulo: {
+  totalBar: {
+    marginTop: 8,
+    marginBottom: 8,
+    paddingVertical: 11,
+    backgroundColor: COR_LARANJA_SUAVE,
+    alignItems: "center",
+  },
+  totalTexto: {
     fontSize: 12,
-    fontFamily: "Montserrat",
     fontWeight: 700,
-    color: YB_COR_LARANJA,
-    marginTop: 28,
-    marginBottom: 10,
+    color: COR_TITULO,
+    textAlign: "center",
+  },
+  gestaoNota: {
+    fontSize: 10.5,
+    color: COR_TEXTO,
+    textAlign: "center",
+    marginBottom: 6,
   },
   pagtoLinha: {
-    fontSize: 11,
-    lineHeight: 1.45,
-    color: YB_COR_TEXTO,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
+    fontSize: 10.5,
+    lineHeight: 1.5,
+    color: COR_TEXTO,
     marginBottom: 6,
   },
   pagtoRotulo: {
-    fontFamily: "Montserrat",
     fontWeight: 700,
-  },
-  obsTitulo: {
-    fontSize: 11,
-    fontFamily: "Montserrat",
-    fontWeight: 700,
-    color: YB_COR_LARANJA,
-    marginTop: 36,
-    marginBottom: 8,
-  },
-  obsTexto: {
-    fontSize: 10,
-    lineHeight: 1.45,
-    color: YB_COR_TEXTO,
-    fontFamily: "Montserrat",
-    fontWeight: 400,
-    marginBottom: 6,
+    color: COR_TITULO,
   },
 });
 
-function fontSizeCampo(texto, base = 13) {
+function fontSizeCampo(texto, base = 12) {
   const n = String(texto || "").length;
-  if (n > 36) return 8;
-  if (n > 28) return 9.5;
-  if (n > 20) return 11;
+  if (n > 48) return 9;
+  if (n > 32) return 10;
+  if (n > 22) return 11;
   return base;
 }
 
-function CabecalhoInterno({ linha1, linha2, dataInterna }) {
+function CampoCapa({ rotulo, valor, neutro = false }) {
   return (
     <View>
-      <Text style={styles.headerTitulo1}>{linha1}</Text>
-      <Text style={styles.headerTitulo2}>{linha2}</Text>
-      <View style={styles.headerLinhaVertical} />
-      <View style={styles.headerContato}>
-        <Text style={styles.headerMarca}>{YB_MARCA_ESPACADA}</Text>
-        <Text style={styles.headerContatoLinha}>{YB_CONTATO.email}</Text>
-        <Text style={styles.headerContatoLinha}>{YB_CONTATO.telefone}</Text>
-        <Text style={styles.headerData}>{dataInterna}</Text>
-      </View>
+      <Text style={styles.capaRotulo}>{rotulo}</Text>
+      <Text
+        style={[
+          neutro ? styles.capaValorNeutro : styles.capaValor,
+          { fontSize: fontSizeCampo(valor) },
+        ]}
+      >
+        {valor}
+      </Text>
+      <View style={styles.capaFilete} />
     </View>
   );
 }
 
-function BannerIntro({ paragrafos, foto, fotoStyle }) {
+function Cabecalho({ titulo, data }) {
   return (
-    <View style={styles.banner} wrap={false}>
-      <View style={styles.bannerTexto}>
-        {paragrafos.map((p) => (
-          <Text key={p.slice(0, 28)} style={styles.bannerParagrafo}>
-            {p}
-          </Text>
-        ))}
+    <View style={styles.header} fixed>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.headerMarca}>YBYOCA</Text>
+          <Text style={styles.headerSub}>ARQUITETURA</Text>
+        </View>
+        <View>
+          <Text style={styles.headerTitulo}>{titulo}</Text>
+          <Text style={styles.headerData}>{data}</Text>
+        </View>
       </View>
-      <Image src={foto} style={fotoStyle} wrap={false} />
+      <View style={styles.headerLinha} />
     </View>
   );
 }
 
-function chunk(lista, tamanho) {
-  const out = [];
-  for (let i = 0; i < lista.length; i += tamanho) {
-    out.push(lista.slice(i, i + tamanho));
+function Rodape() {
+  return (
+    <View style={styles.footer} fixed>
+      <Text style={styles.footerMarca}>
+        <Text style={styles.footerMarcaForte}>YBYOCA</Text>
+        {"  ARQUITETURA"}
+      </Text>
+      <Text
+        style={styles.pageNum}
+        render={({ pageNumber }) => String(pageNumber).padStart(2, "0")}
+      />
+    </View>
+  );
+}
+
+function Pagina({ titulo, data, children }) {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Cabecalho titulo={titulo} data={data} />
+      <Rodape />
+      {children}
+    </Page>
+  );
+}
+
+function Secao({ titulo }) {
+  return (
+    <View style={styles.secao} wrap={false}>
+      <Text style={styles.secaoTitulo}>{titulo}</Text>
+      <View style={styles.secaoTraco} />
+    </View>
+  );
+}
+
+function Bullet({ children, forte = false }) {
+  return (
+    <Text style={styles.bullet}>
+      <Text style={styles.bulletForte}>• </Text>
+      {forte ? <Text style={styles.bulletForte}>{children}</Text> : children}
+    </Text>
+  );
+}
+
+function itensEntrega(texto) {
+  return String(texto || "")
+    .split(";")
+    .map((item) => item.replace(/\.\s*$/, "").trim())
+    .filter(Boolean);
+}
+
+function estimarAlturaTexto(texto, fontSize = 10.5, lineHeight = 1.45) {
+  const largura = A4_LARGURA - PAD_H * 2;
+  const cpl = Math.max(24, Math.floor(largura / (fontSize * 0.5)));
+  const linhas = String(texto || "")
+    .split("\n")
+    .reduce(
+      (acc, linha) => acc + Math.max(1, Math.ceil(Math.max(linha.length, 1) / cpl)),
+      0,
+    );
+  return linhas * fontSize * lineHeight;
+}
+
+function textoServico(titulo) {
+  return (
+    YB_SERVICOS_DETALHE[titulo] ||
+    "Serviço complementar conforme briefing acordado com o cliente."
+  );
+}
+
+/** Reparte os serviços sem deixar um item sozinho na última página. */
+function paginarDemaisServicos(titulos) {
+  const limite = ALTURA_UTIL - 12;
+  const intro =
+    YB_DEMAIS_INTRO.reduce((acc, p) => acc + estimarAlturaTexto(p) + 8, 0) + 40;
+  const paginas = [];
+  let atual = [];
+  let altura = intro;
+
+  for (const titulo of titulos) {
+    const h = 18 + estimarAlturaTexto(textoServico(titulo)) + 12;
+    if (atual.length && altura + h > limite) {
+      paginas.push(atual);
+      atual = [titulo];
+      altura = h;
+    } else {
+      atual.push(titulo);
+      altura += h;
+    }
   }
-  return out;
+  if (atual.length) paginas.push(atual);
+
+  if (
+    paginas.length > 1 &&
+    paginas.at(-1).length === 1 &&
+    paginas.at(-2).length > 1
+  ) {
+    paginas.at(-1).unshift(paginas.at(-2).pop());
+  }
+  return paginas.length ? paginas : [[]];
 }
 
 export default function OrcamentoYbyocaPDF({ orcamento }) {
   const proposta = normalizarPropostaDadosYbyoca(orcamento?.proposta_dados);
   const dataRef = orcamento?.data || orcamento?.created_at;
   const codigo = formatarCodigoPropostaYB(orcamento?.numero_proposta, dataRef);
-  const dataCapa = formatarDataPropostaBR(dataRef);
   const dataInterna = formatarDataCabecalhoYB(dataRef);
+  const mesAno = formatarMesAnoCapa(dataRef);
   const nomeCliente = String(orcamento?.nome || "").trim() || "—";
   const contato = String(proposta.contato || "").trim() || "—";
   const endereco = String(proposta.endereco || "").trim() || "—";
@@ -490,17 +513,20 @@ export default function OrcamentoYbyocaPDF({ orcamento }) {
   const servicosOferecidos = listaServicosOferecidosYbyoca(proposta);
   const demaisServicos = listaDemaisServicosYbyoca(proposta);
   const entregaTexto = textoEntregaArquitetonicoYbyoca(proposta.arquitetonico);
+  const entregaItens = itensEntrega(entregaTexto);
   const itensComplementares = listaComplementaresExibicao(
     proposta.complementares,
     proposta.complementares_outros,
     OPCOES_COMPLEMENTARES_YB,
   );
+
   const temArquitetonico =
     proposta.arquitetonico.length > 0 ||
     (parseFloat(proposta.valores.arquitetonico) || 0) > 0;
   const temDemais = demaisServicos.length > 0;
 
   const valor = (key) => parseFloat(proposta.valores[key]) || 0;
+  const totalProjetos = calcularTotalProjetosYbyoca(proposta.valores);
   const linhasInvestimento = [];
   if (valor("arquitetonico") > 0) {
     linhasInvestimento.push({
@@ -522,253 +548,193 @@ export default function OrcamentoYbyocaPDF({ orcamento }) {
       valor: formatarMoedaBRL(proposta.valores.complementares),
     });
   }
-  if (valor("gestao") > 0) {
-    linhasInvestimento.push({
-      label: "Gestão de Obras",
-      valor: `${formatarMoedaBRL(proposta.valores.gestao)} / mês`,
-      espacoAntes: true,
-    });
-  }
-
-  const demaisPaginas =
-    demaisServicos.length <= 4
-      ? [demaisServicos]
-      : [demaisServicos.slice(0, 3), ...chunk(demaisServicos.slice(3), 5)];
 
   const listaServicos = servicosOferecidos.length
     ? servicosOferecidos
     : ["Serviços conforme briefing acordado com o cliente."];
 
+  const saudacao =
+    nomeCliente === "—"
+      ? "Seja bem-vindo à Ybyoca Arquitetura."
+      : `${nomeCliente}, seja bem-vindo à Ybyoca Arquitetura.`;
+
   return (
     <Document title={`PROPOSTA ${codigo} — Ybyoca`}>
-      <Page size="A4" style={styles.page} wrap={false}>
-        <View style={{ width: A4_LARGURA, height: A4_ALTURA }} />
-        <View style={styles.fundoBox}>
-          <Image src={coverBg} style={styles.fundo} />
+      <Page size="A4" style={styles.capa}>
+        <View style={styles.capaTopo}>
+          <Text style={styles.capaMarca}>YBYOCA</Text>
+          <Text style={styles.capaMarcaSub}>ARQUITETURA</Text>
         </View>
-        <View style={[styles.maskValorEsq, styles.maskCliente]}>
-          <Text
-            style={[styles.valorEsq, { fontSize: fontSizeCampo(nomeCliente) }]}
-          >
-            {nomeCliente}
-          </Text>
+        <View style={{ flexGrow: 1, minHeight: 28 }} />
+        <View style={styles.capaMiolo}>
+          <View style={styles.capaTraco} />
+          <Text style={styles.capaTitulo}>PROPOSTA</Text>
+          <Text style={styles.capaTituloForte}>ORÇAMENTÁRIA</Text>
+          <Text style={styles.capaSubtitulo}>{YB_CAPA_SUBTITULO}</Text>
         </View>
-        <View style={[styles.maskValorEsq, styles.maskContato]}>
-          <Text style={[styles.valorEsq, { fontSize: fontSizeCampo(contato) }]}>
-            {contato}
-          </Text>
+        <View style={styles.capaFaixa} />
+        <View style={styles.capaFotoJanela}>
+          <Image src={photoFachada} style={styles.capaFoto} />
         </View>
-        <View style={[styles.maskValorEsq, styles.maskEndereco]}>
-          <Text
-            style={[styles.valorEsq, { fontSize: fontSizeCampo(endereco) }]}
-          >
-            {endereco}
-          </Text>
-        </View>
-        <View style={[styles.maskValorDir, styles.maskProposta]}>
-          <Text style={styles.valorDir}>{codigo}</Text>
-        </View>
-        <View style={[styles.maskValorDir, styles.maskData]}>
-          <Text style={styles.valorDir}>{dataCapa}</Text>
+        <View style={styles.capaRodape}>
+          <View style={styles.capaLinhaCampos}>
+            <View style={styles.capaColEsq}>
+              <CampoCapa rotulo="CLIENTE" valor={nomeCliente} />
+            </View>
+            <View style={styles.capaColDir}>
+              <CampoCapa rotulo="PROPOSTA" valor={codigo} />
+            </View>
+          </View>
+          <View style={styles.capaLinhaCampos}>
+            <View style={styles.capaColEsq}>
+              <CampoCapa rotulo="CONTATO" valor={contato} />
+            </View>
+            <View style={styles.capaColDir}>
+              <CampoCapa
+                rotulo="DATA"
+                valor={`${mesAno.mes}  ·  ${mesAno.ano}`}
+                neutro
+              />
+            </View>
+          </View>
+          <CampoCapa rotulo="ENDEREÇO" valor={endereco} />
         </View>
       </Page>
 
-      <Page size="A4" style={styles.page} wrap={false}>
-        <View style={{ width: A4_LARGURA, height: A4_ALTURA }} />
-        <View style={styles.headerP2}>
-          <Text style={styles.headerP2Texto}>
-            <Text style={styles.headerP2Nome}>{nomeCliente}</Text>
-            {YB_BOAS_VINDAS_SUFIXO}
-          </Text>
-          <Text style={styles.headerP2Agrad}>{YB_BOAS_VINDAS_AGRADECIMENTO}</Text>
-        </View>
-        <Text style={styles.p2Intro}>
-          {YB_INTRO_ESCRITORIO.map((parte) => (
-            <Text
-              key={parte.trecho.slice(0, 24)}
-              style={parte.negrito ? styles.p2IntroBold : undefined}
-            >
-              {parte.trecho}
-            </Text>
-          ))}
+      <Pagina titulo="APRESENTAÇÃO" data={dataInterna}>
+        <Text style={styles.contatoBloco}>
+          <Text style={styles.contatoForte}>YBYOCA ARQUITETURA{"\n"}</Text>
+          {YB_CONTATO.email}
+          {"\n"}
+          {YB_CONTATO.telefone}
         </Text>
-        <Text style={styles.p2ServicosTitulo}>Serviços oferecidos:</Text>
-        <View style={styles.p2ServicosLista}>
-          {listaServicos.map((item) => (
-            <Text key={item} style={styles.p2Servico}>
-              {item}
-            </Text>
-          ))}
-        </View>
-        <Image src={photoCasa1} style={styles.p2Casa1} wrap={false} />
-        <Image src={photoCasa2} style={styles.p2Casa2} wrap={false} />
-        <Text style={styles.p2EquipeTitulo}>{YB_EQUIPE.titulo}</Text>
-        <Image src={photoEquipe} style={styles.p2EquipeFoto} wrap={false} />
-        <View style={styles.p2EquipeTexto}>
-          {YB_EQUIPE.paragrafos.map((p) => (
-            <Text key={p.slice(0, 32)} style={styles.p2EquipeParagrafo}>
-              {p}
-            </Text>
-          ))}
-        </View>
-        <View style={styles.qrBox}>
-          <Image src={qrInstagram} style={styles.qrImg} wrap={false} />
-        </View>
-      </Page>
+        <Text style={styles.saudacao}>{saudacao}</Text>
+        <Text style={styles.paragrafo}>{YB_BOAS_VINDAS_AGRADECIMENTO}</Text>
+        <Text style={styles.paragrafo}>
+          {YB_INTRO_ESCRITORIO.map((parte) =>
+            parte.negrito ? (
+              <Text key={parte.trecho} style={styles.bulletForte}>
+                {parte.trecho}
+              </Text>
+            ) : (
+              <Text key={parte.trecho.slice(0, 12)}>{parte.trecho}</Text>
+            ),
+          )}
+        </Text>
+
+        <Secao titulo="SERVIÇOS OFERECIDOS" />
+        {listaServicos.map((item) => (
+          <Bullet key={item} forte={servicosOferecidos.length > 0}>
+            {item}
+          </Bullet>
+        ))}
+
+        <Secao titulo="NOSSA EQUIPE" />
+        {YB_EQUIPE.paragrafos.map((p) => (
+          <Text key={p.slice(0, 32)} style={styles.paragrafo}>
+            {p}
+          </Text>
+        ))}
+      </Pagina>
 
       {temArquitetonico ? (
-        <Page size="A4" style={styles.page} wrap={false}>
-          <CabecalhoInterno
-            linha1="Projeto"
-            linha2="Arquitetônico"
-            dataInterna={dataInterna}
-          />
-          <BannerIntro
-            paragrafos={[YB_ARQUITETONICO.intro]}
-            foto={photoFachada}
-            fotoStyle={{
-              position: "absolute",
-              left: 346,
-              top: 10,
-              width: 250,
-              height: 178,
-              objectFit: "cover",
-            }}
-          />
-          <View style={styles.corpo}>
-            <Text style={styles.secaoLaranja}>
-              {YB_ARQUITETONICO.etapasTitulo}
-            </Text>
-            {YB_ARQUITETONICO.etapas.map((etapa, idx) => (
-              <View key={etapa.titulo}>
-                <Text
-                  style={[
-                    styles.etapaTitulo,
-                    idx === 0 ? { marginTop: 0 } : null,
-                  ]}
-                >
-                  {etapa.titulo}
-                </Text>
-                <Text style={styles.etapaTexto}>{etapa.texto}</Text>
-              </View>
-            ))}
-            {entregaTexto ? (
-              <View>
-                <Text style={[styles.secaoLaranja, { marginTop: 14 }]}>
-                  {YB_ARQUITETONICO.entregaTitulo}
-                </Text>
-                <Text style={styles.entregaTexto}>{entregaTexto}</Text>
-              </View>
-            ) : null}
-          </View>
-        </Page>
+        <Pagina titulo="PROJETO ARQUITETÔNICO" data={dataInterna}>
+          <Text style={styles.paragrafo}>{YB_ARQUITETONICO.intro}</Text>
+          <Secao titulo={YB_ARQUITETONICO.etapasTitulo} />
+          {YB_ARQUITETONICO.etapas.map((etapa) => (
+            <View key={etapa.titulo} style={styles.bloco} wrap={false}>
+              <Text style={styles.itemTitulo}>{etapa.titulo}</Text>
+              <Text style={styles.paragrafo}>{etapa.texto}</Text>
+            </View>
+          ))}
+          {entregaItens.length ? (
+            <View>
+              <Secao titulo={YB_ARQUITETONICO.entregaTitulo} />
+              {entregaItens.map((item) => (
+                <Bullet key={item}>{item}</Bullet>
+              ))}
+            </View>
+          ) : null}
+        </Pagina>
       ) : null}
 
       {temDemais
-        ? demaisPaginas.map((grupo, idx) => (
-            <Page key={`demais-${idx}`} size="A4" style={styles.page} wrap={false}>
-              <CabecalhoInterno
-                linha1="Demais"
-                linha2="Serviços"
-                dataInterna={dataInterna}
-              />
+        ? paginarDemaisServicos(demaisServicos).map((grupo, idx) => (
+            <Pagina
+              key={`demais-${grupo[0] || idx}`}
+              titulo="DEMAIS SERVIÇOS"
+              data={dataInterna}
+            >
               {idx === 0 ? (
-                <BannerIntro
-                  paragrafos={YB_DEMAIS_INTRO}
-                  foto={photoPrancheta}
-                  fotoStyle={{
-                    position: "absolute",
-                    left: 362,
-                    top: 2,
-                    width: 202,
-                    height: 193,
-                    objectFit: "cover",
-                  }}
-                />
+                <View>
+                  {YB_DEMAIS_INTRO.map((p) => (
+                    <Text key={p.slice(0, 32)} style={styles.paragrafo}>
+                      {p}
+                    </Text>
+                  ))}
+                  <Secao titulo={YB_DEMAIS_TITULO} />
+                </View>
               ) : null}
-              <View style={styles.corpo}>
-                {idx === 0 ? (
-                  <Text style={styles.secaoLaranja}>{YB_DEMAIS_TITULO}</Text>
-                ) : null}
-                {grupo.map((titulo, i) => (
-                  <View key={titulo}>
-                    <Text
-                      style={[
-                        styles.demaisTitulo,
-                        idx === 0 && i === 0 ? { marginTop: 0 } : null,
-                      ]}
-                    >
-                      {titulo}
-                    </Text>
-                    <Text style={styles.demaisTexto}>
-                      {YB_SERVICOS_DETALHE[titulo] ||
-                        "Serviço complementar conforme briefing acordado com o cliente."}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </Page>
+              {grupo.map((titulo) => (
+                <View key={titulo} style={styles.bloco} wrap={false}>
+                  <Text style={styles.itemTitulo}>{titulo}</Text>
+                  <Text style={styles.paragrafo}>{textoServico(titulo)}</Text>
+                </View>
+              ))}
+            </Pagina>
           ))
         : null}
 
-      <Page size="A4" style={styles.page} wrap={false}>
-        <CabecalhoInterno
-          linha1="Condições"
-          linha2="Gerais"
-          dataInterna={dataInterna}
-        />
-        <BannerIntro
-          paragrafos={YB_CONDICOES_INTRO}
-          foto={photoInvestimento}
-          fotoStyle={{
-            position: "absolute",
-            left: 330,
-            top: 10,
-            width: 266,
-            height: 178,
-            objectFit: "cover",
-          }}
-        />
-        <View style={styles.corpo}>
-          <Text style={styles.secaoLaranja}>INVESTIMENTOS</Text>
-          {linhasInvestimento.length ? (
-            linhasInvestimento.map((linha) => (
-              <View
-                key={linha.label}
-                style={[
-                  styles.investRow,
-                  linha.espacoAntes ? { marginTop: 14 } : null,
-                ]}
-              >
-                <Text style={styles.investLabel}>{linha.label}</Text>
-                <Text style={styles.investValor}>{linha.valor}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.demaisTexto}>
-              Investimento conforme briefing acordado com o cliente.
+      <Pagina titulo="INVESTIMENTO" data={dataInterna}>
+        {YB_CONDICOES_INTRO.map((p) => (
+          <Text key={p.slice(0, 32)} style={styles.paragrafo}>
+            {p}
+          </Text>
+        ))}
+        <Secao titulo="INVESTIMENTOS" />
+        {linhasInvestimento.length ? (
+          linhasInvestimento.map((linha) => (
+            <View key={linha.label} style={styles.investLinha} wrap={false}>
+              <Text style={styles.investLabel}>{linha.label}</Text>
+              <Text style={styles.investValor}>{linha.valor}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.paragrafo}>
+            Investimento conforme briefing acordado com o cliente.
+          </Text>
+        )}
+        {totalProjetos > 0 ? (
+          <View style={styles.totalBar} wrap={false}>
+            <Text style={styles.totalTexto}>
+              Investimento geral: {formatarMoedaBRL(totalProjetos)}
             </Text>
-          )}
+          </View>
+        ) : null}
+        {valor("gestao") > 0 ? (
+          <Text style={styles.gestaoNota}>
+            Gestão de obras: {formatarMoedaBRL(proposta.valores.gestao)} / mês
+          </Text>
+        ) : null}
 
-          <Text style={styles.pagtoTitulo}>{YB_PAGAMENTO.titulo}</Text>
-          {YB_PAGAMENTO.opcoes.map((opcao) => (
-            <Text key={opcao.rotulo} style={styles.pagtoLinha}>
-              <Text style={styles.pagtoRotulo}>{opcao.rotulo}</Text>
-              {opcao.texto}
-            </Text>
-          ))}
+        <Secao titulo={YB_PAGAMENTO.titulo} />
+        {YB_PAGAMENTO.opcoes.map((opcao) => (
+          <Text key={opcao.rotulo} style={styles.pagtoLinha}>
+            <Text style={styles.pagtoRotulo}>{opcao.rotulo}</Text>
+            {opcao.texto}
+          </Text>
+        ))}
 
-          <Text style={styles.obsTitulo}>OBSERVAÇÕES:</Text>
-          {YB_OBSERVACOES.map((obs) => (
-            <Text key={obs.slice(0, 32)} style={styles.obsTexto}>
-              {obs}
-            </Text>
-          ))}
-          {proposta.descricao?.trim() ? (
-            <Text style={styles.obsTexto}>{proposta.descricao.trim()}</Text>
-          ) : null}
-        </View>
-      </Page>
+        <Secao titulo="OBSERVAÇÕES" />
+        {YB_OBSERVACOES.map((obs) => (
+          <Bullet key={obs.slice(0, 40)}>{obs}</Bullet>
+        ))}
+        {proposta.descricao?.trim() ? (
+          <Text style={[styles.paragrafo, { marginTop: 8 }]}>
+            {proposta.descricao.trim()}
+          </Text>
+        ) : null}
+      </Pagina>
     </Document>
   );
 }
